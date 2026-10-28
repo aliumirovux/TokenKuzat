@@ -32,7 +32,8 @@ struct MainWindow: View {
                 // Yon menyu yopiq — oyna tugmalari yonida ochish tugmasi
                 if columns == .detailOnly && !mapFocus {
                     SidebarToggle(open: false) { setCollapsed(false) }
-                        .padding(.leading, 78).padding(.top, 5)
+                        .padding(.leading, 76).padding(.top, 2)
+                        .ignoresSafeArea(.container, edges: .top)
                         .transition(.opacity)
                 }
             }
@@ -128,7 +129,8 @@ private struct Sidebar: View {
         .frame(maxHeight: .infinity, alignment: .top)
         // Oyna tugmalari qatorida, o'ng burchakda — yon menyuni yopish
         .overlay(alignment: .topTrailing) {
-            SidebarToggle(open: true, action: onCollapse).padding(.top, 5).padding(.trailing, 10)
+            SidebarToggle(open: true, action: onCollapse).padding(.top, 2).padding(.trailing, 8)
+                .ignoresSafeArea(.container, edges: .top)
         }
     }
 

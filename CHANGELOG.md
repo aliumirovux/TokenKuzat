@@ -1,5 +1,9 @@
 # O'zgarishlar
 
+## 6.11.1 — 2026-10-28
+
+- Yon menyuni ochish/yopish belgilari oyna tugmalari (qizil-sariq-yashil) bilan bir qatorda: yopiq paytda — tugmalarning o'ng yonida, sarlavha ustida osilib qolmaydi.
+
 ## 6.11.0 — 2026-10-28
 
 - Yon menyuni ochib-yopish: menyuning yuqori o'ng burchagidagi tugma (yoki ⌃⌘S) yopadi; yopiq paytda oyna tugmalari yonida ochish tugmasi chiqadi. Holat eslab qolinadi; menyu chetidan tortib yopilsa ham.
