@@ -22,7 +22,10 @@ final class ParserTests: XCTestCase {
         // 10 + 100×5 + 1000×2 (1 soatlik kesh) + 2000×0,1
         XCTAssertEqual(u.weighted, 10 + 500 + 2000 + 200, accuracy: 0.001)
         XCTAssertEqual(a.items.count, 2)
-        if case .tool(_, let name, let d) = a.items[1] {
+        if case .tool(_, let name, let d, let target) = a.items[1] {
+            XCTAssertEqual(target.category, .files)
+            XCTAssertEqual(target.name, "Engine.swift")
+            XCTAssertEqual(target.access, .read)
             XCTAssertEqual(name, "Read")
             XCTAssertEqual(d.text, "O'qiyapti · Engine.swift")
         } else {
@@ -190,5 +193,49 @@ final class EngineTests: XCTestCase {
         XCTAssertEqual(Engine.state(lastActivity: now.addingTimeInterval(-60), lastStop: "tool_result", now: now), .running)
         XCTAssertEqual(Engine.state(lastActivity: now.addingTimeInterval(-60), lastStop: "end_turn", now: now), .idle)
         XCTAssertEqual(Engine.state(lastActivity: nil, lastStop: nil, now: now), .idle)
+    }
+}
+
+final class ProcessTrackingTests: XCTestCase {
+    func testStepsAndResources() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("tk-steps-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: root.appendingPathComponent("p"), withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let now = Date()
+        func ts(_ s: Double) -> String { f.string(from: now.addingTimeInterval(s)) }
+        func use(_ id: String, _ t: Double, _ name: String, _ input: String) -> String {
+            #"{"type":"assistant","timestamp":"\#(ts(t))","message":{"id":"m\#(id)","content":[{"type":"tool_use","id":"\#(id)","name":"\#(name)","input":\#(input)}]}}"#
+        }
+        func result(_ id: String, _ t: Double, error: Bool = false) -> String {
+            #"{"type":"user","timestamp":"\#(ts(t))","message":{"content":[{"type":"tool_result","tool_use_id":"\#(id)","is_error":\#(error)}]}}"#
+        }
+        let lines = [
+            use("t1", -60, "Read", #"{"file_path":"/x/App.swift"}"#), result("t1", -58),
+            use("t2", -50, "Edit", #"{"file_path":"/x/App.swift"}"#), result("t2", -49),
+            use("t3", -40, "Bash", #"{"command":"cd /x && swift build","description":"Build"}"#), result("t3", -30, error: true),
+            use("t4", -5, "WebFetch", #"{"url":"https://example.com/a"}"#),
+        ]
+        try (lines.joined(separator: "\n") + "\n").write(to: root.appendingPathComponent("p/s.jsonl"), atomically: true, encoding: .utf8)
+
+        let snap = Engine(config: Engine.Config(roots: [root])).tick(now: now)
+        let main = try XCTUnwrap(snap.sessions.first?.main)
+        XCTAssertEqual(main.steps.map(\.id), ["t1", "t2", "t3", "t4"])
+        XCTAssertEqual(main.steps[0].status, .done)
+        XCTAssertEqual(main.steps[0].duration ?? 0, 2, accuracy: 0.01)
+        XCTAssertEqual(main.steps[2].status, .failed)
+        XCTAssertEqual(main.steps[3].status, .running)
+
+        let files = try XCTUnwrap(main.resources.first { $0.category == .files })
+        XCTAssertEqual(files.items.count, 1)
+        XCTAssertEqual(files.items[0].reads, 1)
+        XCTAssertEqual(files.items[0].writes, 1)
+        let shell = try XCTUnwrap(main.resources.first { $0.category == .shell })
+        XCTAssertEqual(shell.items.first?.name, "swift")
+        XCTAssertEqual(shell.errors, 1)
+        let web = try XCTUnwrap(main.resources.first { $0.category == .web })
+        XCTAssertTrue(web.busy)
+        XCTAssertEqual(main.resources.first?.category, .web)
     }
 }

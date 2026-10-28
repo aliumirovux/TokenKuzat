@@ -1,5 +1,14 @@
 # O'zgarishlar
 
+## 2.1.0 — 2026-10-28
+
+**Jarayonni kuzatish**
+- Sxemada har bir agentdan u kirgan narsalar tugun bo'lib chiqadi: Fayllar, Terminal, Internet, Tashqi xizmatlar (MCP), Agent chaqiruvlari. Har birida eng so'nggi 3 tasi va o'qish/yozish/xato belgilari.
+- Hozir bajarilayotgan qadamga boradigan chiziqda nuqtalar oqadi; oxirgi 20 soniyada ishlatilgani yorqin, eskisi xira.
+- Yordamchi agent tanlansa, uning resurslari 4-ustunda ochiladi.
+- O'ng panel: «Jarayon» lentasi — har bir qadam, boshlangan vaqti, davomiyligi, holati (bajarilmoqda / tugadi / xato); resurs tanlansa — to'liq ro'yxat.
+- Sxema oynaga avtomatik sig'diriladi; tugunlar endi pastga siljib qolmaydi.
+
 ## 2.0.0 — 2026-10-28
 
 **Yangi**

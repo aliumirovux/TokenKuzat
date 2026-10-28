@@ -10,7 +10,7 @@ public struct TranscriptEvent {
     }
 
     public enum Item: Equatable {
-        case tool(id: String, name: String, description: ToolDescriber.Description)
+        case tool(id: String, name: String, description: ToolDescriber.Description, target: ToolTarget)
         case text
         case thinking
     }
@@ -28,6 +28,8 @@ public struct TranscriptEvent {
         /// Foydalanuvchining haqiqiy so'rovlari (tizim eslatmalari va meta qatorlarsiz)
         public var prompts: [String] = []
         public var hasToolResult = false
+        /// Tugagan asbob chaqiruvlari: tool_use id → xato bo'ldimi
+        public var results: [(id: String, isError: Bool)] = []
     }
 
     public var kind: Kind
@@ -82,7 +84,8 @@ public enum TranscriptParser {
                 guard let id = b["id"] as? String else { continue }
                 let name = b["name"] as? String ?? "?"
                 let input = b["input"] as? [String: Any] ?? [:]
-                a.items.append(.tool(id: id, name: name, description: ToolDescriber.describe(name, input)))
+                a.items.append(.tool(id: id, name: name, description: ToolDescriber.describe(name, input),
+                                     target: ToolDescriber.target(name, input)))
             case "text":
                 if let t = b["text"] as? String, !t.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                     a.items.append(.text)
@@ -127,6 +130,9 @@ public enum TranscriptParser {
                 switch b["type"] as? String {
                 case "tool_result":
                     u.hasToolResult = true
+                    if let id = b["tool_use_id"] as? String {
+                        u.results.append((id: id, isError: (b["is_error"] as? Bool) == true))
+                    }
                 case "text":
                     if !isMeta, let s = b["text"] as? String, let p = prompt(s) { u.prompts.append(p) }
                 default:

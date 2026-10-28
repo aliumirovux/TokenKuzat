@@ -55,3 +55,98 @@ public enum ToolDescriber {
         }
     }
 }
+
+// MARK: - Nishon: agent nimaga kirdi
+
+/// Agent «tegingan» narsa turi — sxemada alohida tugun bo'ladi.
+public enum ToolCategory: String, CaseIterable, Sendable {
+    case files, shell, web, mcp, agent, other
+
+    public var title: String {
+        switch self {
+        case .files: return "Fayllar"
+        case .shell: return "Terminal"
+        case .web: return "Internet"
+        case .mcp: return "Tashqi xizmatlar"
+        case .agent: return "Agent chaqiruvlari"
+        case .other: return "Boshqa asboblar"
+        }
+    }
+
+    public var symbol: String {
+        switch self {
+        case .files: return "doc.on.doc.fill"
+        case .shell: return "terminal.fill"
+        case .web: return "globe"
+        case .mcp: return "puzzlepiece.extension.fill"
+        case .agent: return "person.2.fill"
+        case .other: return "wrench.and.screwdriver.fill"
+        }
+    }
+}
+
+public enum ToolAccess: String, Sendable {
+    case read, write, run
+}
+
+public struct ToolTarget: Equatable, Sendable {
+    public let category: ToolCategory
+    /// Bir xil narsani birlashtirish kaliti (masalan, faylning to'liq yo'li)
+    public let key: String
+    public let name: String
+    public let detail: String
+    public let access: ToolAccess
+}
+
+extension ToolDescriber {
+    public static func target(_ name: String, _ input: [String: Any]) -> ToolTarget {
+        func str(_ k: String) -> String? {
+            guard let s = input[k] as? String, !s.isEmpty else { return nil }
+            return s
+        }
+        func shortDir(_ path: String) -> String {
+            let dir = (path as NSString).deletingLastPathComponent
+            let home = FileManager.default.homeDirectoryForCurrentUser.path
+            return dir.hasPrefix(home) ? "~" + dir.dropFirst(home.count) : dir
+        }
+        func t(_ c: ToolCategory, _ key: String, _ n: String, _ d: String, _ a: ToolAccess) -> ToolTarget {
+            ToolTarget(category: c, key: c.rawValue + "|" + key, name: n, detail: d, access: a)
+        }
+
+        switch name {
+        case "Read", "Write", "Edit", "MultiEdit", "NotebookEdit":
+            let path = str("file_path") ?? str("notebook_path") ?? str("path") ?? "?"
+            return t(.files, path, (path as NSString).lastPathComponent, shortDir(path), name == "Read" ? .read : .write)
+        case "Grep", "Glob":
+            let pattern = str("pattern") ?? ""
+            let where_ = str("path").map { ($0 as NSString).lastPathComponent } ?? "loyiha"
+            return t(.files, "search|" + pattern, "🔍 " + pattern, "qidiruv · \(where_)", .read)
+        case "Bash":
+            let cmd = str("command") ?? ""
+            // «cd x && git status» → «git»: buyruq dasturi bo'yicha guruhlanadi
+            let parts = cmd.components(separatedBy: CharacterSet(charactersIn: "&;|\n"))
+                .map { $0.trimmingCharacters(in: .whitespaces) }
+                .filter { !$0.isEmpty && !$0.hasPrefix("cd ") }
+            let program = parts.first?.split(separator: " ").first.map(String.init) ?? "shell"
+            let prog = (program as NSString).lastPathComponent
+            return t(.shell, prog, prog, str("description") ?? String(cmd.prefix(80)), .run)
+        case "WebFetch":
+            let host = str("url").flatMap { URL(string: $0)?.host } ?? "?"
+            return t(.web, host, host, "sahifa o'qildi", .read)
+        case "WebSearch":
+            let q = str("query") ?? ""
+            return t(.web, "search|" + q, "🔍 " + q, "internetda qidiruv", .read)
+        case "Agent", "Task":
+            let d = str("description") ?? str("subagent_type") ?? "agent"
+            return t(.agent, d, d, str("subagent_type") ?? "yordamchi agent", .run)
+        default:
+            if name.hasPrefix("mcp__") {
+                let p = name.components(separatedBy: "__")
+                let server = p.count >= 2 ? p[1].replacingOccurrences(of: "_", with: " ") : name
+                let tool = p.count >= 3 ? p[2...].joined(separator: "_") : ""
+                return t(.mcp, server, server, tool, .run)
+            }
+            return t(.other, name, name, "", .run)
+        }
+    }
+}

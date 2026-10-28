@@ -29,7 +29,7 @@ Talab: macOS 13+, Xcode yoki Command Line Tools. `xcrun: error` chiqsa — bir m
 **Katta oyna** (yon menyu bilan):
 
 - **Umumiy** — 4 ta asosiy ko'rsatkich (kechagi kun bilan solishtirish), limit, 60 daqiqalik grafik, bugungi token tarkibi, oxirgi 7 kun, so'nggi sessiyalar va harakatlar.
-- **Agentlar sxemasi** — so'rov → asosiy agent → yordamchi agentlar; ishlayotgan agentga boradigan chiziqda nuqtalar oqadi, chiziq qalinligi — token. Tugunni bosing — tafsilotlar paneli (token turlari, fikrlash, asboblar).
+- **Agentlar sxemasi** — so'rov → asosiy agent → u kirgan narsalar (Fayllar, Terminal, Internet, MCP xizmatlar) va yordamchi agentlar. Hozir bajarilayotgan qadamga chiziqda nuqtalar oqadi, qalinlik — hajm. O'ng panelda jarayon lentasi: har bir qadam, davomiyligi va natijasi (xatolar qizil).
 - **Sessiyalar** — oxirgi 7 kun, qidiruv bilan; har bir sessiya tarkibi va agentlari.
 - **Tarix** — 7/14/30 kunlik grafik, kunni bosib tarkibini ko'rish, jadval, CSV eksport.
 - **Jonli lenta** — har bir asbob chaqiruvi va so'rovlaringiz; loyiha bo'yicha filtr.

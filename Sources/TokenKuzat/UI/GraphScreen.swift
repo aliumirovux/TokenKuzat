@@ -2,71 +2,117 @@ import SwiftUI
 import AppKit
 import TokenKuzatCore
 
-// n8n canvas'iga o'xshash agentlar sxemasi:
-// [Siz] ──▶ [Asosiy agent] ──▶ [Yordamchi agent 1]
-//                         ├──▶ [Yordamchi agent 2]
+// n8n canvas'iga o'xshash jarayon sxemasi:
+//
+// [Siz] ──▶ [Asosiy agent] ──▶ [Fayllar]       ──▶ (tanlangan yordamchining resurslari)
+//                         ├──▶ [Terminal]
+//                         ├──▶ [Internet]
+//                         ├──▶ [Yordamchi agent] ──▶ [Fayllar] …
 //                         └──▶ [+N ta tugagan]
-// Ishlayotgan agentga boradigan chiziq bo'ylab nuqtalar oqib turadi.
+//
+// Hozir bajarilayotgan qadamga boradigan chiziq bo'ylab nuqtalar oqadi; chiziq qalinligi — chaqiruvlar soni.
+// O'ngda — tanlangan tugun tafsiloti: jarayon lentasi (har bir qadam, davomiyligi, natijasi) va resurslar.
 
 private enum G {
-    static let nodeW: CGFloat = 260
-    static let nodeH: CGFloat = 96
-    static let trigW: CGFloat = 210
+    static let nodeW: CGFloat = 250
+    static let agentH: CGFloat = 100
+    static let resH: CGFloat = 118
+    static let trigW: CGFloat = 220
     static let trigH: CGFloat = 76
-    static let gap1: CGFloat = 70     // Siz → Asosiy
-    static let gap2: CGFloat = 110    // Asosiy → yordamchilar
-    static let rowGap: CGFloat = 20
-    static let pad: CGFloat = 48
-    static let collapseOver = 7       // shundan ko'p bo'lsa tugaganlar guruhlanadi
-    static let visibleIdle = 3
+    static let groupH: CGFloat = 64
+    static let colGap: CGFloat = 72
+    static let rowGap: CGFloat = 18
+    static let pad: CGFloat = 32
+    static let minScale: CGFloat = 0.6
+    static let collapseOver = 6
+    static let visibleIdle = 2
+    /// Shuncha soniya ichida ishlatilgan resursga chiziq yorqin chiziladi
+    static let recent: TimeInterval = 20
 }
 
-enum GraphItem: Identifiable {
+extension ToolCategory {
+    var color: Color {
+        switch self {
+        case .files: return .blue
+        case .shell: return .mint
+        case .web: return .cyan
+        case .mcp: return .pink
+        case .agent: return .indigo
+        case .other: return .gray
+        }
+    }
+}
+
+/// Inspektorda nima ko'rsatiladi
+private enum Selection: Equatable {
+    case agent(String)
+    case resource(agentId: String, category: ToolCategory)
+
+    var agentId: String {
+        switch self {
+        case .agent(let id), .resource(let id, _): return id
+        }
+    }
+}
+
+private enum Node: Identifiable {
     case agent(AgentSnap)
-    case group(count: Int, tokens: TokenCounts, expanded: Bool)
+    case resource(owner: AgentSnap, group: ResourceGroup)
+    case idleGroup(count: Int, tokens: TokenCounts, expanded: Bool)
 
     var id: String {
         switch self {
         case .agent(let a): return a.id
-        case .group(_, _, let e): return e ? "__collapse" : "__group"
+        case .resource(let o, let g): return o.id + "#" + g.id
+        case .idleGroup(_, _, let e): return e ? "__collapse" : "__group"
         }
     }
-    var state: AgentState {
-        if case .agent(let a) = self { return a.state }
-        return .idle
+
+    var height: CGFloat {
+        switch self {
+        case .agent: return G.agentH
+        case .resource: return G.resH
+        case .idleGroup: return G.groupH
+        }
     }
 }
 
 private struct Edge: Identifiable {
+    enum Style { case flow, wait, idle, hot, warm, cold }
     let id: String
     let from: CGPoint
     let to: CGPoint
-    let state: AgentState
+    let style: Style
+    let color: Color
     let width: CGFloat
 }
 
-private struct ChildPos: Identifiable {
-    let item: GraphItem
+private struct Placed: Identifiable {
+    let node: Node
     let p: CGPoint
-    var id: String { item.id }
+    var id: String { node.id }
 }
 
 private struct GraphLayout {
     var size: CGSize = .zero
-    var trigger: CGPoint = .zero
+    /// Tugunlar egallagan o'lcham (canvas'dan kichik bo'lishi mumkin)
+    var content: CGSize = .zero
+    var fits = true
+    var trigger: CGPoint?
     var main: CGPoint = .zero
-    var children: [ChildPos] = []
+    var nodes: [Placed] = []
     var edges: [Edge] = []
 }
 
 // MARK: - Ekran
 
 struct GraphScreen: View {
-    @EnvironmentObject var store: Store
     static let selectedSessionKey = "graphSession"
+    @EnvironmentObject var store: Store
     @AppStorage(Pref.countMode) private var mode = CountMode.raw
     @AppStorage(GraphScreen.selectedSessionKey) private var sessionId = ""
-    @State private var selectedId: String?
+    @AppStorage("graphInspector") private var showInspector = true
+    @State private var selection: Selection?
     @State private var showAllIdle = false
 
     var body: some View {
@@ -77,13 +123,10 @@ struct GraphScreen: View {
             Divider()
             if let session {
                 HStack(spacing: 0) {
-                    canvas(session)
-                    if let sel = selectedId, let a = session.agents.first(where: { $0.id == sel }) {
+                    canvas(session, now: s.updatedAt)
+                    if showInspector {
                         Divider()
-                        InspectorView(agent: a, sessionTotal: session.tokens.value(mode), mode: mode) {
-                            selectedId = nil
-                        }
-                        .frame(width: 290)
+                        inspector(session, now: s.updatedAt).frame(width: 340)
                     }
                 }
             } else {
@@ -91,37 +134,38 @@ struct GraphScreen: View {
                     VStack(spacing: 16) {
                         EmptyStateView(symbol: "point.3.connected.trianglepath.dotted",
                                        title: "Sxema uchun sessiya yo'q",
-                                       text: "Mac'da Claude Code yoki Cowork'da ish boshlansa, agentlar shu yerda tugunlar bo'lib chiqadi.")
+                                       text: "Mac'da Claude Code yoki Cowork'da ish boshlansa, agentlar va ular kirgan fayllar, buyruqlar, saytlar shu yerda tugunlar bo'lib chiqadi.")
                         SourcesList(sources: s.sources).card()
                     }
                     .padding(20)
                 }
             }
         }
-        .onChange(of: sessionId) { _ in selectedId = nil; showAllIdle = false }
+        .onChange(of: sessionId) { _ in selection = nil; showAllIdle = false }
     }
 
     // MARK: Yuqori panel
 
-    @ViewBuilder
     private func topBar(_ s: Snapshot, _ session: SessionSnap?) -> some View {
         HStack(spacing: 12) {
             if !s.sessions.isEmpty {
-                Picker("Sessiya", selection: Binding(
-                    get: { session?.id ?? "" },
-                    set: { sessionId = $0 })) {
-                    ForEach(s.sessions) { ss in
-                        Text(sessionLabel(ss)).tag(ss.id)
-                    }
+                Picker("Sessiya", selection: Binding(get: { session?.id ?? "" }, set: { sessionId = $0 })) {
+                    ForEach(s.sessions) { Text(sessionLabel($0)).tag($0.id) }
                 }
                 .labelsHidden()
-                .frame(maxWidth: 360)
+                .frame(maxWidth: 380)
             }
             Spacer()
             if let session {
-                Text("Sessiya: \(Fmt.tokens(session.tokens.value(mode))) token")
+                let steps = session.agents.reduce(0) { $0 + $1.steps.count }
+                Text("\(steps) qadam · \(Fmt.tokens(session.tokens.value(mode))) token")
                     .font(.caption).foregroundStyle(.secondary).monospacedDigit()
             }
+            Button { withAnimation(.easeInOut(duration: 0.2)) { showInspector.toggle() } } label: {
+                Image(systemName: "sidebar.right")
+            }
+            .buttonStyle(.borderless)
+            .help(showInspector ? "Tafsilotlarni yashirish" : "Tafsilotlarni ko'rsatish")
         }
         .padding(.horizontal, 14).padding(.vertical, 10)
     }
@@ -137,118 +181,225 @@ struct GraphScreen: View {
 
     // MARK: Canvas
 
-    @ViewBuilder
-    private func canvas(_ session: SessionSnap) -> some View {
-        let items = graphItems(session)
+    private func canvas(_ session: SessionSnap, now: Date) -> some View {
         GeometryReader { geo in
-            let layout = makeLayout(session, items, viewport: geo.size)
-            ScrollView([.horizontal, .vertical]) {
-                ZStack(alignment: .topLeading) {
-                    DotGrid().frame(width: layout.size.width, height: layout.size.height)
-                    EdgesView(edges: layout.edges).frame(width: layout.size.width, height: layout.size.height)
-                        .allowsHitTesting(false)
-
-                    TriggerNode(text: session.title)
-                        .position(layout.trigger)
-
-                    if let main = session.agents.first(where: { $0.isMain }) {
-                        AgentNode(agent: main, isMain: true, tokens: main.tokens.value(mode),
-                                  share: Fmt.percent(main.tokens.value(mode), of: session.tokens.value(mode)),
-                                  extra: session.contextTokens > 0 ? "Kontekst \(Fmt.tokens(Double(session.contextTokens)))" : nil,
-                                  selected: selectedId == main.id)
-                            .position(layout.main)
-                            .onTapGesture { toggleSelect(main.id) }
-                    }
-
-                    ForEach(layout.children) { c in
-                        childNode(c.item, session).position(c.p)
-                    }
+            // Oynaga sig'dirish: kerak bo'lsa 60% gacha kichraytiriladi, undan katta bo'lsa — aylantirish
+            // Tor oynada «so'rov» tuguni yashiriladi — sessiya nomi tepada baribir ko'rinadi
+            let full = makeLayout(session, viewport: geo.size, now: now, trigger: true).content
+            let trigger = full.width <= geo.size.width
+            let natural = trigger ? full : makeLayout(session, viewport: geo.size, now: now, trigger: false).content
+            let fit = min(1, geo.size.width / max(natural.width, 1), geo.size.height / max(natural.height, 1))
+            let scale = max(fit, G.minScale)
+            let viewport = CGSize(width: geo.size.width / scale, height: geo.size.height / scale)
+            let layout = makeLayout(session, viewport: viewport, now: now, trigger: trigger)
+            let scaled = canvasContent(session, layout)
+                .scaleEffect(scale, anchor: .topLeading)
+                .frame(width: layout.size.width * scale, height: layout.size.height * scale, alignment: .topLeading)
+            Group {
+                // Sig'sa — ScrollView'siz: aks holda u o'z ichki chekinishi bilan kontentni pastga surib qo'yadi
+                if layout.fits {
+                    scaled
+                } else {
+                    ScrollView([.horizontal, .vertical]) { scaled }
                 }
-                .frame(width: layout.size.width, height: layout.size.height)
-                .contentShape(Rectangle())
-                .onTapGesture { selectedId = nil }
             }
+            .frame(width: geo.size.width, height: geo.size.height, alignment: .topLeading)
             .background(Color(nsColor: .underPageBackgroundColor))
             .overlay(alignment: .bottomLeading) { Legend().padding(12) }
         }
     }
 
+    private func canvasContent(_ session: SessionSnap, _ layout: GraphLayout) -> some View {
+        ZStack(alignment: .topLeading) {
+            DotGrid()
+            EdgesView(edges: layout.edges).allowsHitTesting(false)
+
+            if let t = layout.trigger { TriggerNode(text: session.title).position(t) }
+
+            if let main = session.main {
+                AgentNode(agent: main, tokens: main.tokens.value(mode),
+                          share: Fmt.percent(main.tokens.value(mode), of: session.tokens.value(mode)),
+                          extra: session.contextTokens > 0 ? "Kontekst \(Fmt.tokens(session.contextTokens))" : nil,
+                          selected: currentSelection(session) == .agent(main.id))
+                    .position(layout.main)
+                    .onTapGesture { select(.agent(main.id)) }
+            }
+
+            ForEach(layout.nodes) { placed in
+                nodeView(placed.node, session).position(placed.p)
+            }
+        }
+        .frame(width: layout.size.width, height: layout.size.height)
+        .contentShape(Rectangle())
+        .onTapGesture { selection = nil }
+    }
+
     @ViewBuilder
-    private func childNode(_ item: GraphItem, _ session: SessionSnap) -> some View {
-        switch item {
+    private func nodeView(_ node: Node, _ session: SessionSnap) -> some View {
+        let sel = currentSelection(session)
+        switch node {
         case .agent(let a):
-            AgentNode(agent: a, isMain: false, tokens: a.tokens.value(mode),
+            AgentNode(agent: a, tokens: a.tokens.value(mode),
                       share: Fmt.percent(a.tokens.value(mode), of: session.tokens.value(mode)),
-                      extra: nil, selected: selectedId == a.id)
-                .onTapGesture { toggleSelect(a.id) }
-        case .group(let count, let tokens, let expanded):
+                      extra: a.steps.isEmpty ? nil : "\(a.steps.count) qadam",
+                      selected: sel?.agentId == a.id)
+                .onTapGesture { select(.agent(a.id)) }
+        case .resource(let owner, let g):
+            ResourceNode(group: g, selected: sel == .resource(agentId: owner.id, category: g.category))
+                .onTapGesture { select(.resource(agentId: owner.id, category: g.category)) }
+        case .idleGroup(let count, let tokens, let expanded):
             GroupNode(count: count, tokens: tokens.value(mode), expanded: expanded)
                 .onTapGesture { withAnimation(.easeInOut(duration: 0.2)) { showAllIdle.toggle() } }
         }
     }
 
-    private func toggleSelect(_ id: String) {
-        selectedId = selectedId == id ? nil : id
+    private func select(_ s: Selection) {
+        selection = selection == s ? nil : s
+        if !showInspector { showInspector = true }
+    }
+
+    /// Hech narsa tanlanmagan bo'lsa — asosiy agent
+    private func currentSelection(_ session: SessionSnap) -> Selection? {
+        if let selection, session.agents.contains(where: { $0.id == selection.agentId }) { return selection }
+        return session.main.map { .agent($0.id) }
     }
 
     // MARK: Ma'lumot → tugunlar
 
-    private func graphItems(_ session: SessionSnap) -> [GraphItem] {
+    private func helperNodes(_ session: SessionSnap) -> [Node] {
         let subs = session.agents.filter { !$0.isMain }   // eng yangisi birinchi
-        guard subs.count > G.collapseOver else { return subs.map { GraphItem.agent($0) } }
+        guard subs.count > G.collapseOver else { return subs.map { Node.agent($0) } }
         let idle = subs.filter { $0.state == .idle }
-        let keepIdle = Set(idle.prefix(G.visibleIdle).map(\.id))
-        let hidden = idle.filter { !keepIdle.contains($0.id) }
-        guard !hidden.isEmpty else { return subs.map { GraphItem.agent($0) } }
+        let keep = Set(idle.prefix(G.visibleIdle).map(\.id))
+        let hidden = idle.filter { !keep.contains($0.id) }
+        guard !hidden.isEmpty else { return subs.map { Node.agent($0) } }
         if showAllIdle {
-            return subs.map { GraphItem.agent($0) } + [GraphItem.group(count: hidden.count, tokens: TokenCounts(), expanded: true)]
+            return subs.map { Node.agent($0) } + [.idleGroup(count: hidden.count, tokens: TokenCounts(), expanded: true)]
         }
-        var sum = TokenCounts()
-        hidden.forEach { sum.add($0.tokens) }
         let hiddenIds = Set(hidden.map(\.id))
-        return subs.filter { !hiddenIds.contains($0.id) }.map { GraphItem.agent($0) }
-            + [GraphItem.group(count: hidden.count, tokens: sum, expanded: false)]
+        let sum = hidden.reduce(TokenCounts()) { $0 + $1.tokens }
+        return subs.filter { !hiddenIds.contains($0.id) }.map { Node.agent($0) }
+            + [.idleGroup(count: hidden.count, tokens: sum, expanded: false)]
     }
 
-    private func makeLayout(_ session: SessionSnap, _ items: [GraphItem], viewport: CGSize) -> GraphLayout {
+    private func makeLayout(_ session: SessionSnap, viewport: CGSize, now: Date, trigger: Bool) -> GraphLayout {
         var l = GraphLayout()
-        let n = CGFloat(items.count)
-        let colH = n > 0 ? n * G.nodeH + (n - 1) * G.rowGap : 0
-        let contentH = max(colH, G.nodeH) + 2 * G.pad
-        let contentW = G.pad * 2 + G.trigW + G.gap1 + G.nodeW + (items.isEmpty ? 0 : G.gap2 + G.nodeW)
-        let w = max(contentW, viewport.width)
-        let h = max(contentH, viewport.height)
+        guard let main = session.main else { return l }
+
+        // 3-ustun: asosiy agentning resurslari, keyin yordamchi agentlar
+        let col2: [Node] = main.resources.map { .resource(owner: main, group: $0) } + helperNodes(session)
+        // 4-ustun: tanlangan yordamchi agentning resurslari
+        let focus: AgentSnap? = selection.flatMap { sel in
+            sel.agentId == main.id ? nil : session.agents.first { $0.id == sel.agentId }
+        }
+        let col3: [Node] = focus.map { f in f.resources.map { Node.resource(owner: f, group: $0) } } ?? []
+
+        func height(_ col: [Node]) -> CGFloat {
+            col.isEmpty ? 0 : col.reduce(0) { $0 + $1.height } + CGFloat(col.count - 1) * G.rowGap
+        }
+        let h2 = height(col2), h3 = height(col3)
+        let contentH = max(h2, h3, G.agentH) + 2 * G.pad
+        let columns: CGFloat = col3.isEmpty ? (col2.isEmpty ? 2 : 3) : 4
+        let lead = trigger ? G.trigW + G.colGap : 0
+        let contentW = 2 * G.pad + lead + G.nodeW + (columns - 2) * (G.colGap + G.nodeW)
+        let w = max(contentW, viewport.width), h = max(contentH, viewport.height)
         l.size = CGSize(width: w, height: h)
+        l.content = CGSize(width: contentW, height: contentH)
+        l.fits = contentW <= viewport.width + 1 && contentH <= viewport.height + 1
 
         // Kontent kichik bo'lsa o'rtaga joylashadi
         let ox = (w - contentW) / 2
         let midY = h / 2
-        l.trigger = CGPoint(x: ox + G.pad + G.trigW / 2, y: midY)
-        let mainX = ox + G.pad + G.trigW + G.gap1 + G.nodeW / 2
-        l.main = CGPoint(x: mainX, y: midY)
+        let x1 = ox + G.pad + lead + G.nodeW / 2
+        l.main = CGPoint(x: x1, y: midY)
+        if trigger {
+            let t = CGPoint(x: ox + G.pad + G.trigW / 2, y: midY)
+            l.trigger = t
+            l.edges.append(Edge(id: "trigger", from: CGPoint(x: t.x + G.trigW / 2, y: midY),
+                                to: CGPoint(x: x1 - G.nodeW / 2, y: midY),
+                                style: agentStyle(main.state), color: Palette.state(main.state), width: 2))
+        }
 
-        let mainState = session.agents.first(where: { $0.isMain })?.state ?? .idle
-        l.edges.append(Edge(id: "trigger", from: CGPoint(x: l.trigger.x + G.trigW / 2, y: midY),
-                            to: CGPoint(x: mainX - G.nodeW / 2, y: midY), state: mainState, width: 2))
-
-        let childX = mainX + G.nodeW / 2 + G.gap2 + G.nodeW / 2
-        let top = midY - colH / 2
-        let maxTok = items.compactMap { item -> Double? in
-            if case .agent(let a) = item { return a.tokens.value(mode) }
+        let x2 = x1 + G.nodeW + G.colGap
+        let maxCalls = max(1, (col2 + col3).compactMap { n -> Int? in
+            if case .resource(_, let g) = n { return g.calls }
+            return nil
+        }.max() ?? 1)
+        let maxTok = col2.compactMap { n -> Double? in
+            if case .agent(let a) = n { return a.tokens.value(mode) }
             return nil
         }.max() ?? 0
-        for (i, item) in items.enumerated() {
-            let y = top + CGFloat(i) * (G.nodeH + G.rowGap) + G.nodeH / 2
-            let p = CGPoint(x: childX, y: y)
-            l.children.append(ChildPos(item: item, p: p))
-            var width: CGFloat = 1.5
-            if case .agent(let a) = item, maxTok > 0 {
-                width = 1.5 + 3.5 * CGFloat(sqrt(a.tokens.value(mode) / maxTok))
+
+        var y = midY - h2 / 2
+        var focusY = midY
+        for node in col2 {
+            let p = CGPoint(x: x2, y: y + node.height / 2)
+            l.nodes.append(Placed(node: node, p: p))
+            l.edges.append(edge(for: node, from: CGPoint(x: x1 + G.nodeW / 2, y: midY),
+                                to: CGPoint(x: x2 - G.nodeW / 2, y: p.y), now: now, maxCalls: maxCalls, maxTok: maxTok))
+            if case .agent(let a) = node, a.id == focus?.id { focusY = p.y }
+            y += node.height + G.rowGap
+        }
+
+        if !col3.isEmpty {
+            let x3 = x2 + G.nodeW + G.colGap
+            // Yordamchi qatoriga yaqin turadi, lekin canvas'dan chiqmaydi
+            var y3 = min(max(G.pad, focusY - h3 / 2), h - G.pad - h3)
+            for node in col3 {
+                let p = CGPoint(x: x3, y: y3 + node.height / 2)
+                l.nodes.append(Placed(node: node, p: p))
+                l.edges.append(edge(for: node, from: CGPoint(x: x2 + G.nodeW / 2, y: focusY),
+                                    to: CGPoint(x: x3 - G.nodeW / 2, y: p.y), now: now, maxCalls: maxCalls, maxTok: maxTok))
+                y3 += node.height + G.rowGap
             }
-            l.edges.append(Edge(id: item.id, from: CGPoint(x: mainX + G.nodeW / 2, y: midY),
-                                to: CGPoint(x: childX - G.nodeW / 2, y: y), state: item.state, width: width))
         }
         return l
+    }
+
+    private func agentStyle(_ s: AgentState) -> Edge.Style {
+        switch s {
+        case .running: return .flow
+        case .waiting: return .wait
+        case .idle: return .idle
+        }
+    }
+
+    private func edge(for node: Node, from: CGPoint, to: CGPoint, now: Date, maxCalls: Int, maxTok: Double) -> Edge {
+        switch node {
+        case .agent(let a):
+            let w = maxTok > 0 ? 1.5 + 3.5 * CGFloat(sqrt(a.tokens.value(mode) / maxTok)) : 1.5
+            return Edge(id: node.id, from: from, to: to, style: agentStyle(a.state), color: Palette.state(a.state), width: w)
+        case .resource(_, let g):
+            let age = g.lastActivity.map { now.timeIntervalSince($0) } ?? .infinity
+            let style: Edge.Style = g.busy ? .hot : (age < G.recent ? .warm : .cold)
+            return Edge(id: node.id, from: from, to: to, style: style, color: g.category.color,
+                        width: 1.5 + 3 * CGFloat(sqrt(Double(g.calls) / Double(maxCalls))))
+        case .idleGroup:
+            return Edge(id: node.id, from: from, to: to, style: .idle, color: .secondary, width: 1.5)
+        }
+    }
+
+    // MARK: Inspektor
+
+    @ViewBuilder
+    private func inspector(_ session: SessionSnap, now: Date) -> some View {
+        switch currentSelection(session) {
+        case .agent(let id)?:
+            if let a = session.agents.first(where: { $0.id == id }) {
+                AgentInspector(agent: a, sessionTotal: session.tokens.value(mode), mode: mode) { cat in
+                    select(.resource(agentId: a.id, category: cat))
+                }
+            }
+        case .resource(let id, let cat)?:
+            if let a = session.agents.first(where: { $0.id == id }), let g = a.resources.first(where: { $0.category == cat }) {
+                ResourceInspector(owner: a, group: g, now: now) { select(.agent(a.id)) }
+            } else {
+                EmptyStateView(symbol: "questionmark", title: "Topilmadi", text: "")
+            }
+        case nil:
+            EmptyStateView(symbol: "cursorarrow.click", title: "Tugunni tanlang",
+                           text: "Agent yoki resurs tugunini bosing — jarayon shu yerda chiqadi.")
+        }
     }
 }
 
@@ -258,29 +409,32 @@ private struct EdgesView: View {
     let edges: [Edge]
 
     var body: some View {
-        let anyLive = edges.contains { $0.state == .running }
-        TimelineView(.animation(minimumInterval: 1.0 / 30, paused: !anyLive)) { ctx in
+        let animated = edges.contains { $0.style == .flow || $0.style == .hot }
+        TimelineView(.animation(minimumInterval: 1.0 / 30, paused: !animated)) { ctx in
             let t = ctx.date.timeIntervalSinceReferenceDate
             Canvas { g, _ in
                 for e in edges {
                     let path = curve(e.from, e.to)
-                    let color = Palette.state(e.state)
-                    switch e.state {
-                    case .running:
-                        g.stroke(path, with: .color(color.opacity(0.3)), lineWidth: e.width)
-                        g.stroke(path, with: .color(color),
+                    switch e.style {
+                    case .flow, .hot:
+                        g.stroke(path, with: .color(e.color.opacity(0.3)), lineWidth: e.width)
+                        g.stroke(path, with: .color(e.color),
                                  style: StrokeStyle(lineWidth: e.width + 2.5, lineCap: .round,
                                                     dash: [0.1, 14], dashPhase: CGFloat(-t * 45)))
-                    case .waiting:
-                        g.stroke(path, with: .color(color.opacity(0.8)),
+                    case .wait:
+                        g.stroke(path, with: .color(e.color.opacity(0.8)),
                                  style: StrokeStyle(lineWidth: e.width, lineCap: .round, dash: [6, 5]))
+                    case .warm:
+                        g.stroke(path, with: .color(e.color.opacity(0.85)), lineWidth: e.width)
+                    case .cold:
+                        g.stroke(path, with: .color(e.color.opacity(0.28)), lineWidth: e.width)
                     case .idle:
                         g.stroke(path, with: .color(Color.secondary.opacity(0.45)), lineWidth: e.width)
                     }
-                    // Kirish porti (strelka o'rnida kichik doira)
                     let r: CGFloat = 4
+                    let dim = e.style == .idle || e.style == .cold
                     g.fill(Path(ellipseIn: CGRect(x: e.to.x - r, y: e.to.y - r, width: r * 2, height: r * 2)),
-                           with: .color(e.state == .idle ? Color.secondary.opacity(0.6) : color))
+                           with: .color(dim ? Color.secondary.opacity(0.6) : e.color))
                 }
             }
         }
@@ -316,21 +470,24 @@ private struct DotGrid: View {
 // MARK: - Tugunlar
 
 private struct NodeChrome: ViewModifier {
-    let state: AgentState
+    let live: Bool
+    let liveColor: Color
     let selected: Bool
     let width: CGFloat
     let height: CGFloat
+    var inPort = true
+    var outPort = true
 
     func body(content: Content) -> some View {
         content
             .padding(10)
-            .frame(width: width, height: height, alignment: .leading)
-            .background(RoundedRectangle(cornerRadius: 12).fill(Color(nsColor: .controlBackgroundColor)))
-            .overlay(RoundedRectangle(cornerRadius: 12)
+            .frame(width: width, height: height, alignment: .topLeading)
+            .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Color(nsColor: .controlBackgroundColor)))
+            .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .stroke(selected ? Color.accentColor : Color.primary.opacity(0.14), lineWidth: selected ? 2 : 1))
-            .overlay(RunningGlow(active: state == .running))
-            .overlay(alignment: .leading) { Port().offset(x: -4) }
-            .overlay(alignment: .trailing) { Port().offset(x: 4) }
+            .overlay(RunningGlow(active: live, color: liveColor))
+            .overlay(alignment: .leading) { if inPort { Port().offset(x: -4) } }
+            .overlay(alignment: .trailing) { if outPort { Port().offset(x: 4) } }
             .shadow(color: .black.opacity(0.12), radius: 3, y: 1)
             .contentShape(RoundedRectangle(cornerRadius: 12))
     }
@@ -346,13 +503,15 @@ private struct Port: View {
 
 private struct RunningGlow: View {
     let active: Bool
+    var color: Color = .green
+
     var body: some View {
         if active {
             TimelineView(.animation(minimumInterval: 1.0 / 20)) { ctx in
                 let t = ctx.date.timeIntervalSinceReferenceDate
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(Color.green.opacity(0.55 + 0.45 * sin(t * 3)), lineWidth: 2)
-                    .shadow(color: .green.opacity(0.45), radius: 8)
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .stroke(color.opacity(0.55 + 0.45 * sin(t * 3)), lineWidth: 2)
+                    .shadow(color: color.opacity(0.45), radius: 8)
             }
             .allowsHitTesting(false)
         }
@@ -361,7 +520,6 @@ private struct RunningGlow: View {
 
 private struct AgentNode: View {
     let agent: AgentSnap
-    let isMain: Bool
     let tokens: Double
     let share: String
     let extra: String?
@@ -369,20 +527,20 @@ private struct AgentNode: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
-            IconTile(symbol: agentSymbol(agent), tint: isMain ? Palette.main : Palette.agents)
+            IconTile(symbol: agentSymbol(agent), tint: agent.isMain ? Palette.main : Palette.agents)
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
-                    Text(isMain ? "Asosiy agent" : agent.title)
-                        .font(.callout.weight(.semibold)).lineLimit(1)
+                    Text(agent.isMain ? "Asosiy agent" : agent.title).font(.callout.weight(.semibold)).lineLimit(1)
                     Spacer(minLength: 4)
                     StateDot(state: agent.state)
                 }
-                Text(agent.subtitle.isEmpty ? (isMain ? "" : "yordamchi") : agent.subtitle)
+                Text(agent.subtitle.isEmpty ? (agent.isMain ? "" : "yordamchi") : agent.subtitle)
                     .font(.caption2).foregroundStyle(.secondary).lineLimit(1)
                 Text(agent.lastAction)
                     .font(.caption)
                     .foregroundStyle(agent.state == .idle ? Color.secondary : Color.primary)
                     .lineLimit(1)
+                Spacer(minLength: 0)
                 HStack(spacing: 6) {
                     Text(Fmt.tokens(tokens)).font(.caption.weight(.semibold)).monospacedDigit()
                     Text(share).font(.caption2).foregroundStyle(.secondary).monospacedDigit()
@@ -391,8 +549,74 @@ private struct AgentNode: View {
                 }
             }
         }
-        .modifier(NodeChrome(state: agent.state, selected: selected, width: G.nodeW, height: G.nodeH))
-        .help("Bosing — tafsilotlar")
+        .modifier(NodeChrome(live: agent.state == .running, liveColor: .green, selected: selected,
+                             width: G.nodeW, height: G.agentH, outPort: agent.isMain || !agent.resources.isEmpty))
+        .help("Bosing — jarayon va resurslar")
+    }
+}
+
+/// Agent kirgan narsalar guruhi: Fayllar, Terminal, Internet…
+private struct ResourceNode: View {
+    let group: ResourceGroup
+    let selected: Bool
+
+    var body: some View {
+        let c = group.category.color
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 8) {
+                IconTile(symbol: group.category.symbol, tint: c, size: 28)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(group.category.title).font(.callout.weight(.semibold)).lineLimit(1)
+                    Text("\(group.items.count) ta · \(group.calls) chaqiruv").font(.caption2).foregroundStyle(.secondary)
+                }
+                Spacer(minLength: 4)
+                if group.errors > 0 {
+                    Label("\(group.errors)", systemImage: "exclamationmark.triangle.fill")
+                        .font(.caption2.weight(.semibold)).foregroundStyle(.red)
+                        .help("\(group.errors) ta chaqiruv xato bilan tugadi")
+                }
+                if group.busy { ProgressView().controlSize(.mini) }
+            }
+            VStack(alignment: .leading, spacing: 2) {
+                ForEach(group.items.prefix(3)) { item in
+                    HStack(spacing: 4) {
+                        Text(item.name).font(.caption).lineLimit(1).truncationMode(.middle)
+                        Spacer(minLength: 4)
+                        AccessBadges(item: item)
+                    }
+                }
+                if group.items.count > 3 {
+                    Text("+\(group.items.count - 3) ta yana").font(.caption2).foregroundStyle(.tertiary)
+                }
+            }
+        }
+        .modifier(NodeChrome(live: group.busy, liveColor: c, selected: selected,
+                             width: G.nodeW, height: G.resH, outPort: false))
+        .help("Bosing — \(group.category.title.lowercased()) ro'yxati")
+    }
+}
+
+/// O'qish, yozish, ishga tushirish va xatolar soni
+private struct AccessBadges: View {
+    let item: ResourceItem
+
+    var body: some View {
+        let runs = item.calls - item.reads - item.writes
+        HStack(spacing: 6) {
+            if item.reads > 0 { badge("eye", item.reads, .secondary, "o'qildi") }
+            if item.writes > 0 { badge("pencil", item.writes, .orange, "o'zgartirildi") }
+            if runs > 0 { badge("play.fill", runs, .secondary, "chaqirildi") }
+            if item.errors > 0 { badge("exclamationmark.triangle.fill", item.errors, .red, "xato") }
+        }
+    }
+
+    private func badge(_ symbol: String, _ n: Int, _ color: Color, _ help: String) -> some View {
+        HStack(spacing: 2) {
+            Image(systemName: symbol).font(.system(size: 8, weight: .semibold))
+            Text("\(n)").font(.caption2).monospacedDigit()
+        }
+        .foregroundStyle(color)
+        .help("\(n) marta \(help)")
     }
 }
 
@@ -406,12 +630,8 @@ private struct TriggerNode: View {
                 Text(text).font(.caption).foregroundStyle(.secondary).lineLimit(2)
             }
         }
-        .padding(10)
-        .frame(width: G.trigW, height: G.trigH, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: 12).fill(Color(nsColor: .controlBackgroundColor)))
-        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.primary.opacity(0.14), lineWidth: 1))
-        .overlay(alignment: .trailing) { Port().offset(x: 4) }
-        .shadow(color: .black.opacity(0.12), radius: 3, y: 1)
+        .modifier(NodeChrome(live: false, liveColor: .clear, selected: false,
+                             width: G.trigW, height: G.trigH, inPort: false))
     }
 }
 
@@ -421,17 +641,16 @@ private struct GroupNode: View {
     let expanded: Bool
     var body: some View {
         HStack(spacing: 10) {
-            IconTile(symbol: expanded ? "chevron.up" : "square.stack.3d.up.fill", tint: Color.secondary)
+            IconTile(symbol: expanded ? "chevron.up" : "square.stack.3d.up.fill", tint: .secondary, size: 30)
             VStack(alignment: .leading, spacing: 2) {
-                Text(expanded ? "Tugaganlarni yig'ish" : "+\(count) ta tugagan agent")
-                    .font(.callout.weight(.semibold))
+                Text(expanded ? "Tugaganlarni yig'ish" : "+\(count) ta tugagan agent").font(.callout.weight(.semibold))
                 Text(expanded ? "\(count) ta tugagan agentni yashirish" : "Jami \(Fmt.tokens(tokens)) token · bosib oching")
                     .font(.caption).foregroundStyle(.secondary).lineLimit(1)
             }
             Spacer(minLength: 0)
         }
         .padding(10)
-        .frame(width: G.nodeW, height: G.nodeH * 0.7, alignment: .leading)
+        .frame(width: G.nodeW, height: G.groupH, alignment: .leading)
         .background(RoundedRectangle(cornerRadius: 12)
             .strokeBorder(Color.primary.opacity(0.25), style: StrokeStyle(lineWidth: 1, dash: [5, 4])))
         .overlay(alignment: .leading) { Port().offset(x: -4) }
@@ -442,85 +661,141 @@ private struct GroupNode: View {
 private struct Legend: View {
     var body: some View {
         HStack(spacing: 12) {
-            item(.running, "Ishlayapti")
-            item(.waiting, "Natija kutyapti")
-            item(.idle, "Tugagan")
-            Text("Chiziq qalinligi = token").foregroundStyle(.secondary)
+            item(Palette.state(.running), "Ishlayapti")
+            item(Palette.state(.waiting), "Natija kutyapti")
+            item(Palette.state(.idle), "Tugagan")
+            Divider().frame(height: 10)
+            ForEach([ToolCategory.files, .shell, .web, .mcp], id: \.self) { item($0.color, $0.title) }
+            Text("Qalinlik = hajm").foregroundStyle(.secondary)
         }
         .font(.caption2)
         .padding(.horizontal, 10).padding(.vertical, 6)
         .background(.regularMaterial, in: Capsule())
     }
-    private func item(_ s: AgentState, _ t: String) -> some View {
+
+    private func item(_ c: Color, _ t: String) -> some View {
         HStack(spacing: 4) {
-            Circle().fill(Palette.state(s)).frame(width: 7, height: 7)
+            Circle().fill(c).frame(width: 7, height: 7)
             Text(t)
         }
     }
 }
 
-// MARK: - Tafsilotlar paneli
+// MARK: - Inspektorlar
 
-private struct InspectorView: View {
+private enum Dur {
+    static func text(_ s: TimeInterval?) -> String {
+        guard let s else { return "" }
+        if s < 1 { return "<1 s" }
+        if s < 60 { return "\(Int(s)) s" }
+        return "\(Int(s) / 60) daq \(Int(s) % 60) s"
+    }
+}
+
+private struct InspectorBlock<Content: View>: View {
+    let title: String
+    var trailing: String? = nil
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text(title).font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                Spacer()
+                if let trailing { Text(trailing).font(.caption2).foregroundStyle(.tertiary) }
+            }
+            content
+        }
+    }
+}
+
+private struct KV: View {
+    let k: String
+    let v: String
+    var bold = false
+
+    var body: some View {
+        HStack {
+            Text(k).font(.caption)
+            Spacer()
+            Text(v).font(bold ? .caption.weight(.semibold) : .caption).monospacedDigit()
+        }
+    }
+}
+
+private struct AgentInspector: View {
     let agent: AgentSnap
     let sessionTotal: Double
     let mode: CountMode
-    let onClose: () -> Void
+    let openResource: (ToolCategory) -> Void
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 14) {
-                HStack(alignment: .top) {
-                    IconTile(symbol: agentSymbol(agent),
-                             tint: agent.isMain ? Palette.main : Palette.agents)
-                    Spacer()
-                    Button(action: onClose) { Image(systemName: "xmark") }
-                        .buttonStyle(.borderless)
-                        .help("Yopish")
-                }
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(agent.isMain ? "Asosiy agent" : agent.title)
-                        .font(.headline).fixedSize(horizontal: false, vertical: true)
-                    if !agent.subtitle.isEmpty {
-                        Text(agent.subtitle).font(.caption).foregroundStyle(.secondary)
-                    }
-                    HStack(spacing: 6) {
-                        StateDot(state: agent.state)
-                        Text(agent.state.title).font(.caption)
-                    }
-                }
-
-                block("Hozirgi harakat") { Text(agent.lastAction).font(.callout) }
-
-                block("Tokenlar") {
-                    VStack(spacing: 6) {
-                        row("Jami", Fmt.tokens(Double(agent.tokens.total)), bold: true)
-                        row("Vaznli (taxminiy)", Fmt.tokens(agent.tokens.weighted))
-                        row("Sessiyadagi ulushi", Fmt.percent(agent.tokens.value(mode), of: sessionTotal))
-                        Divider()
-                        row("Kesh o'qish (qayta o'qish)", Fmt.tokens(Double(agent.tokens.cacheRead)))
-                        row("Kesh yozish (yangi kontekst)", Fmt.tokens(Double(agent.tokens.cacheWrite)))
-                        row("Kiritish", Fmt.tokens(Double(agent.tokens.input)))
-                        row("Javob va fikrlash", Fmt.tokens(Double(agent.tokens.output)))
-                        if agent.tokens.thinking > 0 {
-                            row("  shundan fikrlash", Fmt.tokens(Double(agent.tokens.thinking)))
+            VStack(alignment: .leading, spacing: 18) {
+                HStack(alignment: .top, spacing: 12) {
+                    IconTile(symbol: agentSymbol(agent), tint: agent.isMain ? Palette.main : Palette.agents, size: 40)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(agent.isMain ? "Asosiy agent" : agent.title)
+                            .font(.headline).fixedSize(horizontal: false, vertical: true)
+                        if !agent.subtitle.isEmpty { Text(agent.subtitle).font(.caption).foregroundStyle(.secondary) }
+                        HStack(spacing: 6) {
+                            StateDot(state: agent.state, size: 7)
+                            Text(agent.state.title).font(.caption)
                         }
                     }
                 }
 
-                block("Faollik") {
-                    VStack(spacing: 6) {
-                        row("API chaqiruvlar", "\(agent.calls)")
-                        row("Boshlangan", agent.firstActivity.map { Fmt.clock.string(from: $0) } ?? "—")
-                        row("Oxirgi harakat", Fmt.ago(agent.lastActivity))
+                InspectorBlock(title: "HOZIR") {
+                    HStack(alignment: .top, spacing: 8) {
+                        if let running = agent.steps.last, running.status == .running {
+                            ProgressView().controlSize(.small)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(running.text).font(.callout)
+                                Text("\(Dur.text(running.duration)) davom etyapti").font(.caption).foregroundStyle(.secondary)
+                            }
+                        } else {
+                            Text(agent.lastAction).font(.callout)
+                        }
                     }
                 }
 
-                if !agent.topTools.isEmpty {
-                    block("Asboblar") {
-                        VStack(spacing: 6) {
-                            ForEach(agent.topTools.prefix(8), id: \.name) { t in row(t.name, "\(t.count)") }
+                InspectorBlock(title: "TOKENLAR") {
+                    VStack(spacing: 5) {
+                        KV(k: "Jami", v: Fmt.tokens(agent.tokens.value(mode)), bold: true)
+                        KV(k: "Sessiyadagi ulushi", v: Fmt.percent(agent.tokens.value(mode), of: sessionTotal))
+                        KV(k: "Kesh o'qish / yozish", v: "\(Fmt.tokens(agent.tokens.cacheRead)) / \(Fmt.tokens(agent.tokens.cacheWrite))")
+                        KV(k: "Javob (shundan fikrlash)", v: "\(Fmt.tokens(agent.tokens.output)) (\(Fmt.tokens(agent.tokens.thinking)))")
+                        KV(k: "API chaqiruvlar", v: "\(agent.calls)")
+                    }
+                }
+
+                if !agent.resources.isEmpty {
+                    InspectorBlock(title: "NIMALARGA KIRDI") {
+                        VStack(spacing: 4) {
+                            ForEach(agent.resources) { g in
+                                Button { openResource(g.category) } label: {
+                                    HStack(spacing: 8) {
+                                        Image(systemName: g.category.symbol).foregroundStyle(g.category.color).frame(width: 16)
+                                        Text(g.category.title).font(.callout)
+                                        if g.busy { ProgressView().controlSize(.mini) }
+                                        Spacer()
+                                        Text("\(g.items.count) ta · \(g.calls)×").font(.caption).foregroundStyle(.secondary).monospacedDigit()
+                                        Image(systemName: "chevron.right").font(.caption2).foregroundStyle(.tertiary)
+                                    }
+                                    .padding(.vertical, 4).padding(.horizontal, 6)
+                                    .contentShape(Rectangle())
+                                }
+                                .buttonStyle(RowButtonStyle())
+                            }
                         }
+                    }
+                }
+
+                InspectorBlock(title: "JARAYON", trailing: agent.steps.isEmpty ? nil : "\(agent.steps.count) qadam") {
+                    if agent.steps.isEmpty {
+                        Text("Hali asbob chaqirilmagan.").font(.caption).foregroundStyle(.secondary)
+                    } else {
+                        StepTimeline(steps: Array(agent.steps.reversed()))
                     }
                 }
             }
@@ -528,19 +803,105 @@ private struct InspectorView: View {
         }
         .background(Color(nsColor: .windowBackgroundColor))
     }
+}
 
-    private func block<C: View>(_ title: String, @ViewBuilder _ content: () -> C) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(title).font(.caption.weight(.semibold)).foregroundStyle(.secondary)
-            content()
+private struct ResourceInspector: View {
+    let owner: AgentSnap
+    let group: ResourceGroup
+    let now: Date
+    let back: () -> Void
+
+    var body: some View {
+        let steps = Array(owner.steps.filter { $0.category == group.category }.reversed())
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                Button(action: back) {
+                    Label(owner.isMain ? "Asosiy agent" : owner.title, systemImage: "chevron.left")
+                        .font(.caption).lineLimit(1)
+                }
+                .buttonStyle(.link)
+
+                HStack(spacing: 12) {
+                    IconTile(symbol: group.category.symbol, tint: group.category.color, size: 40)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(group.category.title).font(.headline)
+                        Text("\(group.items.count) ta · \(group.calls) chaqiruv\(group.errors > 0 ? " · \(group.errors) xato" : "")")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                }
+
+                InspectorBlock(title: "RO'YXAT") {
+                    VStack(spacing: 8) {
+                        ForEach(group.items) { item in
+                            VStack(alignment: .leading, spacing: 2) {
+                                HStack(spacing: 6) {
+                                    Text(item.name).font(.callout).lineLimit(1).truncationMode(.middle)
+                                    Spacer(minLength: 4)
+                                    AccessBadges(item: item)
+                                }
+                                HStack {
+                                    Text(item.detail).lineLimit(1).truncationMode(.middle)
+                                    Spacer()
+                                    Text(Fmt.ago(item.lastActivity, now: now))
+                                }
+                                .font(.caption2).foregroundStyle(.secondary)
+                            }
+                            Divider()
+                        }
+                    }
+                }
+
+                InspectorBlock(title: "QADAMLAR", trailing: "\(steps.count) ta") {
+                    StepTimeline(steps: steps)
+                }
+            }
+            .padding(16)
+        }
+        .background(Color(nsColor: .windowBackgroundColor))
+    }
+}
+
+/// Qadamlar lentasi: vaqt, holat, nima qilindi, qancha davom etdi
+private struct StepTimeline: View {
+    let steps: [StepSnap]
+
+    var body: some View {
+        let shown = Array(steps.prefix(80))
+        VStack(alignment: .leading, spacing: 0) {
+            ForEach(Array(shown.enumerated()), id: \.element.id) { i, s in
+                HStack(alignment: .top, spacing: 10) {
+                    VStack(spacing: 0) {
+                        statusIcon(s).frame(width: 16, height: 16)
+                        if i < shown.count - 1 {
+                            Rectangle().fill(Color.primary.opacity(0.1)).frame(width: 1).frame(maxHeight: .infinity)
+                        }
+                    }
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(s.text).font(.caption).lineLimit(2)
+                            .foregroundStyle(s.status == .failed ? Color.red : Color.primary)
+                        HStack(spacing: 6) {
+                            Text(Fmt.clock.string(from: s.date))
+                            if let d = s.duration { Text("· " + Dur.text(d)) }
+                            if s.status == .failed { Text("· xato").foregroundStyle(.red) }
+                        }
+                        .font(.caption2.monospacedDigit()).foregroundStyle(.secondary)
+                    }
+                    .padding(.bottom, 10)
+                    Spacer(minLength: 0)
+                }
+            }
         }
     }
 
-    private func row(_ k: String, _ v: String, bold: Bool = false) -> some View {
-        HStack {
-            Text(k).font(.caption)
-            Spacer()
-            Text(v).font(bold ? .caption.weight(.semibold) : .caption).monospacedDigit()
+    @ViewBuilder
+    private func statusIcon(_ s: StepSnap) -> some View {
+        switch s.status {
+        case .running:
+            ProgressView().controlSize(.mini)
+        case .failed:
+            Image(systemName: "xmark.circle.fill").foregroundStyle(.red).font(.caption)
+        case .done:
+            Image(systemName: s.symbol).foregroundStyle(s.category.color).font(.system(size: 10, weight: .semibold))
         }
     }
 }

@@ -28,10 +28,53 @@ public struct AgentSnap: Identifiable, Sendable {
     public let state: AgentState
     public let lastActivity: Date?
     public let firstActivity: Date?
+    /// Asbob chaqiruvlari, eskidan yangiga (oxirgi 80 tasi)
+    public let steps: [StepSnap]
+    /// Agent nimalarga kirdi — tur bo'yicha guruhlangan, eng so'nggi faol guruh birinchi
+    public let resources: [ResourceGroup]
 
     public var toolsLine: String {
         topTools.prefix(3).map { "\($0.name) \($0.count)" }.joined(separator: " · ")
     }
+}
+
+public enum StepStatus: Sendable {
+    case running, done, failed
+}
+
+/// Bitta asbob chaqiruvi: qachon boshlandi, qancha davom etdi, natijasi
+public struct StepSnap: Identifiable, Sendable {
+    public let id: String
+    public let date: Date
+    public let symbol: String
+    public let text: String
+    public let category: ToolCategory
+    public let targetName: String
+    public let duration: TimeInterval?
+    public let status: StepStatus
+}
+
+public struct ResourceItem: Identifiable, Sendable {
+    public let id: String
+    public let name: String
+    public let detail: String
+    public let calls: Int
+    public let reads: Int
+    public let writes: Int
+    public let errors: Int
+    public let lastActivity: Date?
+}
+
+public struct ResourceGroup: Identifiable, Sendable {
+    public var id: String { category.rawValue }
+    public let category: ToolCategory
+    public let calls: Int
+    public let errors: Int
+    public let lastActivity: Date?
+    /// Eng so'nggi ishlatilgani birinchi
+    public let items: [ResourceItem]
+    /// Hozir shu yerda biror qadam bajarilyapti
+    public let busy: Bool
 }
 
 public struct SessionSnap: Identifiable, Sendable {

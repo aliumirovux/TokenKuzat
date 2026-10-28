@@ -29,6 +29,8 @@ public final class Engine {
     private var sessions: [String: SessionAcc] = [:]
     private var seenUsage = Set<String>()
     private var seenTools = Set<String>()
+    /// Natijasi hali kelmagan asbob chaqiruvlari: tool_use id → qadam
+    private var pendingSteps: [String: StepAcc] = [:]
     private var dayTotals: [String: TokenCounts] = [:]
     private var minutes: [Int: MinuteBucket] = [:]
     private var feed: [FeedEvent] = []
@@ -242,9 +244,17 @@ public final class Engine {
 
         for item in a.items {
             switch item {
-            case .tool(let id, let name, let d):
+            case .tool(let id, let name, let d, let target):
                 guard seenTools.insert(id).inserted else { continue }
                 agent.tools[ToolDescriber.shortName(name), default: 0] += 1
+                let ts = ev.timestamp ?? fs.mtime ?? now
+                let res = agent.resource(target)
+                res.calls += 1
+                if target.access == .write { res.writes += 1 } else if target.access == .read { res.reads += 1 }
+                if res.lastActivity.map({ ts > $0 }) ?? true { res.lastActivity = ts }
+                let step = StepAcc(id: id, start: ts, symbol: d.symbol, text: d.text, target: target, resource: res)
+                agent.addStep(step)
+                pendingSteps[id] = step
                 agent.lastAction = d.text
                 agent.lastStop = "tool_use"
                 if let ts = ev.timestamp, ts >= dayStart { addFeed(id, ts, session, agent, d.symbol, d.text) }
@@ -278,6 +288,14 @@ public final class Engine {
 
     private func apply(_ u: TranscriptEvent.User, _ ev: TranscriptEvent, _ session: SessionAcc, _ agent: AgentAcc) {
         if u.hasToolResult { agent.lastStop = "tool_result" }
+        for r in u.results {
+            guard let step = pendingSteps.removeValue(forKey: r.id) else { continue }
+            step.end = ev.timestamp ?? now
+            if r.isError {
+                step.failed = true
+                step.resource.errors += 1
+            }
+        }
         guard let first = u.prompts.first else { return }
         let firstLine = String(first.split(separator: "\n").first ?? Substring(first))
         agent.lastStop = "prompt"
@@ -347,7 +365,9 @@ public final class Engine {
                     isMain: a.isMain, tokens: a.tokens, calls: a.calls,
                     topTools: a.tools.sorted { $0.value > $1.value }.map { (name: $0.key, count: $0.value) },
                     lastAction: a.lastAction.isEmpty ? "—" : a.lastAction,
-                    state: st, lastActivity: a.lastActivity, firstActivity: a.firstActivity))
+                    state: st, lastActivity: a.lastActivity, firstActivity: a.firstActivity,
+                    steps: a.steps.suffix(80).map { $0.snap(now: now) },
+                    resources: a.resourceGroups(now: now)))
             }
             if best != .idle { snap.activeSessions += 1 }
             // Ishlayotgan sessiya eski bo'lsa ham ko'rinadi
@@ -465,11 +485,85 @@ private final class AgentAcc {
     var model = ""
     var metaFound = false
     var metaAttempts = 0
+    var steps: [StepAcc] = []
+    var resources: [String: ResourceAcc] = [:]
+
+    func resource(_ t: ToolTarget) -> ResourceAcc {
+        if let r = resources[t.key] { return r }
+        let r = ResourceAcc(target: t)
+        resources[t.key] = r
+        return r
+    }
+
+    func addStep(_ s: StepAcc) {
+        steps.append(s)
+        if steps.count > 300 { steps.removeFirst(steps.count - 200) }
+    }
+
+    func resourceGroups(now: Date) -> [ResourceGroup] {
+        let busyKeys = Set(steps.suffix(20).filter { $0.end == nil && now.timeIntervalSince($0.start) < 600 }
+            .map { $0.resource.target.key })
+        let byCat = Dictionary(grouping: resources.values, by: { $0.target.category })
+        return byCat.map { cat, list -> ResourceGroup in
+            let items = list.sorted { ($0.lastActivity ?? .distantPast) > ($1.lastActivity ?? .distantPast) }
+            return ResourceGroup(
+                category: cat,
+                calls: list.reduce(0) { $0 + $1.calls },
+                errors: list.reduce(0) { $0 + $1.errors },
+                lastActivity: items.first?.lastActivity,
+                items: items.map {
+                    ResourceItem(id: $0.target.key, name: $0.target.name, detail: $0.target.detail,
+                                 calls: $0.calls, reads: $0.reads, writes: $0.writes, errors: $0.errors,
+                                 lastActivity: $0.lastActivity)
+                },
+                busy: list.contains { busyKeys.contains($0.target.key) })
+        }
+        .sorted { ($0.lastActivity ?? .distantPast) > ($1.lastActivity ?? .distantPast) }
+    }
 
     init(key: String) {
         self.key = key
         isMain = key == "main"
         title = isMain ? "Asosiy agent" : "Yordamchi agent"
+    }
+}
+
+private final class ResourceAcc {
+    let target: ToolTarget
+    var calls = 0
+    var reads = 0
+    var writes = 0
+    var errors = 0
+    var lastActivity: Date?
+
+    init(target: ToolTarget) { self.target = target }
+}
+
+private final class StepAcc {
+    let id: String
+    let start: Date
+    let symbol: String
+    let text: String
+    let target: ToolTarget
+    let resource: ResourceAcc
+    var end: Date?
+    var failed = false
+
+    init(id: String, start: Date, symbol: String, text: String, target: ToolTarget, resource: ResourceAcc) {
+        self.id = id
+        self.start = start
+        self.symbol = symbol
+        self.text = text
+        self.target = target
+        self.resource = resource
+    }
+
+    /// Natija 10 daqiqada kelmasa — tugagan deb hisoblanadi (sessiya uzilgan bo'lishi mumkin)
+    func snap(now: Date) -> StepSnap {
+        let status: StepStatus = failed ? .failed : (end == nil && now.timeIntervalSince(start) < 600 ? .running : .done)
+        let duration = end.map { $0.timeIntervalSince(start) } ?? (status == .running ? now.timeIntervalSince(start) : nil)
+        return StepSnap(id: id, date: start, symbol: symbol, text: text, category: target.category,
+                        targetName: target.name, duration: duration, status: status)
     }
 }
 
