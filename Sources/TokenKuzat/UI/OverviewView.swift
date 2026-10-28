@@ -294,7 +294,12 @@ struct NowRow: View {
         }
         .padding(.horizontal, 18).padding(.vertical, 16)
         .card(padding: 0)
-        .overlay { if active != nil { LiveBorder(shape: RoundedRectangle(cornerRadius: 20, style: .continuous), color: Brand.ok, period: 4) } }
+        .overlay {
+            if let a = active {
+                LiveBorder(shape: RoundedRectangle(cornerRadius: 20, style: .continuous),
+                           color: snap.permissionWaits[a.id] != nil ? Brand.warn : Brand.ok, period: 4)
+            }
+        }
         .animation(Motion.spring, value: active?.id)
     }
 
@@ -311,10 +316,19 @@ struct NowRow: View {
                          color: running?.category.color ?? Brand.accent, size: 44)
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 6) {
-                        StateDot(state: .running, size: 6)
-                        Text("HOZIR · \(sess.project.uppercased())").eyebrow(Brand.ok)
+                        if let w = snap.permissionWaits[sess.id] {
+                            Image(systemName: "hand.raised.fill").font(.system(size: 10)).foregroundStyle(Brand.warn)
+                            Text("RUXSATINGIZNI KUTYAPTI · \(sess.project.uppercased())").eyebrow(Brand.warn)
+                                .help(w.message)
+                        } else {
+                            StateDot(state: .running, size: 6)
+                            Text("HOZIR · \(sess.project.uppercased())").eyebrow(Brand.ok)
+                        }
+                        if sess.contextFraction >= 0.8 {
+                            Text("· KONTEKST \(Int((sess.contextFraction * 100).rounded()))%").eyebrow(Brand.warn)
+                        }
                     }
-                    Text(running?.text ?? sess.main?.lastAction ?? "Ishlayapti…")
+                    Text(snap.permissionWaits[sess.id].map { Alerts.uz($0.message) } ?? running?.text ?? sess.main?.lastAction ?? "Ishlayapti…")
                         .font(.system(size: 16, weight: .semibold, design: .rounded))
                         .lineLimit(1)
                         .id(running?.id ?? "idle")

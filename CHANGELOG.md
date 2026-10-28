@@ -1,5 +1,12 @@
 # O'zgarishlar
 
+## 4.7.0 — 2026-10-28
+
+- «Ruxsatingizni kutyapti»: Claude buyruq yoki fayl uchun ruxsat so'rab to'xtaganda macOS bildirishnomasi keladi (bosilsa — o'sha sessiya ochiladi). Sessiya sarlavhasida to'q sariq «Ruxsatingizni kutyapti» yorlig'i, xaritaning oxirgi tugunida qo'l belgisi va qaysi asbob uchunligi, «Bugun»dagi «Hozir» kartasida va menyu satrida «Ruxsat». Claude davom etishi bilan holat o'zi tozalanadi; shu paytda «qadam osilib qoldi» xabari takrorlanmaydi.
+- Ulash: Sozlamalar → Bildirishnomalar → «Claude ruxsat so'raganda» → «Claude Code'ga ulash» — ~/.claude/settings.json ga Notification hook qo'shiladi (boshqa hook'lar tegilmaydi, «Uzish» bilan olib tashlanadi). Ilovaning yangi `--hook` rejimi xabarni hooks/<session>.json ga yozadi.
+- Kontekst to'lishi: sarlavhada «Kontekst 62%» chizig'i (80% dan sariq, 92% dan qizil), oyna hajmi — 200K yoki sessiyada oshgan bo'lsa 1M. Ishlayotgan sessiyada 85% dan oshsa bildirishnoma: «tez orada avtomatik xulosa qilinadi». «Hozir» kartasida 80% dan oshsa ogohlantirish.
+- Testlar: 26 ta (hook xabarini o'qish va kutish holati).
+
 ## 4.6.0 — 2026-10-28
 
 - Xaritada jarayon: tanlangan (sukut bo'yicha — eng so'nggi) so'rov kartasi ostida asboblar o'rniga qadamlar zanjiri — har qadam alohida tugun (asbob belgisi, nima qilindi, vaqti, davomiyligi, yordamchi agent nomi), vaqt bo'yicha yuqoridan pastga. Bajarilayotgan qadam jonli chegara bilan, chiziq bo'ylab paketlar yuradi; xatolar qizil.

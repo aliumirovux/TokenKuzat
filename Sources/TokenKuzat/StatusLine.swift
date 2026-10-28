@@ -94,7 +94,7 @@ enum StatusLine {
         (try? readSettings())?["statusLine"] as? [String: Any]
     }
 
-    private static func readSettings() throws -> [String: Any] {
+    static func readSettings() throws -> [String: Any] {
         guard FileManager.default.fileExists(atPath: settingsURL.path) else { return [:] }
         let d = try Data(contentsOf: settingsURL)
         if d.isEmpty { return [:] }
@@ -102,14 +102,14 @@ enum StatusLine {
         return o
     }
 
-    private static func writeSettings(_ s: [String: Any]) throws {
+    static func writeSettings(_ s: [String: Any]) throws {
         try FileManager.default.createDirectory(at: settingsURL.deletingLastPathComponent(), withIntermediateDirectories: true)
         let d = try JSONSerialization.data(withJSONObject: s, options: [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes])
         try d.write(to: settingsURL, options: .atomic)
     }
 
     /// Birinchi ulanishda settings.json nusxasi: settings.json.tokenkuzat-backup
-    private static func backupOnce() throws {
+    static func backupOnce() throws {
         let backup = settingsURL.appendingPathExtension("tokenkuzat-backup")
         guard FileManager.default.fileExists(atPath: settingsURL.path),
               !FileManager.default.fileExists(atPath: backup.path) else { return }

@@ -79,7 +79,8 @@ extension SessionSnap {
 
         return SessionSnap(id: id, project: project, title: title, model: model, contextTokens: context,
                            tokens: main + sub, mainTokens: main, agentTokens: sub, agents: replayed,
-                           lastActivity: replayed.compactMap(\.lastActivity).max(), state: best, turns: turnsAtT)
+                           lastActivity: replayed.compactMap(\.lastActivity).max(), state: best, turns: turnsAtT,
+                           contextWindow: contextWindow)
     }
 
     /// Replay oralig'i: birinchi harakatdan oxirgisigacha

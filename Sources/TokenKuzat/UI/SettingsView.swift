@@ -17,6 +17,10 @@ struct SettingsView: View {
     @AppStorage(Pref.notifyStuckSec) private var notifyStuckSec = 90.0
     @AppStorage(Pref.notifyErrors) private var notifyErrors = true
     @AppStorage(Pref.notifyRealLimit) private var notifyRealLimit = true
+    @AppStorage(Pref.notifyPermission) private var notifyPermission = true
+    @AppStorage(Pref.notifyContext) private var notifyContext = true
+    @State private var hookInstalled = Hooks.isInstalled
+    @State private var hookError: String?
     @State private var statusLineInstalled = StatusLine.isInstalled
     @State private var statusLineError: String?
     @State private var launchAtLogin = LaunchAtLogin.isEnabled
@@ -53,6 +57,20 @@ struct SettingsView: View {
                 }
                 .disabled(!notifyStuck)
                 Toggle("Agent ketma-ket 3 marta xato olsa", isOn: $notifyErrors)
+                Toggle("Kontekst 85% to'lganda (tez orada avtomatik xulosa)", isOn: $notifyContext)
+                HStack {
+                    Toggle("Claude ruxsat so'raganda", isOn: $notifyPermission)
+                    Spacer()
+                    if hookInstalled {
+                        Label("Ulangan", systemImage: "checkmark.circle.fill").font(.caption).foregroundStyle(.green)
+                        Button("Uzish") { toggleHook(false) }.buttonStyle(.link)
+                    } else {
+                        Button("Claude Code'ga ulash") { toggleHook(true) }
+                    }
+                }
+                if let hookError {
+                    Label(hookError, systemImage: "exclamationmark.triangle").font(.caption).foregroundStyle(.red)
+                }
                 HStack {
                     Spacer()
                     Button("Sinov bildirishnomasi") { Alerts.shared.sendTest() }
@@ -70,7 +88,7 @@ struct SettingsView: View {
             } header: {
                 Text("Bildirishnomalar")
             } footer: {
-                Text("Bildirishnomani bosing — o'sha sessiya Agentlar sxemasida ochiladi. Ilova ochilganda mavjud holatlar uchun xabar yuborilmaydi.")
+                Text("Bildirishnomani bosing — o'sha sessiya ochiladi.\nRuxsat so'rovi uchun «Ulash» settings.json ga hook qo'shadi; yangi sessiyalarda ishlaydi.")
                     .font(.caption).foregroundStyle(.secondary)
             }
             .disabled(!AppInfo.isBundled)
@@ -206,7 +224,18 @@ struct SettingsView: View {
         statusLineInstalled = StatusLine.isInstalled
     }
 
+    private func toggleHook(_ on: Bool) {
+        do {
+            if on { try Hooks.install(); askPermission() } else { try Hooks.uninstall() }
+            hookError = nil
+        } catch {
+            hookError = error.localizedDescription
+        }
+        hookInstalled = Hooks.isInstalled
+    }
+
     private func refreshStatus() {
+        hookInstalled = Hooks.isInstalled
         statusLineInstalled = StatusLine.isInstalled
         launchAtLogin = LaunchAtLogin.isEnabled
         guard AppInfo.isBundled else { return }

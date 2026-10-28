@@ -21,7 +21,8 @@ final class Alerts: NSObject, UNUserNotificationCenterDelegate {
         guard let center else { return }
         center.delegate = self
         let d = UserDefaults.standard
-        let any = [Pref.notifyFinished, Pref.notifyStuck, Pref.notifyErrors, Pref.notifyRealLimit].contains { d.bool(forKey: $0) }
+        let any = [Pref.notifyFinished, Pref.notifyStuck, Pref.notifyErrors, Pref.notifyRealLimit,
+                   Pref.notifyPermission, Pref.notifyContext].contains { d.bool(forKey: $0) }
             || (d.bool(forKey: Pref.budgetEnabled) && d.bool(forKey: Pref.budgetNotify))
         if any { requestPermission() }
     }
@@ -45,6 +46,48 @@ final class Alerts: NSObject, UNUserNotificationCenterDelegate {
         evaluateBudget(s)
         evaluateActivity(s)
         evaluateRealLimits(s)
+        evaluatePermission(s)
+        evaluateContext(s)
+    }
+
+    // MARK: - Ruxsat va kontekst
+
+    private var announcedWaits: [String: Date] = [:]
+    private var waitsPrimed = false
+    private var contextWarned: Set<String> = []
+
+    /// Claude ruxsat so'rab to'xtaganda — har bir so'rov uchun bir marta (ilova ochilgandagi eski holatlar uchun emas)
+    private func evaluatePermission(_ s: Snapshot) {
+        defer { waitsPrimed = true }
+        for (sid, n) in s.permissionWaits where announcedWaits[sid] != n.date {
+            announcedWaits[sid] = n.date
+            guard waitsPrimed, UserDefaults.standard.bool(forKey: Pref.notifyPermission) else { continue }
+            let project = s.sessions.first { $0.id == sid }?.project ?? "Claude"
+            post("\(project): Claude ruxsatingizni kutyapti",
+                 (n.message.isEmpty ? "Asbobdan foydalanish uchun ruxsat kerak." : Self.uz(n.message)) + "\nClaude Code oynasida javob bering.",
+                 session: sid)
+        }
+    }
+
+    /// Hook xabarini o'zbekchaga: «Claude needs your permission to use Bash» → «Bash uchun ruxsat so'rayapti»
+    static func uz(_ message: String) -> String {
+        let p = "Claude needs your permission to use "
+        if message.hasPrefix(p) { return "\(message.dropFirst(p.count)) uchun ruxsat so'rayapti." }
+        return message
+    }
+
+    /// Kontekst 85% dan oshganda — sessiyada bir marta; 50% dan tushsa (xulosa qilingan) qayta qurollanadi
+    private func evaluateContext(_ s: Snapshot) {
+        for sess in s.sessions {
+            let f = sess.contextFraction
+            if f < 0.5 { contextWarned.remove(sess.id); continue }
+            guard f >= 0.85, sess.state != .idle, !contextWarned.contains(sess.id) else { continue }
+            contextWarned.insert(sess.id)
+            guard UserDefaults.standard.bool(forKey: Pref.notifyContext) else { continue }
+            post("\(sess.project): kontekst \(Int((f * 100).rounded()))% to'ldi",
+                 "\(Fmt.tokens(Double(sess.contextTokens))) / \(Fmt.tokens(Double(sess.contextWindow))). Tez orada suhbat avtomatik xulosa qilinadi — muhim narsalarni hozir ayting yoki ishni bo'lib bering.",
+                 session: sess.id)
+        }
     }
 
     // MARK: - Haqiqiy limit
@@ -87,7 +130,8 @@ final class Alerts: NSObject, UNUserNotificationCenterDelegate {
                      "\(e.title)\n\(Self.duration(duration)) · \(steps) qadam · \(Fmt.tokens(tokens)) token. Javobingizni kutyapti.",
                      session: e.sessionId)
             case .stuck(let step, let duration):
-                guard d.bool(forKey: Pref.notifyStuck) else { continue }
+                // Ruxsat kutilayotgani aniq bo'lsa — u haqda alohida xabar ketgan
+                guard d.bool(forKey: Pref.notifyStuck), s.permissionWaits[e.sessionId] == nil else { continue }
                 post("\(e.project): qadam \(Self.duration(duration)) dan beri tugamadi",
                      "\(e.agentTitle) · \(step)\nRuxsat so'rayotgan yoki osilib qolgan bo'lishi mumkin.",
                      session: e.sessionId)

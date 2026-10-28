@@ -10,6 +10,7 @@ struct TokenKuzatApp: App {
     init() {
         // Claude Code status line chaqirig'i — oynasiz, darhol chiqadi
         if CommandLine.arguments.contains(StatusLine.flag) { StatusLine.runAndExit() }
+        if CommandLine.arguments.contains(Hooks.flag) { Hooks.runAndExit() }
         Pref.register()
     }
 
@@ -98,6 +99,19 @@ struct MenuBarLabel: View {
     var body: some View {
         let s = store.snap
         let active = s.runningAgents > 0
+        if !s.permissionWaits.isEmpty {
+            // Ruxsat kutilayotgani har qanday uslubdan ustun: ish to'xtab turibdi
+            HStack(spacing: 3) {
+                Image(systemName: "hand.raised.fill")
+                Text("Ruxsat")
+            }
+        } else {
+            styled(s, active)
+        }
+    }
+
+    @ViewBuilder
+    private func styled(_ s: Snapshot, _ active: Bool) -> some View {
         switch style {
         case .icon:
             Image(systemName: active ? "bolt.fill" : "chart.bar.xaxis")

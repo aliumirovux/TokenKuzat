@@ -11,6 +11,8 @@ struct SessionHeader: View {
     let turn: TurnSnap?
     let mode: CountMode
     let costUSD: Double?
+    /// Claude ruxsat so'rab to'xtagan bo'lsa — hook xabari
+    var waiting: HookNotice? = nil
 
     var body: some View {
         let duration = turn?.duration ?? session.timeRange.map { $0.upperBound.timeIntervalSince($0.lowerBound) } ?? 0
@@ -30,7 +32,8 @@ struct SessionHeader: View {
                     }
                 }
                 HStack(spacing: 14) {
-                    StatusChip(active: active, errors: turn?.errors ?? 0)
+                    StatusChip(active: active, errors: turn?.errors ?? 0, waiting: waiting != nil)
+                    if session.contextTokens > 0 { ContextGauge(session: session) }
                     if let turn { Text("#\(turn.id)-so'rov").fontWeight(.semibold).foregroundStyle(.primary) }
                     if !session.model.isEmpty { Text(session.model) }
                     if let start = turn?.start ?? session.timeRange?.lowerBound {
@@ -61,12 +64,14 @@ struct SessionHeader: View {
 struct StatusChip: View {
     let active: Bool
     var errors = 0
+    var waiting = false
 
     var body: some View {
-        let color = active ? Brand.ok : (errors > 0 ? Brand.warn : Color.secondary)
+        let color = waiting ? Brand.warn : (active ? Brand.ok : (errors > 0 ? Brand.warn : Color.secondary))
         HStack(spacing: 5) {
-            if active { StateDot(state: .running, size: 6) } else { Image(systemName: errors > 0 ? "exclamationmark.circle.fill" : "checkmark.circle.fill") }
-            Text(active ? "Ishlayapti" : (errors > 0 ? "Tugadi · \(errors) xato" : "Tugadi"))
+            if waiting { Image(systemName: "hand.raised.fill") }
+            else if active { StateDot(state: .running, size: 6) } else { Image(systemName: errors > 0 ? "exclamationmark.circle.fill" : "checkmark.circle.fill") }
+            Text(waiting ? "Ruxsatingizni kutyapti" : (active ? "Ishlayapti" : (errors > 0 ? "Tugadi · \(errors) xato" : "Tugadi")))
         }
         .font(.caption.weight(.semibold))
         .foregroundStyle(color)
@@ -327,5 +332,27 @@ struct StepsPane: View {
             Text(k).foregroundStyle(.secondary)
             Text(v).font(.system(size: 11.5, design: .monospaced)).lineLimit(2).truncationMode(.middle).textSelection(.enabled)
         }
+    }
+}
+
+/// Kontekst oynasi to'lishi: kichik chiziq va foiz. 80% dan — sariq, 92% dan — qizil (tez orada avtomatik xulosa)
+struct ContextGauge: View {
+    let session: SessionSnap
+
+    var body: some View {
+        let f = session.contextFraction
+        let color = f >= 0.92 ? Brand.err : (f >= 0.8 ? Brand.warn : Brand.accent)
+        HStack(spacing: 6) {
+            Text("Kontekst")
+            ZStack(alignment: .leading) {
+                Capsule().fill(Brand.line)
+                Capsule().fill(color).frame(width: max(3, 54 * f))
+            }
+            .frame(width: 54, height: 5)
+            Text("\(Int((f * 100).rounded()))%").monospacedDigit().foregroundStyle(f >= 0.8 ? color : .secondary)
+        }
+        .help("Kontekst: \(Fmt.tokens(Double(session.contextTokens))) / \(Fmt.tokens(Double(session.contextWindow))) token."
+              + (f >= 0.8 ? " Tez orada suhbat avtomatik xulosa qilinadi." : ""))
+        .animation(Motion.smooth, value: f)
     }
 }

@@ -64,6 +64,13 @@ final class Store: ObservableObject {
                 s.fiveHourForecast = LimitForecast.forecast(w, history: limitsReader.fiveHourHistory, now: now)
             }
         }
+        // Claude ruxsat so'rab to'xtagan sessiyalar: hook xabaridan keyin transkriptda harakat bo'lmagan
+        let notices = HookEvents.read()
+        for sess in s.sessions {
+            if let n = notices[sess.id], n.isPending(lastActivity: sess.lastActivity, now: now) {
+                s.permissionWaits[sess.id] = n
+            }
+        }
         DispatchQueue.main.async {
             self.snap = s
             Alerts.shared.evaluate(s)

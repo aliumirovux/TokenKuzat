@@ -268,6 +268,8 @@ struct SessionMapView: View {
     let selectedTurn: String?
     /// Ochilgan so'rov qadamlari (eskidan yangiga)
     var steps: [MapStep] = []
+    /// Oxirgi sessiya ruxsat kutayotgan bo'lsa — yakuniy tugunda ko'rsatiladi
+    var waiting: HookNotice? = nil
     let onSelectTurn: (_ sessionId: String, _ turnId: Int) -> Void
     let onSelectTool: (_ sessionId: String, _ turnId: Int, _ category: ToolCategory) -> Void
 
@@ -406,7 +408,7 @@ struct SessionMapView: View {
             }
             .frame(maxHeight: .infinity, alignment: .top)
         case .end(let active, let at):
-            MapEndNode(active: active, at: at)
+            MapEndNode(active: active, at: at, waiting: waiting)
         }
     }
 
@@ -726,8 +728,33 @@ private struct MapToolNode: View {
 private struct MapEndNode: View {
     let active: Bool
     let at: Date?
+    var waiting: HookNotice? = nil
 
     var body: some View {
+        if let waiting {
+            waitingBody(waiting)
+        } else {
+            normal
+        }
+    }
+
+    /// Ruxsat kutilyapti: to'q sariq qo'l, aylanuvchi chegara va qaysi asbob uchunligi
+    private func waitingBody(_ n: HookNotice) -> some View {
+        Image(systemName: "hand.raised.fill").font(.system(size: 22, weight: .semibold)).foregroundStyle(Brand.warn)
+            .frame(width: M.endD, height: M.endD)
+            .surfaceCircle(tint: Brand.warn)
+            .overlay { LiveBorder(shape: Circle(), color: Brand.warn, lineWidth: 2, period: 1.8) }
+            .overlay(alignment: .bottom) {
+                VStack(spacing: 1) {
+                    Text("Ruxsatingizni kutyapti").font(.caption.weight(.semibold)).foregroundStyle(Brand.warn)
+                    Text(Alerts.uz(n.message)).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
+                }
+                .fixedSize().offset(y: 34)
+            }
+            .help(n.message)
+    }
+
+    private var normal: some View {
         ZStack {
             if active {
                 ProgressView().controlSize(.small)

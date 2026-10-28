@@ -77,7 +77,8 @@ struct GraphScreen: View {
                 let turn = turnNo.flatMap { n in session.turns.first { $0.id == n } }
                 let flow = FlowModel(session: session, turnId: turnNo, now: now)
                 let tl = TimelineModel(flow: flow, session: session, turnId: turnNo, now: now)
-                SessionHeader(session: session, turn: turn, mode: mode, costUSD: s.limits?.costBySession[session.id])
+                SessionHeader(session: session, turn: turn, mode: mode, costUSD: s.limits?.costBySession[session.id],
+                              waiting: replayOn ? nil : s.permissionWaits[session.id])
                 TurnChips(turns: live.turns, selected: turnNo) { turnId = $0 ?? 0 }
                     .padding(.top, 14)
                 LanesCard(timeline: tl, replayOn: replayOn) { toggleReplay(live) }
@@ -101,6 +102,7 @@ struct GraphScreen: View {
                                        mode: mode,
                                        selectedTurn: turnNo.map { "\(session.id)#\($0)" },
                                        steps: mapSteps(session, turn: turnNo ?? session.turns.last?.id),
+                                       waiting: replayOn ? nil : chain.last.flatMap { s.permissionWaits[$0.id] },
                                        onSelectTurn: { sid, tid in
                                            if sid != sessionId { sessionId = sid }
                                            DispatchQueue.main.async { turnId = tid }

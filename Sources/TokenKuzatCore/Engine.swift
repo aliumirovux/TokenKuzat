@@ -278,7 +278,10 @@ public final class Engine {
             if agent.usage.count > 3000 { agent.usage.removeFirst(agent.usage.count - 2000) }
         }
         sourceUsage[fs.rootIndex, default: 0] += 1
-        if agent.isMain { session.context = c.input + c.cacheRead + c.cacheWrite }
+        if agent.isMain {
+            session.context = c.input + c.cacheRead + c.cacheWrite
+            session.contextPeak = max(session.contextPeak, session.context)
+        }
 
         guard let ts = ev.timestamp else { return }
         if ts >= historyStart {
@@ -391,7 +394,8 @@ public final class Engine {
                 model: Fmt.model(s.model), contextTokens: s.context,
                 tokens: main + sub, mainTokens: main, agentTokens: sub,
                 agents: agentSnaps, lastActivity: la, state: best,
-                turns: turnSnaps(s, starts: starts, active: best != .idle)))
+                turns: turnSnaps(s, starts: starts, active: best != .idle),
+                contextWindow: s.contextPeak > 200_000 ? 1_000_000 : 200_000))
         }
         sessSnaps.sort { ($0.lastActivity ?? .distantPast) > ($1.lastActivity ?? .distantPast) }
         snap.sessions = sessSnaps
@@ -651,6 +655,7 @@ private final class SessionAcc {
     var firstPrompt = ""
     var model = ""
     var context = 0
+    var contextPeak = 0
     var agents: [String: AgentAcc] = [:]
     var lastActivity: Date?
     /// So'rovlar, boshlanish vaqti bo'yicha tartiblangan

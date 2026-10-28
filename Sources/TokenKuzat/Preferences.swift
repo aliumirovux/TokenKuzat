@@ -19,6 +19,8 @@ enum Pref {
     static let notifyStuckSec = "notifyStuckSec"
     static let notifyErrors = "notifyErrors"
     static let notifyRealLimit = "notifyRealLimit"
+    static let notifyPermission = "notifyPermission"
+    static let notifyContext = "notifyContext"
 
     static func register() {
         UserDefaults.standard.register(defaults: [
@@ -35,6 +37,8 @@ enum Pref {
             notifyStuckSec: 90.0,
             notifyErrors: true,
             notifyRealLimit: true,
+            notifyPermission: true,
+            notifyContext: true,
         ])
     }
 }

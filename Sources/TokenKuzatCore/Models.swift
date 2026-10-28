@@ -166,8 +166,12 @@ public struct SessionSnap: Identifiable, Sendable {
     public let state: AgentState
     /// So'rovlar, eskidan yangiga
     public let turns: [TurnSnap]
+    /// Kontekst oynasi hajmi: 200K yoki (sessiyada 200K dan oshgan bo'lsa) 1M
+    public var contextWindow: Int = 200_000
 
     public var main: AgentSnap? { agents.first(where: \.isMain) }
+    /// Kontekst qanchalik to'lgan (0…1)
+    public var contextFraction: Double { contextWindow > 0 ? min(1, Double(contextTokens) / Double(contextWindow)) : 0 }
     public var helperCount: Int { agents.filter { !$0.isMain }.count }
 }
 
@@ -235,6 +239,8 @@ public struct Snapshot: Sendable {
     /// Claude Code status line'dan kelgan haqiqiy limitlar (ulangan bo'lsa)
     public var limits: RateLimits?
     public var fiveHourForecast: LimitForecast.Outcome = .unknown
+    /// Ruxsatingizni kutayotgan sessiyalar (Claude Code hook'idan): sessiya id → xabar
+    public var permissionWaits: [String: HookNotice] = [:]
 
     public init() {}
 
