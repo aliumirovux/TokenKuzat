@@ -45,7 +45,7 @@ struct GraphScreen: View {
     @AppStorage(GraphScreen.selectedSessionKey) private var sessionId = ""
     @AppStorage("graphInspector") private var showInspector = true
     /// «flow» — n8n oqimi, «timeline» — vaqt chizig'i
-    @AppStorage("graphMode") private var graphMode = "steps"
+    @AppStorage("graphMode") private var graphMode = "flow"
     @State private var selection: Selection?
     /// nil — eng so'nggi so'rov (yangisi kelsa o'zi o'tadi), 0 — butun sessiya
     @State private var turnId: Int?
@@ -94,7 +94,8 @@ struct GraphScreen: View {
                         .padding(.horizontal, 14)
                 }
                 tabs.padding(.horizontal, 24).padding(.top, 16).padding(.bottom, 10)
-                switch graphMode {
+                // «Qadamlar» tabi olib tashlandi — eski saqlangan qiymat ham Oqim'ni ochadi
+                switch graphMode == "files" ? "files" : "flow" {
                 case "flow" where flowStyle == "map":
                     let chain = SessionChain.chain(for: session, in: replayOn ? [session] : s.sessions)
                     HStack(spacing: 0) {
@@ -157,15 +158,14 @@ struct GraphScreen: View {
                     FileHeatmapScreen(model: HeatmapModel(timeline: tl)) { f in
                         if let owner = f.ownerId { select(.resource(agentId: owner, category: .files)) }
                     }
-                    .frame(height: 560)
+                    .frame(height: canvasHeight)
+                    .background(GeometryReader { g in
+                        Color.clear.preference(key: CanvasTopKey.self, value: g.frame(in: .named("page")).minY)
+                    })
                     .card(padding: 0)
                     .padding(.horizontal, 24).padding(.bottom, 20)
                 default:
-                    StepsPane(steps: tl.rows.flatMap { r in r.bars.map { (agent: r.agent, step: $0.step) } }
-                                .sorted { $0.step.date < $1.step.date },
-                              origin: tl.start)
-                        .frame(height: 560)
-                        .id(turnNo ?? 0)
+                    EmptyView()
                 }
             } else {
                 ScrollView {
@@ -207,11 +207,10 @@ struct GraphScreen: View {
 
     private var tabs: some View {
         HStack(spacing: 4) {
-            tab("steps", "Qadamlar", "list.bullet")
             tab("flow", "Oqim", "point.3.connected.trianglepath.dotted")
             tab("files", "Fayllar", "square.grid.3x3")
             Spacer()
-            if graphMode == "flow" {
+            if graphMode != "files" {
                 Picker("", selection: $flowStyle) {
                     Text("Xarita").tag("map")
                     Text("Jarayon").tag("process")
@@ -220,7 +219,7 @@ struct GraphScreen: View {
                 .pickerStyle(.segmented).labelsHidden().fixedSize()
                 .help("Xarita — butun sessiya so'rovlar bo'yicha, Jarayon — qadamlar ketma-ketligi, Xulosa — qaysi asboblar ishlatilgani")
             }
-            if graphMode == "flow" && flowStyle != "process" {
+            if graphMode != "files" && flowStyle != "process" {
                 Button { withAnimation(Motion.spring) { showInspector.toggle() } } label: { Image(systemName: "sidebar.right") }
                     .buttonStyle(.borderless)
                     .help(showInspector ? "Tafsilotlarni yashirish" : "Tafsilotlarni ko'rsatish")
@@ -229,7 +228,7 @@ struct GraphScreen: View {
     }
 
     private func tab(_ id: String, _ title: String, _ symbol: String) -> some View {
-        let on = graphMode == id || (id == "steps" && !["flow", "files"].contains(graphMode))
+        let on = id == "files" ? graphMode == "files" : graphMode != "files"
         return Button { withAnimation(Motion.spring) { graphMode = id } } label: {
             Label(title, systemImage: symbol)
                 .font(.callout.weight(on ? .semibold : .regular))

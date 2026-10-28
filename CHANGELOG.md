@@ -1,5 +1,10 @@
 # O'zgarishlar
 
+## 4.7.2 — 2026-10-28
+
+- «Qadamlar» tabi olib tashlandi — qadamlar endi xaritadagi jarayon zanjirida va o'ng paneldagi «Jarayon»da. Sessiya sahifasida ikki tab: Oqim (sukut bo'yicha) va Fayllar.
+- Fayllar xaritasi ham oyna balandligiga moslashadi.
+
 ## 4.7.1 — 2026-10-28
 
 - Sessiya sahifasidagi qatorli vaqt chizig'i sukut bo'yicha yig'ildi: o'rnida bitta ixcham qator — Replay tugmasi va rangli vaqt ulushi («Vaqtning ● 48% — model o'ylashi · ● 40% — terminal»). «Vaqt chizig'i» tugmasi qatorlarni ochadi, tanlov eslab qolinadi. Xarita ~170 pt balandroq.
