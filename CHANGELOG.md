@@ -1,5 +1,13 @@
 # O'zgarishlar
 
+## 4.9.0 — 2026-10-28
+
+- Xarita satrma-satr: kartalar oyna kengligida teriladi, satr tugasa oqim chizig'i yumaloq burilish bilan keyingi satr boshiga o'tadi. 50 ta so'rov bir ekranga sig'adi.
+- Bo'limlar: 10 daqiqadan uzun tanaffus, kontekst yangilanishi yoki yangi sessiya — yangi bo'lim. Ochiq bo'lim ramkada, tepasida «16:37–16:58 · mavzu · 6 so'rov · 21 daq · 3,4M»; yig'ilgani — bitta bosiladigan chiziq. Sukut bo'yicha oxirgi, ishlayotgan va tanlangan so'rov turgan bo'lim ochiq, qolganlari yig'ilgan.
+- Qisqa javob-so'rovlar («ha», «boshla», «Bosdim», «Sinab ko'rdim»…) alohida karta emas — oldingi kartaga «↳ ha boshla · 3 daq · 28 qadam» yorlig'i bo'lib ilinadi; bosilsa, qadamlar shu ustunda ochiladi.
+- Uzoqdan ko'rinish: 50% dan kichik masshtabda kartalarda faqat raqam va qisqa nom, katta harfda; bo'lim sarlavhalari ham kattalashadi.
+- Mini-xarita ikki o'lchamli: bo'lim ramkalari, kartalar, yig'ilgan bo'limlar va ko'rinib turgan qism.
+
 ## 4.8.1 — 2026-10-28
 
 - Xarita zanjiri chat uslubida: katta karta — faqat Xabar va yakuniy Javob (yashil chegara, 4 qator). Asbob qadamlari, o'ylash va «O'ylayapti…» — chiziq ustidagi yupqa yorliqlar («▣3 ✱1 4 qadam · 31 s», «🧠 Zanjir juda uzun…»). Zanjir ~2,5 baravar qisqardi; bosish — avvalgidek tafsilot.
