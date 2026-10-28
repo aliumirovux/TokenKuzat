@@ -1,0 +1,173 @@
+import SwiftUI
+import Charts
+import TokenKuzatCore
+
+// MARK: - 60 daqiqalik grafik
+
+struct MinuteChart: View {
+    let points: [MinutePoint]
+    let mode: CountMode
+    var height: CGFloat = 140
+    var showLegend = true
+
+    var body: some View {
+        Chart {
+            ForEach(points) { p in
+                BarMark(x: .value("Daqiqa", p.date, unit: .minute),
+                        y: .value("Token", p.main.value(mode)))
+                    .foregroundStyle(by: .value("Kim", "Asosiy agent"))
+                BarMark(x: .value("Daqiqa", p.date, unit: .minute),
+                        y: .value("Token", p.agents.value(mode)))
+                    .foregroundStyle(by: .value("Kim", "Yordamchi agentlar"))
+            }
+        }
+        .chartForegroundStyleScale(["Asosiy agent": Palette.main, "Yordamchi agentlar": Palette.agents.opacity(0.6)])
+        .chartLegend(showLegend ? .visible : .hidden)
+        .chartLegend(position: .top, alignment: .trailing)
+        .chartYAxis {
+            AxisMarks(position: .trailing, values: .automatic(desiredCount: 3)) { v in
+                AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5, dash: [2, 3]))
+                AxisValueLabel { if let d = v.as(Double.self) { Text(Fmt.tokens(d)) } }
+            }
+        }
+        .chartXAxis {
+            AxisMarks(values: .stride(by: .minute, count: 15)) { _ in
+                AxisValueLabel(format: .dateTime.hour().minute())
+            }
+        }
+        .frame(height: height)
+    }
+}
+
+// MARK: - Kunlik grafik
+
+struct DailyChart: View {
+    let days: [DayPoint]
+    let mode: CountMode
+    var height: CGFloat = 200
+    @Binding var selected: Date?
+
+    var body: some View {
+        Chart {
+            ForEach(days) { d in
+                BarMark(x: .value("Kun", d.date, unit: .day),
+                        y: .value("Token", d.tokens.value(mode)))
+                    .foregroundStyle(Calendar.current.isDateInToday(d.date) ? Palette.main.gradient : Palette.main.opacity(0.55).gradient)
+                    .cornerRadius(3)
+                    .opacity(selected == nil || Calendar.current.isDate(selected!, inSameDayAs: d.date) ? 1 : 0.4)
+            }
+        }
+        .chartYAxis {
+            AxisMarks(position: .trailing, values: .automatic(desiredCount: 4)) { v in
+                AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5, dash: [2, 3]))
+                AxisValueLabel { if let d = v.as(Double.self) { Text(Fmt.tokens(d)) } }
+            }
+        }
+        .chartXAxis {
+            AxisMarks(values: .stride(by: .day, count: days.count > 14 ? 5 : 1)) { v in
+                AxisValueLabel {
+                    if let d = v.as(Date.self) { Text(Fmt.shortDay.string(from: d)) }
+                }
+            }
+        }
+        .chartOverlay { proxy in
+            GeometryReader { geo in
+                Rectangle().fill(.clear).contentShape(Rectangle())
+                    .onTapGesture { loc in
+                        let x = loc.x - geo[proxy.plotAreaFrame].origin.x
+                        if let d: Date = proxy.value(atX: x) {
+                            let day = Calendar.current.startOfDay(for: d)
+                            selected = selected.map { Calendar.current.isDate($0, inSameDayAs: day) } == true ? nil : day
+                        }
+                    }
+            }
+        }
+        .frame(height: height)
+    }
+}
+
+// MARK: - Token tarkibi
+
+struct Slice: Identifiable {
+    let id: String
+    let label: String
+    let value: Double
+    let color: Color
+    var hint: String? = nil
+}
+
+enum Composition {
+    /// Token turlari bo'yicha bo'laklar (vaznli rejimda — narx koeffitsiyentlari bilan)
+    static func slices(_ t: TokenCounts, _ mode: CountMode) -> [Slice] {
+        func v(_ raw: Int, _ w: Double) -> Double { mode == .weighted ? w : Double(raw) }
+        let readW = Double(t.cacheRead) * Pricing.cacheRead
+        let outW = Double(t.output) * Pricing.output
+        let inW = Double(t.input)
+        let writeW = max(0, t.weighted - readW - outW - inW)
+        return [
+            Slice(id: "read", label: "Kesh o'qish", value: v(t.cacheRead, readW), color: Palette.cacheRead,
+                  hint: "Kontekst har javobda qayta o'qiladi — arzon (×0,1), lekin ko'p"),
+            Slice(id: "write", label: "Kesh yozish", value: v(t.cacheWrite, writeW), color: Palette.fresh,
+                  hint: "Yangi kontekst keshga yoziladi (×1,25–2)"),
+            Slice(id: "in", label: "Kiritish", value: v(t.input, inW), color: Palette.input,
+                  hint: "Keshlanmagan kiritish"),
+            Slice(id: "out", label: "Javob va fikrlash", value: v(t.output, outW), color: Palette.output,
+                  hint: t.thinking > 0 ? "Shundan fikrlash: \(Fmt.tokens(t.thinking))" : "Eng qimmat qism (×5)"),
+        ]
+    }
+
+    /// Sessiya: yordamchi agentlar alohida, asosiy agent tarkibi bo'yicha
+    static func session(_ s: SessionSnap, _ mode: CountMode) -> [Slice] {
+        [Slice(id: "agents", label: "Yordamchi agentlar", value: s.agentTokens.value(mode), color: Palette.agents)]
+            + slices(s.mainTokens, mode)
+    }
+}
+
+struct BreakdownBar: View {
+    let slices: [Slice]
+    var height: CGFloat = 10
+
+    var body: some View {
+        GeometryReader { geo in
+            let parts = slices.filter { $0.value > 0 }
+            let sum = parts.reduce(0) { $0 + $1.value }
+            let gap: CGFloat = 2
+            let avail = max(0, geo.size.width - gap * CGFloat(max(0, parts.count - 1)))
+            HStack(spacing: gap) {
+                if sum == 0 {
+                    Capsule().fill(Color.primary.opacity(0.08))
+                } else {
+                    ForEach(parts) { p in
+                        RoundedRectangle(cornerRadius: height / 3, style: .continuous).fill(p.color)
+                            .frame(width: max(3, avail * CGFloat(p.value / sum)))
+                            .help("\(p.label): \(Fmt.tokens(p.value))")
+                    }
+                }
+            }
+        }
+        .frame(height: height)
+    }
+}
+
+struct BreakdownLegend: View {
+    let slices: [Slice]
+    let total: Double
+
+    var body: some View {
+        VStack(spacing: 6) {
+            ForEach(slices) { sl in
+                HStack(spacing: 8) {
+                    RoundedRectangle(cornerRadius: 2).fill(sl.color).frame(width: 9, height: 9)
+                    Text(sl.label).font(.caption)
+                    if let hint = sl.hint {
+                        Image(systemName: "info.circle").font(.caption2).foregroundStyle(.tertiary).help(hint)
+                    }
+                    Spacer()
+                    Text(Fmt.tokens(sl.value)).font(.caption).monospacedDigit()
+                    Text(Fmt.percent(sl.value, of: total)).font(.caption).foregroundStyle(.secondary)
+                        .monospacedDigit().frame(width: 38, alignment: .trailing)
+                }
+            }
+        }
+    }
+}
