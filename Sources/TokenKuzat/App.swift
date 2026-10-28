@@ -53,6 +53,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
         // `--snapshot-map fayl.png` — eng so'nggi sessiya xaritasini rasmga saqlaydi
+        if let i = CommandLine.arguments.firstIndex(of: "--snapshot-header"), i + 1 < CommandLine.arguments.count {
+            snapshotHeader(to: URL(fileURLWithPath: CommandLine.arguments[i + 1]))
+            return
+        }
         if let i = CommandLine.arguments.firstIndex(of: "--snapshot-map"), i + 1 < CommandLine.arguments.count {
             snapshotMap(to: URL(fileURLWithPath: CommandLine.arguments[i + 1]))
             return
@@ -86,6 +90,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    /// Ishlab chiquvchi uchun: `--snapshot-header fayl.png --width 700` — sessiya sarlavhasi berilgan kenglikda
+    private func snapshotHeader(to url: URL) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+            let width = CommandLine.arguments.firstIndex(of: "--width").flatMap { i in
+                i + 1 < CommandLine.arguments.count ? Double(CommandLine.arguments[i + 1]) : nil
+            } ?? 700
+            if let s = Store.shared.snap.sessions.first {
+                let view = SessionHeader(session: s, turn: s.turns.last, mode: .raw, costUSD: nil)
+                    .padding(.bottom, 20)
+                    .frame(width: CGFloat(width))
+                    .background(Color(nsColor: .windowBackgroundColor))
+                    .environment(\.colorScheme, .dark)
+                let r = ImageRenderer(content: view)
+                r.scale = 2
+                if let img = r.nsImage, let tiff = img.tiffRepresentation,
+                   let png = NSBitmapImageRep(data: tiff)?.representation(using: .png, properties: [:]) {
+                    try? png.write(to: url)
+                }
+            }
+            NSApp.terminate(nil)
+        }
+    }
+
     private func snapshotMap(to url: URL) {
         DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
             let all = Store.shared.snap.sessions
@@ -93,10 +120,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 let zoom = CommandLine.arguments.firstIndex(of: "--zoom").flatMap { i in
                     i + 1 < CommandLine.arguments.count ? Double(CommandLine.arguments[i + 1]) : nil
                 }
+                let width = CommandLine.arguments.firstIndex(of: "--width").flatMap { i in
+                    i + 1 < CommandLine.arguments.count ? Double(CommandLine.arguments[i + 1]) : nil
+                } ?? 1240
                 let view = SessionMapView(chain: SessionChain.chain(for: s, in: all), mode: .raw, selectedTurn: nil,
                                           onSelectTurn: { _, _ in }, onSelectTool: { _, _, _ in },
-                                          initialScale: zoom.map { CGFloat($0) })
-                    .frame(width: 1240, height: 600)
+                                          initialScale: zoom.map { CGFloat($0) },
+                                          chat: CommandLine.arguments.contains("--chat"))
+                    .frame(width: CGFloat(width), height: 600)
                     .environment(\.colorScheme, .dark)
                 let r = ImageRenderer(content: view)
                 r.scale = 2

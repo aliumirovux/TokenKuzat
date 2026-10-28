@@ -685,16 +685,20 @@ struct SessionMapView: View {
                             if let l = cache.layout { focusLast(l, vs, animated: true) }
                         }
                     }
-                    .frame(maxWidth: min(620, max(320, vs.width - 2 * 260)))
-                    .padding(.bottom, 12)
+                    // Keng xaritada — boshqaruv va minixarita orasida; torida — boshqaruv ustida, butun kenglikda
+                    .frame(maxWidth: vs.width >= 1100 ? min(620, vs.width - 2 * 260) : max(260, vs.width - 24))
+                    .padding(.bottom, vs.width >= 1100 ? 12 : 52)
                 }
             }
             .overlay(alignment: .bottomTrailing) {
+                // Tor xaritada minixarita yashiriladi — boshqaruv va yozish maydoni bilan to'qnashmasin
+                if vs.width >= 760 {
                 MiniMap(layout: layout, scale: scale, pan: pan, viewport: vs) { center in
                     follow = false
                     pan = clamped(CGSize(width: vs.width / 2 - center.x * scale, height: vs.height / 2 - center.y * scale))
                 }
                 .padding(12)
+                }
             }
             .onAppear {
                 viewport = vs

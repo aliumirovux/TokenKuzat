@@ -19,38 +19,55 @@ struct SessionHeader: View {
         let steps = turn?.steps ?? session.agents.reduce(0) { $0 + $1.steps.count }
         let tokens = turn?.tokens ?? session.tokens
         let active = turn?.active ?? (session.state != .idle)
-        HStack(alignment: .bottom, spacing: 24) {
-            VStack(alignment: .leading, spacing: 8) {
-                // Uzun so'rov matni sarlavhada emas — u xaritadagi kartada. Sarlavha qisqa: loyiha va holat
-                HStack(spacing: 12) {
-                    ProjectAvatar(name: session.project, size: 34)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(session.project)
-                            .font(.system(size: 22, weight: .semibold, design: .rounded)).lineLimit(1)
-                        Text(session.turns.isEmpty ? "Sessiya" : "Sessiya · \(session.turns.count) so'rov")
-                            .font(.callout).foregroundStyle(.secondary)
-                    }
-                }
-                HStack(spacing: 14) {
-                    StatusChip(active: active, errors: turn?.errors ?? 0, waiting: waiting != nil)
-                    if session.contextTokens > 0 { ContextGauge(session: session) }
-                    SavingsChip(session: session)
-                    if let turn { Text("#\(turn.id)-so'rov").fontWeight(.semibold).foregroundStyle(.primary) }
-                    if !session.model.isEmpty { Text(session.model) }
-                    if let start = turn?.start ?? session.timeRange?.lowerBound {
-                        Text("\(Fmt.hourMinute.string(from: start)) da boshlangan").foregroundStyle(.tertiary)
-                    }
-                }
-                .font(.callout).foregroundStyle(.secondary)
+        // Keng oynada: chapda nom va belgilar, o'ngda raqamlar. Torida — raqamlar pastga tushadi,
+        // belgilar esa siqilmasdan keyingi qatorga o'tadi
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .bottom, spacing: 24) {
+                titleBlock(active: active)
+                Spacer(minLength: 16)
+                kpis(duration: duration, steps: steps, tokens: tokens)
             }
-            Spacer(minLength: 16)
-            HStack(spacing: 26) {
-                kpi(Alerts.duration(duration), "davomiylik")
-                kpi("\(steps)", "qadam")
-                kpi(Fmt.tokens(tokens.value(mode)), costUSD.map { "token · " + String(format: "$%.2f", $0).replacingOccurrences(of: ".", with: ",") } ?? "token")
+            VStack(alignment: .leading, spacing: 14) {
+                titleBlock(active: active)
+                kpis(duration: duration, steps: steps, tokens: tokens)
             }
         }
         .padding(.horizontal, 24).padding(.top, 30)
+    }
+
+    private func titleBlock(active: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            // Uzun so'rov matni sarlavhada emas — u xaritadagi kartada. Sarlavha qisqa: loyiha va holat
+            HStack(spacing: 12) {
+                ProjectAvatar(name: session.project, size: 34)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(session.project)
+                        .font(.system(size: 22, weight: .semibold, design: .rounded)).lineLimit(1)
+                    Text(session.turns.isEmpty ? "Sessiya" : "Sessiya · \(session.turns.count) so'rov")
+                        .font(.callout).foregroundStyle(.secondary)
+                }
+            }
+            FlowRow(spacing: 14, lineSpacing: 8) {
+                StatusChip(active: active, errors: turn?.errors ?? 0, waiting: waiting != nil).fixedSize()
+                if session.contextTokens > 0 { ContextGauge(session: session).fixedSize() }
+                SavingsChip(session: session).fixedSize()
+                if let turn { Text("#\(turn.id)-so'rov").fontWeight(.semibold).foregroundStyle(.primary).fixedSize() }
+                if !session.model.isEmpty { Text(session.model).fixedSize() }
+                if let start = turn?.start ?? session.timeRange?.lowerBound {
+                    Text("\(Fmt.hourMinute.string(from: start)) da boshlangan").foregroundStyle(.tertiary).fixedSize()
+                }
+            }
+            .font(.callout).foregroundStyle(.secondary)
+        }
+    }
+
+    private func kpis(duration: TimeInterval, steps: Int, tokens: TokenCounts) -> some View {
+        HStack(spacing: 26) {
+            kpi(Alerts.duration(duration), "davomiylik")
+            kpi("\(steps)", "qadam")
+            kpi(Fmt.tokens(tokens.value(mode)), costUSD.map { "token · " + String(format: "$%.2f", $0).replacingOccurrences(of: ".", with: ",") } ?? "token")
+        }
+        .fixedSize()
     }
 
     private func kpi(_ v: String, _ l: String) -> some View {
@@ -280,5 +297,49 @@ struct ContextGauge: View {
         .help("Kontekst: \(Fmt.tokens(Double(session.contextTokens))) / \(Fmt.tokens(Double(session.contextWindow))) token."
               + (f >= 0.8 ? " Tez orada suhbat avtomatik xulosa qilinadi." : ""))
         .animation(Motion.smooth, value: f)
+    }
+}
+
+/// Elementlarni chapdan o'ngga teradi, sig'masa — keyingi qatorga (belgilar siqilib, harflari ustun bo'lib qolmasin)
+struct FlowRow: Layout {
+    var spacing: CGFloat = 8
+    var lineSpacing: CGFloat = 8
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let rows = arrange(width: proposal.width ?? .infinity, subviews: subviews)
+        let w = rows.map { $0.width }.max() ?? 0
+        let h = rows.reduce(0) { $0 + $1.height } + lineSpacing * CGFloat(max(0, rows.count - 1))
+        return CGSize(width: proposal.width.map { min($0, w) } ?? w, height: h)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        var y = bounds.minY
+        for row in arrange(width: bounds.width, subviews: subviews) {
+            var x = bounds.minX
+            for i in row.items {
+                let size = subviews[i].sizeThatFits(.unspecified)
+                subviews[i].place(at: CGPoint(x: x, y: y + (row.height - size.height) / 2), proposal: ProposedViewSize(size))
+                x += size.width + spacing
+            }
+            y += row.height + lineSpacing
+        }
+    }
+
+    private struct Row { var items: [Int] = []; var width: CGFloat = 0; var height: CGFloat = 0 }
+
+    private func arrange(width: CGFloat, subviews: Subviews) -> [Row] {
+        var rows: [Row] = [Row()]
+        for i in subviews.indices {
+            let size = subviews[i].sizeThatFits(.unspecified)
+            guard size.width > 0 else { continue }
+            let add = (rows[rows.count - 1].items.isEmpty ? 0 : spacing) + size.width
+            if !rows[rows.count - 1].items.isEmpty && rows[rows.count - 1].width + add > width { rows.append(Row()) }
+            var r = rows[rows.count - 1]
+            r.width += (r.items.isEmpty ? 0 : spacing) + size.width
+            r.height = max(r.height, size.height)
+            r.items.append(i)
+            rows[rows.count - 1] = r
+        }
+        return rows.filter { !$0.items.isEmpty }
     }
 }

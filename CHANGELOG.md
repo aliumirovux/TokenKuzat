@@ -1,5 +1,12 @@
 # O'zgarishlar
 
+## 6.8.0 — 2026-10-28
+
+- Tor oynaga moslashuv: sessiya sarlavhasidagi belgilar (holat, kontekst, tejash, so'rov, model, vaqt) siqilib harflari ustun bo'lib qolmaydi — sig'masa keyingi qatorga o'tadi; raqamlar (davomiylik, qadam, token) joy yetmasa pastga tushadi.
+- Tafsilotlar paneli: keng oynada kengligi oynaga mos (300–384 pt); kontent 1000 pt dan tor bo'lsa — xaritani siqmaydi, o'ng tomondagi tugma bilan xarita ustida suzuvchi panel bo'lib ochiladi.
+- Xaritada: tor bo'lsa minixarita yashiriladi, yozish maydoni boshqaruv tugmalari ustida butun kenglikda — bir-birini yopmaydi.
+- `--snapshot-header fayl.png --width N`, `--snapshot-map … --width N --chat` (ishlab chiquvchi uchun).
+
 ## 6.7.0 — 2026-10-28
 
 - Unumdorlik (oyna ochiq): o'lchovlar bo'yicha har bir animatsiya butun oynani qayta chizdirardi. Robot — 20 kadr/s (tinch holatda 8) va GPU'da; aylanuvchi chegaralar — 20 kadr/s; xaritadagi qimirlamaydigan chiziqlar endi har kadrda qayta chizilmaydi (jonli chiziqlar alohida qatlamda); tizim ProgressView'i o'rniga yengil «ishlayapti» belgisi (10 qadam/s, faqat o'zini chizadi); boshqa joyda ochiq sessiyani tekshirish — 20 s da bir. Claude ishlayotganda: ~61% → ~50%.

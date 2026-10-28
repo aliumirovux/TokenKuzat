@@ -41,6 +41,11 @@ struct GraphScreen: View {
     @AppStorage(Pref.countMode) private var mode = CountMode.raw
     @AppStorage(GraphScreen.selectedSessionKey) private var sessionId = ""
     @AppStorage("graphInspector") private var showInspector = true
+    /// Tor oynada tafsilotlar paneli xarita ustida ochiladi (sukut bo'yicha yopiq) — xarita siqilmaydi
+    @State private var narrowInspector = false
+    @State private var contentWidth: CGFloat = 1200
+    private var isNarrow: Bool { contentWidth < 1000 }
+    private var inspectorVisible: Bool { isNarrow ? narrowInspector : showInspector }
     /// «flow» — n8n oqimi, «timeline» — vaqt chizig'i
     @AppStorage("graphMode") private var graphMode = "flow"
     @State private var selection: Selection?
@@ -116,16 +121,17 @@ struct GraphScreen: View {
                                                if let tid = note.turn { turnId = tid }
                                                if let m = s.sessions.first(where: { $0.id == sid })?.main {
                                                    selection = .note(agentId: m.id, noteId: note.id)
-                                                   if !showInspector { showInspector = true }
+                                                   revealInspector()
                                                }
                                            }
                                        },
                                        chat: !replayOn)
-                        if showInspector {
+                        if showInspector && !isNarrow {
                             Divider()
-                            inspector(session, now: now).frame(width: 384)
+                            inspector(session, now: now).frame(width: min(384, max(300, contentWidth * 0.3)))
                         }
                     }
+                    .overlay(alignment: .trailing) { narrowPanel(session, now: now) }
                     .frame(minHeight: 320, maxHeight: .infinity)
                     .card(padding: 0)
                     .padding(.horizontal, 24).padding(.bottom, 20)
@@ -139,11 +145,12 @@ struct GraphScreen: View {
                                        if let c = b.category { select(.resource(agentId: b.ownerId, category: c)) }
                                        else { select(.agent(b.ownerId)) }
                                    })
-                        if showInspector {
+                        if showInspector && !isNarrow {
                             Divider()
-                            inspector(session, now: now).frame(width: 384)
+                            inspector(session, now: now).frame(width: min(384, max(300, contentWidth * 0.3)))
                         }
                     }
+                    .overlay(alignment: .trailing) { narrowPanel(session, now: now) }
                     .frame(minHeight: 320, maxHeight: .infinity)
                     .card(padding: 0)
                     .padding(.horizontal, 24).padding(.bottom, 20)
@@ -175,7 +182,13 @@ struct GraphScreen: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .background(GeometryReader { g in
+            Color.clear
+                .onAppear { contentWidth = g.size.width }
+                .onChange(of: g.size.width) { contentWidth = $0 }
+        })
         .animation(Motion.spring, value: replayOn)
+        .animation(Motion.spring, value: narrowInspector)
         .animation(Motion.spring, value: graphMode)
         .onAppear { if !["map", "summary"].contains(flowStyle) { flowStyle = "map" } }
         .onChange(of: sessionId) { _ in selection = nil; turnId = nil; stopReplay() }
@@ -206,9 +219,11 @@ struct GraphScreen: View {
                 help: "Jarayonda yaratilgan yoki ko'rilgan rasm, HTML, PDF va videolar")
             Spacer()
             if !["files", "outputs"].contains(graphMode) {
-                Button { withAnimation(Motion.spring) { showInspector.toggle() } } label: { Image(systemName: "sidebar.right") }
+                Button {
+                    withAnimation(Motion.spring) { if isNarrow { narrowInspector.toggle() } else { showInspector.toggle() } }
+                } label: { Image(systemName: "sidebar.right") }
                     .buttonStyle(.borderless)
-                    .help(showInspector ? "Tafsilotlarni yashirish" : "Tafsilotlarni ko'rsatish")
+                    .help(inspectorVisible ? "Tafsilotlarni yashirish" : "Tafsilotlarni ko'rsatish")
             }
         }
     }
@@ -315,9 +330,26 @@ struct GraphScreen: View {
         }
     }
 
+    private func revealInspector() {
+        if isNarrow { narrowInspector = true } else if !showInspector { showInspector = true }
+    }
+
+    /// Tor oynada: tafsilotlar xarita ustida, o'ng tomonda suzib turadi
+    @ViewBuilder
+    private func narrowPanel(_ session: SessionSnap, now: Date) -> some View {
+        if isNarrow && narrowInspector {
+            inspector(session, now: now)
+                .frame(width: min(340, contentWidth * 0.75))
+                .background(Brand.surface)
+                .overlay(alignment: .leading) { Divider() }
+                .shadow(color: .black.opacity(0.35), radius: 18, x: -6)
+                .transition(.move(edge: .trailing).combined(with: .opacity))
+        }
+    }
+
     private func select(_ s: Selection) {
         selection = selection == s ? nil : s
-        if !showInspector { showInspector = true }
+        revealInspector()
     }
 
     /// Hech narsa tanlanmagan bo'lsa — asosiy agent
