@@ -506,7 +506,7 @@ private struct AgentInspector: View {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(running.text).font(.body.weight(.medium)).fixedSize(horizontal: false, vertical: true)
                     HStack(spacing: 6) {
-                        ProgressView().controlSize(.mini)
+                        Spinner(size: 10)
                         Text("\(Dur.text(running.duration)) davom etyapti")
                     }
                     .font(.callout).foregroundStyle(Brand.ok)
@@ -620,7 +620,7 @@ private struct ResourceList: View {
                         VStack(alignment: .leading, spacing: 5) {
                             HStack(spacing: 6) {
                                 Text(g.category.title).font(.body.weight(.medium))
-                                if g.busy { ProgressView().controlSize(.mini) }
+                                if g.busy { Spinner(size: 10) }
                                 Spacer(minLength: 6)
                                 Text("\(g.calls)×").font(.callout.weight(.semibold)).monospacedDigit()
                             }
@@ -801,7 +801,7 @@ private struct StepTimeline: View {
     private func statusIcon(_ s: StepSnap) -> some View {
         switch s.status {
         case .running:
-            ProgressView().controlSize(.mini)
+            Spinner(size: 10)
         case .failed:
             Image(systemName: "xmark").font(.system(size: 10, weight: .bold)).foregroundStyle(.white)
                 .frame(width: 22, height: 22).background(Circle().fill(Brand.err))
@@ -889,7 +889,7 @@ private struct TurnTimeline: View {
                     // Ikki qator: vaqt — bir qatorda, hajm — ikkinchisida; hech narsa kesilmaydi
                     VStack(alignment: .leading, spacing: 3) {
                         HStack(spacing: 5) {
-                            if t.active { ProgressView().controlSize(.mini) }
+                            if t.active { Spinner(size: 10) }
                             Image(systemName: "clock")
                             Text("\(Fmt.hourMinute.string(from: t.start)) · \(Dur.text(t.duration))")
                         }

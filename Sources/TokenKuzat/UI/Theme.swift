@@ -71,13 +71,43 @@ struct SectionHeader: View {
 
 // MARK: - Holat belgilari
 
+/// Yengil «ishlayapti» belgisi: 8 ta chiziqcha, soniyasiga 10 qadam. Tizim ProgressView'i har kadrda butun oynani
+/// qayta chizdiradi — bu esa faqat o'zini. Yengil rejimda — qimirlamaydi.
+struct Spinner: View {
+    var size: CGFloat = 10
+    var color: Color = .secondary
+    @AppStorage(Pref.lightMode) private var lightMode = false
+
+    var body: some View {
+        TimelineView(.periodic(from: .now, by: lightMode ? 3600 : 0.1)) { ctx in
+            let step = lightMode ? 0 : Int(ctx.date.timeIntervalSinceReferenceDate * 10) % 8
+            Canvas { g, sz in
+                let c = CGPoint(x: sz.width / 2, y: sz.height / 2), r = min(sz.width, sz.height) / 2
+                for i in 0..<8 {
+                    let a = Double(i) / 8 * 2 * .pi - .pi / 2
+                    var p = Path()
+                    p.move(to: CGPoint(x: c.x + cos(a) * r * 0.45, y: c.y + sin(a) * r * 0.45))
+                    p.addLine(to: CGPoint(x: c.x + cos(a) * r * 0.95, y: c.y + sin(a) * r * 0.95))
+                    let age = (step - i + 8) % 8
+                    g.stroke(p, with: .color(color.opacity(1 - Double(age) * 0.11)),
+                             style: StrokeStyle(lineWidth: max(1.2, r * 0.22), lineCap: .round))
+                }
+            }
+        }
+        .frame(width: size, height: size)
+        .accessibilityLabel("Ishlayapti")
+    }
+}
+
 struct StateDot: View {
     let state: AgentState
     var size: CGFloat = 8
 
+    @AppStorage(Pref.lightMode) private var lightMode = false
+
     var body: some View {
         Group {
-            if state == .running {
+            if state == .running && !lightMode {
                 TimelineView(.animation(minimumInterval: 1.0 / 20)) { ctx in
                     let t = ctx.date.timeIntervalSinceReferenceDate
                     let p = CGFloat((sin(t * 2.4) + 1) / 2)

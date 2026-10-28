@@ -20,6 +20,7 @@ struct SettingsView: View {
     @AppStorage(Pref.notifyPermission) private var notifyPermission = true
     @AppStorage(Pref.notifyContext) private var notifyContext = true
     @AppStorage(Pref.notifySavings) private var notifySavings = true
+    @AppStorage(Pref.lightMode) private var lightMode = false
     @State private var hookInstalled = Hooks.isInstalled
     @State private var handoffHookInstalled = SessionStartHook.isInstalled
     @State private var hookError: String?
@@ -39,6 +40,13 @@ struct SettingsView: View {
                     .disabled(!AppInfo.isBundled)
                 Picker("Menyu satrida", selection: $menuBarStyle) {
                     ForEach(MenuBarStyle.allCases) { Text($0.title).tag($0) }
+                }
+                Toggle(isOn: $lightMode) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Yengil rejim")
+                        Text("Robot, aylanuvchi chegaralar va oqim animatsiyalari to'xtaydi — oyna ochiq turganda protsessor taxminan ikki baravar kam ishlaydi")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
                 }
             }
 

@@ -1,5 +1,10 @@
 # O'zgarishlar
 
+## 6.7.0 — 2026-10-28
+
+- Unumdorlik (oyna ochiq): o'lchovlar bo'yicha har bir animatsiya butun oynani qayta chizdirardi. Robot — 20 kadr/s (tinch holatda 8) va GPU'da; aylanuvchi chegaralar — 20 kadr/s; xaritadagi qimirlamaydigan chiziqlar endi har kadrda qayta chizilmaydi (jonli chiziqlar alohida qatlamda); tizim ProgressView'i o'rniga yengil «ishlayapti» belgisi (10 qadam/s, faqat o'zini chizadi); boshqa joyda ochiq sessiyani tekshirish — 20 s da bir. Claude ishlayotganda: ~61% → ~50%.
+- Sozlamalar → «Yengil rejim»: robot, aylanuvchi chegaralar, oqim nuqtalari va holat pulsi to'xtaydi — oyna ochiq va Claude ishlayotganda ~20%.
+
 ## 6.6.0 — 2026-10-28
 
 - Unumdorlik: katta oyna yopilganda uning ko'rinishlari to'liq yo'q qilinadi — avval xarita, robot va oqim animatsiyalari yashirin oynada ham chizilib, protsessorni ~50% band qilardi; endi menyu satrida turganda ~0–1%. Oyna butunlay boshqa oynalar ortida yoki Dock'da bo'lsa — ko'rinish ajratib qo'yiladi (chizish to'xtaydi, holat saqlanadi).

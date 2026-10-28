@@ -31,7 +31,7 @@ struct MapChatBar: View {
             HStack(alignment: .bottom, spacing: 8) {
                 if running {
                     HStack(spacing: 8) {
-                        ProgressView().controlSize(.small)
+                        Spinner(size: 14)
                         Text("Claude ishlayapti — xaritada kuzating").font(.callout).foregroundStyle(.secondary)
                     }
                     .frame(maxWidth: .infinity, minHeight: 30, alignment: .leading)
@@ -78,7 +78,7 @@ struct MapChatBar: View {
         .task(id: session.id) {
             while !Task.isCancelled {
                 await chat.refreshOpenElsewhere(session.id)
-                try? await Task.sleep(nanoseconds: 6_000_000_000)
+                try? await Task.sleep(nanoseconds: 20_000_000_000)
             }
         }
     }

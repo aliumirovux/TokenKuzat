@@ -28,13 +28,18 @@ struct RobotView: View {
     var color: Color = Brand.accent
     var size: CGFloat = 58
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @AppStorage(Pref.lightMode) private var lightMode = false
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 30, paused: reduceMotion)) { ctx in
-            let t = reduceMotion ? 0 : ctx.date.timeIntervalSinceReferenceDate
+        let still = reduceMotion || lightMode
+        // 20 kadr/s — mayda harakatlar uchun yetarli; tinch holatda (uxlash, kuzatish) — 8 kadr/s, sekin harakatlar
+        // shunda ham silliq. Shakl GPU'da chiziladi (drawingGroup)
+        let calm = action == .sleeping || action == .watching
+        TimelineView(.animation(minimumInterval: calm ? 1.0 / 8 : 1.0 / 20, paused: still)) { ctx in
+            let t = still ? 0 : ctx.date.timeIntervalSinceReferenceDate
             VStack(spacing: 4) {
                 caption(t)
-                figure(t)
+                figure(t).padding(8).drawingGroup().padding(-8)
             }
         }
         .allowsHitTesting(false)

@@ -406,9 +406,10 @@ private struct FlowEdges: View {
     let edges: [FlowEdge]
     /// Kirish animatsiyasi: shu paytdan boshlab chiziqlar 0,9 s ichida «chiziladi»
     var appearedAt = Date.distantPast
+    @AppStorage(Pref.lightMode) private var lightMode = false
 
     var body: some View {
-        let animated = edges.contains(where: \.live)
+        let animated = edges.contains(where: \.live) && !lightMode
         let entering = Date().timeIntervalSince(appearedAt) < 1.4
         TimelineView(.animation(minimumInterval: 1.0 / 30, paused: !animated && !entering)) { ctx in
             let t = ctx.date.timeIntervalSinceReferenceDate
@@ -636,7 +637,7 @@ private struct ResultNode: View {
         VStack(spacing: 10) {
             ZStack {
                 if result.active {
-                    ProgressView().controlSize(.regular)
+                    Spinner(size: 20)
                 } else {
                     Image(systemName: result.errors > 0 ? "checkmark.circle.trianglebadge.exclamationmark" : "checkmark.circle.fill")
                         .font(.system(size: 34, weight: .medium)).foregroundStyle(color)

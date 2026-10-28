@@ -83,14 +83,15 @@ struct LiveBorder<S: InsettableShape>: View {
     /// Bir aylanish, soniya
     var period: Double = 3.2
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @AppStorage(Pref.lightMode) private var lightMode = false
 
     var body: some View {
         Group {
-            if reduceMotion {
+            if reduceMotion || lightMode {
                 shape.strokeBorder(color.opacity(0.8), lineWidth: lineWidth)
             } else {
-                // 30 kadr/s yetarli; konus gradient va xiralashtirish GPU'da (drawingGroup) — protsessor yuklanmaydi
-                TimelineView(.animation(minimumInterval: 1.0 / 30)) { ctx in
+                // 20 kadr/s yetarli; konus gradient va xiralashtirish GPU'da (drawingGroup)
+                TimelineView(.animation(minimumInterval: 1.0 / 20)) { ctx in
                     // Burchak bitta aylanish ichida: katta vaqt qiymatida gradient aniqligini yo'qotmasin
                     let angle = ctx.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: period) / period * 360
                     let grad = AngularGradient(gradient: Gradient(stops: [

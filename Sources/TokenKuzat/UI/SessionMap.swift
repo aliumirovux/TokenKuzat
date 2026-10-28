@@ -625,8 +625,12 @@ struct SessionMapView: View {
                         .position(screen(CGPoint(x: f.rect.midX, y: f.rect.midY)))
                         .allowsHitTesting(false)
                 }
-                MapEdges(edges: layout.edges.filter { detail || !$0.isBranch }, scale: scale, pan: pan,
-                         reduceMotion: reduceMotion)
+                // Ikki qatlam: qimirlamaydigan chiziqlar faqat joylashuv o'zgarganda chiziladi,
+                // har kadrda — faqat jonlilari (aks holda butun chiziqlar to'plami 30 marta/s qayta chiziladi)
+                let shownEdges = layout.edges.filter { detail || !$0.isBranch }
+                MapEdges(edges: shownEdges.filter { !$0.live }, scale: scale, pan: pan, reduceMotion: reduceMotion)
+                    .allowsHitTesting(false)
+                MapEdges(edges: shownEdges.filter(\.live), scale: scale, pan: pan, reduceMotion: reduceMotion)
                     .allowsHitTesting(false)
                 ForEach(layout.nodes.filter { $0.rect.intersects(visible) && (detail || $0.isMainRow) }) { n in
                     node(n)
@@ -999,9 +1003,10 @@ private struct MapEdges: View {
     let scale: CGFloat
     let pan: CGSize
     let reduceMotion: Bool
+    @AppStorage(Pref.lightMode) private var lightMode = false
 
     var body: some View {
-        let animated = edges.contains(where: \.live) && !reduceMotion
+        let animated = edges.contains(where: \.live) && !reduceMotion && !lightMode
         TimelineView(.animation(minimumInterval: 1.0 / 30, paused: !animated)) { ctx in
             let t = ctx.date.timeIntervalSinceReferenceDate
             Canvas { g, size in
@@ -1194,7 +1199,7 @@ private struct TurnCard: View {
             Image(systemName: "arrow.turn.down.right").font(.system(size: 10, weight: .semibold)).foregroundStyle(Brand.accent)
             Text(f.prompt).font(.caption.weight(.medium)).lineLimit(1)
             Spacer(minLength: 4)
-            if f.active { ProgressView().controlSize(.mini) }
+            if f.active { Spinner(size: 10) }
             if f.errors > 0 { Text("\(f.errors) xato").font(.caption2.weight(.semibold)).foregroundStyle(Brand.err) }
             Text("\(Alerts.duration(f.duration)) · \(f.steps) qadam")
                 .font(.caption2.monospacedDigit()).foregroundStyle(.secondary).fixedSize()
@@ -1210,7 +1215,7 @@ private struct TurnCard: View {
     @ViewBuilder
     private var status: some View {
         if isLive {
-            HStack(spacing: 4) { ProgressView().controlSize(.mini); Text("ishlayapti") }
+            HStack(spacing: 4) { Spinner(size: 10); Text("ishlayapti") }
                 .font(.caption.weight(.semibold)).foregroundStyle(Brand.ok)
         } else if turn.errors > 0 {
             Label("\(turn.errors) xato", systemImage: "exclamationmark.triangle.fill")
@@ -1441,7 +1446,7 @@ private struct MapEndNode: View {
     private var normal: some View {
         ZStack {
             if active {
-                ProgressView().controlSize(.small)
+                Spinner(size: 14)
             } else {
                 Image(systemName: "checkmark").font(.system(size: 20, weight: .bold)).foregroundStyle(.secondary)
             }
@@ -1576,7 +1581,7 @@ private struct MapStepNode: View {
                 meta.font(.caption2.monospacedDigit()).foregroundStyle(.secondary)
             }
             Spacer(minLength: 0)
-            if item.isLive { ProgressView().controlSize(.mini) }
+            if item.isLive { Spinner(size: 10) }
         }
         .padding(.horizontal, 10).padding(.vertical, isText ? 10 : 0)
         .frame(width: M.cardW, height: item.height, alignment: isText ? .topLeading : .leading)
