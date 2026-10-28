@@ -100,6 +100,7 @@ struct GraphScreen: View {
                         SessionMapView(chain: replayOn ? [session] : chain.map { $0.id == session.id ? session : $0 },
                                        mode: mode,
                                        selectedTurn: turnNo.map { "\(session.id)#\($0)" },
+                                       steps: mapSteps(session, turn: turnNo ?? session.turns.last?.id),
                                        onSelectTurn: { sid, tid in
                                            if sid != sessionId { sessionId = sid }
                                            DispatchQueue.main.async { turnId = tid }
@@ -261,6 +262,14 @@ struct GraphScreen: View {
         replayOn = false
         playing = false
         replayTime = nil
+    }
+
+    /// Xaritada ochiladigan so'rovning barcha agentlardagi qadamlari, vaqt bo'yicha
+    private func mapSteps(_ session: SessionSnap, turn: Int?) -> [MapStep] {
+        guard let turn else { return [] }
+        return session.agents
+            .flatMap { a in a.steps.filter { $0.turn == turn }.map { MapStep(step: $0, agent: a.isMain ? nil : a.title) } }
+            .sorted { $0.step.date < $1.step.date }
     }
 
     /// Tanlangan so'rov raqami; nil — butun sessiya

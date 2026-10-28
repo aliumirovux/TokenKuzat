@@ -1,5 +1,12 @@
 # O'zgarishlar
 
+## 4.6.0 — 2026-10-28
+
+- Xaritada jarayon: tanlangan (sukut bo'yicha — eng so'nggi) so'rov kartasi ostida asboblar o'rniga qadamlar zanjiri — har qadam alohida tugun (asbob belgisi, nima qilindi, vaqti, davomiyligi, yordamchi agent nomi), vaqt bo'yicha yuqoridan pastga. Bajarilayotgan qadam jonli chegara bilan, chiziq bo'ylab paketlar yuradi; xatolar qizil.
+- Ko'p bo'lsa — oxirgi 14 ta, tepada «+N oldingi qadam». Kartadagi port yorlig'i: «Jarayon · N qadam».
+- Ergashish rejimida xarita eng so'nggi qadamgacha o'zi tushib boradi; qadamni bosish — o'ng panelda shu asbob ro'yxati.
+- Terminal belgisi qorong'i fonda ko'rinadigan rangda.
+
 ## 4.5.1 — 2026-10-28
 
 - Xarita va Xulosa kanvasi oyna balandligiga moslashadi: sahifadagi joyidan oynaning pastigacha to'liq egallaydi, pastki qismi kesilmaydi.

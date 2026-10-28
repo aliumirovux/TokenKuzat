@@ -42,9 +42,21 @@ enum SessionChain {
     }
 }
 
+extension ToolCategory {
+    /// Belgi rangi: Terminal'ning to'q kulrangi qorong'i fonda ko'rinmaydi — u yerda oddiy ikkilamchi rang
+    var iconColor: Color { self == .shell ? .secondary : color }
+}
+
 extension TurnSnap {
     /// Ro'yxat va chiplarda ko'rinadigan matn: xulosa matni o'rniga tushunarli yozuv
     var shownPrompt: String { isContinuation ? "Kontekst yangilandi — ish davom etdi" : prompt }
+}
+
+/// Xaritada ochilgan so'rovning bitta qadami; `agent` — yordamchi agent nomi (asosiy agentda nil)
+struct MapStep: Identifiable {
+    var id: String { step.id }
+    let step: StepSnap
+    let agent: String?
 }
 
 // MARK: - Joylashuv
@@ -62,6 +74,12 @@ private enum M {
     static let toolStep: CGFloat = 68
     static let maxTools = 4
     static let pad: CGFloat = 60
+    static let stepH: CGFloat = 52
+    static let stepGap: CGFloat = 14
+    static let stepTop: CGFloat = 46
+    static let maxSteps = 14
+    /// Qadamlarsiz xarita balandligi — masshtab shu bo'yicha tanlanadi
+    static let baseH: CGFloat = rowY + cardH / 2 + toolDrop + toolD + 50
 }
 
 private struct MapNode: Identifiable {
@@ -71,6 +89,8 @@ private struct MapNode: Identifiable {
         case turn(TurnSnap, sessionId: String, previousPrompt: String?)
         case tool(TurnTool, sessionId: String)
         case more(Int)
+        case step(MapStep, sessionId: String, turnId: Int)
+        case earlier(Int)
         case end(active: Bool, at: Date?)
     }
     let id: String
@@ -79,7 +99,12 @@ private struct MapNode: Identifiable {
     let size: CGSize
 
     var rect: CGRect { CGRect(x: center.x - size.width / 2, y: center.y - size.height / 2, width: size.width, height: size.height) }
-    var isMainRow: Bool { if case .tool = kind { return false }; if case .more = kind { return false }; return true }
+    var isMainRow: Bool {
+        switch kind {
+        case .tool, .more, .step, .earlier: return false
+        default: return true
+        }
+    }
 }
 
 private struct MapEdge: Identifiable {
@@ -98,7 +123,12 @@ private struct MapLayout {
     /// Oxirgi so'rov kartasi — «Hozirgiga» va ergashish uchun
     var lastTurn: MapNode?
 
-    init(chain: [SessionSnap]) {
+    /// Qadamlar zanjiri pastga qarab qayergacha boradi (ergashish uchun)
+    var stepsBottom: CGFloat?
+
+    /// - Parameters:
+    ///   - expanded: ochilgan so'rov kartasi («sessiya#raqam») — uning ostida asboblar o'rniga qadamlar zanjiri
+    init(chain: [SessionSnap], expanded: String? = nil, steps: [MapStep] = []) {
         var x = M.pad
         var prev: MapNode?
         var lastReal: String?
@@ -136,15 +166,47 @@ private struct MapLayout {
                 add(card, live: t.active)
                 lastTurn = card
                 if !t.isContinuation { lastReal = t.prompt }
-                placeTools(t, card: card, sessionId: s.id)
+                if card.id == expanded && !steps.isEmpty {
+                    placeSteps(steps, card: card, sessionId: s.id, turnId: t.id)
+                } else {
+                    placeTools(t, card: card, sessionId: s.id)
+                }
             }
         }
         let lastAt = chain.last?.turns.last?.end ?? chain.last?.lastActivity
         add(MapNode(id: "end", kind: .end(active: active, at: lastAt),
                     center: CGPoint(x: x + M.endD / 2, y: M.rowY), size: CGSize(width: M.endD, height: M.endD)),
             live: active)
-        let bottom = M.rowY + M.cardH / 2 + M.toolDrop + M.toolD + 50
+        let bottom = max(M.baseH, (stepsBottom ?? 0) + 50)
         size = CGSize(width: x - M.gap + M.pad, height: bottom)
+    }
+
+    /// Qadamlar karta ostidan pastga, vaqt bo'yicha ketma-ket; ko'p bo'lsa — oxirgilari, tepada «+N oldingi»
+    private mutating func placeSteps(_ all: [MapStep], card: MapNode, sessionId: String, turnId: Int) {
+        let shown = Array(all.suffix(M.maxSteps))
+        let hidden = all.count - shown.count
+        var y = card.rect.maxY + M.stepTop
+        var prevBottom = CGPoint(x: card.center.x, y: card.rect.maxY)
+        func link(_ n: MapNode, live: Bool, color: Color) {
+            edges.append(MapEdge(id: "e" + n.id, from: prevBottom, to: CGPoint(x: n.center.x, y: n.rect.minY),
+                                 vertical: true, live: live, color: color))
+            prevBottom = CGPoint(x: n.center.x, y: n.rect.maxY)
+        }
+        if hidden > 0 {
+            let n = MapNode(id: card.id + "/earlier", kind: .earlier(hidden),
+                            center: CGPoint(x: card.center.x, y: y + 15), size: CGSize(width: 170, height: 30))
+            nodes.append(n)
+            link(n, live: false, color: .secondary)
+            y = n.rect.maxY + M.stepGap
+        }
+        for st in shown {
+            let n = MapNode(id: card.id + "/s/" + st.id, kind: .step(st, sessionId: sessionId, turnId: turnId),
+                            center: CGPoint(x: card.center.x, y: y + M.stepH / 2), size: CGSize(width: M.cardW, height: M.stepH))
+            nodes.append(n)
+            link(n, live: st.step.status == .running, color: st.step.category.color)
+            y = n.rect.maxY + M.stepGap
+        }
+        stepsBottom = y
     }
 
     private mutating func placeTools(_ t: TurnSnap, card: MapNode, sessionId: String) {
@@ -204,6 +266,8 @@ struct SessionMapView: View {
     let chain: [SessionSnap]
     let mode: CountMode
     let selectedTurn: String?
+    /// Ochilgan so'rov qadamlari (eskidan yangiga)
+    var steps: [MapStep] = []
     let onSelectTurn: (_ sessionId: String, _ turnId: Int) -> Void
     let onSelectTool: (_ sessionId: String, _ turnId: Int, _ category: ToolCategory) -> Void
 
@@ -220,7 +284,7 @@ struct SessionMapView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        let layout = MapLayout(chain: chain)
+        let layout = MapLayout(chain: chain, expanded: selectedTurn ?? lastTurnId, steps: steps)
         GeometryReader { geo in
             let vs = geo.size
             let visible = CGRect(x: -pan.width / scale, y: -pan.height / scale,
@@ -292,8 +356,17 @@ struct SessionMapView: View {
             .onChange(of: layout.lastTurn?.id) { _ in
                 if follow { focusLast(layout, vs, animated: true) }
             }
+            .onChange(of: steps.count) { _ in
+                if follow { focusLast(layout, vs, animated: true) }
+            }
         }
         .background(Brand.canvas)
+    }
+
+    /// Hech narsa tanlanmagan bo'lsa — eng so'nggi so'rov ochiladi
+    private var lastTurnId: String? {
+        guard let s = chain.last, let t = s.turns.last else { return nil }
+        return "\(s.id)#\(t.id)"
     }
 
     // MARK: Tugunlar
@@ -306,7 +379,8 @@ struct SessionMapView: View {
         case .divider(let title, let subtitle):
             MapPill(symbol: "arrow.triangle.2.circlepath", title: title, subtitle: subtitle, color: Brand.warn)
         case .turn(let t, let sid, let prev):
-            TurnCard(turn: t, previousPrompt: prev, mode: mode, selected: selectedTurn == n.id)
+            TurnCard(turn: t, previousPrompt: prev, mode: mode, selected: selectedTurn == n.id,
+                     expandedSteps: (selectedTurn ?? lastTurnId) == n.id && !steps.isEmpty ? steps.count : nil)
                 .onTapGesture { onSelectTurn(sid, t.id) }
         case .tool(let tool, let sid):
             MapToolNode(tool: tool)
@@ -315,6 +389,15 @@ struct SessionMapView: View {
                         onSelectTool(sid, turnId, tool.category)
                     }
                 }
+        case .step(let st, let sid, let tid):
+            MapStepNode(item: st)
+                .onTapGesture { onSelectTool(sid, tid, st.step.category) }
+        case .earlier(let k):
+            Text("+\(k) oldingi qadam")
+                .font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .surfaceCapsule()
+                .help("Eski qadamlar — o'ng paneldagi «Jarayon»da to'liq ro'yxat")
         case .more(let k):
             VStack(spacing: 6) {
                 Text("+\(k)").font(.callout.weight(.semibold)).foregroundStyle(.secondary)
@@ -395,11 +478,15 @@ struct SessionMapView: View {
     private func focusLast(_ layout: MapLayout, _ vs: CGSize, animated: Bool, rescale: Bool = false) {
         guard vs.width > 0 else { return }
         if rescale {
-            scale = min(1.15, max(0.6, (vs.height - 80) / layout.size.height * 0.9))
+            scale = min(1.15, max(0.6, (vs.height - 80) / M.baseH * 0.9))
         }
         let end = layout.nodes.last?.rect.maxX ?? layout.size.width
-        let target = clamped(CGSize(width: min(M.pad * scale, vs.width - (end + M.pad) * scale),
-                                    height: (vs.height - layout.size.height * scale) / 2), vs: vs, world: layout.size)
+        // Bo'yiga sig'sa — markazda; sig'masa — eng so'nggi qadam ko'rinadigan qilib pastga suriladi
+        let ch = layout.size.height * scale
+        let y = ch <= vs.height ? (vs.height - ch) / 2
+            : vs.height - ((layout.stepsBottom ?? layout.size.height) + 40) * scale
+        let target = clamped(CGSize(width: min(M.pad * scale, vs.width - (end + M.pad) * scale), height: y),
+                             vs: vs, world: layout.size)
         if animated && !reduceMotion { withAnimation(Motion.spring) { pan = target } } else { pan = target }
     }
 
@@ -517,6 +604,8 @@ private struct TurnCard: View {
     let previousPrompt: String?
     let mode: CountMode
     let selected: Bool
+    /// Ostida qadamlar zanjiri ochilgan bo'lsa — qadamlar soni
+    var expandedSteps: Int? = nil
 
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
@@ -555,7 +644,11 @@ private struct TurnCard: View {
                           stroke: selected ? Brand.accent : nil))
         .overlay { if turn.active { LiveBorder(shape: shape, color: Brand.ok, lineWidth: 2) } }
         .overlay(alignment: .bottom) {
-            if !turn.tools.isEmpty { portPill("Asboblar", .secondary).offset(y: 11) }
+            if let n = expandedSteps {
+                portPill("Jarayon · \(n) qadam", Brand.accent).offset(y: 11)
+            } else if !turn.tools.isEmpty {
+                portPill("Asboblar", .secondary).offset(y: 11)
+            }
         }
         .shadow(color: .black.opacity(0.16), radius: 4, y: 2)
         .contentShape(shape)
@@ -611,7 +704,7 @@ private struct MapToolNode: View {
         VStack(spacing: 6) {
             ZStack(alignment: .topTrailing) {
                 Image(systemName: tool.category.symbol)
-                    .font(.system(size: 17, weight: .medium)).foregroundStyle(color)
+                    .font(.system(size: 17, weight: .medium)).foregroundStyle(tool.category.iconColor)
                     .frame(width: M.toolD, height: M.toolD)
                     .surfaceCircle(tint: tool.busy ? color : nil, interactive: true)
                     .overlay { if tool.busy { LiveBorder(shape: Circle(), color: color, lineWidth: 2, period: 2.4) } }
@@ -682,6 +775,11 @@ private struct MiniMap: View {
                            with: .color(t.category.color))
                 case .more:
                     break
+                case .step(let st, _, _):
+                    g.fill(Path(ellipseIn: CGRect(x: n.center.x * k - 1.5, y: toolY + 5, width: 3, height: 3)),
+                           with: .color(st.step.category.color))
+                case .earlier:
+                    break
                 default:
                     g.fill(Path(ellipseIn: CGRect(x: n.center.x * k - 3, y: rowY - 3, width: 6, height: 6)),
                            with: .color(Color.secondary))
@@ -703,5 +801,52 @@ private struct MiniMap: View {
         .padding(8)
         .surface(radius: 12)
         .help("Mini-xarita: bosing yoki suring")
+    }
+}
+
+/// Qadam tuguni: asbob belgisi, nima qilindi, vaqti va davomiyligi; bajarilayotgani — jonli chegara bilan
+private struct MapStepNode: View {
+    let item: MapStep
+
+    var body: some View {
+        let s = item.step
+        let color = s.category.color
+        let shape = RoundedRectangle(cornerRadius: 12, style: .continuous)
+        HStack(spacing: 10) {
+            ZStack {
+                Circle().fill(color.opacity(s.status == .failed ? 0 : 0.15))
+                if s.status == .failed {
+                    Circle().fill(Brand.err)
+                    Image(systemName: "xmark").font(.system(size: 10, weight: .bold)).foregroundStyle(.white)
+                } else {
+                    Image(systemName: s.symbol).font(.system(size: 11, weight: .semibold)).foregroundStyle(s.category.iconColor)
+                }
+            }
+            .frame(width: 28, height: 28)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(s.text).font(.callout).lineLimit(1).truncationMode(.tail)
+                    .foregroundStyle(s.status == .failed ? Brand.err : Color.primary)
+                HStack(spacing: 5) {
+                    Text(Fmt.clock.string(from: s.date))
+                    if let d = s.duration { Text("· " + Self.dur(d)) }
+                    if let a = item.agent { Text("· " + a).lineLimit(1) }
+                }
+                .font(.caption2.monospacedDigit()).foregroundStyle(.secondary)
+            }
+            Spacer(minLength: 0)
+            if s.status == .running { ProgressView().controlSize(.mini) }
+        }
+        .padding(.horizontal, 10)
+        .frame(width: M.cardW, height: M.stepH)
+        .modifier(Surface(shape: shape, tint: s.status == .running ? color : nil, interactive: true))
+        .overlay { if s.status == .running { LiveBorder(shape: shape, color: color, lineWidth: 1.6, period: 2.6) } }
+        .contentShape(shape)
+        .help(s.text)
+    }
+
+    private static func dur(_ s: TimeInterval) -> String {
+        if s < 1 { return "<1 s" }
+        if s < 60 { return "\(Int(s)) s" }
+        return "\(Int(s) / 60) daq \(Int(s) % 60) s"
     }
 }
