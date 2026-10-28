@@ -1,5 +1,11 @@
 # O'zgarishlar
 
+## 4.5.1 — 2026-10-28
+
+- Xarita va Xulosa kanvasi oyna balandligiga moslashadi: sahifadagi joyidan oynaning pastigacha to'liq egallaydi, pastki qismi kesilmaydi.
+- Xaritani surish chegaralandi: kartalar ekrandan butunlay chiqib ketmaydi, sig'sa — vertikal ichkarida qoladi.
+- Oyna o'lchami o'zgarsa, xarita masshtabi va joylashuvi moslashadi; ergashish paytida masshtab o'z-o'zidan o'zgarmaydi.
+
 ## 4.5.0 — 2026-10-28
 
 - Yangi «Xarita» (Oqim → Xarita, sukut bo'yicha): butun sessiya n8n uslubidagi cheksiz kanvasda — chapdan o'ngga so'rov kartalari (raqam, vaqt, matn, davomiylik, token, qadam, yordamchilar), har biridan pastga o'sha so'rovda ishlatilgan asboblar (chaqiruv va xato soni bilan).

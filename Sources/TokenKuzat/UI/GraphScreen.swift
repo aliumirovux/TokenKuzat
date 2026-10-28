@@ -33,6 +33,11 @@ private enum Selection: Equatable {
 
 // MARK: - Ekran
 
+private struct CanvasTopKey: PreferenceKey {
+    static var defaultValue: CGFloat = 340
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = nextValue() }
+}
+
 struct GraphScreen: View {
     static let selectedSessionKey = "graphSession"
     @EnvironmentObject var store: Store
@@ -51,6 +56,11 @@ struct GraphScreen: View {
     @State private var speed = 20.0
     /// Oqim tabida: «process» — ketma-ket jarayon, «summary» — asboblar xulosasi
     @AppStorage("flowStyle") private var flowStyle = "map"
+    /// Sahifa (oyna) balandligi — xarita va oqim kanvasi shunga moslashadi
+    @State private var pageHeight: CGFloat = 800
+    /// Kanvasning sahifa boshidan masofasi — kanvas oynaning qolgan qismini to'liq egallaydi
+    @State private var canvasTop: CGFloat = 340
+    private var canvasHeight: CGFloat { max(400, pageHeight - canvasTop - 52) }   // 20 — pastki chekka, ~32 — sarlavha qatori
     private let ticker = Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()
 
     var body: some View {
@@ -108,7 +118,10 @@ struct GraphScreen: View {
                             inspector(session, now: now).frame(width: 384)
                         }
                     }
-                    .frame(height: 560)
+                    .frame(height: canvasHeight)
+                    .background(GeometryReader { g in
+                        Color.clear.preference(key: CanvasTopKey.self, value: g.frame(in: .named("page")).minY)
+                    })
                     .card(padding: 0)
                     .padding(.horizontal, 24).padding(.bottom, 20)
                 case "flow" where flowStyle == "process":
@@ -131,7 +144,10 @@ struct GraphScreen: View {
                             inspector(session, now: now).frame(width: 384)
                         }
                     }
-                    .frame(height: 640)
+                    .frame(height: canvasHeight)
+                    .background(GeometryReader { g in
+                        Color.clear.preference(key: CanvasTopKey.self, value: g.frame(in: .named("page")).minY)
+                    })
                     .card(padding: 0)
                     .padding(.horizontal, 24).padding(.bottom, 20)
                 case "files":
@@ -160,7 +176,14 @@ struct GraphScreen: View {
                 }
             }
         }
+        .coordinateSpace(name: "page")
         }
+        .onPreferenceChange(CanvasTopKey.self) { v in if abs(v - canvasTop) > 1 { canvasTop = v } }
+        .background(GeometryReader { g in
+            Color.clear
+                .onAppear { pageHeight = g.size.height }
+                .onChange(of: g.size.height) { pageHeight = $0 }
+        })
         .animation(Motion.spring, value: replayOn)
         .animation(Motion.spring, value: graphMode)
         .onChange(of: sessionId) { _ in selection = nil; turnId = nil; stopReplay() }

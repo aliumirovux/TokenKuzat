@@ -215,6 +215,7 @@ struct SessionMapView: View {
     @State private var pinchStart: CGFloat?
     @State private var cursor: CGPoint?
     @State private var viewport = CGSize.zero
+    @State private var world = CGSize.zero
     @StateObject private var wheel = WheelMonitor()
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -244,8 +245,8 @@ struct SessionMapView: View {
                 DragGesture(minimumDistance: 3)
                     .onChanged { v in
                         if dragStart == nil { dragStart = pan; follow = false }
-                        pan = CGSize(width: dragStart!.width + v.translation.width,
-                                     height: dragStart!.height + v.translation.height)
+                        pan = clamped(CGSize(width: dragStart!.width + v.translation.width,
+                                             height: dragStart!.height + v.translation.height))
                     }
                     .onEnded { _ in dragStart = nil }
             )
@@ -267,18 +268,27 @@ struct SessionMapView: View {
             .overlay(alignment: .bottomTrailing) {
                 MiniMap(layout: layout, scale: scale, pan: pan, viewport: vs) { center in
                     follow = false
-                    pan = CGSize(width: vs.width / 2 - center.x * scale, height: vs.height / 2 - center.y * scale)
+                    pan = clamped(CGSize(width: vs.width / 2 - center.x * scale, height: vs.height / 2 - center.y * scale))
                 }
                 .padding(12)
             }
             .onAppear {
                 viewport = vs
+                world = layout.size
                 wheel.onWheel = { e in handleWheel(e) }
                 wheel.start()
-                if !placed { placed = true; focusLast(layout, vs, animated: false) }
+                if !placed { placed = true; focusLast(layout, vs, animated: false, rescale: true) }
             }
             .onDisappear { wheel.stop() }
-            .onChange(of: vs) { viewport = $0 }
+            .onChange(of: vs) { new in
+                // Oyna o'lchami o'zgarsa: zoom va vertikal joylashuv yangi o'lchamga moslashadi
+                let old = viewport
+                viewport = new
+                if follow { focusLast(layout, new, animated: false, rescale: true); return }
+                let dy = (new.height - old.height) / 2
+                pan = clamped(CGSize(width: pan.width, height: pan.height + dy))
+            }
+            .onChange(of: layout.size) { world = $0 }
             .onChange(of: layout.lastTurn?.id) { _ in
                 if follow { focusLast(layout, vs, animated: true) }
             }
@@ -371,8 +381,8 @@ struct SessionMapView: View {
     private func zoom(to s: CGFloat, around anchor: CGPoint) {
         let ns = min(2, max(0.2, s))
         let wx = (anchor.x - pan.width) / scale, wy = (anchor.y - pan.height) / scale
-        pan = CGSize(width: anchor.x - wx * ns, height: anchor.y - wy * ns)
         scale = ns
+        pan = clamped(CGSize(width: anchor.x - wx * ns, height: anchor.y - wy * ns))
     }
 
     private func fit(_ layout: MapLayout, _ vs: CGSize) {
@@ -381,13 +391,29 @@ struct SessionMapView: View {
         pan = CGSize(width: (vs.width - layout.size.width * s) / 2, height: (vs.height - layout.size.height * s) / 2)
     }
 
-    /// Oxirgi kartani o'ng tomonda, vertikal — markazda ko'rsatadi
-    private func focusLast(_ layout: MapLayout, _ vs: CGSize, animated: Bool) {
+    /// Oxirgi kartani o'ng tomonda, vertikal — markazda ko'rsatadi. Balandlik katta bo'lsa — biroz kattaroq masshtab
+    private func focusLast(_ layout: MapLayout, _ vs: CGSize, animated: Bool, rescale: Bool = false) {
         guard vs.width > 0 else { return }
+        if rescale {
+            scale = min(1.15, max(0.6, (vs.height - 80) / layout.size.height * 0.9))
+        }
         let end = layout.nodes.last?.rect.maxX ?? layout.size.width
-        let target = CGSize(width: min(M.pad * scale, vs.width - (end + M.pad) * scale),
-                            height: (vs.height - layout.size.height * scale) / 2)
+        let target = clamped(CGSize(width: min(M.pad * scale, vs.width - (end + M.pad) * scale),
+                                    height: (vs.height - layout.size.height * scale) / 2), vs: vs, world: layout.size)
         if animated && !reduceMotion { withAnimation(Motion.spring) { pan = target } } else { pan = target }
+    }
+
+    /// Xarita ekrandan butunlay chiqib ketmasin: kamida 160 pt ko'rinib turadi; sig'sa — vertikal ichkarida qoladi
+    private func clamped(_ p: CGSize, vs: CGSize? = nil, world: CGSize? = nil) -> CGSize {
+        let v = vs ?? viewport, w = world ?? self.world
+        guard v.width > 0, w.width > 0 else { return p }
+        let cw = w.width * scale, ch = w.height * scale
+        let keep = min(160, cw / 2)
+        let x = min(v.width - keep, max(keep - cw, p.width))
+        let y: CGFloat = ch <= v.height
+            ? min(v.height - ch, max(0, p.height))
+            : min(0, max(v.height - ch, p.height))
+        return CGSize(width: x, height: y)
     }
 
     private func handleWheel(_ e: NSEvent) {
@@ -397,7 +423,7 @@ struct SessionMapView: View {
         if e.modifierFlags.contains(.command) || e.modifierFlags.contains(.option) {
             zoom(to: scale * (1 + dy * 0.01), around: cursor ?? center(viewport))
         } else {
-            pan = CGSize(width: pan.width + dx, height: pan.height + dy)
+            pan = clamped(CGSize(width: pan.width + dx, height: pan.height + dy))
         }
     }
 }
