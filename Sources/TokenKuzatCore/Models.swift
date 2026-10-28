@@ -50,6 +50,7 @@ public struct StepSnap: Identifiable, Sendable {
     public let text: String
     public let category: ToolCategory
     public let targetName: String
+    public let access: ToolAccess
     public let duration: TimeInterval?
     public let status: StepStatus
     /// Qaysi so'rov ichida bajarilgan (`TurnSnap.id`); birinchi so'rovdan oldingi qadamlar — nil
