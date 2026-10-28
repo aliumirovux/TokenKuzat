@@ -1,5 +1,9 @@
 # O'zgarishlar
 
+## 6.20.1 — 2026-10-28
+
+- «Xulosa» sxemasi xaritadagidek boshqariladi: sichqoncha/trackpad bilan surish, pinch yoki ⌘/⌥ + aylantirish bilan kursor atrofida zoom; − / + ekran markazi atrofida, ⤢ — oynaga sig'dirib markazga qaytaradi. Surilmaguncha sxema oynaga sig'dirilib markazda turadi (yangi qadamlar qo'shilganda ham); ochilganda yuqori qismi ekrandan chiqib qolishi tuzatildi.
+
 ## 6.20.0 — 2026-10-28
 
 - Ingliz tili: ilova endi ikki tilda — O'zbekcha va English. Sozlamalar → Umumiy → «Til / Language»: O'zbekcha / English / Tizim tili (sukut — Mac tili inglizcha bo'lsa English, aks holda o'zbekcha). Tanlov darhol qo'llanadi — oyna va menyu paneli qaytadan chiziladi.

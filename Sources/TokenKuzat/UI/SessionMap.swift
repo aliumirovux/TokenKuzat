@@ -535,8 +535,8 @@ private final class LayoutCache: ObservableObject {
 
 // MARK: - G'ildirak
 
-/// Kursor xarita ustida bo'lganda g'ildirak/trackpad hodisalarini xaritaga beradi (sahifa aylanmaydi)
-private final class WheelMonitor: ObservableObject {
+/// Kursor xarita (yoki Xulosa sxemasi) ustida bo'lganda g'ildirak/trackpad hodisalarini unga beradi (sahifa aylanmaydi)
+final class WheelMonitor: ObservableObject {
     var active = false
     var onWheel: ((NSEvent) -> Void)?
     private var token: Any?

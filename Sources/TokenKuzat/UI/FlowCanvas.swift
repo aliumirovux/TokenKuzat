@@ -244,33 +244,127 @@ struct FlowCanvas: View {
     let selectedBubble: String?
     let onSelectAgent: (String) -> Void
     let onSelectBubble: (FlowBubble) -> Void
+    /// Oynaga sig'dirilgan masshtabga nisbatan (1 — butun sxema ko'rinadi)
     @State private var zoom: CGFloat = 1
+    /// Sxemaning chap-yuqori burchagi ekranda qayerda
+    @State private var pan = CGSize.zero
+    /// Foydalanuvchi surmagan/zoom qilmagan — sxema oynaga sig'dirilib, markazda turadi (oyna va sxema o'lchami o'zgarsa ham)
+    @State private var auto = true
+    @State private var dragStart: CGSize?
+    @State private var pinchStart: CGFloat?
+    @State private var cursor: CGPoint?
+    @State private var viewport = CGSize.zero
+    @StateObject private var wheel = WheelMonitor()
     @State private var appearedAt = Date.distantPast
     @State private var entered = false
 
     var body: some View {
         let layout = FlowLayout(model)
         GeometryReader { geo in
-            let fit = min(1, geo.size.width / layout.size.width, geo.size.height / layout.size.height)
-            let scale = min(2, max(0.3, fit * zoom))
-            let w = layout.size.width * scale, h = layout.size.height * scale
-            let content = canvas(layout)
+            let vs = geo.size
+            let fit = fitScale(layout, vs)
+            let scale = clampScale(fit * zoom)
+            canvas(layout)
                 .scaleEffect(scale, anchor: .topLeading)
-                .frame(width: w, height: h, alignment: .topLeading)
-            Group {
-                if w <= geo.size.width + 1 && h <= geo.size.height + 1 {
-                    content.frame(width: geo.size.width, height: geo.size.height)
-                } else {
-                    ScrollView([.horizontal, .vertical]) {
-                        content.frame(minWidth: geo.size.width, minHeight: geo.size.height)
+                .frame(width: layout.size.width * scale, height: layout.size.height * scale, alignment: .topLeading)
+                .offset(pan)
+                .frame(width: vs.width, height: vs.height, alignment: .topLeading)
+                .clipped()
+                .background(DotGridBackground())
+                .contentShape(Rectangle())
+                // Sichqoncha/trackpad bilan surish; tugunlarni bosish ishlayveradi (3 pt dan kam siljish — bosish)
+                .gesture(
+                    DragGesture(minimumDistance: 3)
+                        .onChanged { v in
+                            if dragStart == nil { dragStart = pan; auto = false }
+                            pan = clamped(CGSize(width: dragStart!.width + v.translation.width,
+                                                 height: dragStart!.height + v.translation.height), layout, scale, vs)
+                        }
+                        .onEnded { _ in dragStart = nil }
+                )
+                .simultaneousGesture(
+                    MagnificationGesture()
+                        .onChanged { m in
+                            if pinchStart == nil { pinchStart = zoom; auto = false }
+                            zoomTo(pinchStart! * m, around: cursor ?? CGPoint(x: vs.width / 2, y: vs.height / 2), layout, vs)
+                        }
+                        .onEnded { _ in pinchStart = nil }
+                )
+                .onContinuousHover { phase in
+                    switch phase {
+                    case .active(let p): cursor = p; wheel.active = true
+                    case .ended: cursor = nil; wheel.active = false
                     }
                 }
-            }
-            .background(DotGridBackground())
-            .overlay(alignment: .bottomTrailing) { zoomControls.padding(12) }
-            .overlay(alignment: .bottomLeading) { FlowLegend().padding(12) }
+                .overlay(alignment: .bottomTrailing) { zoomControls(layout, vs).padding(12) }
+                .overlay(alignment: .bottomLeading) { FlowLegend().padding(12) }
+                .onAppear {
+                    viewport = vs
+                    wheel.onWheel = { e in handleWheel(e, layout: FlowLayout(model)) }
+                    wheel.start()
+                    if auto { center(layout, vs, scale: scale) }
+                }
+                .onDisappear { wheel.stop() }
+                // Sxema o'sganda (yangi qadamlar) g'ildirak chegarasi ham yangilansin
+                .onChange(of: layout.size) { _ in
+                    wheel.onWheel = { e in handleWheel(e, layout: FlowLayout(model)) }
+                    if auto { center(layout, vs, scale: clampScale(fitScale(layout, vs) * zoom)) }
+                }
+                .onChange(of: vs) { new in
+                    // Oyna o'lchami o'zgarsa — avtomatik rejimda qayta markazlanadi, aks holda markaz joyida qoladi
+                    let dx = (new.width - viewport.width) / 2, dy = (new.height - viewport.height) / 2
+                    viewport = new
+                    let sc = clampScale(fitScale(layout, new) * zoom)
+                    if auto { center(layout, new, scale: sc); return }
+                    pan = clamped(CGSize(width: pan.width + dx, height: pan.height + dy), layout, sc, new)
+                }
         }
         .background(Color.clear)
+    }
+
+    // MARK: Surish va zoom
+
+    private func fitScale(_ l: FlowLayout, _ vs: CGSize) -> CGFloat {
+        min(1, vs.width / max(1, l.size.width), vs.height / max(1, l.size.height))
+    }
+
+    private func clampScale(_ s: CGFloat) -> CGFloat { min(3, max(0.2, s)) }
+
+    /// Sxemani ekran markaziga qo'yadi
+    private func center(_ l: FlowLayout, _ vs: CGSize, scale: CGFloat) {
+        pan = CGSize(width: (vs.width - l.size.width * scale) / 2, height: (vs.height - l.size.height * scale) / 2)
+    }
+
+    /// Zoom: `anchor` ostidagi nuqta joyida qoladi
+    private func zoomTo(_ z: CGFloat, around anchor: CGPoint, _ l: FlowLayout, _ vs: CGSize) {
+        auto = false
+        let fit = fitScale(l, vs)
+        let old = clampScale(fit * zoom), new = clampScale(fit * z)
+        let wx = (anchor.x - pan.width) / old, wy = (anchor.y - pan.height) / old
+        zoom = new / fit
+        pan = clamped(CGSize(width: anchor.x - wx * new, height: anchor.y - wy * new), l, new, vs)
+    }
+
+    /// Sxema ekrandan butunlay chiqib ketmasin: kamida 120 pt ko'rinib turadi
+    private func clamped(_ p: CGSize, _ l: FlowLayout, _ scale: CGFloat, _ vs: CGSize) -> CGSize {
+        let w = l.size.width * scale, h = l.size.height * scale
+        let kx = min(120, w / 2), ky = min(120, h / 2)
+        return CGSize(width: min(vs.width - kx, max(kx - w, p.width)),
+                      height: min(vs.height - ky, max(ky - h, p.height)))
+    }
+
+    /// G'ildirak/trackpad: oddiy aylantirish — surish, ⌘ yoki ⌥ bilan — zoom (kursor atrofida)
+    private func handleWheel(_ e: NSEvent, layout l: FlowLayout) {
+        var dx = e.scrollingDeltaX, dy = e.scrollingDeltaY
+        if !e.hasPreciseScrollingDeltas { dx *= 10; dy *= 10 }
+        let vs = viewport
+        auto = false
+        if e.modifierFlags.contains(.command) || e.modifierFlags.contains(.option) {
+            zoomTo(zoom * (1 + dy * 0.01), around: cursor ?? CGPoint(x: vs.width / 2, y: vs.height / 2), l, vs)
+        } else {
+            let scale = clampScale(fitScale(l, vs) * zoom)
+            pan = clamped(CGSize(width: pan.width + dx, height: pan.height + dy), l, scale, vs)
+        }
     }
 
     private func canvas(_ l: FlowLayout) -> some View {
@@ -380,13 +474,18 @@ struct FlowCanvas: View {
         }
     }
 
-    private var zoomControls: some View {
-        HStack(spacing: 0) {
-            zoomButton("minus", tr("Kichraytirish", "Zoom out")) { zoom = max(0.4, zoom / 1.25) }
+    private func zoomControls(_ l: FlowLayout, _ vs: CGSize) -> some View {
+        let mid = CGPoint(x: vs.width / 2, y: vs.height / 2)
+        return HStack(spacing: 0) {
+            zoomButton("minus", tr("Kichraytirish", "Zoom out")) { zoomTo(zoom / 1.25, around: mid, l, vs) }
             Divider().frame(height: 16)
-            zoomButton("arrow.up.left.and.arrow.down.right", tr("Oynaga sig'dirish", "Fit to window")) { zoom = 1 }
+            zoomButton("arrow.up.left.and.arrow.down.right", tr("Oynaga sig'dirish", "Fit to window")) {
+                zoom = 1
+                auto = true
+                center(l, vs, scale: clampScale(fitScale(l, vs)))
+            }
             Divider().frame(height: 16)
-            zoomButton("plus", tr("Kattalashtirish", "Zoom in")) { zoom = min(3, zoom * 1.25) }
+            zoomButton("plus", tr("Kattalashtirish", "Zoom in")) { zoomTo(zoom * 1.25, around: mid, l, vs) }
         }
         .surface(radius: 10, interactive: true)
     }
