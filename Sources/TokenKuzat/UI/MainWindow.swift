@@ -86,7 +86,7 @@ struct MainWindow: View {
             if section == .history || section == .sessions { CountModePicker() }
         }
         .padding(.horizontal, 24)
-        .padding(.top, 30)
+        .padding(.top, 12)
         .padding(.bottom, 14)
     }
 

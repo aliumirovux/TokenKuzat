@@ -150,6 +150,8 @@ private enum M {
     /// Satrdan satrga o'tuvchi chiziq kartadan shuncha chetga chiqadi — doim ramka ichida (framePad dan kichik)
     static let wrapOut: CGFloat = 16
     static let sectionGap: CGFloat = 40
+    /// Ekran pastida boshqaruv paneli egallaydigan joy (pt) — ergashganda kontent uning ustida to'xtaydi
+    static let barReserve: CGFloat = 56
     /// Shundan uzun tanaffus — yangi bo'lim
     static let sectionBreak: TimeInterval = 600
     /// Shu masshtabdan past — uzoqdan ko'rinish (faqat raqam va qisqa nom, katta harfda)
@@ -314,6 +316,8 @@ private struct MapLayout {
     var edges: [MapEdge] = []
     var frames: [MapFrame] = []
     var size = CGSize.zero
+    /// Haqiqiy kontent chegarasi (ramkalar va tugunlar) — `size` dan tor bo'lishi mumkin
+    var content = CGRect.zero
     /// Oxirgi so'rov kartasi — «Hozirgiga» va ergashish uchun
     var lastTurn: MapNode?
     /// Qadamlar zanjiri pastga qarab qayergacha boradi (ergashish uchun)
@@ -430,7 +434,8 @@ private struct MapLayout {
         }
         y = bottom + M.framePad
         size = CGSize(width: x + M.pad, height: y + M.pad)
-
+        content = (frames.map(\.rect) + nodes.map(\.rect)).reduce(CGRect.null) { $0.union($1) }
+        if content.isNull { content = CGRect(origin: .zero, size: size) }
     }
 
     /// Qadamlar ustun bo'ylab pastga, vaqt bo'yicha; ko'p bo'lsa — oxirgilari, tepada «+N oldingi». Pastki chegarani qaytaradi
@@ -581,6 +586,8 @@ struct SessionMapView: View {
     @State private var cursor: CGPoint?
     @State private var viewport = CGSize.zero
     @State private var world = CGSize.zero
+    /// Kontent chegarasi — xarita bo'sh joyga surib yuborilmasin
+    @State private var bounds = CGRect.zero
     /// Foydalanuvchi qo'lda yig'gan/ochgan bo'limlar
     @State private var toggled: Set<String> = []
     /// Robot: patrul qadami va oxirgi bosilgan payt
@@ -616,6 +623,18 @@ struct SessionMapView: View {
             let visible = CGRect(x: -pan.width / scale, y: -pan.height / scale,
                                  width: vs.width / scale, height: vs.height / scale).insetBy(dx: -80, dy: -80)
             let detail = scale >= M.lod
+            // Ekran markazi bo'sh va kontent deyarli ko'rinmaydi (sig'adigan qismining 25% dan kami) —
+            // foydalanuvchi bo'sh joyga chiqib ketgan
+            let lost: Bool = {
+                let view = visible.insetBy(dx: 80, dy: 80)
+                let middle = view.insetBy(dx: view.width / 4, dy: view.height / 4)
+                if layout.nodes.contains(where: { $0.rect.intersects(middle) }) { return false }
+                let shown = layout.nodes.reduce(CGFloat(0)) { acc, n in
+                    let r = n.rect.intersection(view); return r.isNull ? acc : acc + r.width * r.height
+                }
+                let total = layout.nodes.reduce(CGFloat(0)) { $0 + $1.rect.width * $1.rect.height }
+                return total > 0 && shown < 0.25 * min(total, view.width * view.height)
+            }()
             ZStack(alignment: .topLeading) {
                 MapGrid(scale: scale, pan: pan)
                 ForEach(layout.frames.filter { $0.rect.intersects(visible) }) { f in
@@ -678,6 +697,31 @@ struct SessionMapView: View {
                 case .ended: cursor = nil; wheel.active = false
                 }
             }
+            .overlay(alignment: .bottom) {
+                // Pastki fade: kartalar boshqaruv paneli ostiga keskin kirib qolmaydi
+                LinearGradient(colors: [Brand.canvas.opacity(0), Brand.canvas.opacity(0.85)], startPoint: .top, endPoint: .bottom)
+                    .frame(height: M.barReserve + 24)
+                    .allowsHitTesting(false)
+            }
+            .overlay {
+                if lost {
+                    Button {
+                        follow = true
+                        focusLast(layout, vs, animated: true)
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "location.north.circle")
+                            Text("Xarita bu yerda emas · Hozirgiga qaytish")
+                        }
+                        .font(.callout.weight(.semibold))
+                        .foregroundStyle(Brand.accent)
+                        .padding(.horizontal, 14).frame(height: 36)
+                        .surface(radius: 12, interactive: true)
+                    }
+                    .buttonStyle(.plain)
+                    .transition(.opacity)
+                }
+            }
             .overlay(alignment: .bottomLeading) { controls(layout, vs).padding(12) }
             .overlay(alignment: .topTrailing) {
                 // «Faqat xarita» — yuqori o'ng burchakda, faqat belgi
@@ -703,7 +747,7 @@ struct SessionMapView: View {
             }
             .overlay(alignment: .bottomTrailing) {
                 // Tor xaritada minixarita yashiriladi — boshqaruv tugmalari bilan to'qnashmasin
-                if vs.width >= 640 {
+                if vs.width >= 700 {
                 MiniMap(layout: layout, scale: scale, pan: pan, viewport: vs) { center in
                     follow = false
                     pan = clamped(CGSize(width: vs.width / 2 - center.x * scale, height: vs.height / 2 - center.y * scale))
@@ -714,6 +758,7 @@ struct SessionMapView: View {
             .onAppear {
                 viewport = vs
                 world = layout.size
+                bounds = layout.content
                 wheel.onWheel = { e in handleWheel(e) }
                 wheel.start()
                 if !placed {
@@ -736,6 +781,7 @@ struct SessionMapView: View {
                 pan = clamped(CGSize(width: pan.width, height: pan.height + dy))
             }
             .onChange(of: layout.size) { world = $0 }
+            .onChange(of: layout.content) { bounds = $0 }
             .onChange(of: scale < M.lod) { _ in
                 // Zich/to'liq joylashuv almashdi — markazdagi karta ekranda joyidan siljimasin
                 guard let (id, screenPos) = cache.anchor, let n = layout.nodes.first(where: { $0.id == id }) else { return }
@@ -853,16 +899,15 @@ struct SessionMapView: View {
     // MARK: Boshqaruv
 
     private func controls(_ layout: MapLayout, _ vs: CGSize) -> some View {
-        HStack(spacing: 8) {
-            HStack(spacing: 0) {
-                iconButton("minus", "Kichraytirish") { zoom(to: scale / 1.25, around: center(vs)) }
-                Text("\(Int((scale * 100).rounded()))%")
-                    .font(.caption.weight(.semibold)).monospacedDigit().frame(width: 44)
-                iconButton("plus", "Kattalashtirish") { zoom(to: scale * 1.25, around: center(vs)) }
-                Divider().frame(height: 16)
-                iconButton("viewfinder", "Hammasini ko'rsatish (masshtabni moslash)") { fit(layout, vs) }
-            }
-            .surface(radius: 10, interactive: true)
+        // Bitta yaxlit panel: masshtab | ergashish | faqat shu so'rov
+        HStack(spacing: 0) {
+            iconButton("minus", "Kichraytirish") { zoom(to: scale / 1.25, around: center(vs)) }
+            Text("\(Int((scale * 100).rounded()))%")
+                .font(.caption.weight(.semibold)).monospacedDigit().frame(width: 44)
+            iconButton("plus", "Kattalashtirish") { zoom(to: scale * 1.25, around: center(vs)) }
+            Divider().frame(height: 16)
+            iconButton("viewfinder", "Hammasini sig'dirish (masshtabni moslash)") { fit(layout, vs) }
+            Divider().frame(height: 16)
 
             Button {
                 follow = true
@@ -874,10 +919,11 @@ struct SessionMapView: View {
                 }
                 .font(.caption.weight(.semibold))
                 .padding(.horizontal, 10).frame(height: 28)
-                .surface(radius: 10, interactive: true)
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .help("Oxirgi so'rovga o'tish va yangi so'rovlarga ergashish")
+            Divider().frame(height: 16)
 
             Button {
                 withAnimation(Motion.spring) { focusOne.toggle() }
@@ -892,13 +938,14 @@ struct SessionMapView: View {
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(focusOne ? Brand.accent : Color.primary)
                 .padding(.horizontal, 10).frame(height: 28)
-                .surface(radius: 10, interactive: true)
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .help(focusOne ? "Barcha so'rovlarni qaytarish"
                            : "Faqat hozirgi (yoki tepada tanlangan) so'rovni ko'rsatish, qolganlarini yashirish")
-
         }
+        .padding(.horizontal, 2)
+        .surface(radius: 10, interactive: true)
     }
 
     private func iconButton(_ symbol: String, _ help: String, _ action: @escaping () -> Void) -> some View {
@@ -937,9 +984,12 @@ struct SessionMapView: View {
     }
 
     private func fit(_ layout: MapLayout, _ vs: CGSize) {
-        let s = min(1, max(0.2, min(vs.width / layout.size.width, vs.height / layout.size.height)))
+        // Haqiqiy kontentni sig'diradi; pastki panel ostida qolmasin
+        let c = layout.content.insetBy(dx: -M.pad / 2, dy: -M.pad / 2)
+        let h = vs.height - M.barReserve
+        let s = min(1, max(0.2, min(vs.width / c.width, h / c.height)))
         scale = s
-        pan = CGSize(width: (vs.width - layout.size.width * s) / 2, height: (vs.height - layout.size.height * s) / 2)
+        pan = CGSize(width: (vs.width - c.width * s) / 2 - c.minX * s, height: (h - c.height * s) / 2 - c.minY * s)
     }
 
     /// Oxirgi so'rov kartasini ko'rsatadi: satr boshi chapda; ostidagi zanjir uzun bo'lsa — eng so'nggi qadam ko'rinadigan qilib
@@ -954,24 +1004,29 @@ struct SessionMapView: View {
         let x = focusOne && cw <= vs.width ? (vs.width - cw) / 2 : min(0, vs.width - (rightEdge + M.pad) * scale)
         // Bitta qator: tepasi (bo'lim sarlavhalari va yuqori shoxlar) ko'rinadi; zanjir uzun bo'lsa — uning oxiri
         let a = 16 - (M.pad - 16) * scale
-        let b = vs.height - (bottom + 40) * scale
-        // Balandlikka sig'sa — vertikal markazda
-        let ch = layout.size.height * scale
-        let ty = ch <= vs.height ? (vs.height - ch) / 2 : (b < a ? b : a)
-        let target = clamped(CGSize(width: x, height: ty), vs: vs, world: layout.size)
+        let b = vs.height - M.barReserve - (bottom + 16) * scale
+        // Balandlikka sig'sa — vertikal markazda (pastki panel joyidan tashqari)
+        let ch = layout.size.height * scale, free = vs.height - M.barReserve
+        let ty = ch <= free ? (free - ch) / 2 : (b < a ? b : a)
+        let target = clamped(CGSize(width: x, height: ty), vs: vs, world: layout.size, content: layout.content)
         if animated && !reduceMotion { withAnimation(Motion.spring) { pan = target } } else { pan = target }
     }
 
-    /// Xarita ekrandan butunlay chiqib ketmasin: kamida 160 pt ko'rinib turadi; sig'sa — vertikal ichkarida qoladi
-    private func clamped(_ p: CGSize, vs: CGSize? = nil, world: CGSize? = nil) -> CGSize {
+    /// Xarita ekrandan butunlay chiqib ketmasin: kontent ekranning kamida 40% ida ko'rinib turadi
+    /// (bo'sh joy emas — haqiqiy kartalar); sig'sa — vertikal ichkarida qoladi
+    private func clamped(_ p: CGSize, vs: CGSize? = nil, world: CGSize? = nil, content: CGRect? = nil) -> CGSize {
         let v = vs ?? viewport, w = world ?? self.world
         guard v.width > 0, w.width > 0 else { return p }
-        let cw = w.width * scale, ch = w.height * scale
-        let keep = min(160, cw / 2)
-        let x = min(v.width - keep, max(keep - cw, p.width))
-        let y: CGFloat = ch <= v.height
+        let c = content ?? (bounds.isEmpty ? CGRect(origin: .zero, size: w) : bounds)
+        let ch = w.height * scale
+        // Kontent ekranning kamida ~40% ini egallab tursin — chetga surilganda bo'sh maydon qolmaydi
+        let keepX = min(v.width * 0.4, c.width * scale / 2), keepY = min(v.height * 0.4, c.height * scale / 2)
+        let x = min(v.width - keepX - c.minX * scale, max(keepX - c.maxX * scale, p.width))
+        var y: CGFloat = ch <= v.height
             ? min(v.height - ch, max(0, p.height))
             : min(0, max(v.height - ch, p.height))
+        // Baland xaritada ham kontent qatori ko'rinishda qolsin
+        y = min(v.height - keepY - c.minY * scale, max(keepY - c.maxY * scale, y))
         return CGSize(width: x, height: y)
     }
 
@@ -1488,12 +1543,12 @@ private struct MiniMap: View {
     let jump: (CGPoint) -> Void
 
     var body: some View {
-        // Butun xarita kichraytirib: bo'lim ramkalari, kartalar va ko'rinib turgan qism
-        let w: CGFloat = 180
-        let k = min(w / max(layout.size.width, 1), 120 / max(layout.size.height, 1))
-        let h = max(40, layout.size.height * k)
+        // Faqat kontent (bo'sh joysiz) kichraytirib: bo'lim ramkalari, kartalar va ko'rinib turgan qism
+        let c = layout.content.insetBy(dx: -12, dy: -12)
+        let k = min(160 / max(c.width, 1), 96 / max(c.height, 1))
+        let w = max(40, c.width * k), h = max(28, c.height * k)
         Canvas { g, _ in
-            func r(_ x: CGRect) -> CGRect { CGRect(x: x.minX * k, y: x.minY * k, width: max(2, x.width * k), height: max(2, x.height * k)) }
+            func r(_ x: CGRect) -> CGRect { CGRect(x: (x.minX - c.minX) * k, y: (x.minY - c.minY) * k, width: max(2, x.width * k), height: max(2, x.height * k)) }
             for f in layout.frames {
                 g.stroke(Path(roundedRect: r(f.rect), cornerRadius: 3), with: .color(Color.secondary.opacity(0.4)), lineWidth: 1)
             }
@@ -1510,9 +1565,9 @@ private struct MiniMap: View {
                     break
                 }
             }
-            let v = CGRect(x: (-pan.width / scale) * k, y: (-pan.height / scale) * k,
-                           width: viewport.width / scale * k, height: viewport.height / scale * k)
-                .intersection(CGRect(x: 0, y: 0, width: w, height: h))
+            let v = r(CGRect(x: -pan.width / scale, y: -pan.height / scale,
+                             width: viewport.width / scale, height: viewport.height / scale))
+                .intersection(CGRect(x: 0, y: 0, width: w, height: h).insetBy(dx: 0.6, dy: 0.6))
             if !v.isNull {
                 g.fill(Path(roundedRect: v, cornerRadius: 3), with: .color(Brand.accent.opacity(0.12)))
                 g.stroke(Path(roundedRect: v, cornerRadius: 3), with: .color(Brand.accent), lineWidth: 1.2)
@@ -1521,7 +1576,7 @@ private struct MiniMap: View {
         .frame(width: w, height: h)
         .contentShape(Rectangle())
         .gesture(DragGesture(minimumDistance: 0).onChanged { v in
-            jump(CGPoint(x: v.location.x / k, y: v.location.y / k))
+            jump(CGPoint(x: v.location.x / k + c.minX, y: v.location.y / k + c.minY))
         })
         .padding(8)
         .surface(radius: 12)

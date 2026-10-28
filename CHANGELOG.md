@@ -1,5 +1,12 @@
 # O'zgarishlar
 
+## 6.13.0 — 2026-10-28
+
+- Xarita boshqaruvi bitta yaxlit panelda: masshtab | «Ergashyapti / Hozirgiga qaytish» | «Faqat shu so'rov». Pastda yengil fade — kartalar panel ostiga keskin kirib qolmaydi; ergashganda oxirgi qadam panel ustida to'xtaydi. «Hammasini sig'dirish» ham panel joyini hisobga oladi.
+- Xaritani bo'sh joyga surib yuborib bo'lmaydi: chegara haqiqiy kontent (kartalar) bo'yicha. Baribir ekranda deyarli hech narsa qolmasa — markazda «Xarita bu yerda emas · Hozirgiga qaytish» tugmasi.
+- Minixarita faqat kontentni ko'rsatadi (bo'sh joysiz), ixchamroq (160×96 gacha); ko'rinish ramkasi doim ichida.
+- Sahifa sarlavhalari tepasidagi bo'sh joy qisqardi — nom chap menyudagi brend bilan bir qatorda.
+
 ## 6.12.2 — 2026-10-28
 
 - «Faqat xarita» rejimida xarita oyna tepasigacha cho'ziladi (yuqoridagi bo'sh joy yo'q) — oyna tugmalari xarita burchagida turadi.

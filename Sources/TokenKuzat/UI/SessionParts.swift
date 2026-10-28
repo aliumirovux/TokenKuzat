@@ -25,7 +25,7 @@ struct SessionHeader: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             kpis(duration: duration, steps: steps, tokens: tokens)
         }
-        .padding(.horizontal, 24).padding(.top, 30)
+        .padding(.horizontal, 24).padding(.top, 12)
     }
 
     private func titleBlock(active: Bool) -> some View {
