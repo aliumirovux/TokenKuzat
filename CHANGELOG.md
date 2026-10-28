@@ -1,5 +1,9 @@
 # O'zgarishlar
 
+## 6.12.2 — 2026-10-28
+
+- «Faqat xarita» rejimida xarita oyna tepasigacha cho'ziladi (yuqoridagi bo'sh joy yo'q) — oyna tugmalari xarita burchagida turadi.
+
 ## 6.12.1 — 2026-10-28
 
 - «Faqat xarita» tugmasi xaritaning yuqori o'ng burchagiga ko'chdi — faqat belgi (⤢; rejimda — ⤡, Esc). Masshtabni moslash tugmasi belgisi almashtirildi (viewfinder) — ikkisi chalkashmasin.

@@ -136,9 +136,10 @@ struct GraphScreen: View {
                     }
                     .frame(minHeight: 320, maxHeight: .infinity)
                     .card(padding: 0)
-                    // Faqat xaritada — oyna chetigacha (sarlavha paneli ostidan)
-                    .padding(.horizontal, mapFocus ? 8 : 24).padding(.bottom, mapFocus ? 8 : 20)
-                    .padding(.top, mapFocus ? 30 : 0)
+                    // Faqat xaritada — oyna chetlarigacha, tepada ham (oyna tugmalari xarita ustida turadi)
+                    .padding(.horizontal, mapFocus ? 6 : 24).padding(.bottom, mapFocus ? 6 : 20)
+                    .padding(.top, mapFocus ? 6 : 0)
+                    .ignoresSafeArea(.container, edges: mapFocus ? .top : [])
                 case "flow":
                     HStack(spacing: 0) {
                         FlowCanvas(session: session, model: flow, mode: mode,
