@@ -12,6 +12,8 @@ struct TokenKuzatApp: App {
         if CommandLine.arguments.contains(StatusLine.flag) { StatusLine.runAndExit() }
         if CommandLine.arguments.contains(Hooks.flag) { Hooks.runAndExit() }
         if CommandLine.arguments.contains(SessionStartHook.flag) { SessionStartHook.runAndExit() }
+        // MCP server (Claude Code plagini) — stdio orqali, oynasiz
+        if CommandLine.arguments.contains(MCPServer.flag) { MCPServer.runAndExit() }
         Pref.register()
     }
 

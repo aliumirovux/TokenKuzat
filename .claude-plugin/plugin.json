@@ -1,0 +1,14 @@
+{
+  "name": "tokenkuzat",
+  "description": "Token Kuzatuv: Claude Code token sarfi, limitlar va sessiyalar. /tokenkuzat:install — Mac ilovasini yig'ib o'rnatadi; MCP asboblari — Claude'dan sarf va sessiyalarni so'rash",
+  "author": { "name": "aliumirovux" },
+  "homepage": "https://github.com/aliumirovux/TokenKuzat",
+  "repository": "https://github.com/aliumirovux/TokenKuzat",
+  "keywords": ["tokens", "usage", "macos", "menu-bar"],
+  "mcpServers": {
+    "tokenkuzat": {
+      "command": "${HOME}/Applications/Token Kuzatuv.app/Contents/MacOS/TokenKuzat",
+      "args": ["--mcp"]
+    }
+  }
+}

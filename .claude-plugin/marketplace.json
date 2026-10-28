@@ -1,0 +1,12 @@
+{
+  "name": "tokenkuzat",
+  "owner": { "name": "aliumirovux" },
+  "description": "Token Kuzatuv — Claude Code token sarfi, limitlar va sessiyalarni kuzatuvchi Mac ilovasi",
+  "plugins": [
+    {
+      "name": "tokenkuzat",
+      "source": "./",
+      "description": "Token Kuzatuv ilovasini o'rnatadi (/tokenkuzat:install) va Claude'ga token sarfi, limit va sessiyalar haqida MCP asboblarini beradi"
+    }
+  ]
+}

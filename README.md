@@ -6,11 +6,28 @@ Faqat o'zingiz uchun: internetga hech narsa yubormaydi, faqat diskdagi `~/.claud
 
 ## O'rnatish
 
-```bash
-bash ~/Developer/TokenKuzat/build.sh
+### Claude Code orqali (eng oson)
+
+Claude Code'da:
+
+```
+/plugin install tokenkuzat --marketplace aliumirovux/TokenKuzat
+/tokenkuzat:install
 ```
 
-Ilova `~/Applications/Token Kuzatuv.app` ga o'rnatiladi va o'zi ochiladi. Yoki Finder'da `O'rnatish.command` ni ikki marta bosing.
+Birinchisi plaginni qo'shadi, ikkinchisida Claude talablarni tekshiradi, ilovani yig'adi va `~/Applications/Token Kuzatuv.app` ga o'rnatib ochadi. Eski Claude Code'da (2.1.275 dan oldingi) birinchi qator o'rniga `/plugin marketplace add aliumirovux/TokenKuzat`, keyin `/plugin install tokenkuzat@tokenkuzat`.
+
+Plagin Claude'ga MCP asboblarini ham beradi — sarfni to'g'ridan-to'g'ri so'rash mumkin: «bugun qancha token ketdi?», «qaysi sessiya ko'p sarflayapti?», «limitim qancha qoldi?» (`usage_summary`, `list_sessions`, `session_details`). Asboblar ilovaning `--mcp` rejimida ishlaydi, shuning uchun avval `/tokenkuzat:install`; keyin `/mcp` da `tokenkuzat` ni qayta ulang.
+
+Yangilash: `/plugin marketplace update tokenkuzat`, keyin yana `/tokenkuzat:install`.
+
+### Qo'lda
+
+```bash
+bash build.sh
+```
+
+Loyiha papkasida yurgizing — ilova `~/Applications/Token Kuzatuv.app` ga o'rnatiladi va o'zi ochiladi. Yoki Finder'da `O'rnatish.command` ni ikki marta bosing.
 
 | Buyruq | Nima qiladi |
 |---|---|

@@ -1,5 +1,10 @@
 # O'zgarishlar
 
+## 6.15.0 — 2026-10-28
+
+- Claude Code plagini: `/plugin install tokenkuzat --marketplace aliumirovux/TokenKuzat`, keyin `/tokenkuzat:install` — Claude talablarni (macOS 13+, Command Line Tools) tekshiradi, ilovani yig'ib o'rnatadi va keyingi qadamlarni tushuntiradi.
+- MCP server (`TokenKuzat --mcp`, plagin bilan avtomatik ulanadi): `usage_summary` — bugungi va 5 soatlik sarf, tezlik, limitlar, ishlayotgan va ruxsat kutayotgan sessiyalar; `list_sessions` — so'nggi sessiyalar; `session_details` — so'rovlar, agentlar, katta asbob natijalari. Faqat o'qiydi, tarixga yozmaydi.
+
 ## 6.14.0 — 2026-10-28
 
 - Yangi «Jonli» bo'limi (⌘2): bir vaqtda ishlayotgan barcha sessiyalar bitta sahifada. Chap menyudagi ishlayotganlar soni shu qatorga ko'chdi; «Sessiyalar» — ⌘3, «Tarix» — ⌘4.
