@@ -50,6 +50,23 @@ struct MenuPanel: View {
                  + Text(s.limits?.sevenDay.map { " · hafta \(max(0, 100 - Int($0.usedPercentage.rounded())))%" } ?? "").foregroundColor(Brand.inkDim))
                     .font(.caption)
                 MiniWindow(window: w, minutes: s.recentMinutes).frame(height: 34).padding(.top, 6)
+                VStack(alignment: .leading, spacing: 10) {
+                    LimitBarRow(title: "Joriy sessiya", window: w, dark: true)
+                    if let wk = s.limits?.sevenDay {
+                        LimitBarRow(title: "Bu hafta", window: wk, dark: true)
+                        if let warn = LimitText.weekWarning(s.weekForecast, week: wk) {
+                            Label(warn, systemImage: "exclamationmark.triangle.fill")
+                                .font(.caption.weight(.medium)).foregroundStyle(Color(light: 0xFFC46B, dark: 0xFFC46B))
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                    if let l = s.limits, let stale = LimitText.staleNote(l, now: s.updatedAt) {
+                        Label(stale, systemImage: "clock.arrow.circlepath")
+                            .font(.caption2).foregroundStyle(Brand.inkDim)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                .padding(.top, 12)
             } else {
                 Text("BUGUN").eyebrow(Brand.inkDim)
                 Text(Fmt.tokens(s.today.value(mode)))

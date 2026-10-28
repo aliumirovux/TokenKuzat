@@ -63,6 +63,7 @@ final class Store: ObservableObject {
             if let w = l.fiveHour {
                 s.fiveHourForecast = LimitForecast.forecast(w, history: limitsReader.fiveHourHistory, now: now)
             }
+            if let w = l.sevenDay { s.weekForecast = WeeklyForecast.forecast(w, now: now) }
         }
         // Claude ruxsat so'rab to'xtagan sessiyalar: hook xabaridan keyin transkriptda harakat bo'lmagan
         let notices = HookEvents.read()

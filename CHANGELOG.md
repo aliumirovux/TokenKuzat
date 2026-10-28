@@ -1,5 +1,12 @@
 # O'zgarishlar
 
+## 5.5.0 — 2026-10-28
+
+- Limit Claude sahifasidagidek: «Joriy sessiya» va «Bu hafta» qatorlari — tiklanish vaqti («bugun 18:30», «Seshanba 21:00»), chiziq va «44% ishlatildi» (menyu paneli va «Bugun» sahifasi).
+- Haftalik bashorat: oyna boshidan o'rtacha sur'at bilan — «Shu sur'atda juma ertalab tugaydi — 3-noyabr tiklanishidan oldin».
+- Ma'lumot 10 daqiqadan eski bo'lsa — ochiq ogohlantirish (status line faqat terminaldagi Claude Code'da yangilanadi).
+- Core: hisob (claude.ai) usage javobini o'qish va tarif nomi (Max 5x) — ulash keyingi bosqichda; testlar 29 ta.
+
 ## 5.4.0 — 2026-10-28
 
 - Menyu paneli yangilandi: butun panel bir xil qattiq fonda (tagidagi oyna ko'rinmaydi).

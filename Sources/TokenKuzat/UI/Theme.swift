@@ -333,3 +333,79 @@ struct RealLimitsView: View {
     }
 }
 
+
+// MARK: - Limit matnlari
+
+enum LimitText {
+    private static let weekdays = ["Yakshanba", "Dushanba", "Seshanba", "Chorshanba", "Payshanba", "Juma", "Shanba"]
+    private static let months = ["yanvar", "fevral", "mart", "aprel", "may", "iyun", "iyul", "avgust",
+                                 "sentabr", "oktabr", "noyabr", "dekabr"]
+
+    /// «bugun 18:30», «ertaga 09:00», «Seshanba 21:00»
+    static func dayTime(_ d: Date, now: Date = Date()) -> String {
+        let cal = Calendar.current
+        let hm = Fmt.hourMinute.string(from: d)
+        if cal.isDate(d, inSameDayAs: now) { return "bugun " + hm }
+        if let t = cal.date(byAdding: .day, value: 1, to: now), cal.isDate(d, inSameDayAs: t) { return "ertaga " + hm }
+        return weekdays[cal.component(.weekday, from: d) - 1] + " " + hm
+    }
+
+    /// «juma ertalab», «bugun kechqurun»
+    static func dayPart(_ d: Date, now: Date = Date()) -> String {
+        let cal = Calendar.current
+        let h = cal.component(.hour, from: d)
+        let part = h < 5 ? "tunda" : (h < 12 ? "ertalab" : (h < 17 ? "tushdan keyin" : (h < 22 ? "kechqurun" : "tunda")))
+        if cal.isDate(d, inSameDayAs: now) { return "bugun " + part }
+        if let t = cal.date(byAdding: .day, value: 1, to: now), cal.isDate(d, inSameDayAs: t) { return "ertaga " + part }
+        return weekdays[cal.component(.weekday, from: d) - 1].lowercased() + " " + part
+    }
+
+    /// «3-noyabr»
+    static func date(_ d: Date) -> String {
+        let c = Calendar.current.dateComponents([.day, .month], from: d)
+        return "\(c.day ?? 0)-\(months[(c.month ?? 1) - 1])"
+    }
+
+    /// Haftalik bashorat jumlasi; tugamaydigan bo'lsa — nil
+    static func weekWarning(_ f: LimitForecast.Outcome, week: LimitWindow) -> String? {
+        guard case .runsOut(let at) = f else { return nil }
+        return "Shu sur'atda \(dayPart(at)) tugaydi — \(date(week.resetsAt)) tiklanishidan oldin."
+    }
+
+    /// Ma'lumot eskirgan bo'lsa — ogohlantirish (status line faqat terminaldagi Claude Code'da yangilanadi)
+    static func staleNote(_ l: RateLimits, now: Date = Date()) -> String? {
+        let age = now.timeIntervalSince(l.updatedAt)
+        guard age > 10 * 60 else { return nil }
+        return "\(Alerts.duration(age)) oldingi ma'lumot — terminalda Claude Code ishlaganda yangilanadi"
+    }
+}
+
+/// Claude sahifasidagidek qator: nom, tiklanish vaqti, chiziq va «44% ishlatildi»
+struct LimitBarRow: View {
+    let title: String
+    let window: LimitWindow
+    var dark = false
+
+    var body: some View {
+        let pct = window.usedPercentage
+        let fill: Color = pct >= 90 ? Brand.err : (pct >= 75 ? Brand.warn : (dark ? Brand.inkFill : Brand.accent))
+        VStack(alignment: .leading, spacing: 5) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(title).font(.caption.weight(.semibold)).foregroundStyle(dark ? Color.white : .primary)
+                Text("↻ " + LimitText.dayTime(window.resetsAt)).font(.caption2)
+                    .foregroundStyle(dark ? Brand.inkDim : .secondary)
+                Spacer()
+                Text("\(Int(pct.rounded()))% ishlatildi").font(.caption.weight(.semibold)).monospacedDigit()
+                    .foregroundStyle(dark ? Color.white : .primary)
+            }
+            GeometryReader { g in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(dark ? Color.white.opacity(0.1) : Color.primary.opacity(0.08))
+                    Capsule().fill(fill).frame(width: max(4, g.size.width * CGFloat(min(pct, 100) / 100)))
+                }
+            }
+            .frame(height: 6)
+        }
+        .animation(Motion.smooth, value: pct)
+    }
+}

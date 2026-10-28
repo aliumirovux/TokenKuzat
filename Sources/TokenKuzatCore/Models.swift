@@ -266,6 +266,8 @@ public struct Snapshot: Sendable {
     /// Claude Code status line'dan kelgan haqiqiy limitlar (ulangan bo'lsa)
     public var limits: RateLimits?
     public var fiveHourForecast: LimitForecast.Outcome = .unknown
+    /// Haftalik oyna: shu sur'atda tiklanishdan oldin tugaydimi
+    public var weekForecast: LimitForecast.Outcome = .unknown
     /// Ruxsatingizni kutayotgan sessiyalar (Claude Code hook'idan): sessiya id → xabar
     public var permissionWaits: [String: HookNotice] = [:]
 

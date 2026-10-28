@@ -19,7 +19,8 @@ struct OverviewView: View {
             } else {
                 VStack(alignment: .leading, spacing: 18) {
                     if let l = s.limits, let w = l.fiveHour {
-                        LimitHero(window: w, week: l.sevenDay, forecast: s.fiveHourForecast, minutes: s.recentMinutes)
+                        LimitHero(window: w, week: l.sevenDay, forecast: s.fiveHourForecast, minutes: s.recentMinutes,
+                                  weekForecast: s.weekForecast, stale: LimitText.staleNote(l, now: s.updatedAt))
                     } else {
                         ConnectHero(today: s.today, mode: mode)
                         if budgetEnabled, let b = BudgetStatus.current(s) { BudgetBar(status: b).card() }
@@ -71,6 +72,9 @@ struct LimitHero: View {
     let week: LimitWindow?
     let forecast: LimitForecast.Outcome
     let minutes: [MinutePoint]
+    var weekForecast: LimitForecast.Outcome = .unknown
+    /// Ma'lumot eskirgan bo'lsa — ogohlantirish matni
+    var stale: String? = nil
 
     private var remaining: Int { max(0, 100 - Int(window.usedPercentage.rounded())) }
 
@@ -84,23 +88,19 @@ struct LimitHero: View {
                  + Text(" da to'liq tiklanadi").foregroundColor(Brand.inkDim))
                     .font(.system(size: 14))
                 forecastPill.padding(.top, 14)
-                if let week {
-                    HStack(spacing: 10) {
-                        Text("Hafta").foregroundStyle(Brand.inkDim)
-                        GeometryReader { g in
-                            ZStack(alignment: .leading) {
-                                Capsule().fill(.white.opacity(0.1))
-                                Capsule().fill(.white.opacity(0.65))
-                                    .frame(width: g.size.width * CGFloat(min(1, week.usedPercentage / 100)))
-                            }
+                VStack(alignment: .leading, spacing: 10) {
+                    LimitBarRow(title: "Joriy sessiya", window: window, dark: true)
+                    if let week {
+                        LimitBarRow(title: "Bu hafta", window: week, dark: true)
+                        if let warn = LimitText.weekWarning(weekForecast, week: week) {
+                            Label(warn, systemImage: "exclamationmark.triangle.fill")
+                                .font(.caption.weight(.medium)).foregroundStyle(Color(light: 0xFFC46B, dark: 0xFFC46B))
+                                .fixedSize(horizontal: false, vertical: true)
                         }
-                        .frame(height: 6)
-                        Text("\(max(0, 100 - Int(week.usedPercentage.rounded())))% qoldi")
-                            .foregroundStyle(.white).fontWeight(.semibold).monospacedDigit()
                     }
-                    .font(.caption)
-                    .padding(.top, 16)
+                    if let stale { Label(stale, systemImage: "clock.arrow.circlepath").font(.caption2).foregroundStyle(Brand.inkDim) }
                 }
+                .padding(.top, 16)
             }
             .frame(width: 280, alignment: .leading)
 
