@@ -33,6 +33,14 @@ final class Alerts: NSObject, UNUserNotificationCenterDelegate {
         }
     }
 
+    /// Sozlamalardagi «Sinov bildirishnomasi» tugmasi
+    func sendTest() {
+        requestPermission { _ in
+            self.post("Token Kuzatuv: bildirishnomalar ishlayapti",
+                      "Claude ishni tugatganda, qadam osilib qolganda yoki xatolar takrorlanganda shunday xabar keladi.")
+        }
+    }
+
     func evaluate(_ s: Snapshot) {
         evaluateBudget(s)
         evaluateActivity(s)

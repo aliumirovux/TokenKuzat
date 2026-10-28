@@ -50,6 +50,10 @@ struct SettingsView: View {
                 }
                 .disabled(!notifyStuck)
                 Toggle("Agent ketma-ket 3 marta xato olsa", isOn: $notifyErrors)
+                HStack {
+                    Spacer()
+                    Button("Sinov bildirishnomasi") { Alerts.shared.sendTest() }
+                }
                 if notifyDenied {
                     HStack {
                         Label("macOS bildirishnomalarga ruxsat bermagan", systemImage: "exclamationmark.triangle")
@@ -139,13 +143,18 @@ struct SettingsView: View {
         } message: {
             Text("Oxirgi 30 kundagi Claude yozuvlari qayta o'qiladi, undan eskilari tiklanmaydi.")
         }
-        .onAppear {
-            launchAtLogin = LaunchAtLogin.isEnabled
-            if AppInfo.isBundled {
-                UNUserNotificationCenter.current().getNotificationSettings { s in
-                    DispatchQueue.main.async { notifyDenied = s.authorizationStatus == .denied }
-                }
-            }
+        .onAppear(perform: refreshStatus)
+        // Tizim sozlamalarida ruxsat berib qaytilganda holat yangilanadi
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            refreshStatus()
+        }
+    }
+
+    private func refreshStatus() {
+        launchAtLogin = LaunchAtLogin.isEnabled
+        guard AppInfo.isBundled else { return }
+        UNUserNotificationCenter.current().getNotificationSettings { s in
+            DispatchQueue.main.async { notifyDenied = s.authorizationStatus == .denied }
         }
     }
 
