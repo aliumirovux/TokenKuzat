@@ -1,111 +1,131 @@
 import SwiftUI
 
-// Robot-yordamchi: Claude hozir nima qilayotganini jonli ko'rsatadi. Oddiy shakllardan chizilgan:
-// antenna (yonib turadi), bosh-ekran (ko'zlar qisiladi, u yoq-bu yoqqa qaraydi), tana va ikki qo'l.
+// Robot-yordamchi: Claude hozir nima qilayotganini xarakter bilan ko'rsatadi. Har bir vazifada — o'z harakati,
+// qo'lidagi buyumi va yuz ifodasi. Oddiy shakllardan chizilgan: antenna, bosh-ekran (ko'zlar, og'iz), tana, qo'llar.
 
 struct RobotView: View {
-    enum Mood: Equatable {
-        /// Asbob ishlatyapti — qo'llar harakatda, antenna yonadi
-        case working(String)
-        /// Model o'ylayapti — ko'zlar u yoq-bu yoqqa yuradi
-        case thinking
-        /// Ish tugagan — ko'zlar yumiq, «z z»
-        case sleeping
-        /// Ruxsat kutyapti — qo'l ko'tarilgan
-        case waiting
+    enum Action: Equatable {
+        case typing(String)       // Terminal — noutbukda yozadi
+        case reading(String)      // fayl o'qish — lupa bilan
+        case writing(String)      // fayl o'zgartirish — qalam bilan
+        case browsing(String)     // internet — globus va to'lqinlar
+        case plugging(String)     // tashqi xizmat — vilka va uchqun
+        case delegating(String)   // yordamchi agent — qo'l silkitib topshiradi
+        case tinkering(String)    // boshqa asbob — kalit bilan
+        case thinking             // o'ylayapti — lampochka
+        case answering            // javob yozyapti — gap pufagi
+        case waiting              // ruxsat kutyapti — qo'l ko'tarilgan
+        case error                // xato — titraydi, ter tomchisi
+        case greeting             // yangi so'rov — «!» va qo'l silkitish
+        case celebrating          // ish tugadi — sakraydi, yulduzchalar
+        case sleeping             // tinch — «z z»
     }
 
-    let mood: Mood
+    let action: Action
     var color: Color = Brand.accent
-    var size: CGFloat = 46
+    var size: CGFloat = 58
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         TimelineView(.animation(minimumInterval: 1.0 / 30, paused: reduceMotion)) { ctx in
             let t = reduceMotion ? 0 : ctx.date.timeIntervalSinceReferenceDate
             VStack(spacing: 4) {
-                bubble(t)
-                robot(t)
+                caption(t)
+                figure(t)
             }
         }
         .allowsHitTesting(false)
-        .accessibilityLabel(label)
+        .accessibilityLabel("Robot: " + text(0))
+        .id(kindKey)            // holat almashganda yangi harakat boshidan
+        .transition(.scale(scale: 0.8).combined(with: .opacity))
     }
 
-    private var label: String {
-        switch mood {
-        case .working(let s): return "Robot ishlayapti: \(s)"
-        case .thinking: return "Robot o'ylayapti"
-        case .sleeping: return "Robot dam olyapti"
-        case .waiting: return "Robot ruxsat kutyapti"
+    // MARK: Holat xususiyatlari
+
+    private var kindKey: String {
+        switch action {
+        case .typing: return "typing"
+        case .reading: return "reading"
+        case .writing: return "writing"
+        case .browsing: return "browsing"
+        case .plugging: return "plugging"
+        case .delegating: return "delegating"
+        case .tinkering: return "tinkering"
+        case .thinking: return "thinking"
+        case .answering: return "answering"
+        case .waiting: return "waiting"
+        case .error: return "error"
+        case .greeting: return "greeting"
+        case .celebrating: return "celebrating"
+        case .sleeping: return "sleeping"
         }
     }
 
     private var tint: Color {
-        switch mood {
-        case .working: return Brand.ok
-        case .thinking: return Brand.inkFill
-        case .sleeping: return .secondary
+        switch action {
+        case .typing, .reading, .writing, .browsing, .plugging, .delegating, .tinkering: return Brand.ok
+        case .thinking, .answering: return Brand.inkFill
         case .waiting: return Brand.warn
+        case .error: return Brand.err
+        case .greeting: return Brand.accent
+        case .celebrating: return Color(light: 0xE0A21C, dark: 0xF2B544)
+        case .sleeping: return .secondary
         }
     }
 
-    // MARK: Gap pufagi
+    private func dots(_ t: Double) -> String { String(repeating: ".", count: Int(t * 2.5) % 4) }
 
-    @ViewBuilder
-    private func bubble(_ t: Double) -> some View {
-        let text: String = {
-            switch mood {
-            case .working(let s): return s + "…"
-            case .thinking:
-                let n = Int(t * 2.5) % 4
-                return "o'ylayapti" + String(repeating: ".", count: n)
-            case .sleeping: return Int(t * 1.2) % 2 == 0 ? "z z" : "z Z"
-            case .waiting: return "ruxsat kerak"
-            }
-        }()
-        Text(text)
-            .font(.system(size: size * 0.24, weight: .semibold, design: .rounded))
-            .foregroundStyle(mood == .sleeping ? Color.secondary : tint)
+    private func text(_ t: Double) -> String {
+        switch action {
+        case .typing(let s), .reading(let s), .writing(let s), .browsing(let s), .plugging(let s),
+             .delegating(let s), .tinkering(let s):
+            return s + dots(t)
+        case .thinking: return "o'ylayapti" + dots(t)
+        case .answering: return "javob yozyapti" + dots(t)
+        case .waiting: return "ruxsat kerak"
+        case .error: return "voy, xato!"
+        case .greeting: return "yangi vazifa!"
+        case .celebrating: return "tayyor!"
+        case .sleeping: return Int(t * 1.2) % 2 == 0 ? "z z" : "z Z"
+        }
+    }
+
+    private func caption(_ t: Double) -> some View {
+        Text(text(t))
+            .font(.system(size: size * 0.21, weight: .semibold, design: .rounded))
+            .foregroundStyle(tint == .secondary ? Color.secondary : tint)
             .lineLimit(1).fixedSize()
             .padding(.horizontal, 7).padding(.vertical, 2)
             .background(Capsule().fill(Brand.surface))
             .overlay(Capsule().stroke(tint.opacity(0.45)))
-            .frame(minWidth: 130)
+            .frame(minWidth: 150)
     }
 
-    // MARK: Robot
+    // MARK: Gavda
 
-    private func robot(_ t: Double) -> some View {
+    private func figure(_ t: Double) -> some View {
         let s = size
-        let bob: CGFloat = {
-            switch mood {
-            case .working: return CGFloat(sin(t * 9)) * s * 0.03
-            case .thinking: return CGFloat(sin(t * 2.4)) * s * 0.05
-            case .sleeping: return CGFloat(sin(t * 1.2)) * s * 0.025
-            case .waiting: return CGFloat(abs(sin(t * 4))) * -s * 0.06
-            }
-        }()
         return ZStack {
-            // Antenna: tayoqcha va yonib turuvchi uch
+            effects(t)
+            // Antenna
             VStack(spacing: 0) {
                 Circle().fill(tint)
-                    .frame(width: s * 0.13, height: s * 0.13)
+                    .frame(width: s * 0.12, height: s * 0.12)
                     .shadow(color: tint.opacity(glow(t)), radius: s * 0.12)
-                    .opacity(mood == .sleeping ? 0.4 : 0.6 + 0.4 * glow(t))
-                Rectangle().fill(Brand.line).frame(width: s * 0.035, height: s * 0.12)
+                    .opacity(action == .sleeping ? 0.4 : 0.55 + 0.45 * glow(t))
+                Rectangle().fill(Brand.line).frame(width: s * 0.035, height: s * 0.11)
             }
-            .offset(y: -s * 0.47)
+            .offset(y: -s * 0.46)
+            .rotationEffect(.degrees(antennaTilt(t)), anchor: .bottom)
 
-            // Qo'llar
-            arm(t, left: true).offset(x: -s * 0.36, y: s * 0.24)
-            arm(t, left: false).offset(x: s * 0.36, y: s * 0.24)
+            arm(t, left: true).offset(x: -s * 0.35, y: s * 0.2)
+            arm(t, left: false).offset(x: s * 0.35, y: s * 0.2)
 
-            // Tana
+            // Tana: ko'krakda holat chirog'i
             RoundedRectangle(cornerRadius: s * 0.1, style: .continuous)
                 .fill(Brand.surface)
                 .overlay(RoundedRectangle(cornerRadius: s * 0.1, style: .continuous).stroke(color.opacity(0.7), lineWidth: 1.4))
-                .overlay(Circle().fill(tint.opacity(0.5 + 0.5 * glow(t))).frame(width: s * 0.09, height: s * 0.09))
+                .overlay(Circle().fill(tint.opacity(0.45 + 0.55 * glow(t))).frame(width: s * 0.09, height: s * 0.09))
                 .frame(width: s * 0.44, height: s * 0.26)
                 .offset(y: s * 0.27)
 
@@ -113,67 +133,307 @@ struct RobotView: View {
             RoundedRectangle(cornerRadius: s * 0.16, style: .continuous)
                 .fill(Brand.surface)
                 .overlay(RoundedRectangle(cornerRadius: s * 0.16, style: .continuous).stroke(color, lineWidth: 1.6))
-                .overlay(face(t).padding(s * 0.08))
+                .overlay(face(t).padding(s * 0.075))
                 .frame(width: s * 0.7, height: s * 0.5)
                 .offset(y: -s * 0.08)
+                .rotationEffect(.degrees(headTilt(t)))
+
+            prop(t)
         }
-        .frame(width: s, height: s * 1.1)
-        .offset(y: bob)
+        .frame(width: s * 1.5, height: s * 1.15)
+        .offset(x: shake(t), y: bob(t))
+        .scaleEffect(squash(t), anchor: .bottom)
+    }
+
+    private func bob(_ t: Double) -> CGFloat {
+        let s = size
+        switch action {
+        case .typing: return CGFloat(sin(t * 14)) * s * 0.015
+        case .celebrating: return -CGFloat(abs(sin(t * 5))) * s * 0.22
+        case .greeting: return -CGFloat(abs(sin(t * 6))) * s * 0.08
+        case .sleeping: return CGFloat(sin(t * 1.2)) * s * 0.02
+        case .error: return 0
+        default: return CGFloat(sin(t * 2.4)) * s * 0.035
+        }
+    }
+
+    private func shake(_ t: Double) -> CGFloat {
+        action == .error ? CGFloat(sin(t * 40)) * size * 0.03 * CGFloat(abs(sin(t * 1.5))) : 0
+    }
+
+    /// Sakrashda qo'nishdagi «yassilanish»
+    private func squash(_ t: Double) -> CGFloat {
+        guard action == .celebrating else { return 1 }
+        let k = abs(sin(t * 5))
+        return k < 0.15 ? 0.94 : 1
+    }
+
+    private func headTilt(_ t: Double) -> Double {
+        switch action {
+        case .thinking: return 8 + 3 * sin(t * 1.5)
+        case .reading: return -4
+        case .writing: return 5
+        case .delegating, .greeting: return 6 * sin(t * 3)
+        case .sleeping: return 10
+        case .waiting: return -6
+        default: return 0
+        }
+    }
+
+    private func antennaTilt(_ t: Double) -> Double {
+        switch action {
+        case .browsing: return 12 * sin(t * 4)
+        case .error: return 20 * sin(t * 30)
+        case .celebrating: return 15 * sin(t * 10)
+        default: return 3 * sin(t * 2)
+        }
     }
 
     /// Antenna nuri: 0…1
     private func glow(_ t: Double) -> Double {
-        switch mood {
-        case .working: return 0.5 + 0.5 * sin(t * 8)
+        switch action {
+        case .typing, .plugging: return 0.5 + 0.5 * sin(t * 10)
         case .thinking: return 0.5 + 0.5 * sin(t * 3)
-        case .waiting: return Int(t * 2) % 2 == 0 ? 1 : 0.2
+        case .waiting, .error: return Int(t * 2.5) % 2 == 0 ? 1 : 0.15
         case .sleeping: return 0.1
+        case .celebrating: return 1
+        default: return 0.5 + 0.5 * sin(t * 5)
         }
     }
 
+    // MARK: Yuz
+
+    private enum Eye { case open, closed, happy, wide, cross, focused }
+
     private func face(_ t: Double) -> some View {
         let s = size
-        // Ko'z qisish: har ~3,2 s da 0,15 s
-        let blink = (t.truncatingRemainder(dividingBy: 3.2)) < 0.15
-        let look: CGFloat = {
-            switch mood {
-            case .thinking: return CGFloat(sin(t * 1.8)) * s * 0.06
-            case .working: return s * 0.03
-            default: return 0
+        let blink = t.truncatingRemainder(dividingBy: 3.4) < 0.14
+        let eye: Eye = {
+            switch action {
+            case .sleeping: return .closed
+            case .celebrating, .delegating, .writing: return .happy
+            case .greeting, .waiting: return blink ? .closed : .wide
+            case .error: return .cross
+            case .typing, .plugging: return blink ? .closed : .focused
+            default: return blink ? .closed : .open
+            }
+        }()
+        // Qayerga qaraydi: o'qiyotganda — qatorlar bo'ylab, o'ylayotganda — tepaga-yonga
+        let look: CGSize = {
+            switch action {
+            case .reading: return CGSize(width: CGFloat((t.truncatingRemainder(dividingBy: 1.6)) / 1.6 - 0.5) * s * 0.16, height: s * 0.02)
+            case .thinking: return CGSize(width: CGFloat(sin(t * 1.4)) * s * 0.06, height: -s * 0.03)
+            case .typing: return CGSize(width: 0, height: s * 0.03)
+            case .browsing: return CGSize(width: CGFloat(sin(t * 2)) * s * 0.07, height: 0)
+            default: return .zero
             }
         }()
         return RoundedRectangle(cornerRadius: s * 0.09, style: .continuous)
             .fill(Brand.ink)
             .overlay {
-                HStack(spacing: s * 0.13) {
-                    eye(closed: mood == .sleeping || blink)
-                    eye(closed: mood == .sleeping || blink)
+                VStack(spacing: s * 0.035) {
+                    HStack(spacing: s * 0.12) {
+                        eyeView(eye)
+                        eyeView(eye)
+                    }
+                    .offset(look)
+                    mouth(t)
                 }
-                .offset(x: look)
             }
     }
 
-    private func eye(closed: Bool) -> some View {
+    @ViewBuilder
+    private func eyeView(_ e: Eye) -> some View {
         let s = size
-        return Capsule()
-            .fill(tint == .secondary ? Brand.inkDim : tint)
-            .frame(width: s * 0.09, height: closed ? s * 0.025 : s * 0.12)
-            .shadow(color: tint.opacity(0.6), radius: closed ? 0 : 2)
+        let c = tint == .secondary ? Brand.inkDim : tint
+        switch e {
+        case .open:
+            Capsule().fill(c).frame(width: s * 0.085, height: s * 0.11).shadow(color: c.opacity(0.6), radius: 2)
+        case .focused:
+            Capsule().fill(c).frame(width: s * 0.1, height: s * 0.06).shadow(color: c.opacity(0.6), radius: 2)
+        case .closed:
+            Capsule().fill(c).frame(width: s * 0.09, height: s * 0.022)
+        case .wide:
+            Circle().stroke(c, lineWidth: 1.6).frame(width: s * 0.12, height: s * 0.12)
+                .overlay(Circle().fill(c).frame(width: s * 0.05, height: s * 0.05))
+        case .happy:
+            Arc(up: true).stroke(c, style: StrokeStyle(lineWidth: 2, lineCap: .round)).frame(width: s * 0.1, height: s * 0.06)
+        case .cross:
+            ZStack {
+                Capsule().fill(c).frame(width: s * 0.11, height: s * 0.025).rotationEffect(.degrees(45))
+                Capsule().fill(c).frame(width: s * 0.11, height: s * 0.025).rotationEffect(.degrees(-45))
+            }
+        }
     }
+
+    @ViewBuilder
+    private func mouth(_ t: Double) -> some View {
+        let s = size
+        let c = (tint == .secondary ? Brand.inkDim : tint).opacity(0.85)
+        switch action {
+        case .celebrating, .delegating, .greeting:
+            Arc(up: false).fill(c).frame(width: s * 0.14, height: s * 0.06)
+        case .error:
+            Arc(up: true).stroke(c, style: StrokeStyle(lineWidth: 1.6, lineCap: .round)).frame(width: s * 0.12, height: s * 0.04)
+        case .answering:
+            // Gapiryapti: og'iz ochilib-yopiladi
+            Capsule().fill(c).frame(width: s * 0.1, height: s * (0.015 + 0.04 * abs(sin(t * 9))))
+        case .waiting:
+            Circle().stroke(c, lineWidth: 1.4).frame(width: s * 0.05, height: s * 0.05)
+        case .sleeping:
+            Capsule().fill(c.opacity(0.5)).frame(width: s * 0.06, height: s * 0.015)
+        default:
+            Capsule().fill(c).frame(width: s * 0.09, height: s * 0.016)
+        }
+    }
+
+    // MARK: Qo'llar
 
     private func arm(_ t: Double, left: Bool) -> some View {
         let s = size
+        let side: Double = left ? 1 : -1
         let angle: Double = {
-            switch mood {
-            case .working: return (left ? 1 : -1) * (20 + 25 * sin(t * 12 + (left ? 0 : .pi)))
-            case .waiting: return left ? 15 : -150 + 12 * sin(t * 6)
-            case .thinking: return (left ? 1 : -1) * 15
-            case .sleeping: return (left ? 1 : -1) * 5
+            switch action {
+            case .typing: return side * (35 + 18 * sin(t * 16 + (left ? 0 : .pi)))
+            case .writing: return left ? 10 : -55 + 10 * sin(t * 8)
+            case .reading: return left ? 10 : -60
+            case .browsing: return left ? 10 : -70 + 6 * sin(t * 3)
+            case .plugging: return left ? 30 + 8 * sin(t * 10) : -40 + 8 * sin(t * 10)
+            case .delegating: return left ? 10 : -140 + 25 * sin(t * 7)
+            case .tinkering: return left ? 15 : -50 + 30 * sin(t * 9)
+            case .thinking: return left ? 12 : -125
+            case .answering: return side * (15 + 10 * sin(t * 4))
+            case .waiting: return left ? 12 : -165 + 8 * sin(t * 5)
+            case .error: return side * (60 + 10 * sin(t * 25))
+            case .greeting: return left ? 15 : -150 + 30 * sin(t * 9)
+            case .celebrating: return side * (150 + 15 * sin(t * 10))
+            case .sleeping: return side * 4
             }
         }()
         return Capsule()
             .fill(color.opacity(0.75))
             .frame(width: s * 0.07, height: s * 0.24)
             .rotationEffect(.degrees(angle), anchor: .top)
+    }
+
+    // MARK: Buyumlar va effektlar
+
+    /// Qo'ldagi buyum (vazifaga mos)
+    @ViewBuilder
+    private func prop(_ t: Double) -> some View {
+        let s = size
+        switch action {
+        case .typing:
+            // Noutbuk tananing oldida, ekrani yonib-o'chadi
+            ZStack {
+                Image(systemName: "laptopcomputer").font(.system(size: s * 0.36, weight: .medium)).foregroundStyle(Brand.inkDim)
+                RoundedRectangle(cornerRadius: 1).fill(Brand.ok.opacity(0.35 + 0.35 * sin(t * 6)))
+                    .frame(width: s * 0.2, height: s * 0.09).offset(y: -s * 0.04)
+            }
+            .offset(y: s * 0.42)
+        case .reading:
+            Image(systemName: "magnifyingglass").font(.system(size: s * 0.24, weight: .bold)).foregroundStyle(tint)
+                .offset(x: s * 0.5 + CGFloat(sin(t * 2)) * s * 0.05, y: -s * 0.02)
+            Image(systemName: "doc.text").font(.system(size: s * 0.22)).foregroundStyle(Brand.inkDim)
+                .offset(x: -s * 0.55, y: s * 0.15)
+        case .writing:
+            Image(systemName: "pencil").font(.system(size: s * 0.24, weight: .bold)).foregroundStyle(tint)
+                .rotationEffect(.degrees(-20 + 10 * sin(t * 8)))
+                .offset(x: s * 0.52, y: s * 0.02)
+            Image(systemName: "doc.text").font(.system(size: s * 0.22)).foregroundStyle(Brand.inkDim)
+                .offset(x: -s * 0.55, y: s * 0.15)
+        case .browsing:
+            Image(systemName: "globe").font(.system(size: s * 0.26, weight: .medium)).foregroundStyle(tint)
+                .rotationEffect(.degrees(t * 60))
+                .offset(x: s * 0.55, y: -s * 0.05)
+        case .plugging:
+            Image(systemName: "powerplug.fill").font(.system(size: s * 0.24)).foregroundStyle(tint)
+                .rotationEffect(.degrees(90))
+                .offset(x: s * 0.55 + CGFloat(sin(t * 10)) * s * 0.03, y: s * 0.12)
+            if sin(t * 13) > 0.5 {
+                Image(systemName: "bolt.fill").font(.system(size: s * 0.16)).foregroundStyle(Color(light: 0xE0A21C, dark: 0xF2B544))
+                    .offset(x: s * 0.72, y: -s * 0.02)
+            }
+        case .delegating:
+            // Kichkina robot-yordamchi yonida
+            RoundedRectangle(cornerRadius: s * 0.06, style: .continuous).fill(Brand.surface)
+                .overlay(RoundedRectangle(cornerRadius: s * 0.06, style: .continuous).stroke(color.opacity(0.7), lineWidth: 1))
+                .overlay(HStack(spacing: s * 0.04) { Circle().fill(Brand.ok).frame(width: s * 0.04); Circle().fill(Brand.ok).frame(width: s * 0.04) })
+                .frame(width: s * 0.26, height: s * 0.2)
+                .offset(x: s * 0.62, y: s * 0.3 - CGFloat(abs(sin(t * 5))) * s * 0.06)
+        case .tinkering:
+            Image(systemName: "wrench.adjustable.fill").font(.system(size: s * 0.22)).foregroundStyle(tint)
+                .rotationEffect(.degrees(-30 + 35 * sin(t * 9)))
+                .offset(x: s * 0.55, y: s * 0.02)
+        case .thinking:
+            Image(systemName: sin(t * 2) > 0.2 ? "lightbulb.max.fill" : "lightbulb")
+                .font(.system(size: s * 0.22)).foregroundStyle(sin(t * 2) > 0.2 ? Color(light: 0xE0A21C, dark: 0xF2B544) : Brand.inkDim)
+                .offset(x: s * 0.48, y: -s * 0.5)
+        case .answering:
+            Image(systemName: "text.bubble.fill").font(.system(size: s * 0.24)).foregroundStyle(tint.opacity(0.85))
+                .offset(x: s * 0.55, y: -s * 0.3 + CGFloat(sin(t * 3)) * s * 0.03)
+        case .waiting:
+            Text("?").font(.system(size: s * 0.3, weight: .black, design: .rounded)).foregroundStyle(tint)
+                .offset(x: -s * 0.52, y: -s * 0.4 + CGFloat(sin(t * 4)) * s * 0.04)
+        case .error:
+            Image(systemName: "drop.fill").font(.system(size: s * 0.12)).foregroundStyle(Color(light: 0x2F7BE5, dark: 0x4A8FF0))
+                .offset(x: -s * 0.32, y: -s * 0.25 + CGFloat(t.truncatingRemainder(dividingBy: 1.2)) * s * 0.2)
+        case .greeting:
+            Text("!").font(.system(size: s * 0.32, weight: .black, design: .rounded)).foregroundStyle(tint)
+                .offset(x: -s * 0.5, y: -s * 0.45)
+                .scaleEffect(1 + 0.15 * abs(sin(t * 6)))
+        case .celebrating, .sleeping:
+            EmptyView()
+        }
+    }
+
+    /// Atrofdagi effektlar: to'lqinlar, yulduzchalar
+    @ViewBuilder
+    private func effects(_ t: Double) -> some View {
+        let s = size
+        switch action {
+        case .browsing:
+            ForEach(0..<2, id: \.self) { i in
+                let k = (t * 0.8 + Double(i) * 0.5).truncatingRemainder(dividingBy: 1)
+                Circle().stroke(tint.opacity(0.5 * (1 - k)), lineWidth: 1.4)
+                    .frame(width: s * (0.3 + CGFloat(k) * 0.6), height: s * (0.3 + CGFloat(k) * 0.6))
+                    .offset(x: s * 0.55, y: -s * 0.05)
+            }
+        case .celebrating:
+            ForEach(0..<5, id: \.self) { i in
+                let a = Double(i) / 5 * 2 * .pi + t * 1.5
+                let r = s * (0.55 + 0.08 * CGFloat(sin(t * 4 + Double(i))))
+                Image(systemName: "sparkle").font(.system(size: s * 0.14))
+                    .foregroundStyle(i % 2 == 0 ? tint : Brand.inkFill)
+                    .offset(x: CGFloat(cos(a)) * r, y: CGFloat(sin(a)) * r * 0.7 - s * 0.1)
+                    .opacity(0.5 + 0.5 * sin(t * 6 + Double(i)))
+            }
+        case .sleeping:
+            ForEach(0..<2, id: \.self) { i in
+                let k = (t * 0.35 + Double(i) * 0.5).truncatingRemainder(dividingBy: 1)
+                Text("z").font(.system(size: s * (0.14 + 0.08 * CGFloat(k)), weight: .bold, design: .rounded))
+                    .foregroundStyle(Brand.inkDim.opacity(1 - k))
+                    .offset(x: s * (0.35 + 0.2 * CGFloat(k)), y: -s * (0.35 + 0.35 * CGFloat(k)))
+            }
+        default:
+            EmptyView()
+        }
+    }
+}
+
+/// Yarim yoy: `up` — tepaga qaragan (^), aks holda pastga (tabassum)
+private struct Arc: Shape {
+    let up: Bool
+    func path(in r: CGRect) -> Path {
+        var p = Path()
+        if up {
+            p.move(to: CGPoint(x: r.minX, y: r.maxY))
+            p.addQuadCurve(to: CGPoint(x: r.maxX, y: r.maxY), control: CGPoint(x: r.midX, y: r.minY - r.height * 0.6))
+        } else {
+            p.move(to: CGPoint(x: r.minX, y: r.minY))
+            p.addQuadCurve(to: CGPoint(x: r.maxX, y: r.minY), control: CGPoint(x: r.midX, y: r.maxY + r.height * 0.6))
+            p.closeSubpath()
+        }
+        return p
     }
 }

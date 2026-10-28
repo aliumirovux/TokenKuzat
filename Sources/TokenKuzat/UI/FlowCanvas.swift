@@ -307,7 +307,7 @@ struct FlowCanvas: View {
 
             // Robot: ishlayotgan asbob ustiga uchib boradi, o'ylayotganda — agent ustida, tugaganda — uxlaydi
             let robot = robotPlacement(l)
-            RobotView(mood: robot.1, size: 58)
+            RobotView(action: robot.1, size: 58)
                 .position(robot.0)
                 .animation(.spring(response: 0.75, dampingFraction: 0.72), value: robot.0)
                 .modifier(Enter(on: entered, delay: 0.6))
@@ -318,17 +318,41 @@ struct FlowCanvas: View {
         .onChange(of: model.prompt) { _ in replayEntrance() }
     }
 
-    /// Robot qayerda va qanday: band asbob bo'lsa — o'sha doira ustida, aks holda agent kartasi ustida
-    private func robotPlacement(_ l: FlowLayout) -> (CGPoint, RobotView.Mood) {
+    /// Robot qayerda va nima qiladi: band asbob bo'lsa — o'sha doira ustida, vazifaga mos harakat bilan;
+    /// aks holda agent kartasi ustida — o'ylaydi, javob yozadi, xatodan cho'chiydi, yangi so'rovni kutib oladi yoki uxlaydi
+    private func robotPlacement(_ l: FlowLayout) -> (CGPoint, RobotView.Action) {
+        let now = Date()
         let lanes = [model.main].compactMap { $0 } + model.helpers
         for lane in lanes {
-            if let b = lane.bubbles.first(where: { $0.busy && $0.category != nil }), let p = l.bubbles[b.id] {
-                let d = lane.agent.isMain ? F.bubble : F.bubbleSmall
-                return (CGPoint(x: p.x, y: p.y - d / 2 - 48), .working(b.title))
-            }
+            guard let step = lane.steps.last(where: { $0.status == .running }),
+                  let b = lane.bubbles.first(where: { $0.category == step.category }), let p = l.bubbles[b.id] else { continue }
+            let d = lane.agent.isMain ? F.bubble : F.bubbleSmall
+            let name = step.targetName.isEmpty ? b.title : step.targetName
+            let action: RobotView.Action = {
+                switch step.category {
+                case .shell: return .typing(name)
+                case .files: return step.access == .write ? .writing(name) : .reading(name)
+                case .web: return .browsing(name)
+                case .mcp: return .plugging(name)
+                case .agent: return .delegating(name)
+                case .other: return .tinkering(name)
+                }
+            }()
+            return (CGPoint(x: p.x, y: p.y - d / 2 - 48), action)
         }
         let top = CGPoint(x: l.main.x + F.mainW / 2 - 52, y: l.main.y - F.mainH / 2 - 44)
-        return (top, model.result.active ? .thinking : .sleeping)
+        let steps = lanes.flatMap(\.steps)
+        let last = steps.max { $0.date < $1.date }
+        if model.result.active {
+            if let last, last.status == .failed, now.timeIntervalSince(last.date) < 15 { return (top, .error) }
+            if let turn = session.turns.last, turn.active, now.timeIntervalSince(turn.start) < 8, turn.steps == 0 {
+                return (top, .greeting)
+            }
+            if model.main?.agent.lastAction == "Javob yozdi" { return (top, .answering) }
+            return (top, .thinking)
+        }
+        if let la = session.lastActivity, now.timeIntervalSince(la) < 40 { return (top, .celebrating) }
+        return (top, .sleeping)
     }
 
     /// Sxema ochilganda yoki so'rov almashganda: tugunlar birin-ketin paydo bo'ladi, chiziqlar chiziladi

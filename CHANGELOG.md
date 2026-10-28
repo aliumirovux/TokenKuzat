@@ -1,5 +1,11 @@
 # O'zgarishlar
 
+## 5.11.0 — 2026-10-28
+
+- Robot xarakterli: har vazifada o'z harakati, qo'lidagi buyumi va yuz ifodasi — Terminal (noutbukda yozadi, diqqat bilan), fayl o'qish (lupa, ko'zlari qatorlar bo'ylab), fayl yozish (qalam, jilmayib), Internet (aylanuvchi globus, radio to'lqinlar), tashqi xizmat (vilka va uchqun), yordamchi agent (kichik robotga topshiradi), boshqa asbob (kalit). Agent ustida: o'ylayapti (lampochka, iyagiga qo'l), javob yozyapti (gapiradi), ruxsat kutyapti (qo'l ko'tarib «?»), xato (titraydi, «× ×», ter tomchisi), yangi vazifa (qo'l silkitib «!»), tayyor (sakraydi, yulduzchalar, «^ ^»), uxlash («z z»).
+- Holat haqiqiy ishdan aniqlanadi: bajarilayotgan qadam turi va o'qish/yozish, so'nggi xato, so'rov boshlangani, ish tugagani.
+- `--snapshot-robots fayl.png` — barcha holatlar bitta rasmda (ishlab chiquvchi uchun).
+
 ## 5.10.0 — 2026-10-28
 
 - Xulosa oqimida robot-yordamchi: asbob ishlayotganda o'sha tugun ustiga uchib boradi va «ishlaydi» (qo'llar harakatda, antenna yonadi, «Terminal…»), model o'ylayotganda agent kartasi ustida ko'zlari u yoq-bu yoqqa yuradi («o'ylayapti…»), tugaganda uxlaydi («z z»). Ko'z qisish, yengil tebranish, tugundan tugunga silliq uchish; «Harakatni kamaytirish»da animatsiyasiz.

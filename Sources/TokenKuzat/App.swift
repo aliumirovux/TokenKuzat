@@ -33,6 +33,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             snapshotPanel(to: URL(fileURLWithPath: CommandLine.arguments[i + 1]))
             return
         }
+        // `--snapshot-robots fayl.png` — robotning barcha holatlari bitta rasmda
+        if let i = CommandLine.arguments.firstIndex(of: "--snapshot-robots"), i + 1 < CommandLine.arguments.count {
+            let all: [RobotView.Action] = [.typing("Terminal"), .reading("App.swift"), .writing("Robot.swift"), .browsing("Internet"),
+                                           .plugging("computer-use"), .delegating("Explore"), .tinkering("Asbob"), .thinking,
+                                           .answering, .waiting, .error, .greeting, .celebrating, .sleeping]
+            let view = LazyVGrid(columns: Array(repeating: GridItem(.fixed(170)), count: 7), spacing: 20) {
+                ForEach(Array(all.enumerated()), id: \.offset) { _, a in RobotView(action: a, size: 64).frame(height: 130) }
+            }
+            .padding(24).background(Brand.canvas).environment(\.colorScheme, .dark)
+            let r = ImageRenderer(content: view)
+            r.scale = 2
+            if let img = r.nsImage, let tiff = img.tiffRepresentation,
+               let png = NSBitmapImageRep(data: tiff)?.representation(using: .png, properties: [:]) {
+                try? png.write(to: URL(fileURLWithPath: CommandLine.arguments[i + 1]))
+            }
+            NSApp.terminate(nil)
+            return
+        }
         // `--snapshot-map fayl.png` — eng so'nggi sessiya xaritasini rasmga saqlaydi
         if let i = CommandLine.arguments.firstIndex(of: "--snapshot-map"), i + 1 < CommandLine.arguments.count {
             snapshotMap(to: URL(fileURLWithPath: CommandLine.arguments[i + 1]))
