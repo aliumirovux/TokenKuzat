@@ -73,6 +73,8 @@ public final class Engine {
         // Claude desktop: Cowork va Chat sessiyalari
         r.append(home.appendingPathComponent("Library/Application Support/Claude/local-agent-mode-sessions"))
         r.append(home.appendingPathComponent("Library/Application Support/Claude-3p/local-agent-mode-sessions"))
+        // Qo'lda qo'shilgan bulutdagi chat yozuvlari
+        r.append(ChatImport.directory)
         return r
     }
 

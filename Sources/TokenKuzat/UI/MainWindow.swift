@@ -28,6 +28,10 @@ struct MainWindow: View {
             }
             .animation(Motion.spring, value: section)
             .background(Brand.canvas)
+            // Chat yozuvi (.jsonl) oynaga tashlansa — qo'shiladi
+            .dropDestination(for: URL.self) { urls, _ in
+                ChatImporter.add(urls.filter { $0.pathExtension.lowercased() == "jsonl" }) > 0
+            }
             .overlay(alignment: .topLeading) {
                 // Yon menyu yopiq — oyna tugmalari yonida ochish tugmasi
                 if columns == .detailOnly && !mapFocus {

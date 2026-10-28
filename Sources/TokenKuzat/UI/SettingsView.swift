@@ -228,6 +228,17 @@ struct SettingsView: View {
             SwiftUI.Section("Ma'lumot") {
                 LabeledContent("Kuzatilayotgan fayllar", value: "\(store.snap.filesWatched) ta (oxirgi 30 kun)")
                 SourcesList(sources: store.snap.sources)
+                LabeledContent("Bulutdagi chatlar") {
+                    HStack {
+                        Button("Chat yozuvini qo'shish…") { ChatImporter.pick() }
+                        Button("Papkani ochish") {
+                            try? FileManager.default.createDirectory(at: ChatImport.directory, withIntermediateDirectories: true)
+                            NSWorkspace.shared.open(ChatImport.directory)
+                        }
+                    }
+                }
+                Text("Claude chat va bulutdagi sessiyalar Mac'ga yozilmaydi. Chatdan Claude'ga «yozuvini Token Kuzatuv uchun ber» deng — kelgan .jsonl faylni shu tugma bilan qo'shing yoki oynaga sudrab tashlang. Xaritada «\(ChatImport.projectName)» loyihasi bo'lib chiqadi.")
+                    .font(.caption).foregroundStyle(.secondary)
                 HStack {
                     Button("Claude papkasini ochish") { NSWorkspace.shared.open(Engine.primaryRoot) }
                     Button("Tarix faylini ko'rsatish") {
@@ -240,7 +251,7 @@ struct SettingsView: View {
 
             SwiftUI.Section("Ilova haqida") {
                 LabeledContent("Versiya", value: "\(AppInfo.version) (\(AppInfo.build))")
-                Text("Faqat shu Mac'dagi ~/.claude fayllarini o'qiydi. Internetga hech narsa yubormaydi.")
+                Text("Shu Mac'dagi ~/.claude fayllarini va o'zingiz qo'shgan chat yozuvlarini o'qiydi. Yozuvlar internetga yuborilmaydi.")
                     .font(.caption).foregroundStyle(.secondary)
             }
         }

@@ -1,5 +1,10 @@
 # O'zgarishlar
 
+## 6.18.0 — 2026-10-28
+
+- Bulutdagi chatlar xaritada: claude.ai / desktop chatdagi ishlar Anthropic bulutida bajariladi va Mac'ga yozilmaydi, lekin ularning yozuvi Claude Code bilan bir xil (.jsonl). Sozlamalar → Ma'lumot → «Chat yozuvini qo'shish…» yoki faylni oynaga sudrab tashlash — sessiya «Claude chat» loyihasi bo'lib chiqadi: so'rovlar, qadamlar, Kirish/Chiqish, tokenlar va Replay.
+- Qo'shishda fayl ixchamlanadi (rasm baytlari va uzun natijalar qisqartiriladi, tokenlar va vaqtlar to'liq qoladi) va `~/Library/Application Support/TokenKuzat/chats/` ga yoziladi; bir xil fayl qayta qo'shilsa — yangilanadi.
+
 ## 6.17.0 — 2026-10-28
 
 - Qadam bajarilishi (n8n'dagi node kabi): xaritada qadamni bosing — o'ng panelda uch tab. **Chiqish** — asbob nima qaytardi (xato bo'lsa — qizil), natija kontekstga qancha token qo'shgani; **Kirish** — asbobga berilgan parametrlar (o'qiladigan JSON); **Tafsilot** — asbob, nishon, boshlanish vaqti, davomiylik, agent va kontekstga qo'shilgan token. Matnni tanlab yoki «Nusxa olish» bilan olish mumkin. Ishlayotgan qadamda sukut bo'yicha Kirish ochiladi.

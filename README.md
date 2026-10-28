@@ -76,6 +76,10 @@ Sozlamalar → «Claude limiti (haqiqiy)» → **«Claude Code'ga ulash»**. Shu
 
 Ulash `~/.claude/settings.json` ga `statusLine` yozadi (birinchi marta `settings.json.tokenkuzat-backup` nusxasi olinadi). Avval o'z status line'ingiz bo'lsa — u saqlanadi va uning chiqishi ko'rsatilishda davom etadi; «Uzish» uni qaytaradi.
 
+## Bulutdagi chatlarni xaritada ko'rish
+
+claude.ai va desktop chatdagi ishlar bulutda bajariladi — Mac'ga o'zi tushmaydi. Chatdan Claude'ga «yozuvini Token Kuzatuv uchun ber» deng: u .jsonl faylni yuboradi. Uni Sozlamalar → Ma'lumot → **«Chat yozuvini qo'shish…»** bilan qo'shing yoki oynaga sudrab tashlang — sessiya «Claude chat» loyihasi bo'lib, Claude Code sessiyalari kabi to'liq ko'rinadi (jonli emas: yozuv olingan paytgacha).
+
 ## Chat va bulut ulushi (taxminiy)
 
 claude.ai va desktop chatlar, bulutdagi sessiyalar Mac diskiga yozilmaydi — ularning qadamlarini ko'rib bo'lmaydi. Lekin ular ham haqiqiy limitni yeydi. Sozlamalar → «Claude hisobidan olish» yoqilgan bo'lsa, ilova limit foizi o'sishini shu Mac'dagi sarf bilan solishtiradi va «Umumiy»dagi limit blokida ko'rsatadi: **Mac'da / Chat va bulut / Aniqlanmoqda / Kuzatuvdan oldin**, hamda bugun chat va bulutga ketgan taxminiy vaznli token. Mac ulushi «1% ≈ N vaznli token» koeffitsiyenti bilan ajratiladi — u faqat Mac ishlagan oraliqlardan o'rganiladi, birinchi bir necha o'lchovgacha aralash qism «Aniqlanmoqda» bo'lib turadi.
