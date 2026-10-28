@@ -1,5 +1,11 @@
 # O'zgarishlar
 
+## 5.0.0 — 2026-10-28
+
+- Xarita daraxt ko'rinishida: tana — so'rovlar yuqoridan pastga (jonli tana chizig'i bilan), har so'rovdan o'ngga shoxlar — u murojaat qilgan asboblar (Terminal 4×, Fayllar 1×, xatolar bilan). Tanlangan so'rovda shox — butun jarayon: xabarlar, o'ylash va qadamlar tana yonida pastga.
+- Bo'limlar va qisqa javob-so'rovlar (karta ichida) saqlandi; g'ildirak bilan tik aylantirish tabiiy.
+- Uzoqdan ko'rinish — faqat tana, zich; mini-xarita daraxt nisbatiga moslashadi.
+
 ## 4.9.2 — 2026-10-28
 
 - Uzoqdan ko'rinish (50% dan kichik) endi alohida zich joylashuv: asboblar va qadamlar zanjiriga joy qoldirilmaydi, satrlar yaqinlashadi — katta bo'shliqlar yo'qoldi, butun sessiya bir ekranga sig'adi. Kartalarda raqam, 2–3 qator nom va ilingan javoblar soni («↳ +2»).

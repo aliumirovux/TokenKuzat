@@ -142,7 +142,14 @@ private enum M {
     static let chipH: CGFloat = 28
     static let headH: CGFloat = 34
     static let barH: CGFloat = 56
-    static let framePad: CGFloat = 30
+    static let framePad: CGFloat = 26
+    /// Daraxt: karta va shoxlar orasidagi masofa, shox kengligi
+    static let branchGap: CGFloat = 70
+    static let branchW: CGFloat = 200
+    static let branchH: CGFloat = 34
+    /// Jarayon shoxidagi vertikal o'q (bo'g'inlar chap chetidan)
+    static let spine: CGFloat = 18
+    static let treeW: CGFloat = cardW + branchGap + cardW
     /// Satrdan satrga o'tuvchi chiziq kartadan shuncha chetga chiqadi — doim ramka ichida (framePad dan kichik)
     static let wrapOut: CGFloat = 16
     static let sectionGap: CGFloat = 40
@@ -151,7 +158,7 @@ private enum M {
     /// Shu masshtabdan past — uzoqdan ko'rinish (faqat raqam va qisqa nom, katta harfda)
     static let lod: CGFloat = 0.5
     /// Satr kengligi shu masshtabda oynaga to'liq sig'adi
-    static let fitScale: CGFloat = 0.85
+    static let fitScale: CGFloat = 0.9
 }
 
 /// Xaritadagi bitta katta karta: so'rov va unga ilingan qisqa javob-so'rovlar («ha», «boshla», «Bosdim»…)
@@ -269,6 +276,8 @@ private struct MapEdge: Identifiable {
         case v
         /// Satr tugadi: o'ngga chiqib, satrlar oralig'ida (`midY`) chapga qaytadi va keyingi kartaga kiradi
         case wrap(midY: CGFloat)
+        /// Shox: portdan o'ngga `x` gacha, u yerdan pastga/tepaga, keyin o'ngga — tugunning chap yoniga
+        case bus(x: CGFloat)
     }
     let id: String
     let from: CGPoint
@@ -300,23 +309,24 @@ private struct MapLayout {
     /// - Parameters:
     ///   - expanded: qadamlar zanjiri ochiladigan so'rov («sessiya#raqam»)
     ///   - rowWidth: satr kengligi; kartalar shunga sig'guncha teriladi, keyin keyingi satrga o'tadi
-    /// - compact: uzoqdan ko'rinish — asboblar va zanjirga joy qoldirilmaydi, satrlar zich
+    /// Daraxt: tana — so'rovlar yuqoridan pastga; har so'rovdan o'ngga shoxlar — u murojaat qilgan asboblar.
+    /// Tanlangan so'rovda shox — butun jarayon (xabarlar, o'ylash, qadamlar), tana yonida pastga qarab.
+    /// - compact: uzoqdan ko'rinish — faqat tana, shoxlarsiz, zich
     init(sections: [MapSection], expanded: String?, steps: [MapStep], rowWidth: CGFloat,
          isOpen: (MapSection) -> Bool, active: Bool, lastAt: Date?, compact: Bool = false) {
-        let rowGap = compact ? M.rowGap * 0.55 : M.rowGap
-        let left = M.pad, right = M.pad + rowWidth
+        let left = M.pad
+        // Uzoqdan faqat tana ko'rinadi — ramka va sarlavhalar karta kengligida
+        let width = compact ? M.cardW : M.treeW
+        let trunkX = left + M.cardW / 2
+        let branchX = left + M.cardW + M.branchGap
+        let gap: CGFloat = compact ? 22 : 34
         var y = M.pad
-        var flow: MapNode?          // oqim chizig'ining oxirgi nuqtasi
-        var flowMid: CGFloat?       // keyingi ulanish satrlar oralig'idan o'tadigan bo'lsa — o'sha y
+        var prevBottom: CGPoint?
+        var prevLive = false
 
-        func connect(_ n: MapNode, live: Bool) {
-            guard let p = flow else { return }
-            let a = CGPoint(x: p.rect.maxX, y: p.anchorY), b = CGPoint(x: n.rect.minX, y: n.anchorY)
-            if abs(a.y - b.y) < 1 && b.x > a.x {
-                edges.append(MapEdge(id: p.id + ">" + n.id, from: a, to: b, route: .h, live: live, color: Brand.ok))
-            } else {
-                edges.append(MapEdge(id: p.id + ">" + n.id, from: a, to: b,
-                                     route: .wrap(midY: flowMid ?? (n.rect.minY - M.rowGap / 2)), live: live, color: Brand.ok))
+        func trunk(to top: CGFloat, live: Bool, id: String) {
+            if let p = prevBottom {
+                edges.append(MapEdge(id: "t" + id, from: p, to: CGPoint(x: trunkX, y: top), route: .v, live: live, color: Brand.ok))
             }
         }
 
@@ -326,114 +336,124 @@ private struct MapLayout {
             let frameTop = y
             let h = open ? M.headH : M.barH
             let head = MapNode(id: "h" + sec.id, kind: .header(sec, open: open),
-                               center: CGPoint(x: left + rowWidth / 2, y: y + h / 2), size: CGSize(width: rowWidth, height: h))
+                               center: CGPoint(x: left + width / 2, y: y + h / 2), size: CGSize(width: width, height: h))
             nodes.append(head)
             if !open {
-                // Yig'ilgan bo'lim — bitta chiziq: oqim unga kirib, undan chiqadi
-                connect(head, live: false)
-                flow = head
-                flowMid = nil
+                trunk(to: head.rect.minY, live: false, id: head.id)
+                prevBottom = CGPoint(x: trunkX, y: head.rect.maxY)
                 y = head.rect.maxY + M.sectionGap
-                if isLast {
-                    flowMid = y - M.sectionGap / 2
-                    let e = MapNode(id: "end", kind: .end(active: active, at: lastAt),
-                                    center: CGPoint(x: left + M.endD / 2, y: y + M.endD / 2), size: CGSize(width: M.endD, height: M.endD))
-                    nodes.append(e)
-                    connect(e, live: active)
-                    y = e.rect.maxY + 40
-                }
-                continue
-            }
-            if flow != nil { flowMid = frameTop - M.sectionGap / 2 }
-            var x = left
-            var rowTop = head.rect.maxY + 16
-            var rowBottom = rowTop + M.cardH
-            for card in sec.cards {
-                if x > left && x + M.cardW > right {
-                    rowTop = rowBottom + rowGap
-                    rowBottom = rowTop + M.cardH
-                    x = left
-                    flowMid = rowTop - rowGap / 2
-                }
-                // Qisqa javob-so'rovlar kartaning ichida, pastki qatorlarda — karta shunga cho'ziladi
-                let h = compact ? M.cardH : M.cardH + TurnCard.followUpsHeight(card.followUps.count)
-                let n = MapNode(id: card.id, kind: .turn(card.turn, sessionId: card.sessionId, previousPrompt: card.previousPrompt,
-                                                         expanded: card.contains(expanded) && !steps.isEmpty ? steps.count : nil,
-                                                         followUps: card.followUps),
-                                center: CGPoint(x: x + M.cardW / 2, y: rowTop + h / 2), size: CGSize(width: M.cardW, height: h))
-                nodes.append(n)
-                connect(n, live: card.turn.active || card.followUps.contains(where: \.active))
-                flow = n
-                flowMid = nil
-                lastTurn = n
+            } else {
+                trunk(to: head.rect.minY, live: false, id: head.id)
+                prevBottom = CGPoint(x: trunkX, y: head.rect.maxY)
+                y = head.rect.maxY + 18
+                for card in sec.cards {
+                    let h = compact ? M.cardH : M.cardH + TurnCard.followUpsHeight(card.followUps.count)
+                    let live = card.turn.active || card.followUps.contains(where: \.active)
+                    let n = MapNode(id: card.id, kind: .turn(card.turn, sessionId: card.sessionId, previousPrompt: card.previousPrompt,
+                                                             expanded: card.contains(expanded) && !steps.isEmpty ? steps.count : nil,
+                                                             followUps: card.followUps),
+                                    center: CGPoint(x: left + M.cardW / 2, y: y + h / 2), size: CGSize(width: M.cardW, height: h))
+                    nodes.append(n)
+                    trunk(to: n.rect.minY, live: live || prevLive, id: n.id)
+                    prevBottom = CGPoint(x: trunkX, y: n.rect.maxY)
+                    prevLive = live
+                    lastTurn = n
 
-                // Karta ostida: qadamlar zanjiri (tanlangan bo'lsa) yoki karta va javoblarining asboblari
-                let port = CGPoint(x: n.center.x, y: n.rect.maxY)
-                var colY = n.rect.maxY
-                if compact {
-                    // uzoqdan: karta ostida hech narsa yo'q
-                } else if card.contains(expanded) && !steps.isEmpty {
-                    let tid = Int(expanded?.split(separator: "#").last ?? "") ?? card.turn.id
-                    colY = placeSteps(steps, port: port, top: colY + M.stepTop,
-                                      idPrefix: card.id, sessionId: card.sessionId, turnId: tid)
-                    stepsBottom = colY
-                } else {
-                    colY = placeTools(MapLayout.mergedTools([card.turn] + card.followUps), port: port,
-                                      centerY: colY + M.toolDrop,
-                                      idPrefix: card.id, sessionId: card.sessionId, turnId: card.turn.id) ?? colY
+                    var bottom = n.rect.maxY
+                    if !compact {
+                        let port = CGPoint(x: n.rect.maxX, y: n.anchorY)
+                        if card.contains(expanded) && !steps.isEmpty {
+                            let tid = Int(expanded?.split(separator: "#").last ?? "") ?? card.turn.id
+                            bottom = max(bottom, placeChain(steps, port: port, x: branchX, top: n.rect.minY,
+                                                            idPrefix: card.id, sessionId: card.sessionId, turnId: tid))
+                            stepsBottom = bottom
+                        } else {
+                            bottom = max(bottom, placeBranches(MapLayout.mergedTools([card.turn] + card.followUps), port: port,
+                                                               x: branchX, top: n.rect.minY + 8,
+                                                               idPrefix: card.id, sessionId: card.sessionId, turnId: card.turn.id))
+                        }
+                    }
+                    y = bottom + gap
                 }
-                rowBottom = max(rowBottom, colY)
-                x += M.cardW + M.gap
+                frames.append(MapFrame(id: sec.id,
+                                       rect: CGRect(x: left - M.framePad, y: frameTop - 8,
+                                                    width: width + 2 * M.framePad, height: y - gap + M.framePad - frameTop + 8),
+                                       active: sec.active))
+                y += M.framePad + M.sectionGap - gap
             }
             if isLast {
-                // Yakun tuguni — oxirgi karta yonida (sig'sa) yoki keyingi satr boshida
-                if x + M.endD > right + M.gap {
-                    rowTop = rowBottom + rowGap
-                    rowBottom = rowTop + M.cardH
-                    x = left
-                    flowMid = rowTop - rowGap / 2
-                }
                 let e = MapNode(id: "end", kind: .end(active: active, at: lastAt),
-                                center: CGPoint(x: x + M.endD / 2, y: rowTop + M.cardH / 2), size: CGSize(width: M.endD, height: M.endD))
+                                center: CGPoint(x: trunkX, y: y + M.endD / 2), size: CGSize(width: M.endD, height: M.endD))
                 nodes.append(e)
-                connect(e, live: active)
+                trunk(to: e.rect.minY, live: active, id: e.id)
+                y = e.rect.maxY + 50
             }
-            frames.append(MapFrame(id: sec.id,
-                                   rect: CGRect(x: left - M.framePad, y: frameTop - 8,
-                                                width: rowWidth + 2 * M.framePad, height: rowBottom + M.framePad - frameTop + 8),
-                                   active: sec.active))
-            y = rowBottom + M.framePad + M.sectionGap
         }
-        size = CGSize(width: right + M.pad, height: y + M.pad)
+        size = CGSize(width: left + width + M.pad, height: y + M.pad)
     }
 
-    /// Qadamlar ustun bo'ylab pastga, vaqt bo'yicha; ko'p bo'lsa — oxirgilari, tepada «+N oldingi». Pastki chegarani qaytaradi
-    private mutating func placeSteps(_ all: [MapStep], port: CGPoint, top: CGFloat, idPrefix: String,
+    /// Jarayon shoxi: kartaning o'ng portidan chiqib, tana yonida pastga — xabarlar, o'ylash va qadamlar vaqt bo'yicha.
+    /// Pastki chegarani qaytaradi
+    private mutating func placeChain(_ all: [MapStep], port: CGPoint, x: CGFloat, top: CGFloat, idPrefix: String,
                                      sessionId: String, turnId: Int) -> CGFloat {
         let shown = Array(all.suffix(M.maxSteps))
         let hidden = all.count - shown.count
+        let spine = x + M.spine
         var y = top
-        var prevBottom = port
+        var prev: CGPoint?
         func link(_ n: MapNode, live: Bool, color: Color) {
-            edges.append(MapEdge(id: "e" + n.id, from: prevBottom, to: CGPoint(x: n.center.x, y: n.rect.minY),
-                                 route: .v, live: live, color: color))
-            prevBottom = CGPoint(x: n.center.x, y: n.rect.maxY)
+            if let p = prev {
+                edges.append(MapEdge(id: "e" + n.id, from: p, to: CGPoint(x: spine, y: n.rect.minY), route: .v, live: live, color: color))
+            } else {
+                // Birinchi bo'g'in: port → o'ngga → bo'g'inning chap yoni
+                edges.append(MapEdge(id: "e" + n.id, from: port, to: CGPoint(x: n.rect.minX, y: n.center.y),
+                                     route: .bus(x: x - M.branchGap / 2), live: live, color: color))
+            }
+            prev = CGPoint(x: spine, y: n.rect.maxY)
         }
         if hidden > 0 {
             let n = MapNode(id: idPrefix + "/earlier", kind: .earlier(hidden),
-                            center: CGPoint(x: port.x, y: y + 15), size: CGSize(width: 170, height: 30))
+                            center: CGPoint(x: x + 85, y: y + 15), size: CGSize(width: 170, height: 30))
             nodes.append(n)
             link(n, live: false, color: .secondary)
             y = n.rect.maxY + M.stepGap
         }
         for st in shown {
             let n = MapNode(id: idPrefix + "/s/" + st.id, kind: .step(st, sessionId: sessionId, turnId: turnId),
-                            center: CGPoint(x: port.x, y: y + st.height / 2), size: CGSize(width: M.cardW, height: st.height))
+                            center: CGPoint(x: x + M.cardW / 2, y: y + st.height / 2), size: CGSize(width: M.cardW, height: st.height))
             nodes.append(n)
             link(n, live: st.isLive, color: st.color)
             y = n.rect.maxY + M.stepGap
         }
-        return y
+        return y - M.stepGap
+    }
+
+    /// Asbob shoxlari: kartaning o'ng portidan umumiy shox chiqadi va har asbobga tarmoqlanadi (yuqoridan pastga).
+    /// Pastki chegarani qaytaradi
+    private mutating func placeBranches(_ tools: [TurnTool], port: CGPoint, x: CGFloat, top: CGFloat, idPrefix: String,
+                                        sessionId: String, turnId: Int) -> CGFloat {
+        let shown = Array(tools.prefix(M.maxTools))
+        let extra = tools.count - shown.count
+        guard !shown.isEmpty else { return top }
+        var y = top
+        let bus = x - M.branchGap / 2
+        for tool in shown {
+            let node = MapNode(id: idPrefix + "/" + tool.id, kind: .tool(tool, sessionId: sessionId, turnId: turnId),
+                               center: CGPoint(x: x + M.branchW / 2, y: y + M.branchH / 2), size: CGSize(width: M.branchW, height: M.branchH))
+            nodes.append(node)
+            edges.append(MapEdge(id: node.id, from: port, to: CGPoint(x: node.rect.minX, y: node.center.y),
+                                 route: .bus(x: bus), live: tool.busy, color: tool.category.color))
+            y = node.rect.maxY + 8
+        }
+        if extra > 0 {
+            let n = MapNode(id: idPrefix + "/more", kind: .more(extra),
+                            center: CGPoint(x: x + 40, y: y + 12), size: CGSize(width: 80, height: 24))
+            nodes.append(n)
+            edges.append(MapEdge(id: n.id, from: port, to: CGPoint(x: n.rect.minX, y: n.center.y),
+                                 route: .bus(x: bus), live: false, color: .secondary))
+            y = n.rect.maxY + 8
+        }
+        return y - 8
     }
 
     /// Bir nechta so'rov asboblari tur bo'yicha qo'shiladi
@@ -453,31 +473,6 @@ private struct MapLayout {
             .sorted { $0.calls > $1.calls }
     }
 
-    /// Asbob doiralari karta ostida bir qatorda. Pastki chegarani qaytaradi (asbob bo'lmasa — nil)
-    private mutating func placeTools(_ tools: [TurnTool], port: CGPoint, centerY: CGFloat, idPrefix: String,
-                                     sessionId: String, turnId: Int) -> CGFloat? {
-        let shown = Array(tools.prefix(M.maxTools))
-        let extra = tools.count - shown.count
-        let n = shown.count + (extra > 0 ? 1 : 0)
-        guard n > 0 else { return nil }
-        let x0 = port.x - CGFloat(n - 1) * M.toolStep / 2
-        for (i, tool) in shown.enumerated() {
-            let c = CGPoint(x: x0 + CGFloat(i) * M.toolStep, y: centerY)
-            let node = MapNode(id: idPrefix + "/" + tool.id, kind: .tool(tool, sessionId: sessionId, turnId: turnId),
-                               center: c, size: CGSize(width: M.toolStep, height: M.toolD + 30))
-            nodes.append(node)
-            edges.append(MapEdge(id: node.id, from: port, to: CGPoint(x: c.x, y: c.y - M.toolD / 2),
-                                 route: .v, live: tool.busy, color: tool.category.color))
-        }
-        if extra > 0 {
-            let c = CGPoint(x: x0 + CGFloat(shown.count) * M.toolStep, y: centerY)
-            nodes.append(MapNode(id: idPrefix + "/more", kind: .more(extra), center: c,
-                                 size: CGSize(width: M.toolStep, height: M.toolD + 30)))
-            edges.append(MapEdge(id: idPrefix + "/more", from: port, to: CGPoint(x: c.x, y: c.y - M.toolD / 2),
-                                 route: .v, live: false, color: .secondary))
-        }
-        return centerY + M.toolD / 2 + 30
-    }
 }
 
 /// Oxirgi chizilgan joylashuv — zoom chegarasidan o'tganda karta joyini saqlash uchun (UI holati emas)
@@ -622,7 +617,10 @@ struct SessionMapView: View {
                 if !placed {
                     placed = true
                     focusLast(layout, vs, animated: false, rescale: true)
-                    if let s0 = initialScale { scale = s0; fit(layout, vs) }
+                    // --zoom 0 — hammasini sig'dirish, aks holda shu masshtabda oxirgi so'rov
+                    if let s0 = initialScale {
+                        if s0 <= 0 { fit(layout, vs) } else { scale = s0; focusLast(layout, vs, animated: false) }
+                    }
                 }
             }
             .onDisappear { wheel.stop() }
@@ -702,12 +700,8 @@ struct SessionMapView: View {
                 .surfaceCapsule()
                 .help("Eski qadamlar — o'ng paneldagi «Jarayon»da to'liq ro'yxat")
         case .more(let k):
-            VStack(spacing: 6) {
-                Text("+\(k)").font(.callout.weight(.semibold)).foregroundStyle(.secondary)
-                    .frame(width: M.toolD, height: M.toolD).surfaceCircle()
-                Text("yana").font(.caption2).foregroundStyle(.secondary)
-            }
-            .frame(maxHeight: .infinity, alignment: .top)
+            Text("+\(k) yana").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, maxHeight: .infinity).surfaceCapsule()
         case .end(let active, let at):
             MapEndNode(active: active, at: at, waiting: waiting)
         }
@@ -792,7 +786,9 @@ struct SessionMapView: View {
         let end = layout.nodes.first { $0.id == "end" }?.rect
         let rightEdge = max(card.maxX, end?.maxX ?? 0)
         let bottom = max(card.maxY, layout.stepsBottom ?? 0)
-        let x = min(0, vs.width - (rightEdge + M.pad) * scale)
+        // Daraxt tor: oynaga sig'sa — markazda, sig'masa — chap cheti ko'rinadi
+        let x = layout.size.width * scale <= vs.width ? (vs.width - layout.size.width * scale) / 2
+            : min(0, vs.width - (rightEdge + M.pad) * scale)
         let a = 56 - card.minY * scale
         let b = vs.height - (bottom + 40) * scale
         let target = clamped(CGSize(width: x, height: b < a ? b : a), vs: vs, world: layout.size)
@@ -873,6 +869,9 @@ private struct MapEdges: View {
                     case .h: path = hCurve(a, b)
                     case .v: path = vCurve(a, b)
                     case .wrap(let m): path = wrapPath(a, b, midY: m * scale + pan.height)
+                    case .bus(let bx):
+                        let sx = bx * scale + pan.width
+                        path = polyline([a, CGPoint(x: sx, y: a.y), CGPoint(x: sx, y: b.y), b], radius: 10 * scale)
                     }
                     let w = max(1.2, 2 * scale)
                     if e.live && animated {
@@ -900,6 +899,21 @@ private struct MapEdges: View {
         let dx = max(20, abs(b.x - a.x) * 0.5)
         p.move(to: a)
         p.addCurve(to: b, control1: CGPoint(x: a.x + dx, y: a.y), control2: CGPoint(x: b.x - dx, y: b.y))
+        return p
+    }
+
+    private func polyline(_ pts: [CGPoint], radius r: CGFloat) -> Path {
+        var p = Path()
+        p.move(to: pts[0])
+        for i in 1..<pts.count - 1 {
+            let prev = pts[i - 1], cur = pts[i], next = pts[i + 1]
+            let d1 = hypot(cur.x - prev.x, cur.y - prev.y), d2 = hypot(next.x - cur.x, next.y - cur.y)
+            let rr = min(r, d1 / 2, d2 / 2)
+            guard rr > 0.5 else { p.addLine(to: cur); continue }
+            p.addLine(to: CGPoint(x: cur.x - (cur.x - prev.x) / d1 * rr, y: cur.y - (cur.y - prev.y) / d1 * rr))
+            p.addQuadCurve(to: CGPoint(x: cur.x + (next.x - cur.x) / d2 * rr, y: cur.y + (next.y - cur.y) / d2 * rr), control: cur)
+        }
+        p.addLine(to: pts[pts.count - 1])
         return p
     }
 
@@ -1030,13 +1044,6 @@ private struct TurnCard: View {
         .modifier(Surface(shape: shape, tint: isLive ? Brand.ok : nil, interactive: true,
                           stroke: selected ? Brand.accent : nil))
         .overlay { if isLive { LiveBorder(shape: shape, color: Brand.ok, lineWidth: 2) } }
-        .overlay(alignment: .bottom) {
-            if let n = expandedSteps {
-                portPill("Jarayon · \(n) qadam", Brand.accent).offset(y: 11)
-            } else if !turn.tools.isEmpty {
-                portPill("Asboblar", .secondary).offset(y: 11)
-            }
-        }
         .shadow(color: .black.opacity(0.16), radius: 4, y: 2)
         .contentShape(shape)
         .help(turn.isContinuation ? "Kontekst tugab, suhbat xulosa bilan davom ettirildi" : turn.prompt)
@@ -1152,30 +1159,30 @@ private struct MapSectionHeader: View {
     }
 }
 
+/// Asbob shoxi uchi: belgi, nomi, chaqiruvlar va xatolar; ishlayotgani — jonli chegara bilan
 private struct MapToolNode: View {
     let tool: TurnTool
 
     var body: some View {
         let color = tool.category.color
-        VStack(spacing: 6) {
-            ZStack(alignment: .topTrailing) {
-                Image(systemName: tool.category.symbol)
-                    .font(.system(size: 17, weight: .medium)).foregroundStyle(tool.category.iconColor)
-                    .frame(width: M.toolD, height: M.toolD)
-                    .surfaceCircle(tint: tool.busy ? color : nil, interactive: true)
-                    .overlay { if tool.busy { LiveBorder(shape: Circle(), color: color, lineWidth: 2, period: 2.4) } }
-                Text(tool.errors > 0 ? "\(tool.calls)·\(tool.errors)!" : "\(tool.calls)")
-                    .font(.system(size: 9, weight: .bold)).monospacedDigit()
-                    .padding(.horizontal, 5).padding(.vertical, 2)
-                    .background(Capsule().fill(tool.errors > 0 ? Brand.err : color))
-                    .foregroundStyle(.white)
-                    .offset(x: 8, y: -3)
+        HStack(spacing: 8) {
+            Image(systemName: tool.category.symbol)
+                .font(.system(size: 11, weight: .semibold)).foregroundStyle(tool.category.iconColor)
+                .frame(width: 22, height: 22)
+                .background(Circle().fill(color.opacity(0.15)))
+            Text(tool.category.title).font(.caption.weight(.medium)).lineLimit(1)
+            Spacer(minLength: 4)
+            if tool.errors > 0 {
+                Text("\(tool.errors)!").font(.caption2.weight(.bold)).foregroundStyle(Brand.err)
             }
-            Text(tool.category.title).font(.caption2.weight(.medium)).lineLimit(1).minimumScaleFactor(0.8)
+            Text("\(tool.calls)×").font(.caption.weight(.semibold)).monospacedDigit().foregroundStyle(.secondary)
         }
-        .frame(maxHeight: .infinity, alignment: .top)
-        .contentShape(Rectangle())
-        .help("\(tool.category.title): \(tool.calls) chaqiruv\(tool.top.isEmpty ? "" : " · ko'pi: \(tool.top)")")
+        .padding(.leading, 6).padding(.trailing, 12)
+        .frame(width: M.branchW, height: M.branchH)
+        .modifier(Surface(shape: Capsule(), tint: tool.busy ? color : nil, interactive: true))
+        .overlay { if tool.busy { LiveBorder(shape: Capsule(), color: color, lineWidth: 1.6, period: 2.4) } }
+        .contentShape(Capsule())
+        .help("\(tool.category.title): \(tool.calls) chaqiruv\(tool.top.isEmpty ? "" : " · ko'pi: \(tool.top)") — bosing, ro'yxat ochiladi")
     }
 }
 
@@ -1238,8 +1245,9 @@ private struct MiniMap: View {
 
     var body: some View {
         // Butun xarita kichraytirib: bo'lim ramkalari, kartalar va ko'rinib turgan qism
-        let w: CGFloat = 180
-        let k = min(w / max(layout.size.width, 1), 120 / max(layout.size.height, 1))
+        // Daraxt tor va baland: o'lcham xaritaning o'z nisbatiga moslashadi
+        let k = min(180 / max(layout.size.width, 1), 150 / max(layout.size.height, 1))
+        let w = max(40, layout.size.width * k)
         let h = max(40, layout.size.height * k)
         Canvas { g, _ in
             func r(_ x: CGRect) -> CGRect { CGRect(x: x.minX * k, y: x.minY * k, width: max(2, x.width * k), height: max(2, x.height * k)) }
@@ -1330,7 +1338,7 @@ private struct MapStepNode: View {
         .fixedSize(horizontal: true, vertical: false)
         .modifier(Surface(shape: Capsule(), tint: item.isLive ? color : nil, interactive: true))
         .overlay { if item.isLive { LiveBorder(shape: Capsule(), color: color, lineWidth: 1.5, period: 2.4) } }
-        .frame(width: M.cardW, height: item.height)
+        .frame(width: M.cardW, height: item.height, alignment: .leading)
         .contentShape(Rectangle())
         .help(help)
     }
