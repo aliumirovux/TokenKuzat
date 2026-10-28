@@ -1,5 +1,9 @@
 # O'zgarishlar
 
+## 4.7.4 — 2026-10-28
+
+- Sessiya sahifasida uchta teng tab: Xarita, Xulosa, Fayllar. «Oqim» tabi va uning ichidagi Xarita/Xulosa almashtirgichi o'rniga — bitta qatorda; o'ngda faqat tafsilotlar panelini ochish tugmasi.
+
 ## 4.7.3 — 2026-10-28
 
 - Oqim'dagi «Jarayon» ko'rinishi olib tashlandi (ProcessFlow) — jarayon endi xaritaning o'zida. Oqim'da ikki ko'rinish: Xarita va Xulosa.

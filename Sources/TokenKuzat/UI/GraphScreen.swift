@@ -202,19 +202,15 @@ struct GraphScreen: View {
 
     // MARK: Tablar
 
+    /// Uchta teng tab: Xarita, Xulosa (ikkalasi Oqim'ning ko'rinishlari) va Fayllar
     private var tabs: some View {
         HStack(spacing: 4) {
-            tab("flow", "Oqim", "point.3.connected.trianglepath.dotted")
-            tab("files", "Fayllar", "square.grid.3x3")
+            tab("map", "Xarita", "point.3.connected.trianglepath.dotted",
+                help: "Butun sessiya: so'rovlar, asboblar va qadamlar zanjiri")
+            tab("summary", "Xulosa", "circle.hexagongrid",
+                help: "Tanlangan so'rovda qaysi agent va asboblar ishlatilgani")
+            tab("files", "Fayllar", "square.grid.3x3", help: "Qaysi fayllar o'qildi va o'zgartirildi")
             Spacer()
-            if graphMode != "files" {
-                Picker("", selection: $flowStyle) {
-                    Text("Xarita").tag("map")
-                    Text("Xulosa").tag("summary")
-                }
-                .pickerStyle(.segmented).labelsHidden().fixedSize()
-                .help("Xarita — butun sessiya so'rovlar va qadamlar bo'yicha, Xulosa — qaysi asboblar ishlatilgani")
-            }
             if graphMode != "files" {
                 Button { withAnimation(Motion.spring) { showInspector.toggle() } } label: { Image(systemName: "sidebar.right") }
                     .buttonStyle(.borderless)
@@ -223,9 +219,17 @@ struct GraphScreen: View {
         }
     }
 
-    private func tab(_ id: String, _ title: String, _ symbol: String) -> some View {
-        let on = id == "files" ? graphMode == "files" : graphMode != "files"
-        return Button { withAnimation(Motion.spring) { graphMode = id } } label: {
+    private var currentTab: String {
+        graphMode == "files" ? "files" : (flowStyle == "summary" ? "summary" : "map")
+    }
+
+    private func tab(_ id: String, _ title: String, _ symbol: String, help: String) -> some View {
+        let on = currentTab == id
+        return Button {
+            withAnimation(Motion.spring) {
+                if id == "files" { graphMode = "files" } else { graphMode = "flow"; flowStyle = id }
+            }
+        } label: {
             Label(title, systemImage: symbol)
                 .font(.callout.weight(on ? .semibold : .regular))
                 .foregroundStyle(on ? .primary : .secondary)
@@ -235,6 +239,7 @@ struct GraphScreen: View {
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .help(help)
     }
 
     private func toggleReplay(_ session: SessionSnap) {
