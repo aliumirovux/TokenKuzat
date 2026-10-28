@@ -91,13 +91,16 @@ struct MapStep: Identifiable {
     }
 
     /// Zanjirdagi balandligi: matnli o'ylash va javob — kattaroq
+    /// Chiziq ustidagi yupqa yorliq: asbob qadamlari, o'ylash va «O'ylayapti…». Katta karta — faqat xabar va javob
+    var isPill: Bool {
+        if case .note(let n, _) = item { return n.kind == .thinking }
+        return true
+    }
+
     var height: CGFloat {
-        switch item {
-        case .step, .group, .live: return M.stepH
-        case .note(let n, _):
-            if n.text.isEmpty { return M.stepH }
-            return n.kind == .reply ? 96 : 76
-        }
+        if isPill { return 30 }
+        if case .note(_, let final) = item { return final ? 112 : 92 }
+        return M.stepH
     }
 
     var color: Color {
@@ -135,7 +138,7 @@ private enum M {
     static let maxTools = 4
     static let pad: CGFloat = 60
     static let stepH: CGFloat = 52
-    static let stepGap: CGFloat = 14
+    static let stepGap: CGFloat = 10
     static let stepTop: CGFloat = 46
     static let maxSteps = 12
     /// Qadamlarsiz xarita balandligi — masshtab shu bo'yicha tanlanadi
@@ -906,9 +909,62 @@ private struct MapStepNode: View {
     let item: MapStep
 
     var body: some View {
+        if item.isPill { pill } else { card }
+    }
+
+    /// Yupqa yorliq: belgi, qisqa matn va vaqt — chiziq ustida, markazda
+    private var pill: some View {
+        let color = item.color
+        return HStack(spacing: 6) {
+            switch item.item {
+            case .step(let s):
+                Image(systemName: s.status == .failed ? "xmark.circle.fill" : s.symbol)
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(s.status == .failed ? Brand.err : s.category.iconColor)
+                Text(Self.shortText(s.text)).font(.caption).lineLimit(1)
+                    .foregroundStyle(s.status == .failed ? Brand.err : .primary)
+                if let d = s.duration, d >= 1 { Text(Self.dur(d)).font(.caption2.monospacedDigit()).foregroundStyle(.secondary).fixedSize() }
+            case .group(let g):
+                let byCat = Dictionary(grouping: g, by: \.category).sorted { $0.value.count > $1.value.count }
+                ForEach(byCat.prefix(4), id: \.key) { cat, list in
+                    HStack(spacing: 2) {
+                        Image(systemName: cat.symbol).font(.system(size: 9, weight: .semibold))
+                        Text("\(list.count)").font(.caption2.weight(.semibold)).monospacedDigit()
+                    }
+                    .foregroundStyle(cat.iconColor)
+                }
+                Text("\(g.count) qadam").font(.caption).foregroundStyle(.secondary)
+                let errs = g.filter { $0.status == .failed }.count
+                if errs > 0 { Text("\(errs) xato").font(.caption2.weight(.semibold)).foregroundStyle(Brand.err) }
+                let total = g.compactMap(\.duration).reduce(0, +)
+                if total >= 1 { Text("· " + Self.dur(total)).font(.caption2.monospacedDigit()).foregroundStyle(.secondary).fixedSize() }
+            case .note(let n, _):
+                Image(systemName: "brain").font(.system(size: 10, weight: .semibold)).foregroundStyle(color)
+                Text(Self.oneLine(n.text)).font(.caption).italic().lineLimit(1).foregroundStyle(.secondary)
+            case .live(let since):
+                Image(systemName: "brain").font(.system(size: 10, weight: .semibold)).foregroundStyle(color)
+                Text("O'ylayapti…").font(.caption.weight(.medium))
+                TimelineView(.periodic(from: .now, by: 1)) { ctx in
+                    Text(Self.dur(ctx.date.timeIntervalSince(since))).font(.caption2.monospacedDigit()).foregroundStyle(.secondary)
+                }
+            }
+        }
+        .padding(.horizontal, 11)
+        .frame(height: 28)
+        .frame(maxWidth: M.cardW - 20)
+        .fixedSize(horizontal: true, vertical: false)
+        .modifier(Surface(shape: Capsule(), tint: item.isLive ? color : nil, interactive: true))
+        .overlay { if item.isLive { LiveBorder(shape: Capsule(), color: color, lineWidth: 1.5, period: 2.4) } }
+        .frame(width: M.cardW, height: item.height)
+        .contentShape(Rectangle())
+        .help(help)
+    }
+
+    private var card: some View {
         let shape = RoundedRectangle(cornerRadius: 12, style: .continuous)
         let color = item.color
-        HStack(alignment: isText ? .top : .center, spacing: 10) {
+        let final: Bool = { if case .note(_, let f) = item.item { return f }; return false }()
+        return HStack(alignment: isText ? .top : .center, spacing: 10) {
             icon.frame(width: 28, height: 28)
             VStack(alignment: .leading, spacing: 3) {
                 content
@@ -919,8 +975,8 @@ private struct MapStepNode: View {
         }
         .padding(.horizontal, 10).padding(.vertical, isText ? 10 : 0)
         .frame(width: M.cardW, height: item.height, alignment: isText ? .topLeading : .leading)
-        .modifier(Surface(shape: shape, tint: item.isLive || isReply ? color : nil, interactive: true))
-        .overlay { if item.isLive { LiveBorder(shape: shape, color: color, lineWidth: 1.6, period: 2.6) } }
+        .modifier(Surface(shape: shape, tint: isReply ? color : nil, interactive: true,
+                          stroke: final ? color.opacity(0.7) : nil))
         .contentShape(shape)
         .help(help)
     }
@@ -1002,7 +1058,7 @@ private struct MapStepNode: View {
             } else {
                 Text(n.kind == .reply ? (final ? "Javob" : "Xabar") : "O'yladi")
                     .font(.caption.weight(.semibold)).foregroundStyle(item.color)
-                Text(Self.oneLine(n.text)).font(.callout).lineLimit(n.kind == .reply ? 3 : 2)
+                Text(Self.oneLine(n.text)).font(.callout).lineLimit(final ? 4 : 3)
                     .fixedSize(horizontal: false, vertical: true)
             }
         case .live:

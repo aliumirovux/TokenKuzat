@@ -1,5 +1,9 @@
 # O'zgarishlar
 
+## 4.8.1 — 2026-10-28
+
+- Xarita zanjiri chat uslubida: katta karta — faqat Xabar va yakuniy Javob (yashil chegara, 4 qator). Asbob qadamlari, o'ylash va «O'ylayapti…» — chiziq ustidagi yupqa yorliqlar («▣3 ✱1 4 qadam · 31 s», «🧠 Zanjir juda uzun…»). Zanjir ~2,5 baravar qisqardi; bosish — avvalgidek tafsilot.
+
 ## 4.8.0 — 2026-10-28
 
 - Xaritadagi zanjirda Claude'ning o'ylashi va javoblari: «O'yladi» (matn boshi, taxminiy davomiylik), oraliq «Xabar» va so'rov tugagach yakuniy «Javob». Model hozir o'ylayotgan bo'lsa — oxirida jonli «O'ylayapti…» (soniyalar bilan). Kartani bosish — o'ng panelda to'liq matn (tanlab nusxa olish mumkin).
