@@ -1,5 +1,9 @@
 # O'zgarishlar
 
+## 5.11.1 — 2026-10-28
+
+- Robot ko'rinishi sayqallandi: gap pufagi — robotga qaragan dum, holat belgisi, matn va sakrovchi uch nuqta (davom etayotgan ishda), holat rangida yengil fon va soya. Robot: gradientli qobiq va yaltiroq, yorug' sharli antenna, ko'zlarda nur, xursandlikda qizargan yonoqlar, ko'krakda kichik ekran, kaftli qo'llar, sakrash va tebranishga mos yerdagi soya.
+
 ## 5.11.0 — 2026-10-28
 
 - Robot xarakterli: har vazifada o'z harakati, qo'lidagi buyumi va yuz ifodasi — Terminal (noutbukda yozadi, diqqat bilan), fayl o'qish (lupa, ko'zlari qatorlar bo'ylab), fayl yozish (qalam, jilmayib), Internet (aylanuvchi globus, radio to'lqinlar), tashqi xizmat (vilka va uchqun), yordamchi agent (kichik robotga topshiradi), boshqa asbob (kalit). Agent ustida: o'ylayapti (lampochka, iyagiga qo'l), javob yozyapti (gapiradi), ruxsat kutyapti (qo'l ko'tarib «?»), xato (titraydi, «× ×», ter tomchisi), yangi vazifa (qo'l silkitib «!»), tayyor (sakraydi, yulduzchalar, «^ ^»), uxlash («z z»).

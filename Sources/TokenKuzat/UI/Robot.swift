@@ -73,15 +73,41 @@ struct RobotView: View {
         }
     }
 
-    private func dots(_ t: Double) -> String { String(repeating: ".", count: Int(t * 2.5) % 4) }
+    /// Davom etayotgan ishlar — oxirida sakrovchi nuqtalar
+    private var ongoing: Bool {
+        switch action {
+        case .waiting, .error, .greeting, .celebrating, .sleeping: return false
+        default: return true
+        }
+    }
+
+    /// Gap pufagidagi kichik belgi
+    private var symbol: String {
+        switch action {
+        case .typing: return "terminal.fill"
+        case .reading: return "eye.fill"
+        case .writing: return "pencil"
+        case .browsing: return "globe"
+        case .plugging: return "powerplug.fill"
+        case .delegating: return "person.2.fill"
+        case .tinkering: return "wrench.adjustable.fill"
+        case .thinking: return "lightbulb.fill"
+        case .answering: return "text.bubble.fill"
+        case .waiting: return "hand.raised.fill"
+        case .error: return "exclamationmark.triangle.fill"
+        case .greeting: return "sparkles"
+        case .celebrating: return "checkmark.seal.fill"
+        case .sleeping: return "moon.zzz.fill"
+        }
+    }
 
     private func text(_ t: Double) -> String {
         switch action {
         case .typing(let s), .reading(let s), .writing(let s), .browsing(let s), .plugging(let s),
              .delegating(let s), .tinkering(let s):
-            return s + dots(t)
-        case .thinking: return "o'ylayapti" + dots(t)
-        case .answering: return "javob yozyapti" + dots(t)
+            return s
+        case .thinking: return "o'ylayapti"
+        case .answering: return "javob yozyapti"
         case .waiting: return "ruxsat kerak"
         case .error: return "voy, xato!"
         case .greeting: return "yangi vazifa!"
@@ -90,30 +116,54 @@ struct RobotView: View {
         }
     }
 
+    /// Gap pufagi: robotga qaragan dum, belgi, matn va (davom etayotgan ishda) sakrovchi uch nuqta
     private func caption(_ t: Double) -> some View {
-        Text(text(t))
-            .font(.system(size: size * 0.21, weight: .semibold, design: .rounded))
-            .foregroundStyle(tint == .secondary ? Color.secondary : tint)
-            .lineLimit(1).fixedSize()
-            .padding(.horizontal, 7).padding(.vertical, 2)
-            .background(Capsule().fill(Brand.surface))
-            .overlay(Capsule().stroke(tint.opacity(0.45)))
-            .frame(minWidth: 150)
+        let c = tint == .secondary ? Brand.inkDim : tint
+        return HStack(spacing: 5) {
+            Image(systemName: symbol).font(.system(size: size * 0.17, weight: .bold))
+            Text(text(t)).font(.system(size: size * 0.2, weight: .semibold, design: .rounded))
+                .lineLimit(1).truncationMode(.middle).frame(maxWidth: size * 2.6)
+            if ongoing {
+                HStack(spacing: 2) {
+                    ForEach(0..<3, id: \.self) { i in
+                        Circle().frame(width: size * 0.055, height: size * 0.055)
+                            .offset(y: -CGFloat(max(0, sin(t * 7 - Double(i) * 0.7))) * size * 0.05)
+                    }
+                }
+                .padding(.leading, 1)
+            }
+        }
+        .foregroundStyle(c)
+        .fixedSize()
+        .padding(.horizontal, 9).padding(.vertical, 4)
+        .background(SpeechBubble(tail: size * 0.09).fill(Brand.surface))
+        .background(SpeechBubble(tail: size * 0.09).fill(c.opacity(0.14)))
+        .overlay(SpeechBubble(tail: size * 0.09).stroke(c.opacity(0.5), lineWidth: 1))
+        .shadow(color: .black.opacity(0.25), radius: 6, y: 3)
+        .padding(.bottom, size * 0.09)
     }
 
     // MARK: Gavda
 
     private func figure(_ t: Double) -> some View {
         let s = size
+        let shell = LinearGradient(colors: [Color(light: 0xFFFFFF, dark: 0x34343C), Color(light: 0xE9E9F0, dark: 0x1E1E24)],
+                                   startPoint: .top, endPoint: .bottom)
         return ZStack {
+            // Yerdagi soya: robot ko'tarilsa — kichrayadi va xiralashadi
+            Ellipse().fill(.black.opacity(0.28 - Double(-bob(t) / s) * 0.6))
+                .frame(width: s * (0.62 + bob(t) / s * 0.8), height: s * 0.1)
+                .blur(radius: 2)
+                .offset(y: s * 0.52 - bob(t))
             effects(t)
-            // Antenna
+            // Antenna: yumaloq uchli tayoqcha, uchida yorug'lik
             VStack(spacing: 0) {
-                Circle().fill(tint)
-                    .frame(width: s * 0.12, height: s * 0.12)
-                    .shadow(color: tint.opacity(glow(t)), radius: s * 0.12)
-                    .opacity(action == .sleeping ? 0.4 : 0.55 + 0.45 * glow(t))
-                Rectangle().fill(Brand.line).frame(width: s * 0.035, height: s * 0.11)
+                Circle().fill(RadialGradient(colors: [.white.opacity(0.9), tint], center: .init(x: 0.35, y: 0.35),
+                                             startRadius: 0, endRadius: s * 0.08))
+                    .frame(width: s * 0.13, height: s * 0.13)
+                    .shadow(color: tint.opacity(glow(t) * 0.9), radius: s * 0.1)
+                    .opacity(action == .sleeping ? 0.45 : 0.6 + 0.4 * glow(t))
+                Capsule().fill(color.opacity(0.55)).frame(width: s * 0.04, height: s * 0.11)
             }
             .offset(y: -s * 0.46)
             .rotationEffect(.degrees(antennaTilt(t)), anchor: .bottom)
@@ -121,19 +171,28 @@ struct RobotView: View {
             arm(t, left: true).offset(x: -s * 0.35, y: s * 0.2)
             arm(t, left: false).offset(x: s * 0.35, y: s * 0.2)
 
-            // Tana: ko'krakda holat chirog'i
-            RoundedRectangle(cornerRadius: s * 0.1, style: .continuous)
-                .fill(Brand.surface)
-                .overlay(RoundedRectangle(cornerRadius: s * 0.1, style: .continuous).stroke(color.opacity(0.7), lineWidth: 1.4))
-                .overlay(Circle().fill(tint.opacity(0.45 + 0.55 * glow(t))).frame(width: s * 0.09, height: s * 0.09))
-                .frame(width: s * 0.44, height: s * 0.26)
+            // Tana: ko'krakda kichik ekran — holat chirog'i
+            RoundedRectangle(cornerRadius: s * 0.12, style: .continuous)
+                .fill(shell)
+                .overlay(RoundedRectangle(cornerRadius: s * 0.12, style: .continuous).stroke(color.opacity(0.75), lineWidth: 1.4))
+                .overlay(
+                    RoundedRectangle(cornerRadius: s * 0.03, style: .continuous).fill(Brand.ink)
+                        .overlay(Capsule().fill(tint.opacity(0.5 + 0.5 * glow(t)))
+                            .frame(width: s * (0.06 + 0.08 * glow(t)), height: s * 0.035))
+                        .frame(width: s * 0.2, height: s * 0.08)
+                )
+                .frame(width: s * 0.46, height: s * 0.27)
                 .offset(y: s * 0.27)
 
-            // Bosh-ekran
-            RoundedRectangle(cornerRadius: s * 0.16, style: .continuous)
-                .fill(Brand.surface)
-                .overlay(RoundedRectangle(cornerRadius: s * 0.16, style: .continuous).stroke(color, lineWidth: 1.6))
+            // Bosh: gradientli qobiq, tepasida yaltiroq, ichida ekran-yuz
+            RoundedRectangle(cornerRadius: s * 0.17, style: .continuous)
+                .fill(shell)
+                .overlay(alignment: .top) {
+                    Capsule().fill(.white.opacity(0.18)).frame(width: s * 0.4, height: s * 0.04).offset(y: s * 0.03)
+                }
+                .overlay(RoundedRectangle(cornerRadius: s * 0.17, style: .continuous).stroke(color, lineWidth: 1.7))
                 .overlay(face(t).padding(s * 0.075))
+                .shadow(color: .black.opacity(0.22), radius: 3, y: 2)
                 .frame(width: s * 0.7, height: s * 0.5)
                 .offset(y: -s * 0.08)
                 .rotationEffect(.degrees(headTilt(t)))
@@ -203,7 +262,7 @@ struct RobotView: View {
 
     // MARK: Yuz
 
-    private enum Eye { case open, closed, happy, wide, cross, focused }
+    private enum Eye: Equatable { case open, closed, happy, wide, cross, focused }
 
     private func face(_ t: Double) -> some View {
         let s = size
@@ -239,6 +298,16 @@ struct RobotView: View {
                     .offset(look)
                     mouth(t)
                 }
+                .overlay {
+                    if eye == .happy {
+                        // Xursandlikda yonoqlar qizaradi
+                        HStack(spacing: s * 0.3) {
+                            Ellipse().fill(Color(light: 0xF06A8A, dark: 0xFF7A9A).opacity(0.45)).frame(width: s * 0.08, height: s * 0.04)
+                            Ellipse().fill(Color(light: 0xF06A8A, dark: 0xFF7A9A).opacity(0.45)).frame(width: s * 0.08, height: s * 0.04)
+                        }
+                        .offset(y: s * 0.04)
+                    }
+                }
             }
     }
 
@@ -248,7 +317,8 @@ struct RobotView: View {
         let c = tint == .secondary ? Brand.inkDim : tint
         switch e {
         case .open:
-            Capsule().fill(c).frame(width: s * 0.085, height: s * 0.11).shadow(color: c.opacity(0.6), radius: 2)
+            Capsule().fill(c).frame(width: s * 0.085, height: s * 0.11).shadow(color: c.opacity(0.7), radius: 3)
+                .overlay(alignment: .topTrailing) { Circle().fill(.white.opacity(0.8)).frame(width: s * 0.025).offset(x: -s * 0.012, y: s * 0.015) }
         case .focused:
             Capsule().fill(c).frame(width: s * 0.1, height: s * 0.06).shadow(color: c.opacity(0.6), radius: 2)
         case .closed:
@@ -310,10 +380,12 @@ struct RobotView: View {
             case .sleeping: return side * 4
             }
         }()
-        return Capsule()
-            .fill(color.opacity(0.75))
-            .frame(width: s * 0.07, height: s * 0.24)
-            .rotationEffect(.degrees(angle), anchor: .top)
+        return VStack(spacing: -s * 0.02) {
+            Capsule().fill(color.opacity(0.75)).frame(width: s * 0.07, height: s * 0.2)
+            Circle().fill(color).frame(width: s * 0.1, height: s * 0.1)
+        }
+        .frame(height: s * 0.28, alignment: .top)
+        .rotationEffect(.degrees(angle), anchor: .top)
     }
 
     // MARK: Buyumlar va effektlar
@@ -434,6 +506,20 @@ private struct Arc: Shape {
             p.addQuadCurve(to: CGPoint(x: r.maxX, y: r.minY), control: CGPoint(x: r.midX, y: r.maxY + r.height * 0.6))
             p.closeSubpath()
         }
+        return p
+    }
+}
+
+/// Gap pufagi: yumaloq to'rtburchak va pastki o'rtada robotga qaragan dum
+private struct SpeechBubble: Shape {
+    let tail: CGFloat
+    func path(in r: CGRect) -> Path {
+        let body = CGRect(x: r.minX, y: r.minY, width: r.width, height: r.height)
+        var p = Path(roundedRect: body, cornerRadius: min(body.height / 2, 12), style: .continuous)
+        p.move(to: CGPoint(x: body.midX - tail, y: body.maxY - 0.5))
+        p.addLine(to: CGPoint(x: body.midX, y: body.maxY + tail))
+        p.addLine(to: CGPoint(x: body.midX + tail, y: body.maxY - 0.5))
+        p.closeSubpath()
         return p
     }
 }
