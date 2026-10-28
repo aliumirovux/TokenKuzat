@@ -1,5 +1,9 @@
 # O'zgarishlar
 
+## 6.12.1 — 2026-10-28
+
+- «Faqat xarita» tugmasi xaritaning yuqori o'ng burchagiga ko'chdi — faqat belgi (⤢; rejimda — ⤡, Esc). Masshtabni moslash tugmasi belgisi almashtirildi (viewfinder) — ikkisi chalkashmasin.
+
 ## 6.12.0 — 2026-10-28
 
 - Ikkala yon panel bir uslubda. Chap menyu: tepadagi bo'sh joy olib tashlandi; nom ostida holat («2 sessiya ishlayapti» / «Tinch»); tanlangan qator urg'u rangida; ishlayotgan loyihada takroriy «hozir» yozuvi yo'q (avatar nuqtasi yetarli); limitlar «Claude limiti» sarlavhali ixcham kartada.

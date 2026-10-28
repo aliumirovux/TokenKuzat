@@ -679,6 +679,28 @@ struct SessionMapView: View {
                 }
             }
             .overlay(alignment: .bottomLeading) { controls(layout, vs).padding(12) }
+            .overlay(alignment: .topTrailing) {
+                // «Faqat xarita» — yuqori o'ng burchakda, faqat belgi
+                if interactive {
+                    Button {
+                        withAnimation(Motion.spring) { mapOnly.toggle() }
+                        follow = true
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                            if let l = cache.layout { focusLast(l, viewport, animated: true) }
+                        }
+                    } label: {
+                        Image(systemName: mapOnly ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(mapOnly ? Brand.accent : Color.primary)
+                            .frame(width: 32, height: 32)
+                            .surface(radius: 10, interactive: true)
+                    }
+                    .buttonStyle(.plain)
+                    .keyboardShortcut(mapOnly ? .cancelAction : KeyboardShortcut("f", modifiers: [.command, .shift]))
+                    .help(mapOnly ? "Oddiy ko'rinishga qaytish (Esc)" : "Faqat xarita — qolgan hamma narsa yashiriladi (⇧⌘F)")
+                    .padding(12)
+                }
+            }
             .overlay(alignment: .bottomTrailing) {
                 // Tor xaritada minixarita yashiriladi — boshqaruv tugmalari bilan to'qnashmasin
                 if vs.width >= 640 {
@@ -838,7 +860,7 @@ struct SessionMapView: View {
                     .font(.caption.weight(.semibold)).monospacedDigit().frame(width: 44)
                 iconButton("plus", "Kattalashtirish") { zoom(to: scale * 1.25, around: center(vs)) }
                 Divider().frame(height: 16)
-                iconButton("arrow.up.left.and.arrow.down.right", "Hammasini ko'rsatish") { fit(layout, vs) }
+                iconButton("viewfinder", "Hammasini ko'rsatish (masshtabni moslash)") { fit(layout, vs) }
             }
             .surface(radius: 10, interactive: true)
 
@@ -876,27 +898,6 @@ struct SessionMapView: View {
             .help(focusOne ? "Barcha so'rovlarni qaytarish"
                            : "Faqat hozirgi (yoki tepada tanlangan) so'rovni ko'rsatish, qolganlarini yashirish")
 
-            if interactive {
-                Button {
-                    withAnimation(Motion.spring) { mapOnly.toggle() }
-                    follow = true
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-                        if let l = cache.layout { focusLast(l, viewport, animated: true) }
-                    }
-                } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: mapOnly ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right.square")
-                        Text(mapOnly ? "Chiqish" : "Faqat xarita")
-                    }
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(mapOnly ? Brand.accent : Color.primary)
-                    .padding(.horizontal, 10).frame(height: 28)
-                    .surface(radius: 10, interactive: true)
-                }
-                .buttonStyle(.plain)
-                .keyboardShortcut(mapOnly ? .cancelAction : KeyboardShortcut("f", modifiers: [.command, .shift]))
-                .help(mapOnly ? "Oddiy ko'rinishga qaytish (Esc)" : "Faqat xaritani ko'rsatish — qolgan hamma narsa yashiriladi (⇧⌘F)")
-            }
         }
     }
 
