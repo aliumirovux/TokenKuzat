@@ -142,7 +142,9 @@ private enum M {
     static let chipH: CGFloat = 28
     static let headH: CGFloat = 34
     static let barH: CGFloat = 56
-    static let framePad: CGFloat = 18
+    static let framePad: CGFloat = 30
+    /// Satrdan satrga o'tuvchi chiziq kartadan shuncha chetga chiqadi — doim ramka ichida (framePad dan kichik)
+    static let wrapOut: CGFloat = 16
     static let sectionGap: CGFloat = 40
     /// Shundan uzun tanaffus — yangi bo'lim
     static let sectionBreak: TimeInterval = 600
@@ -903,7 +905,7 @@ private struct MapEdges: View {
 
     /// Satr oxiridan keyingi satr boshiga: o'ngga chiqadi, satrlar oralig'ida chapga qaytadi, yumaloq burchaklar bilan
     private func wrapPath(_ a: CGPoint, _ b: CGPoint, midY: CGFloat) -> Path {
-        let o = 26 * scale, r = 14 * scale
+        let o = M.wrapOut * scale, r = 10 * scale
         let pts = [a, CGPoint(x: a.x + o, y: a.y), CGPoint(x: a.x + o, y: midY),
                    CGPoint(x: b.x - o, y: midY), CGPoint(x: b.x - o, y: b.y), b]
         var p = Path()
