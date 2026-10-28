@@ -1,5 +1,15 @@
 # O'zgarishlar
 
+## 6.0.0 — 2026-10-28
+
+- Tokenni tejash (model va sifat o'zgarmaydi — Opus to'liq quvvatda): har sessiya uchun tahlil — katta kontekst (har javobda qancha tejalishi), 5 daqiqalik tanaffusdan keyin kesh qayta yozilishi, o'zgarmagan faylni takroriy o'qish, ko'p skrinshot, ketma-ket xatolar; har birida aniq maslahat va taxminiy token.
+- «Davom etish xulosasi»: so'nggi vazifalar, o'zgartirilgan fayllar va oxirgi holat bitta tugma bilan nusxaga olinadi — yangi sessiyaga qo'yiladi, Claude kontekstni yo'qotmay kichik kontekst bilan davom etadi.
+- Ko'rinish: sessiya sarlavhasida «Tejash» belgisi (bosilsa — to'liq ro'yxat, kesh saqlanish taymeri, nusxalash), «Bugun» sahifasida asosiy maslahat kartasi.
+- Bildirishnoma: kontekst 300K+ bo'lganda yangi mavzu (10 daqiqadan uzoq tanaffusdan keyingi so'rov) boshlansa — yangi sessiya taklifi (Sozlamalarda o'chirish mumkin).
+- Hisob limiti: Anthropic «so'rov juda ko'p» (429) desa — kutadi (Retry-After yoki 2→15 daqiqa), oxirgi raqamlar ko'rsatilib turadi; so'rovlar oralig'i 90 s; oxirgi javob diskda saqlanadi (faqat foizlar va vaqtlar) — ilova qayta ochilganda darhol ko'rinadi.
+- 5 soatlik oyna tugab yangisi boshlanmagan paytda limit bloki yo'qolmaydi: «0% · birinchi so'rov bilan boshlanadi».
+- Testlar: 33 ta.
+
 ## 5.12.0 — 2026-10-28
 
 - Xaritada nazoratchi robot: ish ketayotganda faol so'rov kartasining chap-yuqori burchagida o'tirib, vazifaga mos harakat qiladi (Xulosa'dagi bilan bir xil holatlar). Tinch paytda zeriktirmaydi: oxirgi 5 karta bo'ylab borib-qaytib uchadi va durbin bilan «nazorat qiladi», goh-goh mudraydi. Bosilsa — sakrab, qo'l silkitib «salom!» deydi.

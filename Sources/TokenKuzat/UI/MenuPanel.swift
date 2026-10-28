@@ -48,7 +48,7 @@ struct MenuPanel: View {
                     .font(.caption.weight(.semibold)).foregroundStyle(Color(light: 0x7CF0B6, dark: 0x7CF0B6))
                 }
             }
-            if let l = s.limits, let w = l.fiveHour {
+            if let l = s.limits, let w = l.sessionWindow {
                 HStack(spacing: 12) {
                     LimitRing(title: "Sessiya", window: w, caption: "5 soatlik oyna")
                     if let wk = l.sevenDay {
@@ -404,9 +404,9 @@ struct LimitRing: View {
             .animation(Motion.smooth, value: pct)
             VStack(alignment: .leading, spacing: 3) {
                 Text(title).font(size > 70 ? .title3.weight(.semibold) : .callout.weight(.semibold)).foregroundStyle(.white)
-                Text("↻ " + LimitText.dayTime(window.resetsAt)).font(.caption).foregroundStyle(Brand.inkDim)
+                Text(window.isNotStarted ? "boshlanmagan" : "↻ " + LimitText.dayTime(window.resetsAt)).font(.caption).foregroundStyle(Brand.inkDim)
                     .lineLimit(1).minimumScaleFactor(0.8)
-                Text(Self.left(window.resetsAt.timeIntervalSinceNow) + " qoldi").font(.caption2)
+                Text(window.isNotStarted ? "limit to'liq" : Self.left(window.resetsAt.timeIntervalSinceNow) + " qoldi").font(.caption2)
                     .foregroundStyle(Brand.inkDim.opacity(0.8)).lineLimit(1).minimumScaleFactor(0.8)
             }
             Spacer(minLength: 0)

@@ -18,7 +18,7 @@ struct OverviewView: View {
                 ProgressView("Yozuvlar o'qilmoqda…").padding(80)
             } else {
                 VStack(alignment: .leading, spacing: 18) {
-                    if let l = s.limits, let w = l.fiveHour {
+                    if let l = s.limits, let w = l.sessionWindow {
                         LimitHero(window: w, week: l.sevenDay, forecast: s.fiveHourForecast, minutes: s.recentMinutes,
                                   days: s.days, weekForecast: s.weekForecast, plan: l.plan, stale: LimitText.staleNote(l, now: s.updatedAt))
                     } else {
@@ -26,6 +26,9 @@ struct OverviewView: View {
                         if budgetEnabled, let b = BudgetStatus.current(s) { BudgetBar(status: b).card() }
                     }
                     NowRow(snap: s, mode: mode)
+                    if let sess = s.sessions.first(where: { $0.state != .idle }) ?? s.sessions.first {
+                        SavingsCard(session: sess)
+                    }
                     TodayBento(snap: s, mode: mode)
                     sessions(s)
                 }
@@ -121,6 +124,7 @@ struct LimitHero: View {
 
     /// Sessiya oynasining 5 soati: har soatda limitdan ulush (token vaznlari bo'yicha taqsimlangan)
     private var hourColumns: [LimitCard.Column] {
+        guard !window.isNotStarted else { return [] }
         let start = window.resetsAt.addingTimeInterval(-5 * 3600)
         let now = Date()
         var w = Array(repeating: 0.0, count: 5)
@@ -197,10 +201,10 @@ private struct LimitCard: View {
                 }
                 HStack(spacing: 6) {
                     Image(systemName: "arrow.clockwise")
-                    Text(LimitText.dayTime(window.resetsAt) + " da tiklanadi")
+                    Text(window.isNotStarted ? "Yangi oyna birinchi so'rov bilan boshlanadi" : LimitText.dayTime(window.resetsAt) + " da tiklanadi")
                 }
                 .font(.callout.weight(.medium)).foregroundStyle(.white.opacity(0.9))
-                Text(Self.left(window.resetsAt.timeIntervalSinceNow) + " qoldi")
+                Text(window.isNotStarted ? "limit to'liq" : Self.left(window.resetsAt.timeIntervalSinceNow) + " qoldi")
                     .font(.callout).foregroundStyle(Brand.inkDim)
                 Spacer(minLength: 8)
                 MiniColumns(columns: columns).frame(height: 44)

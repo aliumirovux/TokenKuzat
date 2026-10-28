@@ -19,6 +19,7 @@ struct SettingsView: View {
     @AppStorage(Pref.notifyRealLimit) private var notifyRealLimit = true
     @AppStorage(Pref.notifyPermission) private var notifyPermission = true
     @AppStorage(Pref.notifyContext) private var notifyContext = true
+    @AppStorage(Pref.notifySavings) private var notifySavings = true
     @State private var hookInstalled = Hooks.isInstalled
     @State private var hookError: String?
     @State private var statusLineInstalled = StatusLine.isInstalled
@@ -60,6 +61,7 @@ struct SettingsView: View {
                 .disabled(!notifyStuck)
                 Toggle("Agent ketma-ket 3 marta xato olsa", isOn: $notifyErrors)
                 Toggle("Kontekst 85% to'lganda (tez orada avtomatik xulosa)", isOn: $notifyContext)
+                Toggle("Katta kontekstda yangi mavzu boshlansa — yangi sessiya taklifi (token tejash)", isOn: $notifySavings)
                 HStack {
                     Toggle("Claude ruxsat so'raganda", isOn: $notifyPermission)
                     Spacer()
@@ -252,6 +254,7 @@ struct SettingsView: View {
         switch accountStatus {
         case .ok: return .green
         case .loading, .off: return .secondary
+        case .throttled: return .orange
         case .expired, .noCredentials: return .orange
         case .failed: return .red
         }
@@ -265,6 +268,8 @@ struct SettingsView: View {
         case .noCredentials: return "Claude Code kaliti topilmadi (Claude Code'ga kiring yoki Keychain ruxsatini bering)"
         case .expired: return "Kalit muddati o'tgan — Claude Code'da biror so'rov yuboring"
         case .failed(let e): return "Xato: " + e
+        case .throttled(let until):
+            return "Anthropic so'rovni cheklab turibdi — \(Fmt.hourMinute.string(from: until)) da qayta urinadi (oxirgi raqamlar ko'rsatilyapti)"
         }
     }
 

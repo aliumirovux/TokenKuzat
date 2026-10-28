@@ -23,6 +23,8 @@ enum Pref {
     static let notifyContext = "notifyContext"
     /// Limitni Claude hisobidan olish (Keychain'dagi Claude Code kaliti bilan)
     static let accountUsage = "accountUsage"
+    /// Katta kontekstda yangi mavzu boshlanganda — yangi sessiya taklifi
+    static let notifySavings = "notifySavings"
 
     static func register() {
         UserDefaults.standard.register(defaults: [
@@ -41,6 +43,7 @@ enum Pref {
             notifyRealLimit: true,
             notifyPermission: true,
             notifyContext: true,
+            notifySavings: true,
         ])
     }
 }

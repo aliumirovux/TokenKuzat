@@ -48,6 +48,28 @@ final class Alerts: NSObject, UNUserNotificationCenterDelegate {
         evaluateRealLimits(s)
         evaluatePermission(s)
         evaluateContext(s)
+        evaluateSavings(s)
+    }
+
+    private var savingsAnnounced: [String: Int] = [:]
+    private var savingsPrimed = false
+
+    /// Kontekst katta (300K+) bo'lganda yangi mavzu (10 daqiqadan uzoq tanaffusdan keyingi so'rov) boshlansa —
+    /// bir marta: yangi sessiya oching, davom etish xulosasi bilan. Model va sifat o'zgarmaydi
+    private func evaluateSavings(_ s: Snapshot) {
+        defer { savingsPrimed = true }
+        for sess in s.sessions where sess.state != .idle && sess.contextTokens >= 300_000 {
+            guard let t = sess.turns.last, sess.turns.count >= 2, savingsAnnounced[sess.id] != t.id else { continue }
+            let prev = sess.turns[sess.turns.count - 2]
+            guard !t.isContinuation, t.start.timeIntervalSince(prev.end) > 600 else { continue }
+            savingsAnnounced[sess.id] = t.id
+            guard savingsPrimed, UserDefaults.standard.bool(forKey: Pref.notifySavings) else { continue }
+            let save = sess.contextTokens - SavingsAdvisor.baseline
+            post("\(sess.project): yangi mavzu — yangi sessiya arzonroq",
+                 "Kontekst \(Fmt.tokens(Double(sess.contextTokens))). Yangi sessiyada har javobda ~\(Fmt.tokens(Double(save))) token tejaladi. "
+                 + "Bosing — «Davom etish xulosasi»ni nusxalab, yangi sessiyaga qo'ying.",
+                 session: sess.id)
+        }
     }
 
     // MARK: - Ruxsat va kontekst

@@ -392,7 +392,7 @@ struct LimitBarRow: View {
         VStack(alignment: .leading, spacing: 5) {
             HStack(alignment: .firstTextBaseline) {
                 Text(title).font(.caption.weight(.semibold)).foregroundStyle(dark ? Color.white : .primary)
-                Text("↻ " + LimitText.dayTime(window.resetsAt)).font(.caption2)
+                Text(window.isNotStarted ? "birinchi so'rov bilan boshlanadi" : "↻ " + LimitText.dayTime(window.resetsAt)).font(.caption2)
                     .foregroundStyle(dark ? Brand.inkDim : .secondary)
                 Spacer()
                 Text("\(Int(pct.rounded()))% ishlatildi").font(.caption.weight(.semibold)).monospacedDigit()
@@ -408,4 +408,15 @@ struct LimitBarRow: View {
         }
         .animation(Motion.smooth, value: pct)
     }
+}
+
+extension LimitWindow {
+    /// 5 soatlik oyna tugab, yangisi hali boshlanmagan payt uchun: 0%, tiklanish vaqti noma'lum
+    static let notStarted = LimitWindow(usedPercentage: 0, resetsAt: .distantFuture)
+    var isNotStarted: Bool { resetsAt == .distantFuture }
+}
+
+extension RateLimits {
+    /// Ko'rsatish uchun sessiya oynasi: tugagan bo'lsa, lekin haftalik bor — «boshlanmagan» oyna
+    var sessionWindow: LimitWindow? { fiveHour ?? (sevenDay != nil ? .notStarted : nil) }
 }

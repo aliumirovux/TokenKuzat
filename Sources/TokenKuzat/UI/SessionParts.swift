@@ -34,6 +34,7 @@ struct SessionHeader: View {
                 HStack(spacing: 14) {
                     StatusChip(active: active, errors: turn?.errors ?? 0, waiting: waiting != nil)
                     if session.contextTokens > 0 { ContextGauge(session: session) }
+                    SavingsChip(session: session)
                     if let turn { Text("#\(turn.id)-so'rov").fontWeight(.semibold).foregroundStyle(.primary) }
                     if !session.model.isEmpty { Text(session.model) }
                     if let start = turn?.start ?? session.timeRange?.lowerBound {
