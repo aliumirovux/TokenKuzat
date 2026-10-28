@@ -1,5 +1,10 @@
 # O'zgarishlar
 
+## 5.2.0 — 2026-10-28
+
+- Xarita yana satrma-satr (eniga), daraxt va yo'lakli grafik o'rniga. Yangi: asboblar ma'no bo'yicha shoxlanadi — mahalliy ishlar (Fayllar, Terminal, boshqa) kartaning tepasiga, tashqi ishlar (Internet, tashqi xizmatlar, agentlar) pastiga. Tepada shox bo'lgan satr uchun joy oldindan qoldiriladi; tanlangan so'rovning jarayon zanjiri avvalgidek karta ostida.
+- Chiziqlar yuqoriga ham silliq egiladi; «Asboblar» yorlig'i faqat pastga shox bo'lsa.
+
 ## 5.1.0 — 2026-10-28
 
 - Xarita — oqim grafigi (metro xaritasi kabi), eniga o'sadi: yo'laklar Siz · Model · Terminal · Fayllar · Internet · Tashqi xizmatlar · Agentlar (faqat ishlatilganlari). Har hodisa o'z yo'lagida belgi; chiziq hodisadan hodisaga silliq egri bo'lib yo'lakdan yo'lakka tepaga/pastga o'tadi va borayotgan yo'lak rangida. Javoblar — yashil, o'ylash — bo'sh doira, xatolar — qizil, bajarilayotgan qadam — to'lqin, oxirgi chiziqda paketlar yuradi.
