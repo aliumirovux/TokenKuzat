@@ -54,7 +54,12 @@ struct GraphScreen: View {
                 HStack(spacing: 0) {
                     let turn = effectiveTurn(session)
                     let flow = FlowModel(session: session, turnId: turn, now: s.updatedAt)
-                    if graphMode == "timeline" {
+                    if graphMode == "files" {
+                        let tl = TimelineModel(flow: flow, session: session, turnId: turn, now: s.updatedAt)
+                        FileHeatmapScreen(model: HeatmapModel(timeline: tl)) { f in
+                            if let owner = f.ownerId { select(.resource(agentId: owner, category: .files)) }
+                        }
+                    } else if graphMode == "timeline" {
                         TimelineScreen(model: TimelineModel(flow: flow, session: session, turnId: turn, now: s.updatedAt),
                                        selectedAgent: currentSelection(session)?.agentId,
                                        onSelectAgent: { select(.agent($0)) },
@@ -106,11 +111,12 @@ struct GraphScreen: View {
             Picker("Ko'rinish", selection: $graphMode) {
                 Label("Oqim", systemImage: "point.3.connected.trianglepath.dotted").tag("flow")
                 Label("Vaqt", systemImage: "chart.bar.doc.horizontal").tag("timeline")
+                Label("Fayllar", systemImage: "square.grid.3x3.fill").tag("files")
             }
             .pickerStyle(.segmented)
             .labelsHidden()
             .fixedSize()
-            .help("Oqim — jarayon sxemasi, Vaqt — qadamlar vaqt chizig'ida")
+            .help("Oqim — jarayon sxemasi, Vaqt — qadamlar vaqt chizig'ida, Fayllar — issiqlik xaritasi")
             if let session {
                 let steps = session.agents.reduce(0) { $0 + $1.steps.count }
                 // Joy tor bo'lsa birinchi bo'lib shu yozuv qisqaradi
@@ -131,25 +137,28 @@ struct GraphScreen: View {
     private func turnPicker(_ session: SessionSnap) -> some View {
         let current = effectiveTurn(session)
         let last = session.turns.count
-        return HStack(spacing: 2) {
+        return HStack(spacing: 4) {
             Button { turnId = max(1, (current ?? last) - 1) } label: { Image(systemName: "chevron.left") }
+                .buttonStyle(.borderless)
                 .disabled(current == 1)
                 .help("Oldingi so'rov")
+            // Picker o'z uslubida (bordered menu) — borderless'da matn chegaradan chiqib, strelkalarni yopib qo'yadi
             Picker("So'rov", selection: Binding(get: { current ?? 0 }, set: { turnId = $0 == last ? nil : $0 })) {
                 ForEach(session.turns.reversed()) { t in
-                    Text("#\(t.id) · \(t.prompt.count > 40 ? String(t.prompt.prefix(40)) + "…" : t.prompt)").tag(t.id)
+                    Text("#\(t.id) · \(t.prompt.count > 32 ? String(t.prompt.prefix(32)) + "…" : t.prompt)").tag(t.id)
                 }
                 Divider()
                 Text("Butun sessiya").tag(0)
             }
+            .pickerStyle(.menu)
             .labelsHidden()
-            .frame(minWidth: 120, maxWidth: 220)
+            .frame(width: 210)
+            .clipped()
             Button { if let c = current { turnId = c + 1 >= last ? nil : c + 1 } } label: { Image(systemName: "chevron.right") }
+                .buttonStyle(.borderless)
                 .disabled(current == nil || current == last)
                 .help("Keyingi so'rov")
         }
-        .buttonStyle(.borderless)
-        .fixedSize(horizontal: false, vertical: true)
         .layoutPriority(1)
     }
 

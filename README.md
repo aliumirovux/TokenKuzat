@@ -29,7 +29,7 @@ Talab: macOS 13+, Xcode yoki Command Line Tools. `xcrun: error` chiqsa — bir m
 **Katta oyna** (yon menyu bilan):
 
 - **Umumiy** — 4 ta asosiy ko'rsatkich (kechagi kun bilan solishtirish), limit, 60 daqiqalik grafik, bugungi token tarkibi, oxirgi 7 kun, so'nggi sessiyalar va harakatlar.
-- **Agentlar sxemasi** — n8n uslubidagi jarayon oqimi: So'rov → Asosiy agent → Natija; agent ostida Model va ishlatilish tartibidagi asboblar (Fayllar, Terminal, Internet, MCP), yordamchi agentlar tarmoq bo'lib. So'rovlar orasida ‹ › bilan yuriladi, zoom bor. «Vaqt» ko'rinishida — vaqt chizig'i: agentlar qatorlari, qadamlar davomiyligi bo'yicha, parallel ishlar va «vaqt qayerga ketdi» (model / asboblar). O'ng panelda so'rovlar bo'yicha jarayon lentasi: har bir qadam, davomiyligi va natijasi.
+- **Agentlar sxemasi** — n8n uslubidagi jarayon oqimi: So'rov → Asosiy agent → Natija; agent ostida Model va ishlatilish tartibidagi asboblar (Fayllar, Terminal, Internet, MCP), yordamchi agentlar tarmoq bo'lib. So'rovlar orasida ‹ › bilan yuriladi, zoom bor. «Fayllar» ko'rinishida — issiqlik xaritasi: qaysi fayl qachon va necha marta o'qilgan/o'zgartirilgan. «Vaqt» ko'rinishida — vaqt chizig'i: agentlar qatorlari, qadamlar davomiyligi bo'yicha, parallel ishlar va «vaqt qayerga ketdi» (model / asboblar). O'ng panelda so'rovlar bo'yicha jarayon lentasi: har bir qadam, davomiyligi va natijasi.
 - **Sessiyalar** — oxirgi 7 kun, qidiruv bilan; har bir sessiya tarkibi va agentlari.
 - **Tarix** — 7/14/30 kunlik grafik, kunni bosib tarkibini ko'rish, jadval, CSV eksport.
 - **Jonli lenta** — har bir asbob chaqiruvi va so'rovlaringiz; loyiha bo'yicha filtr.

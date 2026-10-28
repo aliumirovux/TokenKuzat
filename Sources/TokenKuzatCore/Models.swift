@@ -50,6 +50,10 @@ public struct StepSnap: Identifiable, Sendable {
     public let text: String
     public let category: ToolCategory
     public let targetName: String
+    /// Nishonning to'liq kaliti («files|/to'liq/yo'l», «shell|git» …)
+    public let targetKey: String
+    /// Nishon tafsiloti (fayl uchun — papka)
+    public let targetDetail: String
     public let access: ToolAccess
     public let duration: TimeInterval?
     public let status: StepStatus

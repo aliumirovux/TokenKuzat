@@ -604,7 +604,7 @@ private final class StepAcc {
         let status: StepStatus = failed ? .failed : (end == nil && now.timeIntervalSince(start) < 600 ? .running : .done)
         let duration = end.map { $0.timeIntervalSince(start) } ?? (status == .running ? now.timeIntervalSince(start) : nil)
         return StepSnap(id: id, date: start, symbol: symbol, text: text, category: target.category,
-                        targetName: target.name, access: target.access, duration: duration, status: status, turn: turn.map { $0 + 1 })
+                        targetName: target.name, targetKey: target.key, targetDetail: target.detail, access: target.access, duration: duration, status: status, turn: turn.map { $0 + 1 })
     }
 }
 

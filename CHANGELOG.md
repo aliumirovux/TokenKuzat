@@ -1,5 +1,13 @@
 # O'zgarishlar
 
+## 2.7.0 — 2026-10-28
+
+**Fayllar issiqlik xaritasi**
+- Agentlar sxemasida uchinchi ko'rinish — «Fayllar»: har bir fayl qator, vaqt o'qi bo'yicha katakchalar (ko'k — o'qildi, to'q sariq — o'zgartirildi, qizil — xato; to'qligi — murojaatlar soni).
+- Eng ko'p o'zgartirilgan va o'qilgan fayllar tepada; o'qish/yozish soni, qaysi agentlar tekkani, papkasi.
+- Eng issiq papkalar (bosilsa — filtr), «Faqat o'zgarganlar», qidiruv; o'ng tugma — Finder'da ko'rsatish / yo'lni nusxalash.
+- So'rov tanlagich matni chegaradan chiqib strelkalarni yopib qo'yishi tuzatildi.
+
 ## 2.6.0 — 2026-10-28
 
 **Vaqt chizig'i**
