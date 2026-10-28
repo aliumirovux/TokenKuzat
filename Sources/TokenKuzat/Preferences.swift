@@ -21,6 +21,8 @@ enum Pref {
     static let notifyRealLimit = "notifyRealLimit"
     static let notifyPermission = "notifyPermission"
     static let notifyContext = "notifyContext"
+    /// Limitni Claude hisobidan olish (Keychain'dagi Claude Code kaliti bilan)
+    static let accountUsage = "accountUsage"
 
     static func register() {
         UserDefaults.standard.register(defaults: [

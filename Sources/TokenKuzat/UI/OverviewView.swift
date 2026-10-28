@@ -20,7 +20,7 @@ struct OverviewView: View {
                 VStack(alignment: .leading, spacing: 18) {
                     if let l = s.limits, let w = l.fiveHour {
                         LimitHero(window: w, week: l.sevenDay, forecast: s.fiveHourForecast, minutes: s.recentMinutes,
-                                  weekForecast: s.weekForecast, stale: LimitText.staleNote(l, now: s.updatedAt))
+                                  weekForecast: s.weekForecast, plan: l.plan, stale: LimitText.staleNote(l, now: s.updatedAt))
                     } else {
                         ConnectHero(today: s.today, mode: mode)
                         if budgetEnabled, let b = BudgetStatus.current(s) { BudgetBar(status: b).card() }
@@ -73,6 +73,7 @@ struct LimitHero: View {
     let forecast: LimitForecast.Outcome
     let minutes: [MinutePoint]
     var weekForecast: LimitForecast.Outcome = .unknown
+    var plan: String? = nil
     /// Ma'lumot eskirgan bo'lsa — ogohlantirish matni
     var stale: String? = nil
 
@@ -81,7 +82,7 @@ struct LimitHero: View {
     var body: some View {
         HStack(alignment: .top, spacing: 32) {
             VStack(alignment: .leading, spacing: 0) {
-                Text("CLAUDE LIMITI · 5 SOATLIK OYNA").eyebrow(Brand.inkDim)
+                Text("CLAUDE LIMITI · 5 SOATLIK OYNA" + (plan.map { " · " + $0.uppercased() } ?? "")).eyebrow(Brand.inkDim)
                 DisplayNumber(value: remaining, size: 82, color: .white).padding(.top, 10)
                 (Text("qoldi · ").foregroundColor(Brand.inkDim)
                  + Text(Fmt.hourMinute.string(from: window.resetsAt)).foregroundColor(.white).bold()

@@ -1,5 +1,11 @@
 # O'zgarishlar
 
+## 5.6.0 — 2026-10-28
+
+- Limit endi Claude hisobidan (claude.ai «Usage» sahifasi bilan bir xil manba): Claude Code'ning Keychain'dagi kirish kaliti bilan Anthropic'dan joriy sessiya va haftalik foiz, tiklanish vaqti va tarif (Max 5x) har daqiqada olinadi — Code tabi va Claude ilovasida ham. Kalit faqat shu kompyuterda o'qiladi va faqat api.anthropic.com ga yuboriladi; hech qayerga yozilmaydi.
+- Sozlamalar → «Claude limiti — hisobdan»: yoqish/o'chirish, holat (ulangan, kalit topilmadi, muddati o'tgan, xato) va «Hozir yangilash». Ishlamasa yoki 15 daqiqadan eski bo'lsa — status line zaxira manba.
+- Tarif nomi limit sarlavhasida («5 SOATLIK LIMIT · MAX (5X)»).
+
 ## 5.5.0 — 2026-10-28
 
 - Limit Claude sahifasidagidek: «Joriy sessiya» va «Bu hafta» qatorlari — tiklanish vaqti («bugun 18:30», «Seshanba 21:00»), chiziq va «44% ishlatildi» (menyu paneli va «Bugun» sahifasi).

@@ -22,6 +22,8 @@ struct SettingsView: View {
     @State private var hookInstalled = Hooks.isInstalled
     @State private var hookError: String?
     @State private var statusLineInstalled = StatusLine.isInstalled
+    @AppStorage(Pref.accountUsage) private var accountUsage = false
+    @State private var accountStatus: AccountUsage.Status = .off
     @State private var statusLineError: String?
     @State private var launchAtLogin = LaunchAtLogin.isEnabled
     @State private var notifyDenied = false
@@ -108,6 +110,32 @@ struct SettingsView: View {
                 Text("Vaznli rejim kiritish narxiga nisbatan: javob ×\(fmt(Pricing.output)), kesh o'qish ×\(fmt(Pricing.cacheRead)), kesh yozish ×\(fmt(Pricing.cacheWrite5m)) (1 soatlik kesh ×\(fmt(Pricing.cacheWrite1h))). Limitni nima ko'proq «yeyayotgani»ni shu rejim yaxshiroq ko'rsatadi.")
                     .font(.caption).foregroundStyle(.secondary)
             }
+
+            SwiftUI.Section {
+                Toggle("Claude hisobidan olish (claude.ai bilan bir xil)", isOn: $accountUsage)
+                    .onChange(of: accountUsage) { on in
+                        if on { AccountUsage.shared.start(); AccountUsage.shared.refreshNow() } else { AccountUsage.shared.stop() }
+                        refreshAccount()
+                    }
+                if accountUsage {
+                    LabeledContent("Holat") {
+                        HStack(spacing: 6) {
+                            Circle().fill(accountColor).frame(width: 8, height: 8)
+                            Text(accountText)
+                        }
+                    }
+                    HStack {
+                        Spacer()
+                        Button("Hozir yangilash") { AccountUsage.shared.refreshNow(); refreshAccountLater() }
+                    }
+                }
+            } header: {
+                Text("Claude limiti — hisobdan")
+            } footer: {
+                Text("Claude Code'ning Keychain'dagi kirish kaliti bilan Anthropic'dan joriy sessiya va haftalik limit har daqiqada olinadi — Code tabi va Claude ilovasida ham ishlaydi. Kalit faqat shu kompyuterda o'qiladi va faqat api.anthropic.com ga yuboriladi. Birinchi marta macOS Keychain ruxsatini so'raydi («Har doim ruxsat»). Ishlamasa — pastdagi status line zaxira manba bo'ladi.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            .onAppear(perform: refreshAccount)
 
             SwiftUI.Section {
                 LabeledContent("Holat") {
@@ -212,6 +240,32 @@ struct SettingsView: View {
         if let l = store.snap.limits, !l.isEmpty { return "Ulangan · ma'lumot \(Fmt.ago(l.updatedAt))" }
         if let t = StatusLine.lastUpdate { return "Ulangan · oxirgi chaqiruv \(Fmt.ago(t)), limit kelmadi (API kaliti bilanmi?)" }
         return "Ulangan · Claude Code'da yangi so'rov kutilyapti"
+    }
+
+    private func refreshAccount() { accountStatus = AccountUsage.shared.status }
+
+    private func refreshAccountLater() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { refreshAccount() }
+    }
+
+    private var accountColor: Color {
+        switch accountStatus {
+        case .ok: return .green
+        case .loading, .off: return .secondary
+        case .expired, .noCredentials: return .orange
+        case .failed: return .red
+        }
+    }
+
+    private var accountText: String {
+        switch accountStatus {
+        case .off: return "O'chirilgan"
+        case .loading: return "Olinmoqda…"
+        case .ok(let t): return "Ulangan · " + Fmt.ago(t) + (store.snap.limits?.plan.map { " · " + $0 } ?? "")
+        case .noCredentials: return "Claude Code kaliti topilmadi (Claude Code'ga kiring yoki Keychain ruxsatini bering)"
+        case .expired: return "Kalit muddati o'tgan — Claude Code'da biror so'rov yuboring"
+        case .failed(let e): return "Xato: " + e
+        }
     }
 
     private func toggleStatusLine(_ on: Bool) {

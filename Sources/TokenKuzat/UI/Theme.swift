@@ -375,7 +375,7 @@ enum LimitText {
     /// Ma'lumot eskirgan bo'lsa — ogohlantirish (status line faqat terminaldagi Claude Code'da yangilanadi)
     static func staleNote(_ l: RateLimits, now: Date = Date()) -> String? {
         let age = now.timeIntervalSince(l.updatedAt)
-        guard age > 10 * 60 else { return nil }
+        guard !l.fromAccount, age > 10 * 60 else { return nil }
         return "\(Alerts.duration(age)) oldingi ma'lumot — terminalda Claude Code ishlaganda yangilanadi"
     }
 }

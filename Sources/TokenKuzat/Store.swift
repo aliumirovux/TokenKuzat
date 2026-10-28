@@ -65,6 +65,16 @@ final class Store: ObservableObject {
             }
             if let w = l.sevenDay { s.weekForecast = WeeklyForecast.forecast(w, now: now) }
         }
+        // Hisobdan olingan limit (claude.ai bilan bir xil) — yangi bo'lsa, status line'dan ustun
+        let acct = AccountUsage.shared
+        if acct.isEnabled, var a = acct.latest?.active(at: now), !a.isEmpty,
+           now.timeIntervalSince(a.updatedAt) < AccountUsage.maxAge,
+           a.updatedAt >= (s.limits?.updatedAt ?? .distantPast) || s.limits?.fromAccount == false {
+            a.costBySession = s.limits?.costBySession ?? [:]
+            s.limits = a
+            if let w = a.fiveHour { s.fiveHourForecast = LimitForecast.forecast(w, history: acct.fiveHourHistory, now: now) }
+            if let w = a.sevenDay { s.weekForecast = WeeklyForecast.forecast(w, now: now) }
+        }
         // Claude ruxsat so'rab to'xtagan sessiyalar: hook xabaridan keyin transkriptda harakat bo'lmagan
         let notices = HookEvents.read()
         for sess in s.sessions {

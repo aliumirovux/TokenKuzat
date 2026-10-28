@@ -37,7 +37,7 @@ struct MenuPanel: View {
         VStack(alignment: .leading, spacing: 6) {
             if let w = s.limits?.fiveHour {
                 HStack {
-                    Text("5 SOATLIK LIMIT").eyebrow(Brand.inkDim)
+                    Text("5 SOATLIK LIMIT" + (s.limits?.plan.map { " · " + $0.uppercased() } ?? "")).eyebrow(Brand.inkDim)
                     Spacer()
                     forecast(s.fiveHourForecast)
                 }
