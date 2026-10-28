@@ -1,5 +1,9 @@
 # O'zgarishlar
 
+## 5.9.0 — 2026-10-28
+
+- «Bugun» sahifasida limit — asosiy narsa: ikki katta karta «Joriy sessiya» va «Bu hafta» — katta halqa va foiz («ishlatildi»), tiklanish vaqti, qancha qolgani; kartaning ichida ixcham ustunlar (sessiyada soatlar, haftada 7 kun bo'yicha). Katta soatlik chizma va past kontrastli yozuvlar olib tashlandi; bashorat sarlavha qatorida.
+
 ## 5.8.0 — 2026-10-28
 
 - «Bugun» sahifasidagi limit bloki menyu paneli uslubida: chapda «Joriy sessiya» va «Bu hafta» halqalari (ikkalasi ham «ishlatildi», tiklanish vaqti va qancha qolgani), ostida bitta rangli xulosa. «53% qoldi» va «47% ishlatildi» aralashmasi yo'qoldi.

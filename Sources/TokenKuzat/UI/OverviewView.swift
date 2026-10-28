@@ -20,7 +20,7 @@ struct OverviewView: View {
                 VStack(alignment: .leading, spacing: 18) {
                     if let l = s.limits, let w = l.fiveHour {
                         LimitHero(window: w, week: l.sevenDay, forecast: s.fiveHourForecast, minutes: s.recentMinutes,
-                                  weekForecast: s.weekForecast, plan: l.plan, stale: LimitText.staleNote(l, now: s.updatedAt))
+                                  days: s.days, weekForecast: s.weekForecast, plan: l.plan, stale: LimitText.staleNote(l, now: s.updatedAt))
                     } else {
                         ConnectHero(today: s.today, mode: mode)
                         if budgetEnabled, let b = BudgetStatus.current(s) { BudgetBar(status: b).card() }
@@ -72,30 +72,34 @@ struct LimitHero: View {
     let week: LimitWindow?
     let forecast: LimitForecast.Outcome
     let minutes: [MinutePoint]
+    var days: [DayPoint] = []
     var weekForecast: LimitForecast.Outcome = .unknown
     var plan: String? = nil
     /// Ma'lumot eskirgan bo'lsa — ogohlantirish matni
     var stale: String? = nil
 
-
     var body: some View {
-        HStack(alignment: .top, spacing: 32) {
-            VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(alignment: .center, spacing: 12) {
                 Text("CLAUDE LIMITI" + (plan.map { " · " + $0.uppercased() } ?? "")).eyebrow(Brand.inkDim)
-                // Ikkalasi ham «ishlatildi» — Claude sahifasidagidek
-                LimitRing(title: "Joriy sessiya", window: window, caption: "5 soatlik oyna", size: 86)
-                if let week { LimitRing(title: "Bu hafta", window: week, caption: "7 kunlik oyna", size: 86) }
+                Spacer(minLength: 12)
                 paceLine
             }
-            .frame(width: 300, alignment: .leading)
-
-            HourColumns(window: window, minutes: minutes)
+            // Asosiy: ikki katta karta — ikkalasi ham «ishlatildi», Claude sahifasidagidek
+            HStack(alignment: .top, spacing: 16) {
+                LimitCard(title: "Joriy sessiya", subtitle: "5 soatlik oyna", window: window,
+                          columns: hourColumns, columnsTitle: "soatlar bo'yicha")
+                if let week {
+                    LimitCard(title: "Bu hafta", subtitle: "7 kunlik oyna", window: week,
+                              columns: dayColumns(week), columnsTitle: "kunlar bo'yicha")
+                }
+            }
         }
-        .padding(.horizontal, 26).padding(.vertical, 24)
+        .padding(22)
         .background(RoundedRectangle(cornerRadius: 24, style: .continuous).fill(Brand.ink))
     }
 
-    /// Bitta xulosa jumlasi: sessiya yoki hafta shu sur'atda tugaydimi
+    /// Bitta xulosa: sessiya yoki hafta shu sur'atda tugaydimi
     private var paceLine: some View {
         let warn = Color(light: 0xFFC46B, dark: 0xFFC46B), ok = Color(light: 0x7CF0B6, dark: 0x7CF0B6)
         let (symbol, text, color): (String, String, Color) = {
@@ -106,129 +110,146 @@ struct LimitHero: View {
             if let stale { return ("clock.arrow.circlepath", stale, Brand.inkDim) }
             return ("checkmark.circle.fill", "Sur'at me'yorida — limit tiklanguncha yetadi", ok)
         }()
-        return HStack(alignment: .top, spacing: 8) {
+        return HStack(spacing: 7) {
             Image(systemName: symbol)
-            Text(text).fixedSize(horizontal: false, vertical: true)
+            Text(text).lineLimit(1).minimumScaleFactor(0.85)
         }
-        .font(.caption.weight(.medium)).foregroundStyle(color)
-        .padding(.horizontal, 10).padding(.vertical, 8)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(color.opacity(0.12)))
+        .font(.callout.weight(.semibold)).foregroundStyle(color)
+        .padding(.horizontal, 12).padding(.vertical, 7)
+        .background(Capsule().fill(color.opacity(0.13)))
     }
 
-
-}
-
-/// 5 soatlik oyna: har soat — ustun. O'tganlari sarf ulushi bilan to'lgan, hozirgisi ramkada, kelajak — shtrix.
-/// Ulush = shu soatdagi vaznli tokenlar / oynadagi jami × ishlatilgan foiz (taqsimot taxminiy, jami — Claude'niki).
-private struct HourColumns: View {
-    let window: LimitWindow
-    let minutes: [MinutePoint]
-
-    private struct Slot: Identifiable {
-        let id: Int
-        let start: Date
-        let pct: Double
-        let state: Int   // 0 o'tgan, 1 hozir, 2 kelajak
-        let tokens: Double
-    }
-
-    private var slots: [Slot] {
+    /// Sessiya oynasining 5 soati: har soatda limitdan ulush (token vaznlari bo'yicha taqsimlangan)
+    private var hourColumns: [LimitCard.Column] {
         let start = window.resetsAt.addingTimeInterval(-5 * 3600)
         let now = Date()
         var w = Array(repeating: 0.0, count: 5)
         for m in minutes where m.date >= start && m.date < window.resetsAt {
-            let i = min(4, Int(m.date.timeIntervalSince(start) / 3600))
-            w[i] += m.main.weighted + m.agents.weighted
-        }
-        var raw = Array(repeating: 0.0, count: 5)
-        for m in minutes where m.date >= start && m.date < window.resetsAt {
-            raw[min(4, Int(m.date.timeIntervalSince(start) / 3600))] += Double(m.main.total + m.agents.total)
+            w[min(4, Int(m.date.timeIntervalSince(start) / 3600))] += m.main.weighted + m.agents.weighted
         }
         let total = w.reduce(0, +)
         return (0..<5).map { i in
             let a = start.addingTimeInterval(Double(i) * 3600)
-            let state = now >= a.addingTimeInterval(3600) ? 0 : (now >= a ? 1 : 2)
-            return Slot(id: i, start: a, pct: total > 0 ? w[i] / total * window.usedPercentage : 0, state: state, tokens: raw[i])
+            let state: LimitCard.Column.State = now >= a.addingTimeInterval(3600) ? .past : (now >= a ? .now : .future)
+            let pct = total > 0 ? w[i] / total * window.usedPercentage : 0
+            return .init(id: i, value: w[i], label: Fmt.hourMinute.string(from: a), state: state,
+                         help: state == .future ? "Hali kelmagan soat" : "\(Fmt.hourMinute.string(from: a)) — limitning ~\(Int(pct.rounded()))%")
         }
     }
 
-    var body: some View {
-        let ss = slots
-        let maxPct = max(10, ss.map(\.pct).max() ?? 10)
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Text("Joriy sessiya oynasi: har soatda limitdan qancha ketdi")
-                Spacer()
-                Text("\(Alerts.duration(max(0, window.resetsAt.timeIntervalSinceNow))) qoldi").monospacedDigit()
-            }
-            .font(.caption).foregroundStyle(Brand.inkDim)
-
-            HStack(alignment: .bottom, spacing: 8) {
-                ForEach(ss) { s in
-                    ZStack(alignment: .bottom) {
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .fill(.white.opacity(s.state == 2 ? 0.03 : 0.06))
-                        if s.state == 2 {
-                            Hatch().clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                        } else {
-                            GeometryReader { g in
-                                VStack {
-                                    Spacer(minLength: 0)
-                                    UnevenTopRect(radius: 10)
-                                        .fill(LinearGradient(colors: [Brand.inkFill, Brand.inkFill.opacity(0.7)],
-                                                             startPoint: .bottom, endPoint: .top))
-                                        .frame(height: max(s.pct > 0 ? 6 : 0, g.size.height * CGFloat(s.pct / maxPct)))
-                                }
-                            }
-                            .animation(Motion.spring, value: s.pct)
-                        }
-                        if s.state != 2 {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(s.pct < 0.5 && s.pct > 0 ? "<1%" : "+\(Int(s.pct.rounded()))%")
-                                    .font(.system(size: 15, weight: .bold, design: .rounded)).monospacedDigit()
-                                    .foregroundStyle(.white)
-                                Text(Fmt.tokens(s.tokens) + " token").font(.system(size: 10.5, weight: .medium))
-                                    .foregroundStyle(Brand.inkDim)
-                            }
-                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                            .padding(10)
-                        } else {
-                            Text("hali kelmagan").font(.system(size: 10.5, weight: .medium)).foregroundStyle(Brand.inkDim.opacity(0.7))
-                                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                                .padding(10)
-                        }
-                        if s.state == 1 {
-                            Text("HOZIR").font(.system(size: 9.5, weight: .bold)).tracking(0.6)
-                                .foregroundStyle(Brand.ink)
-                                .padding(.horizontal, 6).padding(.vertical, 2)
-                                .background(Capsule().fill(.white.opacity(0.85)))
-                                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-                                .padding(8)
-                        }
-                    }
-                    .overlay {
-                        if s.state == 1 {
-                            RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(.white.opacity(0.55), lineWidth: 1.5)
-                        }
-                    }
-                    .help(s.state == 2 ? "Hali kelmagan soat" : "\(Fmt.hourMinute.string(from: s.start)) — limitning ~\(Int(s.pct.rounded()))%")
-                }
-            }
-            .frame(height: 126)
-
-            HStack(spacing: 8) {
-                ForEach(ss) { s in
-                    Text(Fmt.hourMinute.string(from: s.start)).frame(maxWidth: .infinity, alignment: .leading)
-                }
-            }
-            .overlay(alignment: .trailing) {
-                Text("↻ \(Fmt.hourMinute.string(from: window.resetsAt))").padding(.top, 28)
-            }
-            .font(.system(size: 11, design: .monospaced))
-            .foregroundStyle(Brand.inkDim)
+    /// Hafta oynasining kunlari: har kungi token (kunlik tarixdan)
+    private func dayColumns(_ wk: LimitWindow) -> [LimitCard.Column] {
+        let cal = Calendar.current
+        // Oyna kechqurun boshlansa — birinchi to'liq kundan; jami 7 kun
+        let start = cal.startOfDay(for: wk.resetsAt.addingTimeInterval(-WeeklyForecast.window + 12 * 3600))
+        let today = cal.startOfDay(for: Date())
+        let byDay = Dictionary(days.map { (cal.startOfDay(for: $0.date), $0.tokens.weighted) }, uniquingKeysWith: +)
+        let short = ["Ya", "Du", "Se", "Ch", "Pa", "Ju", "Sh"]
+        return (0..<7).compactMap { i -> LimitCard.Column? in
+            guard let d = cal.date(byAdding: .day, value: i, to: start), d <= wk.resetsAt else { return nil }
+            let state: LimitCard.Column.State = d < today ? .past : (d == today ? .now : .future)
+            return .init(id: i, value: byDay[d] ?? 0, label: short[cal.component(.weekday, from: d) - 1], state: state,
+                         help: state == .future ? "Hali kelmagan kun" : LimitText.date(d))
         }
-        .frame(maxWidth: .infinity)
+    }
+}
+
+/// Katta limit kartasi: katta halqa va foiz, tiklanish vaqti, qancha qolgani va ixcham ustunlar
+private struct LimitCard: View {
+    struct Column: Identifiable {
+        enum State { case past, now, future }
+        let id: Int
+        let value: Double
+        let label: String
+        let state: State
+        let help: String
+    }
+
+    let title: String
+    let subtitle: String
+    let window: LimitWindow
+    let columns: [Column]
+    let columnsTitle: String
+
+    var body: some View {
+        let pct = min(100, max(0, window.usedPercentage))
+        let color: Color = pct >= 90 ? Brand.err : (pct >= 75 ? Color(light: 0xFFC46B, dark: 0xFFC46B) : Brand.inkFill)
+        HStack(alignment: .center, spacing: 22) {
+            ZStack {
+                Circle().stroke(.white.opacity(0.09), lineWidth: 14)
+                Circle().trim(from: 0, to: pct / 100)
+                    .stroke(color, style: StrokeStyle(lineWidth: 14, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+                VStack(spacing: 0) {
+                    Text("\(Int(pct.rounded()))%").font(.system(size: 40, weight: .bold, design: .rounded)).monospacedDigit()
+                        .foregroundStyle(.white)
+                        .contentTransition(.numericText()).animation(Motion.smooth, value: pct)
+                    Text("ishlatildi").font(.caption.weight(.medium)).foregroundStyle(Brand.inkDim)
+                }
+            }
+            .frame(width: 136, height: 136)
+            .animation(Motion.smooth, value: pct)
+
+            VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title).font(.title2.weight(.semibold)).foregroundStyle(.white)
+                    Text(subtitle).font(.caption).foregroundStyle(Brand.inkDim)
+                }
+                HStack(spacing: 6) {
+                    Image(systemName: "arrow.clockwise")
+                    Text(LimitText.dayTime(window.resetsAt) + " da tiklanadi")
+                }
+                .font(.callout.weight(.medium)).foregroundStyle(.white.opacity(0.9))
+                Text(Self.left(window.resetsAt.timeIntervalSinceNow) + " qoldi")
+                    .font(.callout).foregroundStyle(Brand.inkDim)
+                Spacer(minLength: 8)
+                MiniColumns(columns: columns).frame(height: 44)
+                Text(columnsTitle).font(.caption2).foregroundStyle(Brand.inkDim.opacity(0.8))
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity, minHeight: 176, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: 20, style: .continuous).fill(.white.opacity(0.05)))
+        .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).stroke(.white.opacity(0.07)))
+    }
+
+    /// «25 daq», «4 soat 10 daq», «6 kun»
+    static func left(_ t: TimeInterval) -> String {
+        let t = max(0, t)
+        if t >= 2 * 86400 { return "\(Int(t) / 86400) kun" }
+        if t >= 86400 { return "1 kun \((Int(t) % 86400) / 3600) soat" }
+        return Alerts.duration(t)
+    }
+}
+
+/// Ixcham ustunlar (yozuvsiz): o'tganlari — och, hozirgisi — to'q, kelajakdagilari — bo'sh; ostida qisqa yorliq
+private struct MiniColumns: View {
+    let columns: [LimitCard.Column]
+
+    var body: some View {
+        let mx = max(columns.map(\.value).max() ?? 1, 1)
+        HStack(alignment: .bottom, spacing: 5) {
+            ForEach(columns) { c in
+                VStack(spacing: 3) {
+                    GeometryReader { g in
+                        VStack(spacing: 0) {
+                            Spacer(minLength: 0)
+                            RoundedRectangle(cornerRadius: 3, style: .continuous)
+                                .fill(c.state == .future ? Color.white.opacity(0.08)
+                                      : Brand.inkFill.opacity(c.state == .now ? 1 : 0.55))
+                                .frame(height: c.state == .future ? 3 : max(3, g.size.height * CGFloat(c.value / mx)))
+                        }
+                    }
+                    Text(c.label).font(.system(size: 9, weight: c.state == .now ? .bold : .regular).monospacedDigit())
+                        .foregroundStyle(c.state == .now ? Color.white : Brand.inkDim.opacity(0.8))
+                        .lineLimit(1).fixedSize()
+                }
+                .frame(maxWidth: .infinity)
+                .help(c.help)
+            }
+        }
+        .animation(Motion.smooth, value: columns.map(\.value))
     }
 }
 
