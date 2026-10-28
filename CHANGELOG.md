@@ -1,5 +1,13 @@
 # O'zgarishlar
 
+## 2.2.0 — 2026-10-28
+
+**Bildirishnomalar**
+- Claude ishni tugatganda (sozlanadigan minimal davomiylik bilan), qadam uzoq tugamaganda (ruxsat kutilishi mumkin) va agent ketma-ket 3 marta xato olganda macOS bildirishnomasi.
+- Bildirishnoma bosilsa — o'sha sessiya Agentlar sxemasida ochiladi; ilova ochiq bo'lsa ham banner chiqadi.
+- Sozlamalarda «Bildirishnomalar» bo'limi va «Ruxsat berish…» tugmasi.
+- Hodisa mantiqi `ActivityMonitor` (yadroda) — ilova ochilganda mavjud holatlar uchun xabar yuborilmaydi.
+
 ## 2.1.0 — 2026-10-28
 
 **Jarayonni kuzatish**
