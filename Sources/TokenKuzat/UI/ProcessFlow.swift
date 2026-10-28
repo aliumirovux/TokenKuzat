@@ -175,9 +175,13 @@ struct ProcessFlowView: View {
                     return false
                 }()
                 path = path.trimmedPath(from: 0, to: pr)
-                g.stroke(path, with: .color(live ? Brand.ok : Color.secondary.opacity(0.45)),
-                         style: StrokeStyle(lineWidth: live ? 2.2 : 1.6, lineCap: .round, dash: live ? [5, 5] : [],
-                                            dashPhase: live ? CGFloat(-t * 24) : 0))
+                if live && pr >= 1 {
+                    // Bajarilayotgan bosqichga: ma'lumot paketlari ikki tomonga
+                    DataFlow.draw(&g, path: path, color: Brand.ok, t: t, seed: Double(i) * 0.37, width: 2)
+                } else {
+                    g.stroke(path, with: .color(Color.secondary.opacity(0.45)),
+                             style: StrokeStyle(lineWidth: 1.6, lineCap: .round))
+                }
                 guard pr >= 1 else { continue }
                 // Strelka uchi
                 let ang = sameRow ? (to.x > from.x ? 0 : CGFloat.pi) : CGFloat.pi / 2

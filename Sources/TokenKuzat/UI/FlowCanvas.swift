@@ -377,17 +377,16 @@ private struct FlowEdges: View {
                     guard pr > 0 else { continue }
                     let path = (e.vertical ? vCurve(e.from, e.to) : hCurve(e.from, e.to)).trimmedPath(from: 0, to: pr)
                     switch e.kind {
+                    case .main where e.live && pr >= 1:
+                        // Jonli: ma'lumot paketlari ikki tomonga yuradi
+                        DataFlow.draw(&g, path: path, color: e.color, t: t, seed: Double(i) * 0.37, width: 2.2)
                     case .main:
                         g.stroke(path, with: .color(Color.primary.opacity(0.35)), lineWidth: 2)
-                        if e.live {
-                            g.stroke(path, with: .color(e.color),
-                                     style: StrokeStyle(lineWidth: 4.5, lineCap: .round, dash: [0.1, 14],
-                                                        dashPhase: CGFloat(-t * 45)))
-                        }
+                    case .sub where e.live && pr >= 1:
+                        DataFlow.draw(&g, path: path, color: e.color, t: t, seed: Double(i) * 0.37, width: 1.8)
                     case .sub:
-                        g.stroke(path, with: .color(e.live ? e.color : Color.primary.opacity(0.32)),
-                                 style: StrokeStyle(lineWidth: e.live ? 2.2 : 1.6, lineCap: .round, dash: [7, 6],
-                                                    dashPhase: e.live ? CGFloat(-t * 30) : 0))
+                        g.stroke(path, with: .color(Color.primary.opacity(0.32)),
+                                 style: StrokeStyle(lineWidth: 1.6, lineCap: .round, dash: [7, 6]))
                     }
                     let r: CGFloat = 4.5
                     for p in (pr >= 1 ? [e.from, e.to] : [e.from]) {
