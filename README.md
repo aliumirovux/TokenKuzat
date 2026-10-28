@@ -53,7 +53,13 @@ Bildirishnomani bosing — o'sha sessiya Agentlar sxemasida ochiladi. Ilova ochi
 - **Xom:** barcha token teng sanaladi.
 - **Vaznli (taxminiy):** kiritish narxiga nisbatan — javob ×5, kesh o'qish ×0,1, kesh yozish ×1,25 (1 soatlik kesh ×2). Limitni nima ko'proq «yeyayotgani»ni shu rejim yaxshiroq ko'rsatadi. Limit har doim vaznli tokenda hisoblanadi.
 
-## Limit
+## Claude'ning haqiqiy limiti
+
+Sozlamalar → «Claude limiti (haqiqiy)» → **«Claude Code'ga ulash»**. Shundan keyin Claude Code har javobdan so'ng status line orqali 5 soatlik va haftalik limit foizini beradi (Pro/Max obunada), Token Kuzatuv esa uni ko'rsatadi, «qachon tugaydi» bashoratini qiladi va 80% / 95% da ogohlantiradi. Terminalda Claude Code'ning pastki satrida `5 soat 34% ↻16:40 · hafta 61% · $1,23` ko'rinadi.
+
+Ulash `~/.claude/settings.json` ga `statusLine` yozadi (birinchi marta `settings.json.tokenkuzat-backup` nusxasi olinadi). Avval o'z status line'ingiz bo'lsa — u saqlanadi va uning chiqishi ko'rsatilishda davom etadi; «Uzish» uni qaytaradi.
+
+## O'z limitim (taxminiy)
 
 Claude obunasi limiti 5 soatlik oyna bo'yicha tiklanadi, aniq qiymati e'lon qilinmaydi. Sozlamalarda o'zingizga mos limit qo'ying (Tarix sahifasidagi odatiy sarfga qarab) — davr «Oxirgi 5 soat» yoki «Bugun». 80% va 100% da macOS bildirishnomasi keladi (har biri bir marta; 5 soatlik oynada sarf 50% dan tushgach qayta qurollanadi).
 

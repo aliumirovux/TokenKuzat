@@ -358,3 +358,61 @@ final class TurnTests: XCTestCase {
         XCTAssertEqual(Engine.turnIndex(starts, d.addingTimeInterval(99)), 2)
     }
 }
+
+final class RateLimitsTests: XCTestCase {
+    func testParseStatusLinePayload() throws {
+        let json = """
+        {"session_id":"abc","cost":{"total_cost_usd":1.5},
+         "rate_limits":{"five_hour":{"used_percentage":23.5,"resets_at":1738425600},
+                        "seven_day":{"used_percentage":41.2,"resets_at":1738857600}}}
+        """
+        let p = try XCTUnwrap(StatusLinePayload.parse(Data(json.utf8)))
+        XCTAssertEqual(p.sessionId, "abc")
+        XCTAssertEqual(p.costUSD, 1.5)
+        XCTAssertEqual(p.fiveHour, LimitWindow(usedPercentage: 23.5, resetsAt: Date(timeIntervalSince1970: 1738425600)))
+        XCTAssertEqual(p.sevenDay?.usedPercentage, 41.2)
+        // Limitsiz (API kaliti bilan ishlash) — oynalar yo'q, lekin xato emas
+        let q = try XCTUnwrap(StatusLinePayload.parse(Data(#"{"session_id":"x"}"#.utf8)))
+        XCTAssertNil(q.fiveHour)
+    }
+
+    func testReaderKeepsLimitsAndCollectsCost() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("tk-rl-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: dir.appendingPathComponent("sessions"), withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let reset = Int(Date().timeIntervalSince1970) + 3600
+        let full = #"{"session_id":"s1","cost":{"total_cost_usd":2},"rate_limits":{"five_hour":{"used_percentage":30,"resets_at":\#(reset)}}}"#
+        try full.write(to: dir.appendingPathComponent("latest.json"), atomically: true, encoding: .utf8)
+        try full.write(to: dir.appendingPathComponent("sessions/s1.json"), atomically: true, encoding: .utf8)
+        let reader = RateLimitsReader(directory: dir)
+        let r = try XCTUnwrap(reader.read())
+        XCTAssertEqual(r.fiveHour?.usedPercentage, 30)
+        XCTAssertEqual(r.costBySession["s1"], 2)
+
+        // Yangi sessiyaning birinchi yangilanishida limit yo'q — eski qiymat saqlanadi
+        Thread.sleep(forTimeInterval: 1.1)
+        try #"{"session_id":"s2"}"#.write(to: dir.appendingPathComponent("latest.json"), atomically: true, encoding: .utf8)
+        XCTAssertEqual(reader.read()?.fiveHour?.usedPercentage, 30)
+    }
+
+    func testForecast() {
+        let now = Date()
+        let w = LimitWindow(usedPercentage: 60, resetsAt: now.addingTimeInterval(3 * 3600))
+        // 10 daqiqada 10% → qolgan 40% ~40 daqiqada tugaydi
+        let h = [(now.addingTimeInterval(-600), 50.0), (now, 60.0)]
+        guard case .runsOut(let at) = LimitForecast.forecast(w, history: h, now: now) else { return XCTFail() }
+        XCTAssertEqual(at.timeIntervalSince(now), 2400, accuracy: 1)
+
+        let slow = [(now.addingTimeInterval(-600), 59.9), (now, 60.0)]
+        XCTAssertEqual(LimitForecast.forecast(w, history: slow, now: now), .lasts)
+        XCTAssertEqual(LimitForecast.forecast(w, history: [(now, 60)], now: now), .unknown)
+    }
+
+    func testExpiredWindowDropped() {
+        let now = Date()
+        let r = RateLimits(fiveHour: LimitWindow(usedPercentage: 90, resetsAt: now.addingTimeInterval(-1)),
+                           sevenDay: LimitWindow(usedPercentage: 10, resetsAt: now.addingTimeInterval(100)), updatedAt: now)
+        XCTAssertNil(r.active(at: now).fiveHour)
+        XCTAssertNotNil(r.active(at: now).sevenDay)
+    }
+}

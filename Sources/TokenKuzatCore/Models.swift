@@ -169,6 +169,9 @@ public struct Snapshot: Sendable {
     public var sources: [SourceInfo] = []
     public var updatedAt = Date()
     public var initialScanDone = false
+    /// Claude Code status line'dan kelgan haqiqiy limitlar (ulangan bo'lsa)
+    public var limits: RateLimits?
+    public var fiveHourForecast: LimitForecast.Outcome = .unknown
 
     public init() {}
 

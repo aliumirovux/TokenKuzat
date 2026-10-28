@@ -8,6 +8,8 @@ struct TokenKuzatApp: App {
     @StateObject private var store = Store.shared
 
     init() {
+        // Claude Code status line chaqirig'i — oynasiz, darhol chiqadi
+        if CommandLine.arguments.contains(StatusLine.flag) { StatusLine.runAndExit() }
         Pref.register()
     }
 
@@ -76,7 +78,12 @@ struct MenuBarLabel: View {
         case .icon:
             Image(systemName: active ? "bolt.fill" : "chart.bar.xaxis")
         case .budget:
-            if let b = BudgetStatus.current(s) {
+            if let w = s.limits?.fiveHour {
+                HStack(spacing: 3) {
+                    Image(systemName: w.usedPercentage >= 80 ? "exclamationmark.triangle.fill" : "gauge.with.dots.needle.33percent")
+                    Text("\(Int(w.usedPercentage.rounded()))%").monospacedDigit()
+                }
+            } else if let b = BudgetStatus.current(s) {
                 HStack(spacing: 3) {
                     Image(systemName: b.level == .ok ? "gauge.with.dots.needle.33percent" : "exclamationmark.triangle.fill")
                     Text(Fmt.percent(b.used, of: b.limit)).monospacedDigit()

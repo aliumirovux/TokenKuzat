@@ -22,7 +22,9 @@ struct MenuPanel: View {
                         mini("5 soat", Fmt.tokens(s.lastFiveHours.value(mode)))
                         mini("Tezlik", "\(Fmt.tokens(s.rate(mode)))/daq")
                     }
-                    if budgetEnabled, let b = BudgetStatus.current(s) {
+                    if let l = s.limits, !l.isEmpty {
+                        RealLimitsView(limits: l, forecast: s.fiveHourForecast, compact: true)
+                    } else if budgetEnabled, let b = BudgetStatus.current(s) {
                         BudgetBar(status: b, compact: true)
                     }
                     VStack(alignment: .leading, spacing: 4) {

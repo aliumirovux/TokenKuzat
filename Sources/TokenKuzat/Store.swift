@@ -36,6 +36,7 @@ final class Store: ObservableObject {
     @Published private(set) var snap = Snapshot()
 
     private let engine: Engine
+    private let limitsReader = RateLimitsReader()
     private let queue = DispatchQueue(label: "uz.ali.tokenkuzat.engine", qos: .utility)
     private var timer: DispatchSourceTimer?
     private var lastRevision = -1
@@ -56,7 +57,13 @@ final class Store: ObservableObject {
         guard engine.revision != lastRevision || now.timeIntervalSince(lastPublish) >= 3 else { return }
         lastRevision = engine.revision
         lastPublish = now
-        let s = engine.snapshot()
+        var s = engine.snapshot()
+        if let l = limitsReader.read()?.active(at: now), !l.isEmpty || !l.costBySession.isEmpty {
+            s.limits = l
+            if let w = l.fiveHour {
+                s.fiveHourForecast = LimitForecast.forecast(w, history: limitsReader.fiveHourHistory, now: now)
+            }
+        }
         DispatchQueue.main.async {
             self.snap = s
             Alerts.shared.evaluate(s)

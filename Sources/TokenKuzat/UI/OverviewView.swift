@@ -14,6 +14,15 @@ struct OverviewView: View {
             } else {
                 VStack(alignment: .leading, spacing: 18) {
                     metrics(s)
+                    if let l = s.limits, !l.isEmpty {
+                        VStack(alignment: .leading, spacing: 12) {
+                            SectionHeader(title: "Claude limiti", subtitle: "Claude Code'ning o'zidan · \(Fmt.ago(l.updatedAt))")
+                            RealLimitsView(limits: l, forecast: s.fiveHourForecast)
+                        }
+                        .card()
+                    } else if !StatusLine.isInstalled {
+                        ConnectLimitsHint().card()
+                    }
                     if budgetEnabled, let b = BudgetStatus.current(s) {
                         BudgetBar(status: b).card()
                     }

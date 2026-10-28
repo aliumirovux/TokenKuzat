@@ -1,5 +1,15 @@
 # O'zgarishlar
 
+## 2.5.0 — 2026-10-28
+
+**Claude'ning haqiqiy limiti**
+- Claude Code status line orqali rasmiy limit ma'lumoti: 5 soatlik va haftalik oyna foizi va tiklanish vaqti (Pro/Max).
+- «Shu tezlikda qachon tugaydi» bashorati (oxirgi 20 daqiqadagi o'sish bo'yicha).
+- Umumiy sahifa, menyu paneli va menyu satrida (Sozlamalar → «5 soatlik limit foizi») ko'rinadi.
+- 80% va 95% da bildirishnoma (har bir oynada bir marta).
+- Sessiya kartasida Claude Code hisoblagan taxminiy narx ($).
+- Sozlamalar → «Claude limiti (haqiqiy)» → «Claude Code'ga ulash»: settings.json nusxasi olinadi, avvalgi status line saqlanib ishlashda davom etadi, «Uzish» hammasini qaytaradi.
+
 ## 2.4.0 — 2026-10-28
 
 **Agentlar sxemasi — n8n uslubidagi jarayon oqimi**

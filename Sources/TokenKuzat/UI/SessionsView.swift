@@ -34,7 +34,8 @@ struct SessionsView: View {
                     ForEach(list) { sess in
                         // Foydalanuvchi hech narsa bosmaguncha eng so'nggi sessiya ochiq turadi
                         let isOpen = touched ? expanded.contains(sess.id) : sess.id == all.first?.id
-                        SessionCard(session: sess, mode: mode, expanded: isOpen) {
+                        SessionCard(session: sess, mode: mode, expanded: isOpen,
+                                    costUSD: store.snap.limits?.costBySession[sess.id]) {
                             if !touched, let first = all.first?.id { expanded.insert(first); touched = true }
                             if expanded.contains(sess.id) { expanded.remove(sess.id) } else { expanded.insert(sess.id) }
                         }
@@ -50,6 +51,7 @@ struct SessionCard: View {
     let session: SessionSnap
     let mode: CountMode
     let expanded: Bool
+    var costUSD: Double? = nil
     let onToggle: () -> Void
 
     var body: some View {
@@ -85,6 +87,10 @@ struct SessionCard: View {
                         Chip(text: "Kontekst \(Fmt.tokens(session.contextTokens))", symbol: "text.alignleft")
                     }
                     Chip(text: "\(session.helperCount) yordamchi agent", symbol: "person.2")
+                    if let cost = costUSD {
+                        Chip(text: String(format: "$%.2f", cost).replacingOccurrences(of: ".", with: ","), symbol: "dollarsign.circle")
+                            .help("Claude Code hisoblagan taxminiy narx (API narxlarida)")
+                    }
                     Spacer()
                     Button {
                         UserDefaults.standard.set(session.id, forKey: GraphScreen.selectedSessionKey)

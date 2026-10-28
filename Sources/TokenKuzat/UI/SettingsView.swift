@@ -16,6 +16,9 @@ struct SettingsView: View {
     @AppStorage(Pref.notifyStuck) private var notifyStuck = true
     @AppStorage(Pref.notifyStuckSec) private var notifyStuckSec = 90.0
     @AppStorage(Pref.notifyErrors) private var notifyErrors = true
+    @AppStorage(Pref.notifyRealLimit) private var notifyRealLimit = true
+    @State private var statusLineInstalled = StatusLine.isInstalled
+    @State private var statusLineError: String?
     @State private var launchAtLogin = LaunchAtLogin.isEnabled
     @State private var notifyDenied = false
     @State private var confirmClear = false
@@ -89,6 +92,42 @@ struct SettingsView: View {
             }
 
             SwiftUI.Section {
+                LabeledContent("Holat") {
+                    HStack(spacing: 6) {
+                        Circle().fill(statusLineInstalled ? (store.snap.limits.map { !$0.isEmpty } == true ? Color.green : .orange) : .secondary)
+                            .frame(width: 8, height: 8)
+                        Text(statusLineStatus)
+                    }
+                }
+                HStack {
+                    if statusLineInstalled {
+                        Button("Uzish") { toggleStatusLine(false) }
+                    } else {
+                        Button("Claude Code'ga ulash") { toggleStatusLine(true) }.buttonStyle(.borderedProminent)
+                    }
+                    Spacer()
+                    Button("settings.json'ni ko'rsatish") {
+                        NSWorkspace.shared.activateFileViewerSelecting([StatusLine.settingsURL])
+                    }
+                    .buttonStyle(.link)
+                }
+                if let statusLineError {
+                    Label(statusLineError, systemImage: "exclamationmark.triangle").font(.caption).foregroundStyle(.red)
+                }
+                if let l = store.snap.limits, !l.isEmpty {
+                    RealLimitsView(limits: l, forecast: store.snap.fiveHourForecast)
+                }
+                Toggle("80% va 95% ga yetganda bildirishnoma", isOn: $notifyRealLimit)
+                    .disabled(!statusLineInstalled || !AppInfo.isBundled)
+                    .onChange(of: notifyRealLimit) { if $0 { askPermission() } }
+            } header: {
+                Text("Claude limiti (haqiqiy)")
+            } footer: {
+                Text("Claude Code har bir javobdan keyin status line'ga 5 soatlik va haftalik limit foizini beradi (Pro/Max obunada). «Ulash» ~/.claude/settings.json ga Token Kuzatuv'ni status line qilib yozadi: terminalda pastki satrda «5 soat 34% ↻16:40 · hafta 61%» ko'rinadi. Avvalgi status line bo'lsa — saqlanadi va ishlashda davom etadi; «Uzish» uni qaytaradi. Birinchi ulanishda settings.json nusxasi olinadi.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+
+            SwiftUI.Section {
                 Toggle("Limitni kuzatish", isOn: $budgetEnabled)
                 Picker("Davr", selection: $budgetPeriod) {
                     ForEach(BudgetPeriod.allCases) { Text($0.title).tag($0) }
@@ -112,7 +151,7 @@ struct SettingsView: View {
                     BudgetBar(status: b)
                 }
             } header: {
-                Text("Limit")
+                Text("O'z limitim (taxminiy)")
             } footer: {
                 Text("Claude obunasi limiti 5 soatlik oyna bo'yicha tiklanadi. Anthropic aniq limitni e'lon qilmaydi — o'zingizning odatiy sarfingizga qarab qiymat qo'ying (Tarix sahifasida ko'rinadi).")
                     .font(.caption).foregroundStyle(.secondary)
@@ -150,7 +189,25 @@ struct SettingsView: View {
         }
     }
 
+    private var statusLineStatus: String {
+        guard statusLineInstalled else { return "Ulanmagan" }
+        if let l = store.snap.limits, !l.isEmpty { return "Ulangan · ma'lumot \(Fmt.ago(l.updatedAt))" }
+        if let t = StatusLine.lastUpdate { return "Ulangan · oxirgi chaqiruv \(Fmt.ago(t)), limit kelmadi (API kaliti bilanmi?)" }
+        return "Ulangan · Claude Code'da yangi so'rov kutilyapti"
+    }
+
+    private func toggleStatusLine(_ on: Bool) {
+        do {
+            if on { try StatusLine.install() } else { try StatusLine.uninstall() }
+            statusLineError = nil
+        } catch {
+            statusLineError = error.localizedDescription
+        }
+        statusLineInstalled = StatusLine.isInstalled
+    }
+
     private func refreshStatus() {
+        statusLineInstalled = StatusLine.isInstalled
         launchAtLogin = LaunchAtLogin.isEnabled
         guard AppInfo.isBundled else { return }
         UNUserNotificationCenter.current().getNotificationSettings { s in

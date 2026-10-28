@@ -18,6 +18,7 @@ enum Pref {
     static let notifyStuck = "notifyStuck"
     static let notifyStuckSec = "notifyStuckSec"
     static let notifyErrors = "notifyErrors"
+    static let notifyRealLimit = "notifyRealLimit"
 
     static func register() {
         UserDefaults.standard.register(defaults: [
@@ -33,6 +34,7 @@ enum Pref {
             notifyStuck: true,
             notifyStuckSec: 90.0,
             notifyErrors: true,
+            notifyRealLimit: true,
         ])
     }
 }
@@ -43,7 +45,7 @@ enum MenuBarStyle: String, CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .tokens: return "Tokenlar va tezlik"
-        case .budget: return "Limit foizi"
+        case .budget: return "5 soatlik limit foizi"
         case .icon: return "Faqat belgi"
         }
     }

@@ -21,7 +21,7 @@ final class Alerts: NSObject, UNUserNotificationCenterDelegate {
         guard let center else { return }
         center.delegate = self
         let d = UserDefaults.standard
-        let any = [Pref.notifyFinished, Pref.notifyStuck, Pref.notifyErrors].contains { d.bool(forKey: $0) }
+        let any = [Pref.notifyFinished, Pref.notifyStuck, Pref.notifyErrors, Pref.notifyRealLimit].contains { d.bool(forKey: $0) }
             || (d.bool(forKey: Pref.budgetEnabled) && d.bool(forKey: Pref.budgetNotify))
         if any { requestPermission() }
     }
@@ -44,6 +44,31 @@ final class Alerts: NSObject, UNUserNotificationCenterDelegate {
     func evaluate(_ s: Snapshot) {
         evaluateBudget(s)
         evaluateActivity(s)
+        evaluateRealLimits(s)
+    }
+
+    // MARK: - Haqiqiy limit
+
+    /// Har bir oyna (5 soat / hafta) uchun 80% va 95% da bir martadan — oyna tiklanguncha
+    private func evaluateRealLimits(_ s: Snapshot) {
+        let d = UserDefaults.standard
+        guard d.bool(forKey: Pref.notifyRealLimit), let l = s.limits else { return }
+        var fired = d.dictionary(forKey: "realLimitFired") as? [String: Double] ?? [:]
+        for (name, w) in [("5 soatlik", l.fiveHour), ("Haftalik", l.sevenDay)] {
+            guard let w else { continue }
+            for t in [80.0, 95.0] where w.usedPercentage >= t {
+                let key = "\(name)-\(Int(t))"
+                guard fired[key] != w.resetsAt.timeIntervalSince1970 else { continue }
+                fired[key] = w.resetsAt.timeIntervalSince1970
+                let reset = Fmt.hourMinute.string(from: w.resetsAt)
+                var body = "\(Int(w.usedPercentage.rounded()))% ishlatildi · \(reset) da tiklanadi (\(Self.duration(w.resetsAt.timeIntervalSinceNow)))."
+                if name == "5 soatlik", case .runsOut(let at) = s.fiveHourForecast {
+                    body += " Shu tezlikda ~\(Fmt.hourMinute.string(from: at)) da tugaydi."
+                }
+                post("\(name) Claude limiti: \(Int(t))%", body)
+            }
+        }
+        d.set(fired, forKey: "realLimitFired")
     }
 
     // MARK: - Sessiya hodisalari

@@ -263,3 +263,84 @@ struct IconTile: View {
             .background(RoundedRectangle(cornerRadius: size * 0.26, style: .continuous).fill(tint.opacity(0.15)))
     }
 }
+
+// MARK: - Haqiqiy limit (Claude Code status line)
+
+/// 5 soatlik va haftalik oyna: foiz, tiklanish vaqti va «shu tezlikda qachon tugaydi»
+struct RealLimitsView: View {
+    let limits: RateLimits
+    let forecast: LimitForecast.Outcome
+    var compact = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: compact ? 8 : 12) {
+            if let w = limits.fiveHour {
+                row("5 soatlik oyna", w, note: forecastText(w))
+            }
+            if let w = limits.sevenDay {
+                row("Haftalik", w, note: nil)
+            }
+            if limits.isEmpty {
+                Text("Limit ma'lumoti hali kelmadi — Claude Code'da biror so'rov yuboring.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private func row(_ title: String, _ w: LimitWindow, note: (String, Color)?) -> some View {
+        let pct = w.usedPercentage
+        let color: Color = pct >= 90 ? .red : (pct >= 70 ? .orange : .green)
+        return VStack(alignment: .leading, spacing: 5) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(title).font(compact ? .caption.weight(.medium) : .callout.weight(.medium))
+                Spacer()
+                Text("↻ \(resetText(w.resetsAt))").font(.caption2).foregroundStyle(.secondary)
+                Text("\(Int(pct.rounded()))%")
+                    .font((compact ? Font.caption : .callout).weight(.semibold)).monospacedDigit().foregroundStyle(color)
+            }
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(Color.primary.opacity(0.08))
+                    Capsule().fill(color.gradient).frame(width: max(4, geo.size.width * CGFloat(min(pct, 100) / 100)))
+                }
+            }
+            .frame(height: compact ? 6 : 8)
+            if let note {
+                Text(note.0).font(.caption2).foregroundStyle(note.1)
+            }
+        }
+    }
+
+    private func forecastText(_ w: LimitWindow) -> (String, Color)? {
+        switch forecast {
+        case .runsOut(let at):
+            return ("Shu tezlikda ~\(Fmt.hourMinute.string(from: at)) da tugaydi (\(Alerts.duration(at.timeIntervalSinceNow)) qoldi)", .orange)
+        case .lasts:
+            return compact ? nil : ("Shu tezlikda tiklanguncha yetadi", .secondary)
+        case .unknown:
+            return nil
+        }
+    }
+
+    private func resetText(_ d: Date) -> String {
+        let left = d.timeIntervalSinceNow
+        let time = left > 86_400 ? Fmt.dayTime.string(from: d) : Fmt.hourMinute.string(from: d)
+        return "\(time) (\(Alerts.duration(max(0, left))))"
+    }
+}
+
+/// Ulanmagan bo'lsa — taklif
+struct ConnectLimitsHint: View {
+    var body: some View {
+        HStack(spacing: 12) {
+            IconTile(symbol: "gauge.with.needle", tint: .blue, size: 32)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Claude'ning haqiqiy limitini ko'rsatish").font(.callout.weight(.medium))
+                Text("5 soatlik va haftalik limit foizi, tiklanish vaqti va «qachon tugaydi» bashorati — Claude Code'ning o'zidan.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            Spacer()
+            Button("Ulash…") { WindowManager.shared.show(.settings) }
+        }
+    }
+}
