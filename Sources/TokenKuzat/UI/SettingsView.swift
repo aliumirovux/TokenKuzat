@@ -154,7 +154,7 @@ struct SettingsView: View {
             } header: {
                 Text("Claude limiti — hisobdan")
             } footer: {
-                Text("Claude Code'ning Keychain'dagi kirish kaliti bilan Anthropic'dan joriy sessiya va haftalik limit har daqiqada olinadi — Code tabi va Claude ilovasida ham ishlaydi. Kalit faqat shu kompyuterda o'qiladi va faqat api.anthropic.com ga yuboriladi. Birinchi marta macOS Keychain ruxsatini so'raydi («Har doim ruxsat»). Ishlamasa — pastdagi status line zaxira manba bo'ladi.")
+                Text("Claude Code'ning Keychain'dagi kirish kaliti bilan Anthropic'dan joriy sessiya va haftalik limit har daqiqada olinadi — Code tabi va Claude ilovasida ham ishlaydi. Kalit faqat shu kompyuterda o'qiladi va faqat api.anthropic.com ga yuboriladi. Birinchi marta macOS Keychain ruxsatini so'raydi («Har doim ruxsat»). Ishlamasa — pastdagi status line zaxira manba bo'ladi. Yoqilgan bo'lsa, limitning chat va bulutga (Mac'ga yozilmaydigan ishlarga) ketgan qismi ham hisoblanadi.")
                     .font(.caption).foregroundStyle(.secondary)
             }
             .onAppear(perform: refreshAccount)

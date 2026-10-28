@@ -72,7 +72,7 @@ enum MCPServer {
     private static let tools: [[String: Any]] = [
         [
             "name": "usage_summary",
-            "description": "Today's and last-5-hours Claude token usage, current burn rate, real plan limits (5-hour and weekly %, reset times) if connected, and which sessions are running or waiting for permission.",
+            "description": "Today's and last-5-hours Claude token usage, current burn rate, real plan limits (5-hour and weekly %, reset times) if connected, estimated share of the limit used outside this Mac (claude.ai/desktop chats, cloud sessions), and which sessions are running or waiting for permission.",
             "inputSchema": ["type": "object", "properties": [String: Any]()],
         ],
         [
@@ -105,6 +105,9 @@ enum MCPServer {
         let now = Date()
         var snap = e.tick(now: now)
         snap.limits = RateLimitsReader().read()?.active(at: now)
+        // Ilova yozgan holatdan faqat o'qiladi
+        let out = OutsideUsageTracker().summary(now: now)
+        if out.hasWindow || out.outsideTodayPct > 0 { snap.outside = out }
         let notices = HookEvents.read()
         for s in snap.sessions {
             if let n = notices[s.id], n.isPending(lastActivity: s.lastActivity, now: now) { snap.permissionWaits[s.id] = n }
@@ -135,6 +138,20 @@ enum MCPServer {
             o["limits"] = lim
         } else {
             o["limits"] = "Ulanmagan: Token Kuzatuv → Sozlamalar → «Claude Code'ga ulash»"
+        }
+        if let x = s.outside {
+            func r(_ v: Double) -> Double { (v * 10).rounded() / 10 }
+            var d: [String: Any] = [
+                "note": "Estimate. Chats and cloud sessions are not written to this Mac; their share is the real limit growth minus this Mac's usage. Percent of the 5-hour limit.",
+                "today_outside_percent": r(x.outsideTodayPct),
+            ]
+            if x.hasWindow {
+                d["current_window"] = ["mac_percent": r(x.macPct), "chat_and_cloud_percent": r(x.outsidePct),
+                                       "not_yet_split_percent": r(x.uncertainPct), "before_tracking_percent": r(x.unobservedPct)]
+            }
+            if let t = x.outsideTodayTokens { d["today_outside_weighted_tokens"] = Int(t) }
+            if let k = x.tokensPerPct { d["weighted_tokens_per_percent"] = Int(k) }
+            o["chat_and_cloud"] = d
         }
         return o
     }

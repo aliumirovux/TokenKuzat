@@ -20,7 +20,8 @@ struct OverviewView: View {
                 VStack(alignment: .leading, spacing: 18) {
                     if let l = s.limits, let w = l.sessionWindow {
                         LimitHero(window: w, week: l.sevenDay, forecast: s.fiveHourForecast, minutes: s.recentMinutes,
-                                  days: s.days, weekForecast: s.weekForecast, plan: l.plan, stale: LimitText.staleNote(l, now: s.updatedAt))
+                                  days: s.days, weekForecast: s.weekForecast, plan: l.plan, stale: LimitText.staleNote(l, now: s.updatedAt),
+                                  outside: s.outside)
                     } else {
                         ConnectHero(today: s.today, mode: mode)
                         if budgetEnabled, let b = BudgetStatus.current(s) { BudgetBar(status: b).card() }
@@ -80,6 +81,8 @@ struct LimitHero: View {
     var plan: String? = nil
     /// Ma'lumot eskirgan bo'lsa — ogohlantirish matni
     var stale: String? = nil
+    /// Mac / chat va bulut bo'linishi
+    var outside: OutsideUsage? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -103,6 +106,10 @@ struct LimitHero: View {
                     LimitCard(title: "Bu hafta", subtitle: "7 kunlik oyna", window: week,
                               columns: dayColumns(week), columnsTitle: "kunlar bo'yicha")
                 }
+            }
+            if let o = outside, o.hasWindow, !window.isNotStarted, window.usedPercentage >= 1 {
+                OutsideSplitRow(outside: o)
+                    .padding(.horizontal, 4)
             }
         }
         .padding(22)
@@ -142,9 +149,10 @@ struct LimitHero: View {
         return (0..<5).map { i in
             let a = start.addingTimeInterval(Double(i) * 3600)
             let state: LimitCard.Column.State = now >= a.addingTimeInterval(3600) ? .past : (now >= a ? .now : .future)
-            let pct = total > 0 ? w[i] / total * window.usedPercentage : 0
+            // O'rganilgan koeffitsiyent bo'lsa — Mac sarfining o'zi (chat ulushi Mac soatlariga yozilmaydi)
+            let pct = outside?.tokensPerPct.map { w[i] / $0 } ?? (total > 0 ? w[i] / total * window.usedPercentage : 0)
             return .init(id: i, value: w[i], label: Fmt.hourMinute.string(from: a), state: state,
-                         help: state == .future ? "Hali kelmagan soat" : "\(Fmt.hourMinute.string(from: a)) — limitning ~\(Int(pct.rounded()))%")
+                         help: state == .future ? "Hali kelmagan soat" : "\(Fmt.hourMinute.string(from: a)) — \(outside?.tokensPerPct != nil ? "Mac'da limitning" : "limitning") ~\(Int(pct.rounded()))%")
         }
     }
 

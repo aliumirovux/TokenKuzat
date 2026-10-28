@@ -288,6 +288,8 @@ public struct Snapshot: Sendable {
     public var fiveHourForecast: LimitForecast.Outcome = .unknown
     /// Haftalik oyna: shu sur'atda tiklanishdan oldin tugaydimi
     public var weekForecast: LimitForecast.Outcome = .unknown
+    /// Limitning Mac'dan tashqariga (chat, bulut) ketgan qismi — hisob limiti ulangan bo'lsa
+    public var outside: OutsideUsage?
     /// Ruxsatingizni kutayotgan sessiyalar (Claude Code hook'idan): sessiya id → xabar
     public var permissionWaits: [String: HookNotice] = [:]
 

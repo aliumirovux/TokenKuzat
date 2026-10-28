@@ -1,5 +1,13 @@
 # O'zgarishlar
 
+## 6.16.0 — 2026-10-28
+
+- Limitning chat va bulutga ketgan qismi: claude.ai va desktop chatlar, bulutdagi sessiyalar Mac diskiga yozilmaydi, lekin hisobdagi haqiqiy 5 soatlik foizga kiradi. Har limit o'lchovida foiz o'sishi shu oraliqdagi Mac sarfi bilan solishtiriladi: Mac ishlamagan paytdagi o'sish — chat va bulut; aralash paytda Mac ulushi o'rganilgan «1% ≈ N vaznli token» koeffitsiyenti bilan ayriladi (Mac ishlagan oraliqlardan, 75-persentil). Koeffitsiyent 3 ta o'lchovdan keyin chiqadi, ungacha aralash qism «Aniqlanmoqda».
+- «Umumiy»dagi limit blokida — «Sessiya limiti qayerga ketdi»: Mac'da / Chat va bulut / Aniqlanmoqda / Kuzatuvdan oldin chizig'i va bugun chat va bulutga ketgan taxminiy vaznli token. Menyu panelida — ixcham chiziq.
+- Soatlik ustunlar izohi koeffitsiyent bo'lsa faqat Mac ulushini ko'rsatadi (avval chat ham Mac soatlariga taqsimlanardi).
+- MCP `usage_summary` — `chat_and_cloud` bo'limi.
+- Holat `~/Library/Application Support/TokenKuzat/outside-usage.json` da (7 kun); «Tarixni tozalash» uni ham o'chiradi. Ishlashi uchun Sozlamalar → «Claude hisobidan olish» yoqilgan bo'lishi kerak.
+
 ## 6.15.0 — 2026-10-28
 
 - Claude Code plagini: `/plugin install tokenkuzat --marketplace aliumirovux/TokenKuzat`, keyin `/tokenkuzat:install` — Claude talablarni (macOS 13+, Command Line Tools) tekshiradi, ilovani yig'ib o'rnatadi va keyingi qadamlarni tushuntiradi.

@@ -76,6 +76,10 @@ Sozlamalar → «Claude limiti (haqiqiy)» → **«Claude Code'ga ulash»**. Shu
 
 Ulash `~/.claude/settings.json` ga `statusLine` yozadi (birinchi marta `settings.json.tokenkuzat-backup` nusxasi olinadi). Avval o'z status line'ingiz bo'lsa — u saqlanadi va uning chiqishi ko'rsatilishda davom etadi; «Uzish» uni qaytaradi.
 
+## Chat va bulut ulushi (taxminiy)
+
+claude.ai va desktop chatlar, bulutdagi sessiyalar Mac diskiga yozilmaydi — ularning qadamlarini ko'rib bo'lmaydi. Lekin ular ham haqiqiy limitni yeydi. Sozlamalar → «Claude hisobidan olish» yoqilgan bo'lsa, ilova limit foizi o'sishini shu Mac'dagi sarf bilan solishtiradi va «Umumiy»dagi limit blokida ko'rsatadi: **Mac'da / Chat va bulut / Aniqlanmoqda / Kuzatuvdan oldin**, hamda bugun chat va bulutga ketgan taxminiy vaznli token. Mac ulushi «1% ≈ N vaznli token» koeffitsiyenti bilan ajratiladi — u faqat Mac ishlagan oraliqlardan o'rganiladi, birinchi bir necha o'lchovgacha aralash qism «Aniqlanmoqda» bo'lib turadi.
+
 ## O'z limitim (taxminiy)
 
 Claude obunasi limiti 5 soatlik oyna bo'yicha tiklanadi, aniq qiymati e'lon qilinmaydi. Sozlamalarda o'zingizga mos limit qo'ying (Tarix sahifasidagi odatiy sarfga qarab) — davr «Oxirgi 5 soat» yoki «Bugun». 80% va 100% da macOS bildirishnomasi keladi (har biri bir marta; 5 soatlik oynada sarf 50% dan tushgach qayta qurollanadi).
@@ -104,5 +108,5 @@ Tests/                   parser, engine, tarix, formatlash testlari
 
 ## Cheklovlar
 
-- Faqat shu Mac'dagi Claude Code va Cowork sessiyalari ko'rinadi (terminal, desktop ilovadagi Code yoki Cowork). claude.ai chatlari va bulutdagi sessiyalar Mac diskiga yozilmaydi — ular bu yerga tushmaydi.
+- Faqat shu Mac'dagi Claude Code va Cowork sessiyalari ko'rinadi (terminal, desktop ilovadagi Code yoki Cowork). claude.ai chatlari va bulutdagi sessiyalar Mac diskiga yozilmaydi — ularning qadamlari bu yerga tushmaydi, faqat limitdagi umumiy ulushi (yuqoriga qarang).
 - Vaznli hisob taxminiy: Anthropic limitni aynan qanday hisoblashini e'lon qilmaydi.

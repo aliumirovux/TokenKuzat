@@ -37,6 +37,7 @@ final class Store: ObservableObject {
 
     private let engine: Engine
     private let limitsReader = RateLimitsReader()
+    private let outsideTracker = OutsideUsageTracker()
     private let queue = DispatchQueue(label: "uz.ali.tokenkuzat.engine", qos: .utility)
     private var timer: DispatchSourceTimer?
     private var lastRevision = -1
@@ -75,6 +76,12 @@ final class Store: ObservableObject {
             if let w = a.fiveHour { s.fiveHourForecast = LimitForecast.forecast(w, history: acct.fiveHourHistory, now: now) }
             if let w = a.sevenDay { s.weekForecast = WeeklyForecast.forecast(w, now: now) }
         }
+        // Limit o'sishini Mac sarfi bilan solishtirib — chat va bulutga ketgan qism
+        if let l = s.limits, let w = l.fiveHour {
+            outsideTracker.observe(w, at: l.updatedAt, minutes: s.recentMinutes)
+        }
+        let out = outsideTracker.summary(now: now)
+        if out.hasWindow || out.outsideTodayPct > 0 { s.outside = out }
         // Claude ruxsat so'rab to'xtagan sessiyalar: hook xabaridan keyin transkriptda harakat bo'lmagan
         let notices = HookEvents.read()
         for sess in s.sessions {
@@ -95,6 +102,7 @@ final class Store: ObservableObject {
     func clearHistory() {
         queue.async { [engine] in
             engine.clearHistory()
+            self.outsideTracker.reset()
             self.lastRevision = -1
         }
     }

@@ -55,6 +55,9 @@ struct MenuPanel: View {
                         LimitRing(title: "Hafta", window: wk, caption: "7 kunlik oyna")
                     }
                 }
+                if let o = s.outside, o.hasWindow, !w.isNotStarted, w.usedPercentage >= 1 {
+                    OutsideSplitRow(outside: o, compact: true)
+                }
                 paceLine(s, l)
             } else {
                 VStack(alignment: .leading, spacing: 6) {
