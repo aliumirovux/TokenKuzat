@@ -1,5 +1,11 @@
 # O'zgarishlar
 
+## 5.4.0 — 2026-10-28
+
+- Menyu paneli yangilandi: butun panel bir xil qattiq fonda (tagidagi oyna ko'rinmaydi).
+- Jarayon kartasi: loyiha va so'rov raqami, holat («Ishlayapti» / «Ruxsat kutyapti» / «Tugadi»), so'rov matni, kichik jarayon izi (xaritadagi kabi: mahalliy ishlar yuqorida, tashqilari pastda, model o'rtada; oxirgi chiziqda paketlar, bajarilayotgan qadam to'lqin bilan), hozirgi qadam va jonli taymer, qadamlar soni, davomiylik, tokenlar va kontekst foizi. Ishlayotganda karta chegarasida yorug'lik aylanadi; bosilsa — sessiya xaritada ochiladi.
+- Bugungi xulosa — uchta plitka: tokenlar, faol vaqt, sessiyalar.
+
 ## 5.3.0 — 2026-10-28
 
 - Xarita bitta qatorda: kartalar satrga bo'linmaydi — chapdan o'ngga ulanib boradi (n8n kabi). Bo'limlar shu qatorda yonma-yon ramkalar (sarlavha o'z kartalari ustida); yig'ilgan bo'lim — qatordagi ixcham karta (mavzu, so'rovlar soni, vaqt, hajm, «Ochish»).

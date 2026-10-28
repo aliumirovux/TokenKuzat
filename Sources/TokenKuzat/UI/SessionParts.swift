@@ -268,7 +268,7 @@ struct ContextGauge: View {
         let f = session.contextFraction
         let color = f >= 0.92 ? Brand.err : (f >= 0.8 ? Brand.warn : Brand.accent)
         HStack(spacing: 6) {
-            Text("Kontekst")
+            Text("Kontekst").lineLimit(1).fixedSize()
             ZStack(alignment: .leading) {
                 Capsule().fill(Brand.line)
                 Capsule().fill(color).frame(width: max(3, 54 * f))
