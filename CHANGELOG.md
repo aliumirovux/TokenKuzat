@@ -1,5 +1,9 @@
 # O'zgarishlar
 
+## 6.8.1 — 2026-10-28
+
+- Sessiya sahifasidagi so'rovlar qatori («Butun sessiya», «#11 · …» chiplari) olib tashlandi — so'rov xaritadagi kartani bosib tanlanadi.
+
 ## 6.8.0 — 2026-10-28
 
 - Tor oynaga moslashuv: sessiya sarlavhasidagi belgilar (holat, kontekst, tejash, so'rov, model, vaqt) siqilib harflari ustun bo'lib qolmaydi — sig'masa keyingi qatorga o'tadi; raqamlar (davomiylik, qadam, token) joy yetmasa pastga tushadi.

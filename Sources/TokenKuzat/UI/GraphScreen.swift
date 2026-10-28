@@ -76,8 +76,6 @@ struct GraphScreen: View {
                 let tl = TimelineModel(flow: flow, session: session, turnId: turnNo, now: now)
                 SessionHeader(session: session, turn: turn, mode: mode, costUSD: s.limits?.costBySession[session.id],
                               waiting: replayOn ? nil : s.permissionWaits[session.id])
-                TurnChips(turns: live.turns, selected: turnNo) { turnId = $0 ?? 0 }
-                    .padding(.top, 14)
                 LanesCard(timeline: tl, replayOn: replayOn) { toggleReplay(live) }
                     .padding(.top, 14)
                 if replayOn, let range {
