@@ -1,4 +1,5 @@
 import SwiftUI
+import TokenKuzatCore
 
 // Robot-yordamchi: Claude hozir nima qilayotganini xarakter bilan ko'rsatadi. Har bir vazifada — o'z harakati,
 // qo'lidagi buyumi va yuz ifodasi. Oddiy shakllardan chizilgan: antenna, bosh-ekran (ko'zlar, og'iz), tana, qo'llar.
@@ -19,6 +20,8 @@ struct RobotView: View {
         case greeting             // yangi so'rov — «!» va qo'l silkitish
         case celebrating          // ish tugadi — sakraydi, yulduzchalar
         case sleeping             // tinch — «z z»
+        case watching             // nazorat — durbin bilan kuzatadi (tinch paytda patrul)
+        case hello                // bosilganda — «salom!»
     }
 
     let action: Action
@@ -58,6 +61,8 @@ struct RobotView: View {
         case .greeting: return "greeting"
         case .celebrating: return "celebrating"
         case .sleeping: return "sleeping"
+        case .watching: return "watching"
+        case .hello: return "hello"
         }
     }
 
@@ -70,13 +75,15 @@ struct RobotView: View {
         case .greeting: return Brand.accent
         case .celebrating: return Color(light: 0xE0A21C, dark: 0xF2B544)
         case .sleeping: return .secondary
+        case .watching: return Color(light: 0x2F7BE5, dark: 0x4A8FF0)
+        case .hello: return Brand.accent
         }
     }
 
     /// Davom etayotgan ishlar — oxirida sakrovchi nuqtalar
     private var ongoing: Bool {
         switch action {
-        case .waiting, .error, .greeting, .celebrating, .sleeping: return false
+        case .waiting, .error, .greeting, .celebrating, .sleeping, .hello: return false
         default: return true
         }
     }
@@ -98,6 +105,8 @@ struct RobotView: View {
         case .greeting: return "sparkles"
         case .celebrating: return "checkmark.seal.fill"
         case .sleeping: return "moon.zzz.fill"
+        case .watching: return "binoculars.fill"
+        case .hello: return "hand.wave.fill"
         }
     }
 
@@ -113,6 +122,8 @@ struct RobotView: View {
         case .greeting: return "yangi vazifa!"
         case .celebrating: return "tayyor!"
         case .sleeping: return Int(t * 1.2) % 2 == 0 ? "z z" : "z Z"
+        case .watching: return "nazorat qilyapman"
+        case .hello: return "salom!"
         }
     }
 
@@ -211,6 +222,7 @@ struct RobotView: View {
         case .celebrating: return -CGFloat(abs(sin(t * 5))) * s * 0.22
         case .greeting: return -CGFloat(abs(sin(t * 6))) * s * 0.08
         case .sleeping: return CGFloat(sin(t * 1.2)) * s * 0.02
+        case .hello: return -CGFloat(abs(sin(t * 7))) * s * 0.16
         case .error: return 0
         default: return CGFloat(sin(t * 2.4)) * s * 0.035
         }
@@ -234,6 +246,7 @@ struct RobotView: View {
         case .writing: return 5
         case .delegating, .greeting: return 6 * sin(t * 3)
         case .sleeping: return 10
+        case .watching: return 6 * sin(t * 0.9)
         case .waiting: return -6
         default: return 0
         }
@@ -270,6 +283,7 @@ struct RobotView: View {
         let eye: Eye = {
             switch action {
             case .sleeping: return .closed
+            case .hello: return .happy
             case .celebrating, .delegating, .writing: return .happy
             case .greeting, .waiting: return blink ? .closed : .wide
             case .error: return .cross
@@ -284,6 +298,7 @@ struct RobotView: View {
             case .thinking: return CGSize(width: CGFloat(sin(t * 1.4)) * s * 0.06, height: -s * 0.03)
             case .typing: return CGSize(width: 0, height: s * 0.03)
             case .browsing: return CGSize(width: CGFloat(sin(t * 2)) * s * 0.07, height: 0)
+            case .watching: return CGSize(width: CGFloat(sin(t * 0.9)) * s * 0.08, height: -s * 0.01)
             default: return .zero
             }
         }()
@@ -341,7 +356,7 @@ struct RobotView: View {
         let s = size
         let c = (tint == .secondary ? Brand.inkDim : tint).opacity(0.85)
         switch action {
-        case .celebrating, .delegating, .greeting:
+        case .celebrating, .delegating, .greeting, .hello:
             Arc(up: false).fill(c).frame(width: s * 0.14, height: s * 0.06)
         case .error:
             Arc(up: true).stroke(c, style: StrokeStyle(lineWidth: 1.6, lineCap: .round)).frame(width: s * 0.12, height: s * 0.04)
@@ -378,6 +393,8 @@ struct RobotView: View {
             case .greeting: return left ? 15 : -150 + 30 * sin(t * 9)
             case .celebrating: return side * (150 + 15 * sin(t * 10))
             case .sleeping: return side * 4
+            case .watching: return side * -150 + side * 6 * sin(t * 0.9)
+            case .hello: return left ? 15 : -155 + 35 * sin(t * 11)
             }
         }()
         return VStack(spacing: -s * 0.02) {
@@ -454,6 +471,13 @@ struct RobotView: View {
             Text("!").font(.system(size: s * 0.32, weight: .black, design: .rounded)).foregroundStyle(tint)
                 .offset(x: -s * 0.5, y: -s * 0.45)
                 .scaleEffect(1 + 0.15 * abs(sin(t * 6)))
+        case .watching:
+            // Durbin ko'z oldida, bosh bilan birga buriladi
+            Image(systemName: "binoculars.fill").font(.system(size: s * 0.28)).foregroundStyle(Brand.inkDim)
+                .offset(x: CGFloat(sin(t * 0.9)) * s * 0.08, y: -s * 0.12)
+        case .hello:
+            Text("👋").font(.system(size: s * 0.24)).offset(x: s * 0.55, y: -s * 0.35)
+                .rotationEffect(.degrees(20 * sin(t * 11)))
         case .celebrating, .sleeping:
             EmptyView()
         }
@@ -521,5 +545,35 @@ private struct SpeechBubble: Shape {
         p.addLine(to: CGPoint(x: body.midX + tail, y: body.maxY - 0.5))
         p.closeSubpath()
         return p
+    }
+}
+
+extension RobotView {
+    /// Robot nima qilishi — sessiyaning haqiqiy holatidan (Xulosa va Xarita'da bir xil).
+    /// Bajarilayotgan qadam bo'lsa — uning turi; aks holda xato, yangi so'rov, javob, o'ylash, tugash yoki uyqu
+    static func action(for session: SessionSnap, waiting: Bool, now: Date = Date()) -> Action {
+        if waiting { return .waiting }
+        let steps = session.agents.flatMap(\.steps)
+        if let r = steps.filter({ $0.status == .running }).max(by: { $0.date < $1.date }) {
+            let name = r.targetName.isEmpty ? r.category.title : r.targetName
+            switch r.category {
+            case .shell: return .typing(name)
+            case .files: return r.access == .write ? .writing(name) : .reading(name)
+            case .web: return .browsing(name)
+            case .mcp: return .plugging(name)
+            case .agent: return .delegating(name)
+            case .other: return .tinkering(name)
+            }
+        }
+        if session.state != .idle {
+            if let last = steps.max(by: { $0.date < $1.date }), last.status == .failed, now.timeIntervalSince(last.date) < 15 {
+                return .error
+            }
+            if let t = session.turns.last, t.active, now.timeIntervalSince(t.start) < 8, t.steps == 0 { return .greeting }
+            if session.main?.lastAction == "Javob yozdi" { return .answering }
+            return .thinking
+        }
+        if let la = session.lastActivity, now.timeIntervalSince(la) < 40 { return .celebrating }
+        return .sleeping
     }
 }

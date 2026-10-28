@@ -551,6 +551,10 @@ struct SessionMapView: View {
     @State private var world = CGSize.zero
     /// Foydalanuvchi qo'lda yig'gan/ochgan bo'limlar
     @State private var toggled: Set<String> = []
+    /// Robot: patrul qadami va oxirgi bosilgan payt
+    @State private var patrolTick = 0
+    @State private var poke: Date?
+    private let patrolTimer = Timer.publish(every: 5, on: .main, in: .common).autoconnect()
     @StateObject private var wheel = WheelMonitor()
     @StateObject private var cache = LayoutCache()
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -590,6 +594,17 @@ struct SessionMapView: View {
                         .frame(width: n.size.width, height: n.size.height)
                         .scaleEffect(scale)
                         .position(screen(n.center))
+                }
+                // Nazoratchi robot: ishlayotgan kartaning burchagida; tinch paytda kartalar bo'ylab patrul qiladi
+                if detail, let robot = robotSpot(layout) {
+                    ZStack { RobotView(action: robot.1, size: 50) }
+                        .frame(width: 220, height: 110, alignment: .bottom)
+                        .contentShape(Rectangle())
+                        .onTapGesture { poke = Date() }
+                        .help("Bosing — robot salom beradi")
+                        .scaleEffect(scale)
+                        .position(screen(robot.0))
+                        .animation(.spring(response: 0.95, dampingFraction: 0.74), value: robot.0)
                 }
             }
             .frame(width: vs.width, height: vs.height)
@@ -641,6 +656,7 @@ struct SessionMapView: View {
                 }
             }
             .onDisappear { wheel.stop() }
+            .onReceive(patrolTimer) { _ in patrolTick += 1 }
             .onChange(of: vs) { new in
                 // Oyna o'lchami o'zgarsa: zoom va vertikal joylashuv yangi o'lchamga moslashadi
                 let old = viewport
@@ -664,6 +680,27 @@ struct SessionMapView: View {
             }
         }
         .background(Brand.canvas)
+    }
+
+    /// Robot qayerda va nima qiladi. Ish ketayotganda — oxirgi kartaning chap-yuqori burchagida, vazifaga mos;
+    /// tinch paytda — oxirgi kartalar bo'ylab navbat bilan uchib, durbin bilan «nazorat qiladi», goh-goh mudraydi
+    private func robotSpot(_ l: MapLayout) -> (CGPoint, RobotView.Action)? {
+        guard let session = chain.last else { return nil }
+        let cards = l.nodes.filter { if case .turn = $0.kind { return true }; return false }
+        guard let lastCard = l.lastTurn ?? cards.last else { return nil }
+        var action = RobotView.action(for: session, waiting: waiting != nil)
+        var card = lastCard
+        if action == .sleeping, cards.count > 1 {
+            // Oxirgi 5 karta bo'ylab borib-qaytadi; har uchinchi davrada biroz mudraydi
+            let recent = Array(cards.suffix(5))
+            let n = recent.count, period = max(1, 2 * n - 2)
+            let k = patrolTick % period
+            card = recent[k < n ? k : period - k]
+            action = (patrolTick / (period * 2)) % 3 == 2 ? .sleeping : .watching
+        }
+        if let p = poke, Date().timeIntervalSince(p) < 2.5 { action = .hello }
+        // Kartaning chap-yuqori burchagida o'tiradi — tepadagi shoxlar (o'rtada) bilan to'qnashmaydi
+        return (CGPoint(x: card.rect.minX + 22, y: card.rect.minY - 46), action)
     }
 
     /// Sukut bo'yicha ochiq: oxirgi bo'lim, ishlayotgani va tanlangan so'rov turgani; bosish — almashtiradi

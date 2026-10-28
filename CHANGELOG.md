@@ -1,5 +1,11 @@
 # O'zgarishlar
 
+## 5.12.0 — 2026-10-28
+
+- Xaritada nazoratchi robot: ish ketayotganda faol so'rov kartasining chap-yuqori burchagida o'tirib, vazifaga mos harakat qiladi (Xulosa'dagi bilan bir xil holatlar). Tinch paytda zeriktirmaydi: oxirgi 5 karta bo'ylab borib-qaytib uchadi va durbin bilan «nazorat qiladi», goh-goh mudraydi. Bosilsa — sakrab, qo'l silkitib «salom!» deydi.
+- Robot holatini aniqlash bitta joyda (`RobotView.action(for:)`): bajarilayotgan qadam turi, xato, yangi so'rov, javob, o'ylash, tugash, uyqu, ruxsat kutish.
+- Yangi holatlar: «nazorat qilyapman» (durbin) va «salom!».
+
 ## 5.11.1 — 2026-10-28
 
 - Robot ko'rinishi sayqallandi: gap pufagi — robotga qaragan dum, holat belgisi, matn va sakrovchi uch nuqta (davom etayotgan ishda), holat rangida yengil fon va soya. Robot: gradientli qobiq va yaltiroq, yorug' sharli antenna, ko'zlarda nur, xursandlikda qizargan yonoqlar, ko'krakda kichik ekran, kaftli qo'llar, sakrash va tebranishga mos yerdagi soya.
