@@ -1,6 +1,6 @@
 # Token Kuzatuv
 
-Mac menyu satrida turadigan ilova. Claude Code sessiyalarida tokenlar qayerga ketayotganini, qaysi agentlar ishlayotganini va nima qilayotganini jonli ko'rsatadi; kunlik tarixni saqlaydi va limitga yaqinlashganda ogohlantiradi.
+Mac menyu satrida turadigan ilova. Claude Code va Cowork sessiyalarida tokenlar qayerga ketayotganini, qaysi agentlar ishlayotganini va nimalarga kirayotganini jonli ko'rsatadi; kunlik tarixni saqlaydi, ish tugaganda, qadam osilib qolganda va limitga yaqinlashganda xabar beradi.
 
 Faqat o'zingiz uchun: internetga hech narsa yubormaydi, faqat diskdagi `~/.claude/projects` fayllarini o'qiydi.
 
@@ -35,6 +35,19 @@ Talab: macOS 13+, Xcode yoki Command Line Tools. `xcrun: error` chiqsa — bir m
 - **Jonli lenta** — har bir asbob chaqiruvi va so'rovlaringiz; loyiha bo'yicha filtr.
 - **Sozlamalar** — avto-ishga tushish, menyu satri ko'rinishi, hisoblash usuli, limit va bildirishnomalar, manbalar, tarixni tozalash.
 
+## Bildirishnomalar
+
+macOS bildirishnomasi quyidagi hollarda keladi (har birini Sozlamalar → Bildirishnomalar'da yoqish/o'chirish va chegarasini o'zgartirish mumkin):
+
+| Hodisa | Sukut bo'yicha | Xabar |
+|---|---|---|
+| Claude ishni tugatdi | ish ≥ 1 daqiqa bo'lsa | davomiylik, qadamlar, tokenlar — «javobingizni kutyapti» |
+| Qadam tugamayapti | 1,5 daqiqadan keyin | ko'pincha Claude ruxsat so'rab turgan bo'ladi |
+| Ketma-ket xatolar | 3 ta xato | agent bir joyda aylanib qolgan bo'lishi mumkin |
+| Limit | 80% va 100% | limit yoqilgan bo'lsa |
+
+Bildirishnomani bosing — o'sha sessiya Agentlar sxemasida ochiladi. Ilova ochilganda mavjud holatlar uchun xabar yuborilmaydi. Birinchi marta macOS ruxsat so'raydi; ruxsat yo'q bo'lsa, Sozlamalardagi «Ruxsat berish…» tugmasi kerakli oynani ochadi, «Sinov bildirishnomasi» bilan tekshirish mumkin.
+
 ## Xom va Vaznli
 
 - **Xom:** barcha token teng sanaladi.
@@ -52,10 +65,11 @@ Sources/
     TranscriptParser     .jsonl qatori → hodisa (usage, asbob, so'rov, sarlavha)
     Engine               fayllarni topish, faqat yangi baytlarni o'qish, yig'ish, snapshot
     HistoryStore         kunlik jami → ~/Library/Application Support/TokenKuzat/history.json
+    ActivityMonitor      snapshot'lardan hodisa: tugadi, osildi, ketma-ket xato
     TokenCounts/Pricing  token turlari va narx vazni
   TokenKuzat/            SwiftUI ilova
     Store                Engine'ni fon navbatida har soniyada yurgizadi
-    Alerts               limit bildirishnomalari
+    Alerts               bildirishnomalar (limit va sessiya hodisalari)
     UI/                  menyu paneli, oyna sahifalari, grafiklar
 Tests/                   parser, engine, tarix, formatlash testlari
 ```
@@ -67,5 +81,5 @@ Tests/                   parser, engine, tarix, formatlash testlari
 
 ## Cheklovlar
 
-- Faqat shu Mac'dagi Claude Code sessiyalari ko'rinadi (desktop ilovadagi Code yoki terminal). claude.ai bulut chatlari bu yerga tushmaydi.
+- Faqat shu Mac'dagi Claude Code va Cowork sessiyalari ko'rinadi (terminal, desktop ilovadagi Code yoki Cowork). claude.ai chatlari va bulutdagi sessiyalar Mac diskiga yozilmaydi — ular bu yerga tushmaydi.
 - Vaznli hisob taxminiy: Anthropic limitni aynan qanday hisoblashini e'lon qilmaydi.

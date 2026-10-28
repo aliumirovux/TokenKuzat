@@ -386,7 +386,7 @@ struct GraphScreen: View {
         switch currentSelection(session) {
         case .agent(let id)?:
             if let a = session.agents.first(where: { $0.id == id }) {
-                AgentInspector(agent: a, sessionTotal: session.tokens.value(mode), mode: mode) { cat in
+                AgentInspector(agent: a, turns: session.turns, sessionTotal: session.tokens.value(mode), mode: mode) { cat in
                     select(.resource(agentId: a.id, category: cat))
                 }
             }
@@ -725,9 +725,16 @@ private struct KV: View {
 
 private struct AgentInspector: View {
     let agent: AgentSnap
+    let turns: [TurnSnap]
     let sessionTotal: Double
     let mode: CountMode
     let openResource: (ToolCategory) -> Void
+
+    private var trailing: String? {
+        let n = agent.isMain ? turns.count : Set(agent.steps.compactMap(\.turn)).count
+        guard n > 0 || !agent.steps.isEmpty else { return nil }
+        return "\(n) so'rov · \(agent.steps.count) qadam"
+    }
 
     var body: some View {
         ScrollView {
@@ -791,11 +798,11 @@ private struct AgentInspector: View {
                     }
                 }
 
-                InspectorBlock(title: "JARAYON", trailing: agent.steps.isEmpty ? nil : "\(agent.steps.count) qadam") {
-                    if agent.steps.isEmpty {
+                InspectorBlock(title: "JARAYON", trailing: trailing) {
+                    if agent.steps.isEmpty && (!agent.isMain || turns.isEmpty) {
                         Text("Hali asbob chaqirilmagan.").font(.caption).foregroundStyle(.secondary)
                     } else {
-                        StepTimeline(steps: Array(agent.steps.reversed()))
+                        TurnTimeline(steps: agent.steps, turns: turns, showEmptyTurns: agent.isMain, mode: mode)
                     }
                 }
             }
@@ -903,5 +910,99 @@ private struct StepTimeline: View {
         case .done:
             Image(systemName: s.symbol).foregroundStyle(s.category.color).font(.system(size: 10, weight: .semibold))
         }
+    }
+}
+
+/// Jarayon so'rovlar bo'yicha: har bir so'rov sarlavhasi (davomiyligi, tokenlari, qadamlari) va ichidagi qadamlar.
+/// Eng yangi so'rov tepada va ochiq; qolganlari bosilganda ochiladi.
+private struct TurnTimeline: View {
+    let steps: [StepSnap]
+    let turns: [TurnSnap]
+    /// Asosiy agentda — qadamsiz (faqat javob yozilgan) so'rovlar ham ko'rinadi
+    let showEmptyTurns: Bool
+    let mode: CountMode
+    @State private var toggled: Set<Int> = []
+
+    private struct Group: Identifiable {
+        let id: Int
+        let turn: TurnSnap?
+        let steps: [StepSnap]
+    }
+
+    private var groups: [Group] {
+        let byTurn = Dictionary(grouping: steps, by: { $0.turn ?? 0 })
+        var out: [Group] = turns.reversed().compactMap { t in
+            let st = Array((byTurn[t.id] ?? []).reversed())
+            return st.isEmpty && !showEmptyTurns ? nil : Group(id: t.id, turn: t, steps: st)
+        }
+        if let before = byTurn[0], !before.isEmpty {
+            out.append(Group(id: 0, turn: nil, steps: Array(before.reversed())))
+        }
+        return out
+    }
+
+    var body: some View {
+        let gs = groups
+        VStack(alignment: .leading, spacing: 10) {
+            ForEach(Array(gs.prefix(40).enumerated()), id: \.element.id) { i, g in
+                // Tepadagi so'rov sukut bo'yicha ochiq; bosish holatni almashtiradi
+                let open = (i == 0) != toggled.contains(g.id)
+                VStack(alignment: .leading, spacing: 8) {
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.15)) {
+                            if toggled.contains(g.id) { toggled.remove(g.id) } else { toggled.insert(g.id) }
+                        }
+                    } label: { header(g, open: open) }
+                    .buttonStyle(.plain)
+                    if open {
+                        if g.steps.isEmpty {
+                            Text("Asbob chaqirilmadi — faqat javob yozildi.")
+                                .font(.caption2).foregroundStyle(.secondary).padding(.leading, 26)
+                        } else {
+                            StepTimeline(steps: g.steps).padding(.leading, 4)
+                        }
+                    }
+                }
+                .padding(10)
+                .background(RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(Color.primary.opacity(g.turn?.active == true ? 0.07 : 0.04)))
+                .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .strokeBorder(g.turn?.active == true ? Color.green.opacity(0.4) : .clear))
+            }
+            if gs.count > 40 {
+                Text("Yana \(gs.count - 40) ta eski so'rov").font(.caption2).foregroundStyle(.tertiary)
+            }
+        }
+    }
+
+    private func header(_ g: Group, open: Bool) -> some View {
+        HStack(alignment: .top, spacing: 8) {
+            Text(g.turn.map { "#\($0.id)" } ?? "—")
+                .font(.caption2.weight(.bold)).monospacedDigit()
+                .foregroundStyle(Palette.cacheRead)
+                .frame(minWidth: 18, alignment: .leading)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(g.turn?.prompt ?? "So'rovdan oldingi qadamlar")
+                    .font(.caption.weight(.medium)).lineLimit(open ? 3 : 1)
+                    .multilineTextAlignment(.leading)
+                if let t = g.turn {
+                    HStack(spacing: 6) {
+                        if t.active { ProgressView().controlSize(.mini) }
+                        Text(Fmt.hourMinute.string(from: t.start))
+                        Text("· " + Dur.text(t.duration))
+                        Text("· \(Fmt.tokens(t.tokens.value(mode)))")
+                        Text("· \(t.steps) qadam")
+                        if t.errors > 0 { Text("· \(t.errors) xato").foregroundStyle(.red) }
+                    }
+                    .font(.caption2.monospacedDigit()).foregroundStyle(.secondary)
+                    .lineLimit(1).minimumScaleFactor(0.75)
+                }
+            }
+            Spacer(minLength: 4)
+            Image(systemName: "chevron.right")
+                .font(.caption2.weight(.semibold)).foregroundStyle(.tertiary)
+                .rotationEffect(.degrees(open ? 90 : 0))
+        }
+        .contentShape(Rectangle())
     }
 }

@@ -25,6 +25,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // Menyu satri belgisi notch ortida yashirinib qolishi mumkin,
     // shuning uchun ilova ochilganda (Spotlight, Finder) katta oyna ham chiqadi.
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Ishlab chiquvchi uchun: `TokenKuzat --snapshot-panel fayl.png` — menyu panelini rasmga saqlab chiqadi
+        if let i = CommandLine.arguments.firstIndex(of: "--snapshot-panel"), i + 1 < CommandLine.arguments.count {
+            snapshotPanel(to: URL(fileURLWithPath: CommandLine.arguments[i + 1]))
+            return
+        }
         Alerts.shared.start()
         DispatchQueue.main.async { WindowManager.shared.show() }
     }
@@ -32,6 +37,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
         WindowManager.shared.show()
         return true
+    }
+
+    private func snapshotPanel(to url: URL) {
+        // Birinchi skan tugashini kutadi, keyin panelni ikki temada chizadi
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+            for scheme in [ColorScheme.dark, .light] {
+                let view = MenuPanel().environmentObject(Store.shared)
+                    .background(Color(nsColor: .windowBackgroundColor))
+                    .environment(\.colorScheme, scheme)
+                let r = ImageRenderer(content: view)
+                r.scale = 2
+                let out = scheme == .dark ? url : url.deletingPathExtension().appendingPathExtension("light.png")
+                if let img = r.nsImage, let tiff = img.tiffRepresentation,
+                   let png = NSBitmapImageRep(data: tiff)?.representation(using: .png, properties: [:]) {
+                    try? png.write(to: out)
+                }
+            }
+            NSApp.terminate(nil)
+        }
     }
 
     func applicationWillTerminate(_ notification: Notification) {

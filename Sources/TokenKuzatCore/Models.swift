@@ -52,6 +52,25 @@ public struct StepSnap: Identifiable, Sendable {
     public let targetName: String
     public let duration: TimeInterval?
     public let status: StepStatus
+    /// Qaysi so'rov ichida bajarilgan (`TurnSnap.id`); birinchi so'rovdan oldingi qadamlar — nil
+    public let turn: Int?
+}
+
+/// Bitta so'rov va unga javob jarayoni: siz yozgan paytdan keyingi so'rovgacha
+public struct TurnSnap: Identifiable, Sendable {
+    /// 1 dan boshlanadigan tartib raqami
+    public let id: Int
+    public let prompt: String
+    public let start: Date
+    /// Oxirgi harakat vaqti
+    public let end: Date
+    public let tokens: TokenCounts
+    public let steps: Int
+    public let errors: Int
+    /// Hozir shu so'rov ustida ishlanyapti
+    public let active: Bool
+
+    public var duration: TimeInterval { max(0, end.timeIntervalSince(start)) }
 }
 
 public struct ResourceItem: Identifiable, Sendable {
@@ -89,6 +108,8 @@ public struct SessionSnap: Identifiable, Sendable {
     public let agents: [AgentSnap]
     public let lastActivity: Date?
     public let state: AgentState
+    /// So'rovlar, eskidan yangiga
+    public let turns: [TurnSnap]
 
     public var main: AgentSnap? { agents.first(where: \.isMain) }
     public var helperCount: Int { agents.filter { !$0.isMain }.count }

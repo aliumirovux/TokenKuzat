@@ -1,5 +1,12 @@
 # O'zgarishlar
 
+## 2.3.0 — 2026-10-28
+
+- Jarayon lentasi so'rovlar bo'yicha guruhlandi: har bir so'rov — vaqti, davomiyligi, tokenlari, qadamlari va xatolari bilan; eng yangisi ochiq, qolganlari bosib ochiladi.
+- Asosiy agentda faqat javob yozilgan (asbobsiz) so'rovlar ham ko'rinadi.
+- README: bildirishnomalar bo'limi, Cowork qo'llab-quvvatlanishi.
+- Ishlab chiquvchi uchun: `TokenKuzat --snapshot-panel fayl.png` — menyu panelini ikki temada rasmga saqlaydi.
+
 ## 2.2.0 — 2026-10-28
 
 **Bildirishnomalar**

@@ -314,3 +314,47 @@ final class ActivityMonitorTests: XCTestCase {
         XCTAssertTrue(mon.process(engine.tick(now: t0)).isEmpty)
     }
 }
+
+final class TurnTests: XCTestCase {
+    func testStepsAndTokensGroupedByPrompt() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("tk-turn-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: root.appendingPathComponent("p"), withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let t0 = Date().addingTimeInterval(-600)
+        func ts(_ s: Double) -> String { f.string(from: t0.addingTimeInterval(s)) }
+        func prompt(_ t: Double, _ text: String) -> String {
+            #"{"type":"user","uuid":"u\#(t)","timestamp":"\#(ts(t))","message":{"content":"\#(text)"}}"#
+        }
+        func tool(_ id: String, _ t: Double, out: Int) -> String {
+            #"{"type":"assistant","timestamp":"\#(ts(t))","message":{"id":"m\#(id)","content":[{"type":"tool_use","id":"\#(id)","name":"Read","input":{"file_path":"/a/\#(id).swift"}}],"usage":{"input_tokens":0,"output_tokens":\#(out)}}}"#
+        }
+        func result(_ id: String, _ t: Double, error: Bool = false) -> String {
+            #"{"type":"user","timestamp":"\#(ts(t))","message":{"content":[{"type":"tool_result","tool_use_id":"\#(id)","is_error":\#(error)}]}}"#
+        }
+        let lines = [
+            prompt(0, "Loyihani o'rgan"), tool("a", 5, out: 100), result("a", 6), tool("b", 10, out: 50), result("b", 12),
+            prompt(100, "Xatoni tuzat"), tool("c", 110, out: 7), result("c", 130, error: true),
+        ]
+        try (lines.joined(separator: "\n") + "\n").write(to: root.appendingPathComponent("p/s.jsonl"), atomically: true, encoding: .utf8)
+
+        let s = try XCTUnwrap(Engine(config: Engine.Config(roots: [root])).tick().sessions.first)
+        XCTAssertEqual(s.turns.map(\.prompt), ["Loyihani o'rgan", "Xatoni tuzat"])
+        XCTAssertEqual(s.turns.map(\.tokens.total), [150, 7])
+        XCTAssertEqual(s.turns.map(\.steps), [2, 1])
+        XCTAssertEqual(s.turns.map(\.errors), [0, 1])
+        XCTAssertEqual(s.turns[0].duration, 12, accuracy: 0.01)
+        XCTAssertEqual(s.turns[1].duration, 30, accuracy: 0.01)
+        XCTAssertEqual(s.main?.steps.map(\.turn), [1, 1, 2])
+    }
+
+    func testTurnIndexLookup() {
+        let d = Date()
+        let starts = [d, d.addingTimeInterval(10), d.addingTimeInterval(20)]
+        XCTAssertNil(Engine.turnIndex(starts, d.addingTimeInterval(-1)))
+        XCTAssertEqual(Engine.turnIndex(starts, d), 0)
+        XCTAssertEqual(Engine.turnIndex(starts, d.addingTimeInterval(15)), 1)
+        XCTAssertEqual(Engine.turnIndex(starts, d.addingTimeInterval(99)), 2)
+    }
+}

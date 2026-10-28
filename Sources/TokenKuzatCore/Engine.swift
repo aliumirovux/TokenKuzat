@@ -271,6 +271,7 @@ public final class Engine {
         }
         agent.calls += 1
         agent.tokens.add(c)
+        if let ts = ev.timestamp { session.usageLog.append((ts, c)) }
         sourceUsage[fs.rootIndex, default: 0] += 1
         if agent.isMain { session.context = c.input + c.cacheRead + c.cacheWrite }
 
@@ -301,6 +302,7 @@ public final class Engine {
         agent.lastStop = "prompt"
         if agent.isMain {
             if session.firstPrompt.isEmpty { session.firstPrompt = String(firstLine.prefix(90)) }
+            if let ts = ev.timestamp { session.addTurn(start: ts, prompt: String(firstLine.prefix(160))) }
             agent.lastAction = "Yangi so'rov oldi"
             if let ts = ev.timestamp, ts >= dayStart {
                 addFeed(ev.uuid ?? UUID().uuidString, ts, session, agent, "person.fill",
@@ -351,6 +353,7 @@ public final class Engine {
         var sessSnaps: [SessionSnap] = []
         for s in sessions.values {
             guard let la = s.lastActivity else { continue }
+            let starts = s.turns.map(\.start)
             var main = TokenCounts(), sub = TokenCounts()
             var agentSnaps: [AgentSnap] = []
             var best = AgentState.idle
@@ -366,7 +369,7 @@ public final class Engine {
                     topTools: a.tools.sorted { $0.value > $1.value }.map { (name: $0.key, count: $0.value) },
                     lastAction: a.lastAction.isEmpty ? "—" : a.lastAction,
                     state: st, lastActivity: a.lastActivity, firstActivity: a.firstActivity,
-                    steps: a.steps.suffix(80).map { $0.snap(now: now) },
+                    steps: a.steps.suffix(150).map { $0.snap(now: now, turn: Engine.turnIndex(starts, $0.start)) },
                     resources: a.resourceGroups(now: now)))
             }
             if best != .idle { snap.activeSessions += 1 }
@@ -381,7 +384,8 @@ public final class Engine {
                 id: s.id, project: s.displayProject, title: s.displayTitle,
                 model: Fmt.model(s.model), contextTokens: s.context,
                 tokens: main + sub, mainTokens: main, agentTokens: sub,
-                agents: agentSnaps, lastActivity: la, state: best))
+                agents: agentSnaps, lastActivity: la, state: best,
+                turns: turnSnaps(s, starts: starts, active: best != .idle)))
         }
         sessSnaps.sort { ($0.lastActivity ?? .distantPast) > ($1.lastActivity ?? .distantPast) }
         snap.sessions = sessSnaps
@@ -424,6 +428,43 @@ public final class Engine {
             HistoryStore.date(fromKey: k, calendar: calendar).map { DayPoint(date: $0, tokens: v) }
         }
         .sorted { $0.date < $1.date }
+    }
+
+    /// So'rovlar oralig'i bo'yicha tokenlar, qadamlar va xatolar
+    private func turnSnaps(_ s: SessionAcc, starts: [Date], active: Bool) -> [TurnSnap] {
+        guard !s.turns.isEmpty else { return [] }
+        var tokens = Array(repeating: TokenCounts(), count: s.turns.count)
+        var steps = Array(repeating: 0, count: s.turns.count)
+        var errors = Array(repeating: 0, count: s.turns.count)
+        var ends = s.turns.map(\.start)
+        for (ts, c) in s.usageLog {
+            guard let i = Engine.turnIndex(starts, ts) else { continue }
+            tokens[i].add(c)
+            ends[i] = max(ends[i], ts)
+        }
+        for a in s.agents.values {
+            for st in a.steps {
+                guard let i = Engine.turnIndex(starts, st.start) else { continue }
+                steps[i] += 1
+                if st.failed { errors[i] += 1 }
+                ends[i] = max(ends[i], st.end ?? st.start)
+            }
+        }
+        return s.turns.indices.map { i in
+            TurnSnap(id: i + 1, prompt: s.turns[i].prompt, start: s.turns[i].start, end: ends[i],
+                     tokens: tokens[i], steps: steps[i], errors: errors[i],
+                     active: active && i == s.turns.count - 1)
+        }
+    }
+
+    /// `ts` qaysi so'rovga tegishli: boshlanishi `ts` dan oldin bo'lgan oxirgi so'rov
+    static func turnIndex(_ starts: [Date], _ ts: Date) -> Int? {
+        var lo = 0, hi = starts.count
+        while lo < hi {
+            let mid = (lo + hi) / 2
+            if starts[mid] <= ts { lo = mid + 1 } else { hi = mid }
+        }
+        return lo == 0 ? nil : lo - 1
     }
 
     private func sessionAcc(_ id: String) -> SessionAcc {
@@ -559,11 +600,11 @@ private final class StepAcc {
     }
 
     /// Natija 10 daqiqada kelmasa — tugagan deb hisoblanadi (sessiya uzilgan bo'lishi mumkin)
-    func snap(now: Date) -> StepSnap {
+    func snap(now: Date, turn: Int?) -> StepSnap {
         let status: StepStatus = failed ? .failed : (end == nil && now.timeIntervalSince(start) < 600 ? .running : .done)
         let duration = end.map { $0.timeIntervalSince(start) } ?? (status == .running ? now.timeIntervalSince(start) : nil)
         return StepSnap(id: id, date: start, symbol: symbol, text: text, category: target.category,
-                        targetName: target.name, duration: duration, status: status)
+                        targetName: target.name, duration: duration, status: status, turn: turn.map { $0 + 1 })
     }
 }
 
@@ -576,8 +617,19 @@ private final class SessionAcc {
     var context = 0
     var agents: [String: AgentAcc] = [:]
     var lastActivity: Date?
+    /// So'rovlar, boshlanish vaqti bo'yicha tartiblangan
+    var turns: [(start: Date, prompt: String)] = []
+    /// Har bir sanalgan javob: vaqti va tokenlari (so'rovlar bo'yicha taqsimlash uchun)
+    var usageLog: [(Date, TokenCounts)] = []
 
     init(id: String) { self.id = id }
+
+    func addTurn(start: Date, prompt: String) {
+        // Bir xil so'rov qayta o'qilsa (fayl qayta yozilgan) — takrorlanmaydi
+        guard !turns.contains(where: { $0.start == start }) else { return }
+        let i = turns.firstIndex { $0.start > start } ?? turns.count
+        turns.insert((start: start, prompt: prompt), at: i)
+    }
 
     var displayProject: String { project.isEmpty ? String(id.prefix(8)) : project }
     var displayTitle: String {
