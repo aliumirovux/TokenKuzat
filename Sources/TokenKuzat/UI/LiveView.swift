@@ -51,7 +51,8 @@ struct LiveView: View {
     private var cards: some View {
         let snap = store.snap
         let shown = Self.sessions(snap)
-        if shown.isEmpty {
+        let other = snap.outside.flatMap { o in Self.showOther(o, now: snap.updatedAt) ? o : nil }
+        if shown.isEmpty && other == nil {
             VStack {
                 Spacer()
                 EmptyStateView(symbol: "square.grid.2x2", title: "Hozir hech qaysi agent ishlamayapti",
@@ -61,6 +62,7 @@ struct LiveView: View {
         } else {
             ScrollView {
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 300), spacing: 14, alignment: .top)], spacing: 14) {
+                    if let other { OutsideUsageCard(usage: other, now: snap.updatedAt) }
                     ForEach(shown, id: \.id) { s in
                         LiveCard(session: s, waiting: snap.permissionWaits[s.id], now: snap.updatedAt) { open(s) }
                     }
@@ -68,6 +70,11 @@ struct LiveView: View {
                 .padding(.horizontal, 24).padding(.bottom, 24)
             }
         }
+    }
+
+    /// Boshqa joydagi sarf kartasi: oxirgi bir soat ichida bo'lgan bo'lsa
+    static func showOther(_ o: OutsideUsage, now: Date) -> Bool {
+        o.lastActivity.map { now.timeIntervalSince($0) < 3600 } ?? false
     }
 
     /// Kartadagi sessiyalar tartibi: ruxsat kutyapti → ishlayapti → yaqinda tugagan
@@ -272,5 +279,73 @@ struct PillSegments<ID: Hashable>: View {
         .background(RoundedRectangle(cornerRadius: compact ? 10 : 11, style: .continuous).fill(Brand.surface.opacity(0.7)))
         .overlay(RoundedRectangle(cornerRadius: compact ? 10 : 11, style: .continuous).stroke(Brand.line))
         .fixedSize()
+    }
+}
+
+/// Chat va boshqa joylar: Claude desktop Chat, claude.ai, telefon yoki boshqa kompyuter.
+/// Suhbat ichi ko'rinmaydi — faqat limit foizi qancha o'sgani (shu Mac'dagi sarf ayirilgan)
+private struct OutsideUsageCard: View {
+    let usage: OutsideUsage
+    let now: Date
+
+    var body: some View {
+        let active = usage.isActive(now: now)
+        let color: Color = active ? Brand.ok : .secondary
+        let recent = usage.percent(within: 30 * 60, now: now)
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 10) {
+                Image(systemName: "bubble.left.and.text.bubble.right.fill")
+                    .font(.system(size: 13, weight: .semibold)).foregroundStyle(.white)
+                    .frame(width: 30, height: 30)
+                    .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(Palette.agents))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Chat va boshqa joylar").font(.system(size: 15, weight: .semibold, design: .rounded)).lineLimit(1)
+                    HStack(spacing: 5) {
+                        if active { StateDot(state: .running, size: 6) } else { Circle().fill(color).frame(width: 6, height: 6) }
+                        Text(active ? "Faol" : "Tinch · \(Fmt.ago(usage.lastActivity, now: now))")
+                    }
+                    .font(.caption.weight(.semibold)).foregroundStyle(color)
+                }
+                Spacer(minLength: 0)
+            }
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Text("~\(Int(recent.rounded()))%").font(.system(size: 26, weight: .semibold, design: .rounded)).monospacedDigit()
+                Text("so'nggi 30 daqiqada 5 soatlik limitdan").font(.callout).foregroundStyle(.secondary)
+            }
+            bars
+            Divider()
+            Text("Claude desktop Chat, claude.ai yoki boshqa qurilma. Suhbat ichi ko'rinmaydi — limit o'zgarishidan taxmin (bir necha daqiqa kechikishi mumkin).")
+                .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .topLeading)
+        .surface(radius: 16)
+        .help("Limit o'sgan, lekin shu Mac'dagi Claude Code sessiyalari buni tushuntirmagan qismi")
+    }
+
+    /// Oxirgi 2 soat, 15 daqiqalik ustunlar
+    private var bars: some View {
+        let slots = 8, slot: TimeInterval = 15 * 60
+        let values = (0..<slots).map { i -> Double in
+            let end = now.addingTimeInterval(-Double(slots - 1 - i) * slot)
+            return usage.percent(within: slot, now: end)
+        }
+        let top = max(values.max() ?? 0, 3)
+        return VStack(alignment: .leading, spacing: 4) {
+            HStack(alignment: .bottom, spacing: 4) {
+                ForEach(Array(values.enumerated()), id: \.offset) { _, v in
+                    RoundedRectangle(cornerRadius: 3, style: .continuous)
+                        .fill(v > 0 ? Palette.agents : Brand.line)
+                        .frame(height: max(3, 34 * v / top))
+                        .frame(maxWidth: .infinity)
+                        .help(v > 0 ? "~\(Int(v.rounded()))%" : "")
+                }
+            }
+            .frame(height: 34, alignment: .bottom)
+            HStack {
+                Text("2 soat oldin"); Spacer(); Text("hozir")
+            }
+            .font(.caption2).foregroundStyle(.tertiary)
+        }
     }
 }

@@ -45,7 +45,8 @@ struct LiveLanes: View {
         let now = snap.updatedAt
         let start = now.addingTimeInterval(-window.seconds)
         let groups = Self.sessions(snap, since: start)
-        if groups.isEmpty {
+        let other = Self.merged((snap.outside?.segments ?? []).filter { $0.end > start })
+        if groups.isEmpty && other.isEmpty {
             VStack {
                 Spacer()
                 EmptyStateView(symbol: "chart.bar.xaxis", title: "Bu oraliqda harakat yo'q",
@@ -56,6 +57,7 @@ struct LiveLanes: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     ruler(start: start, now: now)
+                    if !other.isEmpty { otherRow(other, start: start, now: now) }
                     ForEach(groups, id: \.id) { s in
                         group(s, start: start, now: now)
                     }
@@ -96,6 +98,66 @@ struct LiveLanes: View {
             .frame(height: L.rulerH)
         }
         .padding(.bottom, 6)
+    }
+
+    // MARK: Chat va boshqa joylar
+
+    /// Yonma-yon bo'laklar bittaga (har o'sish — alohida qayd, 1–2 daqiqalik; chiziqda o'qib bo'lmaydi)
+    static func merged(_ segs: [OutsideUsage.Segment], gap: TimeInterval = 5 * 60) -> [OutsideUsage.Segment] {
+        var out: [OutsideUsage.Segment] = []
+        for s in segs {
+            if let l = out.last, s.start.timeIntervalSince(l.end) <= gap {
+                out[out.count - 1] = .init(start: l.start, end: max(l.end, s.end), percent: l.percent + s.percent)
+            } else {
+                out.append(s)
+            }
+        }
+        return out
+    }
+
+    /// Shu Mac'dan tashqaridagi sarf: suhbat ko'rinmaydi, faqat qaysi 15 daqiqalarda limit qancha o'sgani
+    private func otherRow(_ segs: [OutsideUsage.Segment], start: Date, now: Date) -> some View {
+        let active = snap.outside?.isActive(now: now) ?? false
+        return HStack(spacing: 0) {
+            HStack(spacing: 8) {
+                Image(systemName: "bubble.left.and.text.bubble.right.fill")
+                    .font(.system(size: 10, weight: .semibold)).foregroundStyle(.white)
+                    .frame(width: 22, height: 22)
+                    .background(RoundedRectangle(cornerRadius: 6, style: .continuous).fill(Palette.agents))
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("Chat va boshqa joylar").font(.system(size: 13, weight: .semibold)).lineLimit(1)
+                    Text(active ? "faol · limitdan taxmin" : "limitdan taxmin")
+                        .font(.caption2.weight(.semibold)).foregroundStyle(active ? Brand.ok : .secondary)
+                }
+            }
+            .padding(.trailing, 10)
+            .frame(width: L.labelW, alignment: .leading)
+            GeometryReader { geo in
+                let w = geo.size.width, h = geo.size.height, span = window.seconds
+                let x: (Date) -> CGFloat = { CGFloat($0.timeIntervalSince(start) / span) * w }
+                ZStack(alignment: .topLeading) {
+                    RoundedRectangle(cornerRadius: 6).fill(Brand.surface.opacity(0.7))
+                    ForEach(segs, id: \.start) { sg in
+                        let a = max(0, x(sg.start)), b = min(w, x(sg.end))
+                        RoundedRectangle(cornerRadius: 3, style: .continuous)
+                            .fill(Palette.agents.opacity(0.35))
+                            .overlay(RoundedRectangle(cornerRadius: 3, style: .continuous).stroke(Palette.agents.opacity(0.8), lineWidth: 1))
+                            .overlay {
+                                if b - a > 28 {
+                                    Text("~\(Int(sg.percent.rounded()))%").font(.system(size: 10, weight: .bold)).foregroundStyle(Palette.agents)
+                                }
+                            }
+                            .frame(width: max(3, b - a), height: h - 10)
+                            .position(x: (a + b) / 2, y: h / 2)
+                            .help("\(Fmt.hourMinute.string(from: sg.start))–\(Fmt.hourMinute.string(from: sg.end)): 5 soatlik limitdan ~\(Int(sg.percent.rounded()))%")
+                    }
+                }
+            }
+            .frame(height: L.mainH)
+        }
+        .padding(.vertical, 10)
+        .overlay(alignment: .bottom) { Rectangle().fill(Brand.line).frame(height: 1) }
+        .help("Claude desktop Chat, claude.ai yoki boshqa qurilma — suhbat ichi ko'rinmaydi, limit o'zgarishidan taxmin")
     }
 
     // MARK: Sessiya guruhi

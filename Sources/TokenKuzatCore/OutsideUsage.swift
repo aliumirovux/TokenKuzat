@@ -31,7 +31,40 @@ public struct OutsideUsage: Equatable, Sendable {
     /// Oxirgi limit o'lchovi
     public var updatedAt: Date?
 
+    /// So'nggi 6 soatdagi tashqi sarf vaqt bo'yicha («Jonli» sahifa uchun), eskidan yangiga
+    public var segments: [Segment] = []
+
+    public struct Segment: Equatable, Sendable {
+        public let start: Date
+        public let end: Date
+        /// Limitning foizida (Mac ulushi ayirilgan)
+        public let percent: Double
+
+        public init(start: Date, end: Date, percent: Double) {
+            self.start = start
+            self.end = end
+            self.percent = percent
+        }
+    }
+
     public init() {}
+
+    /// Oxirgi `window` ichida tashqarida ketgan % (bo'lak qisman tushsa — ulushiga qarab)
+    public func percent(within window: TimeInterval, now: Date) -> Double {
+        let from = now.addingTimeInterval(-window)
+        return segments.reduce(0) { acc, s in
+            let a = max(s.start, from), b = min(s.end, now)
+            guard b > a else { return acc }
+            return acc + s.percent * b.timeIntervalSince(a) / max(1, s.end.timeIntervalSince(s.start))
+        }
+    }
+
+    /// Hozir tashqarida ish ketyapti: oxirgi o'sish yaqinda (foiz butun sonlarda o'sadi — bir necha daqiqa kechikadi)
+    public func isActive(now: Date) -> Bool {
+        lastActivity.map { now.timeIntervalSince($0) <= 15 * 60 } ?? false
+    }
+
+    public var lastActivity: Date? { segments.last?.end }
 
     public var calibrated: Bool { tokensPerPct != nil }
     /// Oynada kuzatilgan qism
@@ -49,6 +82,8 @@ public final class OutsideUsageTracker {
         var local: Double
         /// Foiz o'sishi
         var d: Double
+        /// O'sish to'plana boshlagan vaqt (oldingi qayd) — eski yozuvlarda yo'q
+        var s: Double? = nil
     }
 
     struct State: Codable, Equatable {
@@ -57,6 +92,8 @@ public final class OutsideUsageTracker {
         var lastT: Double?
         var lastPct: Double?
         var pendingLocal: Double = 0
+        /// `pendingLocal` qachondan beri yig'ilyapti
+        var pendingSince: Double?
         var pairs: [Pair] = []
     }
 
@@ -98,7 +135,9 @@ public final class OutsideUsageTracker {
             let prev = state.lastT.map { Date(timeIntervalSince1970: $0) }
             state.windowResetsAt = w
             state.pendingLocal = 0
+            state.pendingSince = tt
             if let prev, t.timeIntervalSince(prev) <= Self.maxGap, start <= t {
+                state.pendingSince = max(prev, start).timeIntervalSince1970
                 // Yangi oyna kuzatuv paytida boshlandi — boshlang'ich foiz ham o'lchanadi
                 state.baseline = 0
                 state.lastPct = 0
@@ -116,6 +155,7 @@ public final class OutsideUsageTracker {
 
         if let prev = state.lastT {
             state.pendingLocal += Self.local(minutes, from: Date(timeIntervalSince1970: prev), to: t)
+            if state.pendingSince == nil { state.pendingSince = prev }
         }
         state.lastT = tt
         let d = pct - (state.lastPct ?? pct)
@@ -129,8 +169,9 @@ public final class OutsideUsageTracker {
     }
 
     private func record(d: Double, at tt: Double) {
-        state.pairs.append(Pair(t: tt, w: state.windowResetsAt ?? 0, local: state.pendingLocal, d: d))
+        state.pairs.append(Pair(t: tt, w: state.windowResetsAt ?? 0, local: state.pendingLocal, d: d, s: state.pendingSince))
         state.pendingLocal = 0
+        state.pendingSince = tt
     }
 
     private func prune(now: Double) {
@@ -174,6 +215,18 @@ public final class OutsideUsageTracker {
             o.outsideTodayPct += Self.split(p, k: k).out
         }
         o.outsideTodayTokens = k.map { $0 * o.outsideTodayPct }
+        // Vaqt bo'yicha: har o'sish — oldingi qaydidan shu qaydigacha (eski yozuvlarda — oldingi juftdan, ko'pi 15 daqiqa)
+        let since = now.timeIntervalSince1970 - 6 * 3600
+        var prevT: Double?
+        for p in state.pairs {
+            defer { prevT = p.t }
+            guard p.t >= since else { continue }
+            let out = Self.split(p, k: k).out
+            guard out > 0.05 else { continue }
+            let start = max(p.s ?? prevT ?? (p.t - 90), p.t - 2 * 3600)
+            o.segments.append(.init(start: Date(timeIntervalSince1970: min(start, p.t - 60)),
+                                    end: Date(timeIntervalSince1970: p.t), percent: out))
+        }
         return o
     }
 

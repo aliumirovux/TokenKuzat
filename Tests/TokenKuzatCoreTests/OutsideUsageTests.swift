@@ -146,4 +146,21 @@ final class OutsideUsageTests: XCTestCase {
             XCTAssertEqual(s.outsideTodayPct, 3, accuracy: 1e-9)
         }
     }
+
+    func testSegmentsSpanFromPreviousRecordAndFeedLivePage() {
+        let tr = OutsideUsageTracker(url: nil)
+        tr.observe(w(10), at: at(0), minutes: minutes([:]))
+        tr.observe(w(10), at: at(2), minutes: minutes([:]))
+        tr.observe(w(12), at: at(4), minutes: minutes([:]))
+        tr.observe(w(15), at: at(10), minutes: minutes([:]))
+        let s = tr.summary(now: at(11))
+        XCTAssertEqual(s.segments.count, 2)
+        XCTAssertEqual(s.segments.first?.start, at(0))
+        XCTAssertEqual(s.segments.first?.end, at(4))
+        XCTAssertEqual(s.segments.last?.start, at(4))
+        XCTAssertEqual(s.segments.map(\.percent), [2, 3])
+        XCTAssertTrue(s.isActive(now: at(11)))
+        XCTAssertFalse(s.isActive(now: at(40)))
+        XCTAssertEqual(s.percent(within: 7 * 60, now: at(11)), 3, accuracy: 1e-9)
+    }
 }

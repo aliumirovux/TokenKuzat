@@ -1,5 +1,9 @@
 # O'zgarishlar
 
+## 6.19.0 — 2026-10-28
+
+- «Jonli» sahifada «Chat va boshqa joylar»: claude.ai / desktop chat, bulut va boshqa qurilmadagi ish vaqt bo'yicha — kartada (faol/tinch, so'nggi 30 daqiqada 5 soatlik limitdan ~%, 2 soatlik ustunlar) va «Chiziqlar»da alohida qatorda. Hisob — 6.16 dagi «limitning chat va bulutga ketgan qismi» (bitta manba): har o'sish qaydiga boshlanish vaqti qo'shildi va `OutsideUsage.segments` — so'nggi 6 soat bo'yicha bo'laklar.
+
 ## 6.18.0 — 2026-10-28
 
 - Bulutdagi chatlar xaritada: claude.ai / desktop chatdagi ishlar Anthropic bulutida bajariladi va Mac'ga yozilmaydi, lekin ularning yozuvi Claude Code bilan bir xil (.jsonl). Sozlamalar → Ma'lumot → «Chat yozuvini qo'shish…» yoki faylni oynaga sudrab tashlash — sessiya «Claude chat» loyihasi bo'lib chiqadi: so'rovlar, qadamlar, Kirish/Chiqish, tokenlar va Replay.
