@@ -101,10 +101,10 @@ struct GraphScreen: View {
                                    })
                         if showInspector {
                             Divider()
-                            inspector(session, now: now).frame(width: 320)
+                            inspector(session, now: now).frame(width: 384)
                         }
                     }
-                    .frame(height: 560)
+                    .frame(height: 640)
                     .card(padding: 0)
                     .padding(.horizontal, 24).padding(.bottom, 20)
                 case "files":
@@ -296,34 +296,47 @@ private enum Dur {
     }
 }
 
+/// Bo'lim: sarlavha (oddiy yozuv, kattaroq) va ichidagi karta
 private struct InspectorBlock<Content: View>: View {
     let title: String
     var trailing: String? = nil
+    var card = true
     @ViewBuilder let content: Content
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text(title).font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+            HStack(alignment: .firstTextBaseline) {
+                Text(title).font(.subheadline.weight(.semibold))
                 Spacer()
-                if let trailing { Text(trailing).font(.caption2).foregroundStyle(.tertiary) }
+                if let trailing { Text(trailing).font(.caption).foregroundStyle(.secondary).monospacedDigit() }
             }
-            content
+            .padding(.horizontal, 2)
+            if card {
+                content
+                    .padding(14)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .surface(radius: 14)
+            } else {
+                content
+            }
         }
     }
 }
 
-private struct KV: View {
-    let k: String
-    let v: String
-    var bold = false
+/// Holat yorlig'i: nuqta va matn kapsulada
+private struct StatePill: View {
+    let state: AgentState
 
     var body: some View {
-        HStack {
-            Text(k).font(.caption)
-            Spacer()
-            Text(v).font(bold ? .caption.weight(.semibold) : .caption).monospacedDigit()
+        let color: Color = state == .idle ? .secondary : (state == .running ? Brand.ok : Brand.warn)
+        HStack(spacing: 6) {
+            StateDot(state: state, size: 7)
+            Text(state == .idle ? "Tugagan" : state.title)
         }
+        .font(.caption.weight(.semibold))
+        .foregroundStyle(color)
+        .padding(.horizontal, 9).padding(.vertical, 4)
+        .background(Capsule().fill(color.opacity(0.12)))
     }
 }
 
@@ -342,77 +355,196 @@ private struct AgentInspector: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
-                HStack(alignment: .top, spacing: 12) {
-                    IconTile(symbol: agentSymbol(agent), tint: agent.isMain ? Palette.main : Palette.agents, size: 40)
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(agent.isMain ? "Asosiy agent" : agent.title)
-                            .font(.headline).fixedSize(horizontal: false, vertical: true)
-                        if !agent.subtitle.isEmpty { Text(agent.subtitle).font(.caption).foregroundStyle(.secondary) }
-                        HStack(spacing: 6) {
-                            StateDot(state: agent.state, size: 7)
-                            Text(agent.state.title).font(.caption)
-                        }
-                    }
+            VStack(alignment: .leading, spacing: 20) {
+                header
+                InspectorBlock(title: "Hozir") { now }
+                InspectorBlock(title: "Tokenlar", trailing: "\(agent.calls) API chaqiruv") {
+                    TokenBreakdown(tokens: agent.tokens, mode: mode, sessionTotal: sessionTotal)
                 }
-
-                InspectorBlock(title: "HOZIR") {
-                    HStack(alignment: .top, spacing: 8) {
-                        if let running = agent.steps.last, running.status == .running {
-                            ProgressView().controlSize(.small)
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(running.text).font(.callout)
-                                Text("\(Dur.text(running.duration)) davom etyapti").font(.caption).foregroundStyle(.secondary)
-                            }
-                        } else {
-                            Text(agent.lastAction).font(.callout)
-                        }
-                    }
-                }
-
-                InspectorBlock(title: "TOKENLAR") {
-                    VStack(spacing: 5) {
-                        KV(k: "Jami", v: Fmt.tokens(agent.tokens.value(mode)), bold: true)
-                        KV(k: "Sessiyadagi ulushi", v: Fmt.percent(agent.tokens.value(mode), of: sessionTotal))
-                        KV(k: "Kesh o'qish / yozish", v: "\(Fmt.tokens(agent.tokens.cacheRead)) / \(Fmt.tokens(agent.tokens.cacheWrite))")
-                        KV(k: "Javob (shundan fikrlash)", v: "\(Fmt.tokens(agent.tokens.output)) (\(Fmt.tokens(agent.tokens.thinking)))")
-                        KV(k: "API chaqiruvlar", v: "\(agent.calls)")
-                    }
-                }
-
                 if !agent.resources.isEmpty {
-                    InspectorBlock(title: "NIMALARGA KIRDI") {
-                        VStack(spacing: 4) {
-                            ForEach(agent.resources) { g in
-                                Button { openResource(g.category) } label: {
-                                    HStack(spacing: 8) {
-                                        Image(systemName: g.category.symbol).foregroundStyle(g.category.color).frame(width: 16)
-                                        Text(g.category.title).font(.callout)
-                                        if g.busy { ProgressView().controlSize(.mini) }
-                                        Spacer()
-                                        Text("\(g.items.count) ta · \(g.calls)×").font(.caption).foregroundStyle(.secondary).monospacedDigit()
-                                        Image(systemName: "chevron.right").font(.caption2).foregroundStyle(.tertiary)
-                                    }
-                                    .padding(.vertical, 4).padding(.horizontal, 6)
-                                    .contentShape(Rectangle())
-                                }
-                                .buttonStyle(RowButtonStyle())
-                            }
-                        }
+                    InspectorBlock(title: "Nimalarga kirdi", trailing: "\(agent.resources.reduce(0) { $0 + $1.calls }) chaqiruv") {
+                        ResourceList(groups: agent.resources, open: openResource)
                     }
                 }
-
-                InspectorBlock(title: "JARAYON", trailing: trailing) {
+                InspectorBlock(title: "Jarayon", trailing: trailing, card: false) {
                     if agent.steps.isEmpty && (!agent.isMain || turns.isEmpty) {
-                        Text("Hali asbob chaqirilmagan.").font(.caption).foregroundStyle(.secondary)
+                        Text("Hali asbob chaqirilmagan.").font(.callout).foregroundStyle(.secondary)
                     } else {
                         TurnTimeline(steps: agent.steps, turns: turns, showEmptyTurns: agent.isMain, mode: mode)
                     }
                 }
             }
-            .padding(16)
+            .padding(18)
         }
-        .background(.thinMaterial)
+        .background(Brand.sunken)
+    }
+
+    private var header: some View {
+        HStack(alignment: .center, spacing: 12) {
+            ToolTile(symbol: agentSymbol(agent), color: agent.isMain ? Palette.main : Palette.agents, size: 46)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(agent.isMain ? "Asosiy agent" : agent.title)
+                    .font(.title3.weight(.semibold)).fixedSize(horizontal: false, vertical: true)
+                HStack(spacing: 8) {
+                    if !agent.subtitle.isEmpty {
+                        Text(agent.subtitle).font(.callout).foregroundStyle(.secondary).lineLimit(1)
+                    }
+                    StatePill(state: agent.state)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var now: some View {
+        if let running = agent.steps.last, running.status == .running {
+            HStack(alignment: .top, spacing: 12) {
+                ToolTile(symbol: running.symbol, color: running.category.color, size: 32)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(running.text).font(.body.weight(.medium)).fixedSize(horizontal: false, vertical: true)
+                    HStack(spacing: 6) {
+                        ProgressView().controlSize(.mini)
+                        Text("\(Dur.text(running.duration)) davom etyapti")
+                    }
+                    .font(.callout).foregroundStyle(Brand.ok)
+                }
+            }
+        } else {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(agent.state == .waiting ? "Asbob natijasini kutyapti" : "Oxirgi harakat")
+                    .font(.caption).foregroundStyle(.secondary)
+                Text(agent.lastAction).font(.body.weight(.medium)).fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+}
+
+/// Tokenlar: katta jami, tarkib chizig'i va har bir qism nimaligi izohi bilan
+private struct TokenBreakdown: View {
+    let tokens: TokenCounts
+    let mode: CountMode
+    let sessionTotal: Double
+
+    private struct Part: Identifiable {
+        let id: String
+        let title: String
+        let hint: String
+        let value: Int
+        let color: Color
+    }
+
+    private var parts: [Part] {
+        [
+            Part(id: "cr", title: "Keshdan o'qildi", hint: "Avvalgi kontekst qayta ishlatildi — eng arzon",
+                 value: tokens.cacheRead, color: Brand.accent),
+            Part(id: "cw", title: "Keshga yozildi", hint: "Yangi kontekst keyingi so'rovlar uchun saqlandi",
+                 value: tokens.cacheWrite, color: Color(light: 0x2F7BE5, dark: 0x4A8FF0)),
+            Part(id: "in", title: "Yangi kiritish", hint: "Keshsiz yuborilgan matn",
+                 value: tokens.input, color: Color(light: 0x0E9F8E, dark: 0x16B3A0)),
+            Part(id: "out", title: "Javob", hint: tokens.thinking > 0
+                    ? "Model yozgan matn · shundan fikrlash \(Fmt.tokens(Double(tokens.thinking)))"
+                    : "Model yozgan matn",
+                 value: tokens.output, color: Color(light: 0xE0731C, dark: 0xEC8432)),
+        ]
+    }
+
+    var body: some View {
+        let total = max(tokens.total, 1)
+        let ps = parts
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Text(Fmt.tokens(tokens.value(mode)))
+                    .font(.system(size: 30, weight: .bold, design: .rounded)).monospacedDigit()
+                Text(mode == .weighted ? "vaznli token" : "token").font(.callout).foregroundStyle(.secondary)
+                Spacer()
+                Text("sessiyaning \(Fmt.percent(tokens.value(mode), of: sessionTotal))")
+                    .font(.caption.weight(.semibold)).foregroundStyle(Brand.accent)
+                    .padding(.horizontal, 8).padding(.vertical, 3)
+                    .background(Capsule().fill(Brand.accentSoft))
+            }
+
+            // Tarkib chizig'i: kichik qismlar ham ko'rinsin (kamida 3 pt)
+            GeometryReader { geo in
+                let gap: CGFloat = 2
+                let visible = ps.filter { $0.value > 0 }
+                let usable = geo.size.width - gap * CGFloat(max(visible.count - 1, 0))
+                HStack(spacing: gap) {
+                    ForEach(visible) { p in
+                        RoundedRectangle(cornerRadius: 3, style: .continuous).fill(p.color)
+                            .frame(width: max(3, usable * CGFloat(p.value) / CGFloat(total)))
+                            .help("\(p.title): \(Fmt.tokens(Double(p.value)))")
+                    }
+                }
+            }
+            .frame(height: 10)
+
+            VStack(spacing: 10) {
+                ForEach(ps) { p in
+                    HStack(alignment: .top, spacing: 10) {
+                        RoundedRectangle(cornerRadius: 3, style: .continuous).fill(p.color)
+                            .frame(width: 10, height: 10).padding(.top, 4)
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(p.title).font(.callout.weight(.medium))
+                            Text(p.hint).font(.caption).foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        Spacer(minLength: 8)
+                        VStack(alignment: .trailing, spacing: 1) {
+                            Text(Fmt.tokens(Double(p.value))).font(.callout.weight(.semibold)).monospacedDigit()
+                            Text(Fmt.percent(Double(p.value), of: Double(total)))
+                                .font(.caption).foregroundStyle(.secondary).monospacedDigit()
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// Asbob turlari: plitka, nechta nishon, chaqiruvlar ulushi chizig'i; bosilsa — ro'yxat ochiladi
+private struct ResourceList: View {
+    let groups: [ResourceGroup]
+    let open: (ToolCategory) -> Void
+
+    var body: some View {
+        let sorted = groups.sorted { $0.calls > $1.calls }
+        let mx = Double(max(sorted.first?.calls ?? 1, 1))
+        VStack(spacing: 2) {
+            ForEach(sorted) { g in
+                Button { open(g.category) } label: {
+                    HStack(spacing: 12) {
+                        ToolTile(symbol: g.category.symbol, color: g.category.color, size: 34)
+                        VStack(alignment: .leading, spacing: 5) {
+                            HStack(spacing: 6) {
+                                Text(g.category.title).font(.body.weight(.medium))
+                                if g.busy { ProgressView().controlSize(.mini) }
+                                Spacer(minLength: 6)
+                                Text("\(g.calls)×").font(.callout.weight(.semibold)).monospacedDigit()
+                            }
+                            GeometryReader { geo in
+                                ZStack(alignment: .leading) {
+                                    Capsule().fill(Brand.line)
+                                    Capsule().fill(g.category.color)
+                                        .frame(width: max(4, geo.size.width * Double(g.calls) / mx))
+                                }
+                            }
+                            .frame(height: 4)
+                            HStack(spacing: 6) {
+                                Text("\(g.items.count) ta nishon")
+                                if g.errors > 0 { Text("· \(g.errors) xato").foregroundStyle(Brand.err) }
+                            }
+                            .font(.caption).foregroundStyle(.secondary)
+                        }
+                        Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundStyle(.tertiary)
+                    }
+                    .padding(.vertical, 8).padding(.horizontal, 6)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(RowButtonStyle())
+                .help("\(g.category.title): ro'yxat va qadamlarni ochish")
+            }
+        }
+        .padding(.horizontal, -6).padding(.vertical, -4)
     }
 }
 
@@ -425,28 +557,33 @@ private struct ResourceInspector: View {
     var body: some View {
         let steps = Array(owner.steps.filter { $0.category == group.category }.reversed())
         ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: 20) {
                 Button(action: back) {
                     Label(owner.isMain ? "Asosiy agent" : owner.title, systemImage: "chevron.left")
-                        .font(.caption).lineLimit(1)
+                        .font(.callout.weight(.medium)).lineLimit(1)
+                        .padding(.horizontal, 10).padding(.vertical, 5)
+                        .surfaceCapsule()
                 }
-                .buttonStyle(.link)
+                .buttonStyle(.plain)
 
                 HStack(spacing: 12) {
-                    IconTile(symbol: group.category.symbol, tint: group.category.color, size: 40)
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(group.category.title).font(.headline)
-                        Text("\(group.items.count) ta · \(group.calls) chaqiruv\(group.errors > 0 ? " · \(group.errors) xato" : "")")
-                            .font(.caption).foregroundStyle(.secondary)
+                    ToolTile(symbol: group.category.symbol, color: group.category.color, size: 46)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(group.category.title).font(.title3.weight(.semibold))
+                        HStack(spacing: 6) {
+                            Text("\(group.items.count) ta nishon · \(group.calls) chaqiruv")
+                            if group.errors > 0 { Text("· \(group.errors) xato").foregroundStyle(Brand.err) }
+                        }
+                        .font(.callout).foregroundStyle(.secondary)
                     }
                 }
 
-                InspectorBlock(title: "RO'YXAT") {
-                    VStack(spacing: 8) {
-                        ForEach(group.items) { item in
-                            VStack(alignment: .leading, spacing: 2) {
-                                HStack(spacing: 6) {
-                                    Text(item.name).font(.callout).lineLimit(1).truncationMode(.middle)
+                InspectorBlock(title: "Ro'yxat", trailing: "\(group.items.count) ta") {
+                    VStack(spacing: 0) {
+                        ForEach(Array(group.items.enumerated()), id: \.element.id) { i, item in
+                            VStack(alignment: .leading, spacing: 3) {
+                                HStack(spacing: 8) {
+                                    Text(item.name).font(.body.weight(.medium)).lineLimit(1).truncationMode(.middle)
                                     Spacer(minLength: 4)
                                     AccessBadges(item: item)
                                 }
@@ -455,20 +592,22 @@ private struct ResourceInspector: View {
                                     Spacer()
                                     Text(Fmt.ago(item.lastActivity, now: now))
                                 }
-                                .font(.caption2).foregroundStyle(.secondary)
+                                .font(.caption).foregroundStyle(.secondary)
                             }
-                            Divider()
+                            .padding(.vertical, 8)
+                            if i < group.items.count - 1 { Divider() }
                         }
                     }
+                    .padding(.vertical, -6)
                 }
 
-                InspectorBlock(title: "QADAMLAR", trailing: "\(steps.count) ta") {
+                InspectorBlock(title: "Qadamlar", trailing: "\(steps.count) ta") {
                     StepTimeline(steps: steps)
                 }
             }
-            .padding(16)
+            .padding(18)
         }
-        .background(.thinMaterial)
+        .background(Brand.sunken)
     }
 }
 
@@ -482,22 +621,23 @@ private struct StepTimeline: View {
             ForEach(Array(shown.enumerated()), id: \.element.id) { i, s in
                 HStack(alignment: .top, spacing: 10) {
                     VStack(spacing: 0) {
-                        statusIcon(s).frame(width: 16, height: 16)
+                        statusIcon(s).frame(width: 22, height: 22)
                         if i < shown.count - 1 {
-                            Rectangle().fill(Color.primary.opacity(0.1)).frame(width: 1).frame(maxHeight: .infinity)
+                            Rectangle().fill(Brand.line).frame(width: 1.5).frame(maxHeight: .infinity)
                         }
                     }
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(s.text).font(.caption).lineLimit(2)
-                            .foregroundStyle(s.status == .failed ? Color.red : Color.primary)
+                        Text(s.text).font(.callout).lineLimit(3)
+                            .foregroundStyle(s.status == .failed ? Brand.err : Color.primary)
+                            .fixedSize(horizontal: false, vertical: true)
                         HStack(spacing: 6) {
                             Text(Fmt.clock.string(from: s.date))
                             if let d = s.duration { Text("· " + Dur.text(d)) }
-                            if s.status == .failed { Text("· xato").foregroundStyle(.red) }
+                            if s.status == .failed { Text("· xato").foregroundStyle(Brand.err) }
                         }
-                        .font(.caption2.monospacedDigit()).foregroundStyle(.secondary)
+                        .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
                     }
-                    .padding(.bottom, 10)
+                    .padding(.top, 2).padding(.bottom, 12)
                     Spacer(minLength: 0)
                 }
             }
@@ -510,9 +650,11 @@ private struct StepTimeline: View {
         case .running:
             ProgressView().controlSize(.mini)
         case .failed:
-            Image(systemName: "xmark.circle.fill").foregroundStyle(.red).font(.caption)
+            Image(systemName: "xmark").font(.system(size: 10, weight: .bold)).foregroundStyle(.white)
+                .frame(width: 22, height: 22).background(Circle().fill(Brand.err))
         case .done:
-            Image(systemName: s.symbol).foregroundStyle(s.category.color).font(.system(size: 10, weight: .semibold))
+            Image(systemName: s.symbol).font(.system(size: 10, weight: .semibold)).foregroundStyle(s.category.color)
+                .frame(width: 22, height: 22).background(Circle().fill(s.category.color.opacity(0.13)))
         }
     }
 }
@@ -551,9 +693,10 @@ private struct TurnTimeline: View {
             ForEach(Array(gs.prefix(40).enumerated()), id: \.element.id) { i, g in
                 // Tepadagi so'rov sukut bo'yicha ochiq; bosish holatni almashtiradi
                 let open = (i == 0) != toggled.contains(g.id)
-                VStack(alignment: .leading, spacing: 8) {
+                let active = g.turn?.active == true
+                VStack(alignment: .leading, spacing: 12) {
                     Button {
-                        withAnimation(.easeInOut(duration: 0.15)) {
+                        withAnimation(Motion.snappy) {
                             if toggled.contains(g.id) { toggled.remove(g.id) } else { toggled.insert(g.id) }
                         }
                     } label: { header(g, open: open) }
@@ -561,52 +704,67 @@ private struct TurnTimeline: View {
                     if open {
                         if g.steps.isEmpty {
                             Text("Asbob chaqirilmadi — faqat javob yozildi.")
-                                .font(.caption2).foregroundStyle(.secondary).padding(.leading, 26)
+                                .font(.callout).foregroundStyle(.secondary)
                         } else {
-                            StepTimeline(steps: g.steps).padding(.leading, 4)
+                            StepTimeline(steps: g.steps)
                         }
                     }
                 }
-                .padding(10)
-                .background(RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(Color.primary.opacity(g.turn?.active == true ? 0.07 : 0.04)))
-                .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .strokeBorder(g.turn?.active == true ? Color.green.opacity(0.4) : .clear))
+                .padding(14)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .surface(radius: 14, stroke: active ? Brand.ok.opacity(0.55) : nil)
             }
             if gs.count > 40 {
-                Text("Yana \(gs.count - 40) ta eski so'rov").font(.caption2).foregroundStyle(.tertiary)
+                Text("Yana \(gs.count - 40) ta eski so'rov").font(.caption).foregroundStyle(.secondary)
             }
         }
     }
 
     private func header(_ g: Group, open: Bool) -> some View {
-        HStack(alignment: .top, spacing: 8) {
+        HStack(alignment: .top, spacing: 10) {
             Text(g.turn.map { "#\($0.id)" } ?? "—")
-                .font(.caption2.weight(.bold)).monospacedDigit()
-                .foregroundStyle(Palette.cacheRead)
-                .frame(minWidth: 18, alignment: .leading)
-            VStack(alignment: .leading, spacing: 3) {
+                .font(.caption.weight(.bold)).monospacedDigit()
+                .foregroundStyle(Brand.accent)
+                .padding(.horizontal, 7).padding(.vertical, 3)
+                .background(Capsule().fill(Brand.accentSoft))
+            VStack(alignment: .leading, spacing: 6) {
                 Text(g.turn?.prompt ?? "So'rovdan oldingi qadamlar")
-                    .font(.caption.weight(.medium)).lineLimit(open ? 3 : 1)
+                    .font(.callout.weight(.medium)).lineLimit(open ? 4 : 2)
                     .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
                 if let t = g.turn {
-                    HStack(spacing: 6) {
-                        if t.active { ProgressView().controlSize(.mini) }
-                        Text(Fmt.hourMinute.string(from: t.start))
-                        Text("· " + Dur.text(t.duration))
-                        Text("· \(Fmt.tokens(t.tokens.value(mode)))")
-                        Text("· \(t.steps) qadam")
-                        if t.errors > 0 { Text("· \(t.errors) xato").foregroundStyle(.red) }
+                    // Ikki qator: vaqt — bir qatorda, hajm — ikkinchisida; hech narsa kesilmaydi
+                    VStack(alignment: .leading, spacing: 3) {
+                        HStack(spacing: 5) {
+                            if t.active { ProgressView().controlSize(.mini) }
+                            Image(systemName: "clock")
+                            Text("\(Fmt.hourMinute.string(from: t.start)) · \(Dur.text(t.duration))")
+                        }
+                        HStack(spacing: 10) {
+                            Label(Fmt.tokens(t.tokens.value(mode)), systemImage: "circle.hexagongrid")
+                            Label("\(t.steps) qadam", systemImage: "list.bullet")
+                            if t.errors > 0 {
+                                Label("\(t.errors) xato", systemImage: "exclamationmark.triangle.fill")
+                                    .foregroundStyle(Brand.err)
+                            }
+                        }
+                        .labelStyle(TightLabel())
                     }
-                    .font(.caption2.monospacedDigit()).foregroundStyle(.secondary)
-                    .lineLimit(1).minimumScaleFactor(0.75)
+                    .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
                 }
             }
             Spacer(minLength: 4)
             Image(systemName: "chevron.right")
-                .font(.caption2.weight(.semibold)).foregroundStyle(.tertiary)
+                .font(.caption.weight(.semibold)).foregroundStyle(.tertiary)
                 .rotationEffect(.degrees(open ? 90 : 0))
+                .padding(.top, 4)
         }
         .contentShape(Rectangle())
+    }
+}
+
+private struct TightLabel: LabelStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        HStack(spacing: 4) { configuration.icon; configuration.title }
     }
 }

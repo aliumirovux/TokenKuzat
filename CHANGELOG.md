@@ -1,5 +1,14 @@
 # O'zgarishlar
 
+## 4.4.0 — 2026-10-28
+
+- Oqim → Xulosa'dagi o'ng panel qayta chizildi: kengligi 320 → 384, oqim balandligi 640, shriftlar kattaroq, bo'limlar kartalarda.
+- Sarlavha: asbob plitasi, katta nom, model va holat yorlig'i.
+- Tokenlar: katta jami, sessiyadagi ulush, tarkib chizig'i va har bir qism uchun izoh (keshdan o'qildi, keshga yozildi, yangi kiritish, javob/fikrlash) — qiymat va foiz bilan.
+- «Nimalarga kirdi»: plitalar, chaqiruvlar soni bo'yicha saralangan, ulush chizig'i, nishonlar va xatolar soni.
+- Jarayon: so'rov kartalarida ma'lumot ikki qatorda (vaqt · davomiylik / tokenlar · qadamlar · xatolar) — endi kesilmaydi; qadamlar kattaroq belgilar bilan.
+- Resurs paneli ham shu uslubda.
+
 ## 4.3.0 — 2026-10-28
 
 - Ishlayotgan kartalar chegarasi bo'ylab yorug'lik aylanib yuradi (`LiveBorder`): oq bosh, rangli so'nuvchi dum, yengil nur. Qo'llangan joylar: agent tuguni, ishlayotgan asbob doirasi, «Ishlayapti…» natija tuguni, Jarayondagi bajarilayotgan bosqich, «Bugun»dagi «Hozir» kartasi.
