@@ -254,6 +254,7 @@ public final class Engine {
                 if res.lastActivity.map({ ts > $0 }) ?? true { res.lastActivity = ts }
                 let step = StepAcc(id: id, start: ts, symbol: d.symbol, text: d.text, target: target, resource: res)
                 agent.addStep(step)
+                session.allSteps.append((step, agent.isMain ? nil : agent.title))
                 pendingSteps[id] = step
                 agent.lastAction = d.text
                 agent.lastStop = "tool_use"
@@ -462,18 +463,32 @@ public final class Engine {
             tokens[i].add(c)
             ends[i] = max(ends[i], ts)
         }
-        for a in s.agents.values {
-            for st in a.steps {
-                guard let i = Engine.turnIndex(starts, st.start) else { continue }
-                steps[i] += 1
-                if st.failed { errors[i] += 1 }
-                ends[i] = max(ends[i], st.end ?? st.start)
-            }
+        // Har so'rov bo'yicha: asbob turi → (chaqiruv, xato, nishonlar, band)
+        var cats = Array(repeating: [ToolCategory: (calls: Int, errors: Int, targets: [String: Int], busy: Bool)](), count: s.turns.count)
+        var helpers = Array(repeating: [String](), count: s.turns.count)
+        let now = Date()
+        for (st, helper) in s.allSteps {
+            guard let i = Engine.turnIndex(starts, st.start) else { continue }
+            steps[i] += 1
+            if st.failed { errors[i] += 1 }
+            ends[i] = max(ends[i], st.end ?? st.start)
+            var c = cats[i][st.target.category] ?? (0, 0, [:], false)
+            c.calls += 1
+            if st.failed { c.errors += 1 }
+            c.targets[st.target.name, default: 0] += 1
+            if st.end == nil && now.timeIntervalSince(st.start) < 600 { c.busy = true }
+            cats[i][st.target.category] = c
+            if let h = helper, !helpers[i].contains(h) { helpers[i].append(h) }
         }
         return s.turns.indices.map { i in
             TurnSnap(id: i + 1, prompt: s.turns[i].prompt, start: s.turns[i].start, end: ends[i],
                      tokens: tokens[i], steps: steps[i], errors: errors[i],
-                     active: active && i == s.turns.count - 1)
+                     active: active && i == s.turns.count - 1,
+                     tools: cats[i].map { cat, v in
+                         TurnTool(category: cat, calls: v.calls, errors: v.errors,
+                                  top: v.targets.max { $0.value < $1.value }?.key ?? "", busy: v.busy)
+                     }.sorted { $0.calls > $1.calls },
+                     helpers: helpers[i])
         }
     }
 
@@ -642,6 +657,9 @@ private final class SessionAcc {
     var turns: [(start: Date, prompt: String)] = []
     /// Har bir sanalgan javob: vaqti va tokenlari (so'rovlar bo'yicha taqsimlash uchun)
     var usageLog: [(Date, TokenCounts)] = []
+    /// Barcha qadamlar (agentdagi ro'yxat qisqartiriladi, bu yerda — yo'q): so'rovlar xaritasi uchun.
+    /// Ikkinchi qiymat — yordamchi agent nomi (asosiy agentda nil)
+    var allSteps: [(StepAcc, String?)] = []
 
     init(id: String) { self.id = id }
 

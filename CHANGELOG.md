@@ -1,5 +1,14 @@
 # O'zgarishlar
 
+## 4.5.0 — 2026-10-28
+
+- Yangi «Xarita» (Oqim → Xarita, sukut bo'yicha): butun sessiya n8n uslubidagi cheksiz kanvasda — chapdan o'ngga so'rov kartalari (raqam, vaqt, matn, davomiylik, token, qadam, yordamchilar), har biridan pastga o'sha so'rovda ishlatilgan asboblar (chaqiruv va xato soni bilan).
+- Kontekst tugab davom ettirilgan joy «Kontekst yangilandi» belgisi bilan ko'rsatiladi, keyingi karta «Ish davom etdi» va oldingi so'rov matni bilan. Xulosa bilan boshlangan yangi sessiya fayli oldingi sessiya davomiga avtomatik ulanadi (faqat shu aniq belgi bo'lsa).
+- Boshqarish: sichqoncha bilan sudrash, g'ildirak/trackpad bilan siljitish, ⌘ yoki ⌥ + g'ildirak va chimdish bilan zoom (20–200%), «Hammasini ko'rsatish», mini-xarita, «Hozirgiga qaytish» va yangi so'rovlarga ergashish. Ekrandan tashqaridagi tugunlar chizilmaydi; uzoqlashganda asboblar yashirinadi.
+- Engine: har so'rov uchun asbob turlari xulosasi barcha qadamlar bo'yicha (qisqartirilgan ro'yxatdan emas).
+- Sarlavha qisqardi: uzun so'rov matni o'rniga loyiha nomi, so'rovlar soni va tanlangan so'rov raqami. Chiplar va ro'yxatlarda xulosa matni o'rniga «davom etdi».
+- Ishlab chiquvchi uchun: `--snapshot-map fayl.png`.
+
 ## 4.4.0 — 2026-10-28
 
 - Oqim → Xulosa'dagi o'ng panel qayta chizildi: kengligi 320 → 384, oqim balandligi 640, shriftlar kattaroq, bo'limlar kartalarda.

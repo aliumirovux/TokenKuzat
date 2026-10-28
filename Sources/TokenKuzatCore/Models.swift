@@ -81,8 +81,52 @@ public struct TurnSnap: Identifiable, Sendable {
     public let errors: Int
     /// Hozir shu so'rov ustida ishlanyapti
     public let active: Bool
+    /// So'rov ichida qaysi asbob turlari ishlatildi (barcha qadamlar bo'yicha, ko'pidan oziga)
+    public var tools: [TurnTool] = []
+    /// So'rov ichida ishlagan yordamchi agentlar
+    public var helpers: [String] = []
+
+    public init(id: Int, prompt: String, start: Date, end: Date, tokens: TokenCounts, steps: Int, errors: Int,
+                active: Bool, tools: [TurnTool] = [], helpers: [String] = []) {
+        self.id = id
+        self.prompt = prompt
+        self.start = start
+        self.end = end
+        self.tokens = tokens
+        self.steps = steps
+        self.errors = errors
+        self.active = active
+        self.tools = tools
+        self.helpers = helpers
+    }
 
     public var duration: TimeInterval { max(0, end.timeIntervalSince(start)) }
+
+    /// Kontekst tugab, suhbat xulosa bilan davom ettirilgan joy — bu foydalanuvchi so'rovi emas
+    public var isContinuation: Bool { TurnSnap.isContinuation(prompt) }
+
+    public static func isContinuation(_ prompt: String) -> Bool {
+        prompt.hasPrefix("This session is being continued from a previous conversation")
+    }
+}
+
+/// So'rov ichidagi bitta asbob turi: nechta chaqiruv, xato va eng ko'p ishlatilgan nishon
+public struct TurnTool: Identifiable, Sendable {
+    public var id: String { category.rawValue }
+    public let category: ToolCategory
+    public let calls: Int
+    public let errors: Int
+    public let top: String
+    /// Hozir shu turda qadam bajarilyapti
+    public let busy: Bool
+
+    public init(category: ToolCategory, calls: Int, errors: Int, top: String, busy: Bool) {
+        self.category = category
+        self.calls = calls
+        self.errors = errors
+        self.top = top
+        self.busy = busy
+    }
 }
 
 public struct ResourceItem: Identifiable, Sendable {

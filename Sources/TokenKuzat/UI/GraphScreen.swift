@@ -50,7 +50,7 @@ struct GraphScreen: View {
     @State private var playing = false
     @State private var speed = 20.0
     /// Oqim tabida: «process» — ketma-ket jarayon, «summary» — asboblar xulosasi
-    @AppStorage("flowStyle") private var flowStyle = "process"
+    @AppStorage("flowStyle") private var flowStyle = "map"
     private let ticker = Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()
 
     var body: some View {
@@ -84,8 +84,35 @@ struct GraphScreen: View {
                 }
                 tabs.padding(.horizontal, 24).padding(.top, 16).padding(.bottom, 10)
                 switch graphMode {
+                case "flow" where flowStyle == "map":
+                    let chain = SessionChain.chain(for: session, in: replayOn ? [session] : s.sessions)
+                    HStack(spacing: 0) {
+                        SessionMapView(chain: replayOn ? [session] : chain.map { $0.id == session.id ? session : $0 },
+                                       mode: mode,
+                                       selectedTurn: turnNo.map { "\(session.id)#\($0)" },
+                                       onSelectTurn: { sid, tid in
+                                           if sid != sessionId { sessionId = sid }
+                                           DispatchQueue.main.async { turnId = tid }
+                                       },
+                                       onSelectTool: { sid, tid, cat in
+                                           if sid != sessionId { sessionId = sid }
+                                           DispatchQueue.main.async {
+                                               turnId = tid
+                                               if let m = s.sessions.first(where: { $0.id == sid })?.main {
+                                                   select(.resource(agentId: m.id, category: cat))
+                                               }
+                                           }
+                                       })
+                        if showInspector {
+                            Divider()
+                            inspector(session, now: now).frame(width: 384)
+                        }
+                    }
+                    .frame(height: 560)
+                    .card(padding: 0)
+                    .padding(.horizontal, 24).padding(.bottom, 20)
                 case "flow" where flowStyle == "process":
-                    ProcessFlowView(phases: Phase.build(tl), prompt: turn?.prompt ?? session.title,
+                    ProcessFlowView(phases: Phase.build(tl), prompt: turn?.shownPrompt ?? session.title,
                                     result: flow.result, mode: mode, origin: tl.start)
                         .card(padding: 0)
                         .padding(.horizontal, 24).padding(.bottom, 20)
@@ -160,13 +187,14 @@ struct GraphScreen: View {
             Spacer()
             if graphMode == "flow" {
                 Picker("", selection: $flowStyle) {
+                    Text("Xarita").tag("map")
                     Text("Jarayon").tag("process")
                     Text("Xulosa").tag("summary")
                 }
                 .pickerStyle(.segmented).labelsHidden().fixedSize()
-                .help("Jarayon — qadamlar ketma-ketligi, Xulosa — qaysi asboblar ishlatilgani")
+                .help("Xarita — butun sessiya so'rovlar bo'yicha, Jarayon — qadamlar ketma-ketligi, Xulosa — qaysi asboblar ishlatilgani")
             }
-            if graphMode == "flow" && flowStyle == "summary" {
+            if graphMode == "flow" && flowStyle != "process" {
                 Button { withAnimation(Motion.spring) { showInspector.toggle() } } label: { Image(systemName: "sidebar.right") }
                     .buttonStyle(.borderless)
                     .help(showInspector ? "Tafsilotlarni yashirish" : "Tafsilotlarni ko'rsatish")
@@ -728,7 +756,7 @@ private struct TurnTimeline: View {
                 .padding(.horizontal, 7).padding(.vertical, 3)
                 .background(Capsule().fill(Brand.accentSoft))
             VStack(alignment: .leading, spacing: 6) {
-                Text(g.turn?.prompt ?? "So'rovdan oldingi qadamlar")
+                Text(g.turn?.shownPrompt ?? "So'rovdan oldingi qadamlar")
                     .font(.callout.weight(.medium)).lineLimit(open ? 4 : 2)
                     .multilineTextAlignment(.leading)
                     .fixedSize(horizontal: false, vertical: true)

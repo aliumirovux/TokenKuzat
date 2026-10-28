@@ -19,18 +19,19 @@ struct SessionHeader: View {
         let active = turn?.active ?? (session.state != .idle)
         HStack(alignment: .bottom, spacing: 24) {
             VStack(alignment: .leading, spacing: 8) {
-                HStack(spacing: 8) {
-                    ProjectAvatar(name: session.project, size: 20)
-                    Text(session.project).foregroundStyle(.secondary)
-                    if let turn { Text("/").foregroundStyle(.tertiary); Text("#\(turn.id)").fontWeight(.semibold) }
+                // Uzun so'rov matni sarlavhada emas — u xaritadagi kartada. Sarlavha qisqa: loyiha va holat
+                HStack(spacing: 12) {
+                    ProjectAvatar(name: session.project, size: 34)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(session.project)
+                            .font(.system(size: 22, weight: .semibold, design: .rounded)).lineLimit(1)
+                        Text(session.turns.isEmpty ? "Sessiya" : "Sessiya · \(session.turns.count) so'rov")
+                            .font(.callout).foregroundStyle(.secondary)
+                    }
                 }
-                .font(.callout)
-                Text(turn?.prompt ?? session.title)
-                    .font(.system(size: 21, weight: .semibold, design: .rounded))
-                    .lineLimit(2)
-                    .fixedSize(horizontal: false, vertical: true)
                 HStack(spacing: 14) {
                     StatusChip(active: active, errors: turn?.errors ?? 0)
+                    if let turn { Text("#\(turn.id)-so'rov").fontWeight(.semibold).foregroundStyle(.primary) }
                     if !session.model.isEmpty { Text(session.model) }
                     if let start = turn?.start ?? session.timeRange?.lowerBound {
                         Text("\(Fmt.hourMinute.string(from: start)) da boshlangan").foregroundStyle(.tertiary)
@@ -87,7 +88,7 @@ struct TurnChips: View {
                 HStack(spacing: 6) {
                     chip(nil, "Butun sessiya", active: false)
                     ForEach(turns) { t in
-                        chip(t.id, "#\(t.id) · \(t.prompt.count > 26 ? String(t.prompt.prefix(26)) + "…" : t.prompt)", active: t.active)
+                        chip(t.id, "#\(t.id) · \(t.isContinuation ? "↻ davom etdi" : (t.prompt.count > 26 ? String(t.prompt.prefix(26)) + "…" : t.prompt))", active: t.active)
                             .id(t.id)
                     }
                 }

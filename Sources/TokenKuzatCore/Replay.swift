@@ -71,7 +71,9 @@ extension SessionSnap {
             return TurnSnap(id: turn.id, prompt: turn.prompt, start: turn.start, end: min(end, t),
                             tokens: usage.reduce(TokenCounts()) { $0 + $1.tokens }, steps: steps.count,
                             errors: steps.filter { $0.status == .failed }.count,
-                            active: best != .idle && i == visibleTurns.count - 1)
+                            active: best != .idle && i == visibleTurns.count - 1,
+                            tools: Self.tools(steps),
+                            helpers: turn.helpers)
         }
         let context = replayed.first(where: \.isMain)?.usage.last.map { $0.tokens.input + $0.tokens.cacheRead + $0.tokens.cacheWrite } ?? 0
 
@@ -110,5 +112,15 @@ extension SessionSnap {
                                  busy: list.contains { $0.status == .running })
         }
         .sorted { ($0.lastActivity ?? .distantPast) > ($1.lastActivity ?? .distantPast) }
+    }
+
+    /// Replay'dagi so'rov uchun asbob turlari xulosasi (ko'rinib turgan qadamlardan)
+    static func tools(_ steps: [StepSnap]) -> [TurnTool] {
+        Dictionary(grouping: steps, by: \.category).map { cat, list in
+            let top = Dictionary(grouping: list, by: \.targetName).max { $0.value.count < $1.value.count }?.key ?? ""
+            return TurnTool(category: cat, calls: list.count, errors: list.filter { $0.status == .failed }.count,
+                            top: top, busy: list.contains { $0.status == .running })
+        }
+        .sorted { $0.calls > $1.calls }
     }
 }

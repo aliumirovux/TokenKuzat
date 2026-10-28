@@ -526,7 +526,7 @@ private struct FlowAgentNode: View {
     }
 }
 
-private func portPill(_ text: String, _ color: Color) -> some View {
+func portPill(_ text: String, _ color: Color) -> some View {
     HStack(spacing: 4) {
         Circle().fill(color).frame(width: 5, height: 5)
         Text(text)

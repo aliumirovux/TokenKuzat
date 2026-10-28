@@ -535,7 +535,7 @@ struct SessionLine: View {
     }
 
     private var subtitle: String {
-        let prompt = session.turns.last.map { "#\($0.id) \($0.prompt)" } ?? session.title
+        let prompt = session.turns.last.map { "#\($0.id) \($0.shownPrompt)" } ?? session.title
         return "\(prompt) · \(Fmt.ago(session.lastActivity, now: now))"
     }
 

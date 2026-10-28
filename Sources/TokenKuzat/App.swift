@@ -32,6 +32,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             snapshotPanel(to: URL(fileURLWithPath: CommandLine.arguments[i + 1]))
             return
         }
+        // `--snapshot-map fayl.png` — eng so'nggi sessiya xaritasini rasmga saqlaydi
+        if let i = CommandLine.arguments.firstIndex(of: "--snapshot-map"), i + 1 < CommandLine.arguments.count {
+            snapshotMap(to: URL(fileURLWithPath: CommandLine.arguments[i + 1]))
+            return
+        }
         Alerts.shared.start()
         DispatchQueue.main.async { WindowManager.shared.show() }
     }
@@ -54,6 +59,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 if let img = r.nsImage, let tiff = img.tiffRepresentation,
                    let png = NSBitmapImageRep(data: tiff)?.representation(using: .png, properties: [:]) {
                     try? png.write(to: out)
+                }
+            }
+            NSApp.terminate(nil)
+        }
+    }
+
+    private func snapshotMap(to url: URL) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+            let all = Store.shared.snap.sessions
+            if let s = all.first {
+                let view = SessionMapView(chain: SessionChain.chain(for: s, in: all), mode: .raw, selectedTurn: nil,
+                                          onSelectTurn: { _, _ in }, onSelectTool: { _, _, _ in })
+                    .frame(width: 1100, height: 560)
+                    .environment(\.colorScheme, .dark)
+                let r = ImageRenderer(content: view)
+                r.scale = 2
+                if let img = r.nsImage, let tiff = img.tiffRepresentation,
+                   let png = NSBitmapImageRep(data: tiff)?.representation(using: .png, properties: [:]) {
+                    try? png.write(to: url)
                 }
             }
             NSApp.terminate(nil)
