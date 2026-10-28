@@ -1,5 +1,14 @@
 # O'zgarishlar
 
+## 2.6.0 — 2026-10-28
+
+**Vaqt chizig'i**
+- Agentlar sxemasida «Oqim | Vaqt» almashtirgichi. Vaqt ko'rinishida har bir agent — qator, har bir qadam — boshlanishidan tugashigacha chiziq (asbob rangi, xato — qizil, bajarilayotgani — miltillaydi).
+- Parallel qadamlar qator ichida ustma-ust qavatlarga joylanadi; ustiga olib borilsa — to'liq matn, vaqt va davomiylik.
+- «Vaqt qayerga ketdi»: model o'ylashi va javob yozishi hamda har bir asbob turi — vaqti va ulushi bilan.
+- «Butun sessiya» rejimida so'rov chegaralari (#N) vertikal chiziq bo'lib ko'rinadi; zoom (kenglik bo'yicha).
+- Yuqori panel tor oynada ustma-ust tushmaydi.
+
 ## 2.5.0 — 2026-10-28
 
 **Claude'ning haqiqiy limiti**

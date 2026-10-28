@@ -38,6 +38,8 @@ struct GraphScreen: View {
     @AppStorage(Pref.countMode) private var mode = CountMode.raw
     @AppStorage(GraphScreen.selectedSessionKey) private var sessionId = ""
     @AppStorage("graphInspector") private var showInspector = true
+    /// «flow» — n8n oqimi, «timeline» — vaqt chizig'i
+    @AppStorage("graphMode") private var graphMode = "flow"
     @State private var selection: Selection?
     /// nil — eng so'nggi so'rov (yangisi kelsa o'zi o'tadi), 0 — butun sessiya
     @State private var turnId: Int?
@@ -51,7 +53,14 @@ struct GraphScreen: View {
             if let session {
                 HStack(spacing: 0) {
                     let turn = effectiveTurn(session)
-                    FlowCanvas(session: session, model: FlowModel(session: session, turnId: turn, now: s.updatedAt),
+                    let flow = FlowModel(session: session, turnId: turn, now: s.updatedAt)
+                    if graphMode == "timeline" {
+                        TimelineScreen(model: TimelineModel(flow: flow, session: session, turnId: turn, now: s.updatedAt),
+                                       selectedAgent: currentSelection(session)?.agentId,
+                                       onSelectAgent: { select(.agent($0)) },
+                                       onSelectStep: { a, st in select(.resource(agentId: a.id, category: st.category)) })
+                    } else {
+                    FlowCanvas(session: session, model: flow,
                                mode: mode,
                                selectedAgent: currentSelection(session)?.agentId,
                                selectedBubble: selectedBubbleId(session),
@@ -60,6 +69,7 @@ struct GraphScreen: View {
                                    if let c = b.category { select(.resource(agentId: b.ownerId, category: c)) }
                                    else { select(.agent(b.ownerId)) }
                                })
+                    }
                     if showInspector {
                         Divider()
                         inspector(session, now: s.updatedAt).frame(width: 340)
@@ -89,14 +99,24 @@ struct GraphScreen: View {
                     ForEach(s.sessions) { Text(sessionLabel($0)).tag($0.id) }
                 }
                 .labelsHidden()
-                .frame(maxWidth: 320)
+                .frame(minWidth: 140, maxWidth: 260)
             }
             if let session, !session.turns.isEmpty { turnPicker(session) }
             Spacer()
+            Picker("Ko'rinish", selection: $graphMode) {
+                Label("Oqim", systemImage: "point.3.connected.trianglepath.dotted").tag("flow")
+                Label("Vaqt", systemImage: "chart.bar.doc.horizontal").tag("timeline")
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .fixedSize()
+            .help("Oqim — jarayon sxemasi, Vaqt — qadamlar vaqt chizig'ida")
             if let session {
                 let steps = session.agents.reduce(0) { $0 + $1.steps.count }
+                // Joy tor bo'lsa birinchi bo'lib shu yozuv qisqaradi
                 Text("\(session.turns.count) so'rov · \(steps) qadam · \(Fmt.tokens(session.tokens.value(mode)))")
                     .font(.caption).foregroundStyle(.secondary).monospacedDigit()
+                    .lineLimit(1).truncationMode(.head).layoutPriority(-1)
             }
             Button { withAnimation(.easeInOut(duration: 0.2)) { showInspector.toggle() } } label: {
                 Image(systemName: "sidebar.right")
@@ -123,12 +143,14 @@ struct GraphScreen: View {
                 Text("Butun sessiya").tag(0)
             }
             .labelsHidden()
-            .frame(maxWidth: 260)
+            .frame(minWidth: 120, maxWidth: 220)
             Button { if let c = current { turnId = c + 1 >= last ? nil : c + 1 } } label: { Image(systemName: "chevron.right") }
                 .disabled(current == nil || current == last)
                 .help("Keyingi so'rov")
         }
         .buttonStyle(.borderless)
+        .fixedSize(horizontal: false, vertical: true)
+        .layoutPriority(1)
     }
 
     /// Tanlangan so'rov raqami; nil — butun sessiya
