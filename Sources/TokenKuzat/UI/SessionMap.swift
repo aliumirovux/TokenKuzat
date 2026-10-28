@@ -298,8 +298,10 @@ private struct MapLayout {
     /// - Parameters:
     ///   - expanded: qadamlar zanjiri ochiladigan so'rov («sessiya#raqam»)
     ///   - rowWidth: satr kengligi; kartalar shunga sig'guncha teriladi, keyin keyingi satrga o'tadi
+    /// - compact: uzoqdan ko'rinish — asboblar va zanjirga joy qoldirilmaydi, satrlar zich
     init(sections: [MapSection], expanded: String?, steps: [MapStep], rowWidth: CGFloat,
-         isOpen: (MapSection) -> Bool, active: Bool, lastAt: Date?) {
+         isOpen: (MapSection) -> Bool, active: Bool, lastAt: Date?, compact: Bool = false) {
+        let rowGap = compact ? M.rowGap * 0.55 : M.rowGap
         let left = M.pad, right = M.pad + rowWidth
         var y = M.pad
         var flow: MapNode?          // oqim chizig'ining oxirgi nuqtasi
@@ -346,13 +348,13 @@ private struct MapLayout {
             var rowBottom = rowTop + M.cardH
             for card in sec.cards {
                 if x > left && x + M.cardW > right {
-                    rowTop = rowBottom + M.rowGap
+                    rowTop = rowBottom + rowGap
                     rowBottom = rowTop + M.cardH
                     x = left
-                    flowMid = rowTop - M.rowGap / 2
+                    flowMid = rowTop - rowGap / 2
                 }
                 // Qisqa javob-so'rovlar kartaning ichida, pastki qatorlarda — karta shunga cho'ziladi
-                let h = M.cardH + TurnCard.followUpsHeight(card.followUps.count)
+                let h = compact ? M.cardH : M.cardH + TurnCard.followUpsHeight(card.followUps.count)
                 let n = MapNode(id: card.id, kind: .turn(card.turn, sessionId: card.sessionId, previousPrompt: card.previousPrompt,
                                                          expanded: card.contains(expanded) && !steps.isEmpty ? steps.count : nil,
                                                          followUps: card.followUps),
@@ -366,7 +368,9 @@ private struct MapLayout {
                 // Karta ostida: qadamlar zanjiri (tanlangan bo'lsa) yoki karta va javoblarining asboblari
                 let port = CGPoint(x: n.center.x, y: n.rect.maxY)
                 var colY = n.rect.maxY
-                if card.contains(expanded) && !steps.isEmpty {
+                if compact {
+                    // uzoqdan: karta ostida hech narsa yo'q
+                } else if card.contains(expanded) && !steps.isEmpty {
                     let tid = Int(expanded?.split(separator: "#").last ?? "") ?? card.turn.id
                     colY = placeSteps(steps, port: port, top: colY + M.stepTop,
                                       idPrefix: card.id, sessionId: card.sessionId, turnId: tid)
@@ -382,10 +386,10 @@ private struct MapLayout {
             if isLast {
                 // Yakun tuguni — oxirgi karta yonida (sig'sa) yoki keyingi satr boshida
                 if x + M.endD > right + M.gap {
-                    rowTop = rowBottom + M.rowGap
+                    rowTop = rowBottom + rowGap
                     rowBottom = rowTop + M.cardH
                     x = left
-                    flowMid = rowTop - M.rowGap / 2
+                    flowMid = rowTop - rowGap / 2
                 }
                 let e = MapNode(id: "end", kind: .end(active: active, at: lastAt),
                                 center: CGPoint(x: x + M.endD / 2, y: rowTop + M.cardH / 2), size: CGSize(width: M.endD, height: M.endD))
@@ -474,6 +478,12 @@ private struct MapLayout {
     }
 }
 
+/// Oxirgi chizilgan joylashuv — zoom chegarasidan o'tganda karta joyini saqlash uchun (UI holati emas)
+private final class LayoutCache: ObservableObject {
+    var layout: MapLayout?
+    var anchor: (String, CGPoint)?
+}
+
 // MARK: - G'ildirak
 
 /// Kursor xarita ustida bo'lganda g'ildirak/trackpad hodisalarini xaritaga beradi (sahifa aylanmaydi)
@@ -513,6 +523,8 @@ struct SessionMapView: View {
     let onSelectTool: (_ sessionId: String, _ turnId: Int, _ category: ToolCategory) -> Void
     /// O'ylash yoki javob kartasi bosildi — to'liq matn o'ng panelda
     var onSelectNote: (_ sessionId: String, _ note: NoteSnap) -> Void = { _, _ in }
+    /// Ishlab chiquvchi uchun (`--snapshot-map`): boshlang'ich masshtab
+    var initialScale: CGFloat? = nil
 
     @State private var scale: CGFloat = 0.9
     @State private var pan = CGSize.zero
@@ -526,6 +538,7 @@ struct SessionMapView: View {
     /// Foydalanuvchi qo'lda yig'gan/ochgan bo'limlar
     @State private var toggled: Set<String> = []
     @StateObject private var wheel = WheelMonitor()
+    @StateObject private var cache = LayoutCache()
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
@@ -538,7 +551,9 @@ struct SessionMapView: View {
             let layout = MapLayout(sections: secs, expanded: expandedId, steps: steps, rowWidth: rowWidth,
                                    isOpen: { isOpen($0, last: secs.last?.id, expanded: expandedId) },
                                    active: chain.last.map { $0.state != .idle } ?? false,
-                                   lastAt: chain.last?.turns.last?.end ?? chain.last?.lastActivity)
+                                   lastAt: chain.last?.turns.last?.end ?? chain.last?.lastActivity,
+                                   compact: scale < M.lod)
+            let _ = cache.layout = layout
             let visible = CGRect(x: -pan.width / scale, y: -pan.height / scale,
                                  width: vs.width / scale, height: vs.height / scale).insetBy(dx: -80, dy: -80)
             let detail = scale >= M.lod
@@ -602,7 +617,11 @@ struct SessionMapView: View {
                 world = layout.size
                 wheel.onWheel = { e in handleWheel(e) }
                 wheel.start()
-                if !placed { placed = true; focusLast(layout, vs, animated: false, rescale: true) }
+                if !placed {
+                    placed = true
+                    focusLast(layout, vs, animated: false, rescale: true)
+                    if let s0 = initialScale { scale = s0; fit(layout, vs) }
+                }
             }
             .onDisappear { wheel.stop() }
             .onChange(of: vs) { new in
@@ -614,6 +633,12 @@ struct SessionMapView: View {
                 pan = clamped(CGSize(width: pan.width, height: pan.height + dy))
             }
             .onChange(of: layout.size) { world = $0 }
+            .onChange(of: scale < M.lod) { _ in
+                // Zich/to'liq joylashuv almashdi — markazdagi karta ekranda joyidan siljimasin
+                guard let (id, screenPos) = cache.anchor, let n = layout.nodes.first(where: { $0.id == id }) else { return }
+                pan = clamped(CGSize(width: screenPos.x - n.center.x * scale, height: screenPos.y - n.center.y * scale))
+                cache.anchor = nil
+            }
             .onChange(of: layout.lastTurn?.id) { _ in
                 if follow { focusLast(layout, vs, animated: true) }
             }
@@ -739,6 +764,14 @@ struct SessionMapView: View {
     /// Zoom: `anchor` ostidagi nuqta joyida qoladi
     private func zoom(to s: CGFloat, around anchor: CGPoint) {
         let ns = min(2, max(0.2, s))
+        if (ns < M.lod) != (scale < M.lod), let l = cache.layout {
+            // Joylashuv almashadi: ko'rsatkich ostidagi (yoki eng yaqin) karta eslab qolinadi
+            let wp = CGPoint(x: (anchor.x - pan.width) / scale, y: (anchor.y - pan.height) / scale)
+            if let n = l.nodes.filter(\.isMainRow).min(by: { hypot($0.center.x - wp.x, $0.center.y - wp.y) < hypot($1.center.x - wp.x, $1.center.y - wp.y) }) {
+                let sx = anchor.x + (n.center.x - wp.x) * ns, sy = anchor.y + (n.center.y - wp.y) * ns
+                cache.anchor = (n.id, CGPoint(x: sx, y: sy))
+            }
+        }
         let wx = (anchor.x - pan.width) / scale, wy = (anchor.y - pan.height) / scale
         scale = ns
         pan = clamped(CGSize(width: anchor.x - wx * ns, height: anchor.y - wy * ns))
@@ -926,7 +959,7 @@ private struct TurnCard: View {
     }
 
     private func far(_ s: CGFloat) -> some View {
-        let k = min(0.9 / s, 3)
+        let k = min(0.7 / s, 1.8)
         let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
         return VStack(alignment: .leading, spacing: 6 * k) {
             HStack {
@@ -934,12 +967,16 @@ private struct TurnCard: View {
                 Spacer()
                 if turn.errors > 0 { Circle().fill(Brand.err).frame(width: 8 * k, height: 8 * k) }
             }
-            Text(turn.isContinuation ? "Ish davom etdi" : turn.prompt)
-                .font(.system(size: 13 * k, weight: .semibold)).lineLimit(k > 2 ? 2 : 3)
+            Text(turn.isContinuation ? "↻ Davom etdi" : turn.prompt)
+                .font(.system(size: 12.5 * k, weight: .semibold)).lineLimit(3)
                 .foregroundStyle(turn.isContinuation ? Brand.warn : .primary)
+            Spacer(minLength: 0)
+            if !followUps.isEmpty {
+                Text("↳ +\(followUps.count)").font(.system(size: 11 * k, weight: .semibold)).foregroundStyle(Brand.accent)
+            }
         }
         .padding(14)
-        .frame(width: M.cardW, height: height, alignment: .topLeading)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .modifier(Surface(shape: shape, tint: isLive ? Brand.ok : nil, interactive: true,
                           stroke: selected ? Brand.accent : (isLive ? Brand.ok : nil)))
         .contentShape(shape)
@@ -1048,7 +1085,7 @@ private struct MapSectionHeader: View {
     let mode: CountMode
     let lod: CGFloat?
 
-    private var k: CGFloat { lod.map { min(0.9 / $0, 3) } ?? 1 }
+    private var k: CGFloat { lod.map { min(0.75 / $0, 2.2) } ?? 1 }
 
     var body: some View {
         let time = Fmt.hourMinute.string(from: section.start) + "–" + Fmt.hourMinute.string(from: section.end)

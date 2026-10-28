@@ -1,5 +1,11 @@
 # O'zgarishlar
 
+## 4.9.2 — 2026-10-28
+
+- Uzoqdan ko'rinish (50% dan kichik) endi alohida zich joylashuv: asboblar va qadamlar zanjiriga joy qoldirilmaydi, satrlar yaqinlashadi — katta bo'shliqlar yo'qoldi, butun sessiya bir ekranga sig'adi. Kartalarda raqam, 2–3 qator nom va ilingan javoblar soni («↳ +2»).
+- Masshtab chegarasidan o'tganda ko'rsatkich ostidagi karta ekranda joyidan siljimaydi.
+- `--snapshot-map fayl.png --zoom 0.3` — ishlab chiquvchi uchun.
+
 ## 4.9.1 — 2026-10-28
 
 - Qisqa javob-so'rovlar endi kartaning ichida, pastki qatorlarda («↳ Bosdim · 20 s · 2 qadam»): karta shunga cho'ziladi, asboblar yana kartaning o'zidan «Asboblar» porti orqali chiqadi va karta + javoblarining asboblarini birga ko'rsatadi. Ortiqcha ulash nuqtalari yo'qoldi; javoblardan biri ishlayotgan bo'lsa — karta jonli.
