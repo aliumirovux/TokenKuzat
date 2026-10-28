@@ -563,7 +563,7 @@ struct SessionMapView: View {
                     RoundedRectangle(cornerRadius: 22 * scale, style: .continuous)
                         .fill(Brand.surface.opacity(0.28))
                         .overlay(RoundedRectangle(cornerRadius: 22 * scale, style: .continuous)
-                            .stroke(f.active ? Brand.ok.opacity(0.35) : Brand.line, lineWidth: 1))
+                            .stroke(Brand.line, lineWidth: 1))
                         .frame(width: f.rect.width * scale, height: f.rect.height * scale)
                         .position(screen(CGPoint(x: f.rect.midX, y: f.rect.midY)))
                         .allowsHitTesting(false)
