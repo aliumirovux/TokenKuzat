@@ -96,7 +96,8 @@ struct GraphScreen: View {
                 tabs.padding(.horizontal, 24).padding(.top, 16).padding(.bottom, 10)
                 // «Qadamlar» tabi olib tashlandi — eski saqlangan qiymat ham Oqim'ni ochadi
                 switch graphMode == "files" ? "files" : "flow" {
-                case "flow" where flowStyle == "map":
+                // «Jarayon» ko'rinishi olib tashlandi — eski saqlangan qiymat xaritani ochadi
+                case "flow" where flowStyle != "summary":
                     let chain = SessionChain.chain(for: session, in: replayOn ? [session] : s.sessions)
                     HStack(spacing: 0) {
                         SessionMapView(chain: replayOn ? [session] : chain.map { $0.id == session.id ? session : $0 },
@@ -128,11 +129,6 @@ struct GraphScreen: View {
                     })
                     .card(padding: 0)
                     .padding(.horizontal, 24).padding(.bottom, 20)
-                case "flow" where flowStyle == "process":
-                    ProcessFlowView(phases: Phase.build(tl), prompt: turn?.shownPrompt ?? session.title,
-                                    result: flow.result, mode: mode, origin: tl.start)
-                        .card(padding: 0)
-                        .padding(.horizontal, 24).padding(.bottom, 20)
                 case "flow":
                     HStack(spacing: 0) {
                         FlowCanvas(session: session, model: flow, mode: mode,
@@ -189,6 +185,7 @@ struct GraphScreen: View {
         })
         .animation(Motion.spring, value: replayOn)
         .animation(Motion.spring, value: graphMode)
+        .onAppear { if !["map", "summary"].contains(flowStyle) { flowStyle = "map" } }
         .onChange(of: sessionId) { _ in selection = nil; turnId = nil; stopReplay() }
         .onChange(of: turnId) { _ in if replayOn { replayTime = live.flatMap { replayRange($0) }?.lowerBound } }
         .onReceive(ticker) { _ in
@@ -213,13 +210,12 @@ struct GraphScreen: View {
             if graphMode != "files" {
                 Picker("", selection: $flowStyle) {
                     Text("Xarita").tag("map")
-                    Text("Jarayon").tag("process")
                     Text("Xulosa").tag("summary")
                 }
                 .pickerStyle(.segmented).labelsHidden().fixedSize()
-                .help("Xarita — butun sessiya so'rovlar bo'yicha, Jarayon — qadamlar ketma-ketligi, Xulosa — qaysi asboblar ishlatilgani")
+                .help("Xarita — butun sessiya so'rovlar va qadamlar bo'yicha, Xulosa — qaysi asboblar ishlatilgani")
             }
-            if graphMode != "files" && flowStyle != "process" {
+            if graphMode != "files" {
                 Button { withAnimation(Motion.spring) { showInspector.toggle() } } label: { Image(systemName: "sidebar.right") }
                     .buttonStyle(.borderless)
                     .help(showInspector ? "Tafsilotlarni yashirish" : "Tafsilotlarni ko'rsatish")

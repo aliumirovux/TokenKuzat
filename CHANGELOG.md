@@ -1,5 +1,9 @@
 # O'zgarishlar
 
+## 4.7.3 — 2026-10-28
+
+- Oqim'dagi «Jarayon» ko'rinishi olib tashlandi (ProcessFlow) — jarayon endi xaritaning o'zida. Oqim'da ikki ko'rinish: Xarita va Xulosa.
+
 ## 4.7.2 — 2026-10-28
 
 - «Qadamlar» tabi olib tashlandi — qadamlar endi xaritadagi jarayon zanjirida va o'ng paneldagi «Jarayon»da. Sessiya sahifasida ikki tab: Oqim (sukut bo'yicha) va Fayllar.
