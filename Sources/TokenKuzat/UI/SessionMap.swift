@@ -232,8 +232,7 @@ private struct MapSection: Identifiable {
 private struct MapNode: Identifiable {
     enum Kind {
         case header(MapSection, open: Bool)
-        case turn(TurnSnap, sessionId: String, previousPrompt: String?, expanded: Int?, followUps: Int)
-        case followUp(TurnSnap, sessionId: String)
+        case turn(TurnSnap, sessionId: String, previousPrompt: String?, expanded: Int?, followUps: [TurnSnap])
         case tool(TurnTool, sessionId: String, turnId: Int)
         case more(Int)
         case step(MapStep, sessionId: String, turnId: Int)
@@ -246,6 +245,11 @@ private struct MapNode: Identifiable {
     let size: CGSize
 
     var rect: CGRect { CGRect(x: center.x - size.width / 2, y: center.y - size.height / 2, width: size.width, height: size.height) }
+    /// Oqim chizig'i ulanadigan balandlik: kartada — asosiy qismining o'rtasi (ichidagi javoblar pastga cho'zsa ham)
+    var anchorY: CGFloat {
+        if case .turn = kind { return rect.minY + M.cardH / 2 }
+        return center.y
+    }
     /// Uzoqdan ham ko'rinadi (bo'lim, so'rov kartasi, yakun)
     var isMainRow: Bool {
         switch kind {
@@ -303,7 +307,7 @@ private struct MapLayout {
 
         func connect(_ n: MapNode, live: Bool) {
             guard let p = flow else { return }
-            let a = CGPoint(x: p.rect.maxX, y: p.center.y), b = CGPoint(x: n.rect.minX, y: n.center.y)
+            let a = CGPoint(x: p.rect.maxX, y: p.anchorY), b = CGPoint(x: n.rect.minX, y: n.anchorY)
             if abs(a.y - b.y) < 1 && b.x > a.x {
                 edges.append(MapEdge(id: p.id + ">" + n.id, from: a, to: b, route: .h, live: live, color: Brand.ok))
             } else {
@@ -347,37 +351,29 @@ private struct MapLayout {
                     x = left
                     flowMid = rowTop - M.rowGap / 2
                 }
+                // Qisqa javob-so'rovlar kartaning ichida, pastki qatorlarda — karta shunga cho'ziladi
+                let h = M.cardH + TurnCard.followUpsHeight(card.followUps.count)
                 let n = MapNode(id: card.id, kind: .turn(card.turn, sessionId: card.sessionId, previousPrompt: card.previousPrompt,
                                                          expanded: card.contains(expanded) && !steps.isEmpty ? steps.count : nil,
-                                                         followUps: card.followUps.count),
-                                center: CGPoint(x: x + M.cardW / 2, y: rowTop + M.cardH / 2), size: CGSize(width: M.cardW, height: M.cardH))
+                                                         followUps: card.followUps),
+                                center: CGPoint(x: x + M.cardW / 2, y: rowTop + h / 2), size: CGSize(width: M.cardW, height: h))
                 nodes.append(n)
-                connect(n, live: card.turn.active)
+                connect(n, live: card.turn.active || card.followUps.contains(where: \.active))
                 flow = n
                 flowMid = nil
                 lastTurn = n
 
-                // Karta ostidagi ustun: ilingan javob-so'rovlar, keyin qadamlar zanjiri yoki asboblar
-                var port = CGPoint(x: n.center.x, y: n.rect.maxY)
+                // Karta ostida: qadamlar zanjiri (tanlangan bo'lsa) yoki karta va javoblarining asboblari
+                let port = CGPoint(x: n.center.x, y: n.rect.maxY)
                 var colY = n.rect.maxY
-                for f in card.followUps {
-                    let c = MapNode(id: "\(card.sessionId)#\(f.id)", kind: .followUp(f, sessionId: card.sessionId),
-                                    center: CGPoint(x: n.center.x, y: colY + 14 + M.chipH / 2),
-                                    size: CGSize(width: M.cardW - 24, height: M.chipH))
-                    nodes.append(c)
-                    edges.append(MapEdge(id: "f" + c.id, from: port, to: CGPoint(x: c.center.x, y: c.rect.minY),
-                                         route: .v, live: f.active, color: Brand.ok))
-                    port = CGPoint(x: c.center.x, y: c.rect.maxY)
-                    colY = c.rect.maxY
-                }
                 if card.contains(expanded) && !steps.isEmpty {
                     let tid = Int(expanded?.split(separator: "#").last ?? "") ?? card.turn.id
-                    colY = placeSteps(steps, port: port, top: colY + (card.followUps.isEmpty ? M.stepTop : 22),
+                    colY = placeSteps(steps, port: port, top: colY + M.stepTop,
                                       idPrefix: card.id, sessionId: card.sessionId, turnId: tid)
                     stepsBottom = colY
                 } else {
-                    colY = placeTools(card.turn.tools, port: port,
-                                      centerY: colY + (card.followUps.isEmpty ? M.toolDrop : 70),
+                    colY = placeTools(MapLayout.mergedTools([card.turn] + card.followUps), port: port,
+                                      centerY: colY + M.toolDrop,
                                       idPrefix: card.id, sessionId: card.sessionId, turnId: card.turn.id) ?? colY
                 }
                 rowBottom = max(rowBottom, colY)
@@ -432,6 +428,23 @@ private struct MapLayout {
             y = n.rect.maxY + M.stepGap
         }
         return y
+    }
+
+    /// Bir nechta so'rov asboblari tur bo'yicha qo'shiladi
+    static func mergedTools(_ turns: [TurnSnap]) -> [TurnTool] {
+        guard turns.count > 1 else { return turns.first?.tools ?? [] }
+        var acc: [ToolCategory: (calls: Int, errors: Int, top: String, busy: Bool)] = [:]
+        for t in turns {
+            for tool in t.tools {
+                var a = acc[tool.category] ?? (0, 0, tool.top, false)
+                a.calls += tool.calls
+                a.errors += tool.errors
+                a.busy = a.busy || tool.busy
+                acc[tool.category] = a
+            }
+        }
+        return acc.map { TurnTool(category: $0.key, calls: $0.value.calls, errors: $0.value.errors, top: $0.value.top, busy: $0.value.busy) }
+            .sorted { $0.calls > $1.calls }
     }
 
     /// Asbob doiralari karta ostida bir qatorda. Pastki chegarani qaytaradi (asbob bo'lmasa — nil)
@@ -637,10 +650,10 @@ struct SessionMapView: View {
                 }
         case .turn(let t, let sid, let prev, let expanded, let followUps):
             TurnCard(turn: t, previousPrompt: prev, mode: mode, selected: selectedTurn == n.id,
-                     expandedSteps: expanded, followUps: followUps, lod: scale < M.lod ? scale : nil)
-                .onTapGesture { onSelectTurn(sid, t.id) }
-        case .followUp(let t, let sid):
-            FollowUpChip(turn: t, mode: mode, selected: selectedTurn == n.id)
+                     expandedSteps: expanded, followUps: followUps,
+                     selectedFollowUp: followUps.first { selectedTurn == "\(sid)#\($0.id)" }?.id,
+                     lod: scale < M.lod ? scale : nil,
+                     onSelectFollowUp: { onSelectTurn(sid, $0) })
                 .onTapGesture { onSelectTurn(sid, t.id) }
         case .tool(let tool, let sid, let tid):
             MapToolNode(tool: tool)
@@ -893,10 +906,20 @@ private struct TurnCard: View {
     let selected: Bool
     /// Ostida qadamlar zanjiri ochilgan bo'lsa — qadamlar soni
     var expandedSteps: Int? = nil
-    /// Ostiga ilingan javob-so'rovlar soni (port yorlig'i ular bilan to'qnashmasin)
-    var followUps = 0
+    /// Kartaga ilingan qisqa javob-so'rovlar — pastki qatorlarda
+    var followUps: [TurnSnap] = []
+    var selectedFollowUp: Int? = nil
     /// Uzoqdan ko'rinish: masshtab (faqat raqam va qisqa nom, katta harfda)
     var lod: CGFloat? = nil
+    var onSelectFollowUp: (Int) -> Void = { _ in }
+
+    static let followUpRowH: CGFloat = 30
+    static func followUpsHeight(_ n: Int) -> CGFloat { n == 0 ? 0 : CGFloat(n) * followUpRowH + 10 }
+
+    /// Karta yoki unga ilingan javoblardan biri hozir ishlayapti
+    private var isLive: Bool { turn.active || followUps.contains(where: \.active) }
+
+    private var height: CGFloat { M.cardH + Self.followUpsHeight(followUps.count) }
 
     var body: some View {
         if let lod { far(lod) } else { near }
@@ -916,9 +939,9 @@ private struct TurnCard: View {
                 .foregroundStyle(turn.isContinuation ? Brand.warn : .primary)
         }
         .padding(14)
-        .frame(width: M.cardW, height: M.cardH, alignment: .topLeading)
-        .modifier(Surface(shape: shape, tint: turn.active ? Brand.ok : nil, interactive: true,
-                          stroke: selected ? Brand.accent : (turn.active ? Brand.ok : nil)))
+        .frame(width: M.cardW, height: height, alignment: .topLeading)
+        .modifier(Surface(shape: shape, tint: isLive ? Brand.ok : nil, interactive: true,
+                          stroke: selected ? Brand.accent : (isLive ? Brand.ok : nil)))
         .contentShape(shape)
     }
 
@@ -952,16 +975,24 @@ private struct TurnCard: View {
                 meta("list.bullet", "\(turn.steps)")
                 if !turn.helpers.isEmpty { meta("person.2", "\(turn.helpers.count)") }
             }
+            .frame(height: 16)
+            if !followUps.isEmpty {
+                VStack(spacing: 0) {
+                    ForEach(followUps) { f in
+                        Divider()
+                        followUpRow(f)
+                    }
+                }
+                .padding(.horizontal, -14)
+            }
         }
-        .padding(14)
-        .frame(width: M.cardW, height: M.cardH, alignment: .topLeading)
-        .modifier(Surface(shape: shape, tint: turn.active ? Brand.ok : nil, interactive: true,
+        .padding(.top, 14).padding(.horizontal, 14).padding(.bottom, followUps.isEmpty ? 14 : 0)
+        .frame(width: M.cardW, height: height, alignment: .topLeading)
+        .modifier(Surface(shape: shape, tint: isLive ? Brand.ok : nil, interactive: true,
                           stroke: selected ? Brand.accent : nil))
-        .overlay { if turn.active { LiveBorder(shape: shape, color: Brand.ok, lineWidth: 2) } }
+        .overlay { if isLive { LiveBorder(shape: shape, color: Brand.ok, lineWidth: 2) } }
         .overlay(alignment: .bottom) {
-            if followUps > 0 {
-                EmptyView()
-            } else if let n = expandedSteps {
+            if let n = expandedSteps {
                 portPill("Jarayon · \(n) qadam", Brand.accent).offset(y: 11)
             } else if !turn.tools.isEmpty {
                 portPill("Asboblar", .secondary).offset(y: 11)
@@ -972,9 +1003,28 @@ private struct TurnCard: View {
         .help(turn.isContinuation ? "Kontekst tugab, suhbat xulosa bilan davom ettirildi" : turn.prompt)
     }
 
+    /// «↳ Bosdim · 20 s · 2 qadam» — bosilsa, qadamlari karta ostida ochiladi
+    private func followUpRow(_ f: TurnSnap) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: "arrow.turn.down.right").font(.system(size: 10, weight: .semibold)).foregroundStyle(Brand.accent)
+            Text(f.prompt).font(.caption.weight(.medium)).lineLimit(1)
+            Spacer(minLength: 4)
+            if f.active { ProgressView().controlSize(.mini) }
+            if f.errors > 0 { Text("\(f.errors) xato").font(.caption2.weight(.semibold)).foregroundStyle(Brand.err) }
+            Text("\(Alerts.duration(f.duration)) · \(f.steps) qadam")
+                .font(.caption2.monospacedDigit()).foregroundStyle(.secondary).fixedSize()
+        }
+        .padding(.horizontal, 14)
+        .frame(height: Self.followUpRowH)
+        .background(selectedFollowUp == f.id ? Brand.accentSoft : .clear)
+        .contentShape(Rectangle())
+        .onTapGesture { onSelectFollowUp(f.id) }
+        .help(f.prompt + " — bosing, qadamlari karta ostida ochiladi")
+    }
+
     @ViewBuilder
     private var status: some View {
-        if turn.active {
+        if isLive {
             HStack(spacing: 4) { ProgressView().controlSize(.mini); Text("ishlayapti") }
                 .font(.caption.weight(.semibold)).foregroundStyle(Brand.ok)
         } else if turn.errors > 0 {
@@ -1060,32 +1110,6 @@ private struct MapSectionHeader: View {
             .padding(.horizontal, 8).padding(.vertical, 3)
             .background(Capsule().fill(Brand.warn.opacity(0.12)))
             .fixedSize()
-    }
-}
-
-/// Oldingi kartaga ilingan qisqa javob-so'rov: «↳ ha boshla · 3 daq · 28 qadam»
-private struct FollowUpChip: View {
-    let turn: TurnSnap
-    let mode: CountMode
-    let selected: Bool
-
-    var body: some View {
-        HStack(spacing: 6) {
-            Image(systemName: "arrow.turn.down.right").font(.system(size: 10, weight: .semibold)).foregroundStyle(Brand.accent)
-            Text(turn.prompt).font(.caption.weight(.medium)).lineLimit(1)
-            Spacer(minLength: 4)
-            if turn.active { ProgressView().controlSize(.mini) }
-            if turn.errors > 0 { Text("\(turn.errors) xato").font(.caption2.weight(.semibold)).foregroundStyle(Brand.err) }
-            Text("\(Alerts.duration(turn.duration)) · \(turn.steps) qadam")
-                .font(.caption2.monospacedDigit()).foregroundStyle(.secondary).fixedSize()
-        }
-        .padding(.horizontal, 10)
-        .frame(width: M.cardW - 24, height: M.chipH)
-        .modifier(Surface(shape: Capsule(), tint: turn.active ? Brand.ok : nil, interactive: true,
-                          stroke: selected ? Brand.accent : nil))
-        .overlay { if turn.active { LiveBorder(shape: Capsule(), color: Brand.ok, lineWidth: 1.5) } }
-        .contentShape(Capsule())
-        .help(turn.prompt + " — bosing, qadamlar shu yerda ochiladi")
     }
 }
 
@@ -1185,8 +1209,9 @@ private struct MiniMap: View {
             }
             for n in layout.nodes {
                 switch n.kind {
-                case .turn(let t, _, _, _, _):
-                    g.fill(Path(roundedRect: r(n.rect), cornerRadius: 1.5), with: .color(t.active ? Brand.ok : Brand.accent.opacity(0.65)))
+                case .turn(let t, _, _, _, let fs):
+                    g.fill(Path(roundedRect: r(n.rect), cornerRadius: 1.5),
+                           with: .color(t.active || fs.contains(where: \.active) ? Brand.ok : Brand.accent.opacity(0.65)))
                 case .header(let s, let open):
                     if !open { g.fill(Path(roundedRect: r(n.rect), cornerRadius: 2), with: .color(s.active ? Brand.ok.opacity(0.6) : Color.secondary.opacity(0.45))) }
                 case .end:

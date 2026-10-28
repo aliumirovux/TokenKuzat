@@ -1,5 +1,9 @@
 # O'zgarishlar
 
+## 4.9.1 — 2026-10-28
+
+- Qisqa javob-so'rovlar endi kartaning ichida, pastki qatorlarda («↳ Bosdim · 20 s · 2 qadam»): karta shunga cho'ziladi, asboblar yana kartaning o'zidan «Asboblar» porti orqali chiqadi va karta + javoblarining asboblarini birga ko'rsatadi. Ortiqcha ulash nuqtalari yo'qoldi; javoblardan biri ishlayotgan bo'lsa — karta jonli.
+
 ## 4.9.0 — 2026-10-28
 
 - Xarita satrma-satr: kartalar oyna kengligida teriladi, satr tugasa oqim chizig'i yumaloq burilish bilan keyingi satr boshiga o'tadi. 50 ta so'rov bir ekranga sig'adi.
