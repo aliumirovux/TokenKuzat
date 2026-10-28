@@ -119,7 +119,8 @@ struct GraphScreen: View {
                                                    if !showInspector { showInspector = true }
                                                }
                                            }
-                                       })
+                                       },
+                                       chat: !replayOn)
                         if showInspector {
                             Divider()
                             inspector(session, now: now).frame(width: 384)

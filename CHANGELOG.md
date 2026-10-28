@@ -1,5 +1,9 @@
 # O'zgarishlar
 
+## 6.3.0 — 2026-10-28
+
+- Xaritadan chat: pastdagi maydonga yozib Enter bosing — xabar shu sessiyaga ketadi (`claude -p --resume`, avto ruxsat rejimi, sessiyadagi model oilasi). Javob, qadamlar va robot xaritada jonli paydo bo'ladi. Ish ketayotganda «To'xtatish» (Ctrl-C kabi, sessiya saqlanadi). Claude boshqa joyda ishlayotganda maydon yopiq; sessiya Claude ilovasi yoki terminalda ochiq bo'lsa — ogohlantirish (u yerda xabarlar qayta ochilgandagina ko'rinadi). ⌥Enter — yangi qator. Replay'da o'chiq.
+
 ## 6.2.0 — 2026-10-28
 
 - Xaritada «Faqat shu so'rov» tugmasi: hozir ishlayotgan (yoki tepada tanlangan) so'rov kartasi, uning qadamlari, asboblari va robot qoladi — qolgan so'rovlar yashiriladi. Karta oyna markazida; yangi so'rov kelsa, xarita unga o'tadi. Tanlov eslab qolinadi; «Hammasini ko'rsatish» — qaytarish.

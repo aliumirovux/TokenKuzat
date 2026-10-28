@@ -555,6 +555,8 @@ struct SessionMapView: View {
     var onSelectNote: (_ sessionId: String, _ note: NoteSnap) -> Void = { _, _ in }
     /// Ishlab chiquvchi uchun (`--snapshot-map`): boshlang'ich masshtab
     var initialScale: CGFloat? = nil
+    /// Pastda yozish maydoni — xabar oxirgi sessiyaga ketadi (replay va rasmda o'chiq)
+    var chat = false
 
     @State private var scale: CGFloat = 0.9
     @State private var pan = CGSize.zero
@@ -653,6 +655,18 @@ struct SessionMapView: View {
                 }
             }
             .overlay(alignment: .bottomLeading) { controls(layout, vs).padding(12) }
+            .overlay(alignment: .bottom) {
+                if chat, let last = chain.last {
+                    MapChatBar(session: last) {
+                        follow = true
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                            if let l = cache.layout { focusLast(l, vs, animated: true) }
+                        }
+                    }
+                    .frame(maxWidth: min(620, max(320, vs.width - 2 * 260)))
+                    .padding(.bottom, 12)
+                }
+            }
             .overlay(alignment: .bottomTrailing) {
                 MiniMap(layout: layout, scale: scale, pan: pan, viewport: vs) { center in
                     follow = false
