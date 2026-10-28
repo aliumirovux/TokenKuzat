@@ -128,7 +128,7 @@ struct GraphScreen: View {
                                                }
                                            }
                                        },
-                                       chat: !replayOn)
+                                       interactive: !replayOn)
                         if showInspector && !isNarrow && !mapFocus {
                             Divider()
                             inspector(session, now: now).frame(width: min(384, max(300, contentWidth * 0.3)))

@@ -1,5 +1,9 @@
 # O'zgarishlar
 
+## 6.9.1 — 2026-10-28
+
+- Xaritadan chat (yozish maydoni) olib tashlandi — xarita faqat kuzatish uchun. «Faqat xarita» va boshqa tugmalar joyida.
+
 ## 6.9.0 — 2026-10-28
 
 - «Faqat xarita» tugmasi (xarita pastida, ⇧⌘F): yon menyu, sessiya sarlavhasi, vaqt chizig'i, tablar va tafsilotlar paneli yashiriladi — oynada faqat xarita (yozish maydoni bilan). «Chiqish» yoki Esc — oddiy ko'rinish. Tanlov eslab qolinadi; boshqa sahifaga o'tilsa yon menyu qaytadi.

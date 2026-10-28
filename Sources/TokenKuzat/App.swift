@@ -126,7 +126,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 let view = SessionMapView(chain: SessionChain.chain(for: s, in: all), mode: .raw, selectedTurn: nil,
                                           onSelectTurn: { _, _ in }, onSelectTool: { _, _, _ in },
                                           initialScale: zoom.map { CGFloat($0) },
-                                          chat: CommandLine.arguments.contains("--chat"))
+                                          interactive: true)
                     .frame(width: CGFloat(width), height: 600)
                     .environment(\.colorScheme, .dark)
                 let r = ImageRenderer(content: view)
