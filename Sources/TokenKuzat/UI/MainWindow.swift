@@ -65,6 +65,7 @@ struct MainWindow: View {
     private var detail: some View {
         switch section {
         case .overview: OverviewView()
+        case .live: LiveView()
         case .graph: GraphScreen()
         case .sessions: SessionsView()
         case .history: HistoryView()
@@ -106,9 +107,11 @@ private struct Sidebar: View {
 
             VStack(spacing: 1) {
                 navItem(.overview, "Bugun", "sun.max", key: "1")
-                navItem(.sessions, "Sessiyalar", "rectangle.stack", key: "2",
+                // Bir vaqtda ishlayotgan sessiyalar — yonma-yon kartalarda
+                navItem(.live, "Jonli", "rectangle.grid.2x2", key: "2",
                         live: snap.runningAgents > 0 ? snap.activeSessions : 0)
-                navItem(.history, "Tarix", "chart.bar", key: "3")
+                navItem(.sessions, "Sessiyalar", "rectangle.stack", key: "3")
+                navItem(.history, "Tarix", "chart.bar", key: "4")
             }
 
             Text("Loyihalar")

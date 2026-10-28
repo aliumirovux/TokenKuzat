@@ -2,12 +2,13 @@ import SwiftUI
 import AppKit
 
 enum Section: String, CaseIterable, Identifiable {
-    case overview, graph, sessions, history, activity, settings
+    case overview, live, graph, sessions, history, activity, settings
     var id: String { rawValue }
 
     var title: String {
         switch self {
         case .overview: return "Bugun"
+        case .live: return "Jonli"
         case .graph: return "Sessiya"
         case .sessions: return "Sessiyalar"
         case .history: return "Tarix"
@@ -19,6 +20,7 @@ enum Section: String, CaseIterable, Identifiable {
     var symbol: String {
         switch self {
         case .overview: return "square.grid.2x2"
+        case .live: return "rectangle.grid.2x2"
         case .graph: return "point.3.connected.trianglepath.dotted"
         case .sessions: return "rectangle.stack"
         case .history: return "calendar"

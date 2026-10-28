@@ -1,5 +1,12 @@
 # O'zgarishlar
 
+## 6.14.0 — 2026-10-28
+
+- Yangi «Jonli» bo'limi (⌘2): bir vaqtda ishlayotgan barcha sessiyalar bitta sahifada. Chap menyudagi ishlayotganlar soni shu qatorga ko'chdi; «Sessiyalar» — ⌘3, «Tarix» — ⌘4.
+- «Kartalar»: har sessiya alohida kartada — holat (ishlayapti / ruxsat kutyapti / tugadi), joriy so'rov, hozirgi ish, barcha agentlarning oxirgi 4 qadami, yordamchi agentlar, kontekst, davomiylik va tokenlar, robot. Ruxsat kutayotgani sariq va birinchi; tugaganlari 10 daqiqa qoladi. Kartani bosish — sessiya xaritasi.
+- «Chiziqlar»: barcha sessiyalar umumiy vaqt o'qida (10 daq – 3 soat). Har sessiya — qator, ostida yordamchi agentlari; har qadam — davomiyligicha rangli chiziq, so'rov boshlari «#raqam» bilan, «hozir» chizig'i. Sichqoncha ustida — qadam tafsiloti, bosish — xarita.
+- Zamonaviy segment tanlagich (`PillSegments`): urg'u rangidagi siljiydigan pill, belgilar bilan.
+
 ## 6.13.0 — 2026-10-28
 
 - Xarita boshqaruvi bitta yaxlit panelda: masshtab | «Ergashyapti / Hozirgiga qaytish» | «Faqat shu so'rov». Pastda yengil fade — kartalar panel ostiga keskin kirib qolmaydi; ergashganda oxirgi qadam panel ustida to'xtaydi. «Hammasini sig'dirish» ham panel joyini hisobga oladi.
