@@ -1,5 +1,11 @@
 # O'zgarishlar
 
+## 5.1.0 — 2026-10-28
+
+- Xarita — oqim grafigi (metro xaritasi kabi), eniga o'sadi: yo'laklar Siz · Model · Terminal · Fayllar · Internet · Tashqi xizmatlar · Agentlar (faqat ishlatilganlari). Har hodisa o'z yo'lagida belgi; chiziq hodisadan hodisaga silliq egri bo'lib yo'lakdan yo'lakka tepaga/pastga o'tadi va borayotgan yo'lak rangida. Javoblar — yashil, o'ylash — bo'sh doira, xatolar — qizil, bajarilayotgan qadam — to'lqin, oxirgi chiziqda paketlar yuradi.
+- So'rovlar — ingichka vertikal chiziq va «#41» (bosilsa tanlanadi). Matn faqat ko'rsatkich ostida; bosish — o'ng panelda tafsilot.
+- Yo'laklar oyna balandligiga moslashadi; zich/keng tugmalari; «Ergashyapti» — yangi hodisalarda oxiriga o'tadi. Uzun sessiyalarda faqat ko'rinib turgan so'rovlar chiziladi.
+
 ## 5.0.0 — 2026-10-28
 
 - Xarita daraxt ko'rinishida: tana — so'rovlar yuqoridan pastga (jonli tana chizig'i bilan), har so'rovdan o'ngga shoxlar — u murojaat qilgan asboblar (Terminal 4×, Fayllar 1×, xatolar bilan). Tanlangan so'rovda shox — butun jarayon: xabarlar, o'ylash va qadamlar tana yonida pastga.

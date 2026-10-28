@@ -73,9 +73,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 let zoom = CommandLine.arguments.firstIndex(of: "--zoom").flatMap { i in
                     i + 1 < CommandLine.arguments.count ? Double(CommandLine.arguments[i + 1]) : nil
                 }
-                let view = SessionMapView(chain: SessionChain.chain(for: s, in: all), mode: .raw, selectedTurn: nil,
-                                          onSelectTurn: { _, _ in }, onSelectTool: { _, _, _ in },
-                                          initialScale: zoom.map { CGFloat($0) })
+                let _ = zoom
+                let view = TraceView(chain: SessionChain.chain(for: s, in: all), selectedTurn: nil,
+                                     onSelectTurn: { _, _ in }, onSelectTool: { _, _, _ in })
                     .frame(width: 1240, height: 600)
                     .environment(\.colorScheme, .dark)
                 let r = ImageRenderer(content: view)

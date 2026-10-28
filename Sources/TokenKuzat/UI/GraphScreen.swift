@@ -92,11 +92,9 @@ struct GraphScreen: View {
                 case "flow" where flowStyle != "summary":
                     let chain = SessionChain.chain(for: session, in: replayOn ? [session] : s.sessions)
                     HStack(spacing: 0) {
-                        SessionMapView(chain: replayOn ? [session] : chain.map { $0.id == session.id ? session : $0 },
-                                       mode: mode,
+                        // Oqim grafigi: yo'laklar bo'ylab eniga o'sadi
+                        TraceView(chain: replayOn ? [session] : chain.map { $0.id == session.id ? session : $0 },
                                        selectedTurn: turnNo.map { "\(session.id)#\($0)" },
-                                       steps: mapSteps(session, turn: turnNo ?? session.turns.last?.id),
-                                       waiting: replayOn ? nil : chain.last.flatMap { s.permissionWaits[$0.id] },
                                        onSelectTurn: { sid, tid in
                                            if sid != sessionId { sessionId = sid }
                                            DispatchQueue.main.async { turnId = tid }
@@ -250,52 +248,6 @@ struct GraphScreen: View {
         replayOn = false
         playing = false
         replayTime = nil
-    }
-
-    /// Xaritada ochiladigan so'rov zanjiri: barcha agentlardagi qadamlar, o'ylash va javoblar — vaqt bo'yicha.
-    /// Model hozir o'ylayotgan bo'lsa (asbob ishlamayapti) — oxirida «O'ylayapti…»
-    private func mapSteps(_ session: SessionSnap, turn: Int?) -> [MapStep] {
-        guard let turn else { return [] }
-        var out: [MapStep] = session.agents.flatMap { a in
-            a.steps.filter { $0.turn == turn }.map { MapStep(step: $0, agent: a.isMain ? nil : a.title) }
-        }
-        // Matnsiz (shifrlangan) o'ylashlar ko'rsatilmaydi — ular faqat «matn yashirin» deb turadi
-        let notes = session.notes.filter { n in n.turn == turn && !(n.kind == .thinking && n.text.isEmpty) }
-        // Yakuniy javob — faqat so'rov tugagach; ish davom etayotganda hammasi oraliq «Xabar»
-        let active = session.turns.first { $0.id == turn }?.active == true
-        let lastReply = active ? nil : notes.last { $0.kind == .reply && $0.agent == nil }?.id
-        out += notes.map { MapStep(note: $0, final: $0.id == lastReply) }
-        out.sort { (a: MapStep, b: MapStep) in a.date < b.date }
-        out = Self.grouped(out)
-        if let t = session.turns.first(where: { $0.id == turn }), t.active, session.state == .running,
-           !out.contains(where: \.isLive) {
-            out.append(MapStep(liveSince: out.last?.date ?? t.start))
-        }
-        return out
-    }
-
-    /// Ikki o'ylash/xabar orasidagi (bir agentdagi) barcha asbob qadamlari bitta «5 ta qadam» bo'g'iniga yig'iladi
-    private static func grouped(_ items: [MapStep]) -> [MapStep] {
-        var out: [MapStep] = []
-        var run: [StepSnap] = []
-        var runAgent: String?
-        func flush() {
-            if run.count == 1 { out.append(MapStep(step: run[0], agent: runAgent)) }
-            else if run.count > 1 { out.append(MapStep(group: run, agent: runAgent)) }
-            run = []
-        }
-        for it in items {
-            if case .step(let s) = it.item {
-                if !run.isEmpty, runAgent != it.agent { flush() }
-                runAgent = it.agent
-                run.append(s)
-            } else {
-                flush()
-                out.append(it)
-            }
-        }
-        flush()
-        return out
     }
 
     /// Tanlangan so'rov raqami; nil — butun sessiya
