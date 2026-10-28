@@ -68,6 +68,31 @@ public struct StepSnap: Identifiable, Sendable {
     public let turn: Int?
 }
 
+/// Claude'ning o'ylashi yoki yozgan javobi — xaritadagi qadamlar zanjirida ko'rsatiladi
+public struct NoteSnap: Identifiable, Sendable {
+    public enum Kind: Sendable { case thinking, reply }
+    public let id: String
+    public let date: Date
+    public let kind: Kind
+    /// O'ylash shifrlangan bo'lsa — bo'sh
+    public let text: String
+    /// O'ylash qancha davom etgani (oldingi hodisadan beri, taxminiy)
+    public let duration: TimeInterval?
+    public let turn: Int?
+    /// Yordamchi agent nomi (asosiy agentda nil)
+    public let agent: String?
+
+    public init(id: String, date: Date, kind: Kind, text: String, duration: TimeInterval?, turn: Int?, agent: String?) {
+        self.id = id
+        self.date = date
+        self.kind = kind
+        self.text = text
+        self.duration = duration
+        self.turn = turn
+        self.agent = agent
+    }
+}
+
 /// Bitta so'rov va unga javob jarayoni: siz yozgan paytdan keyingi so'rovgacha
 public struct TurnSnap: Identifiable, Sendable {
     /// 1 dan boshlanadigan tartib raqami
@@ -168,6 +193,8 @@ public struct SessionSnap: Identifiable, Sendable {
     public let turns: [TurnSnap]
     /// Kontekst oynasi hajmi: 200K yoki (sessiyada 200K dan oshgan bo'lsa) 1M
     public var contextWindow: Int = 200_000
+    /// O'ylash va javob matnlari, eskidan yangiga (oxirgi 400 tasi)
+    public var notes: [NoteSnap] = []
 
     public var main: AgentSnap? { agents.first(where: \.isMain) }
     /// Kontekst qanchalik to'lgan (0…1)

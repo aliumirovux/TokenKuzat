@@ -23,10 +23,12 @@ extension ToolCategory {
 private enum Selection: Equatable {
     case agent(String)
     case resource(agentId: String, category: ToolCategory)
+    /// O'ylash yoki javob matni
+    case note(agentId: String, noteId: String)
 
     var agentId: String {
         switch self {
-        case .agent(let id), .resource(let id, _): return id
+        case .agent(let id), .resource(let id, _), .note(let id, _): return id
         }
     }
 }
@@ -105,6 +107,16 @@ struct GraphScreen: View {
                                                turnId = tid
                                                if let m = s.sessions.first(where: { $0.id == sid })?.main {
                                                    select(.resource(agentId: m.id, category: cat))
+                                               }
+                                           }
+                                       },
+                                       onSelectNote: { sid, note in
+                                           if sid != sessionId { sessionId = sid }
+                                           DispatchQueue.main.async {
+                                               if let tid = note.turn { turnId = tid }
+                                               if let m = s.sessions.first(where: { $0.id == sid })?.main {
+                                                   selection = .note(agentId: m.id, noteId: note.id)
+                                                   if !showInspector { showInspector = true }
                                                }
                                            }
                                        })
@@ -240,12 +252,50 @@ struct GraphScreen: View {
         replayTime = nil
     }
 
-    /// Xaritada ochiladigan so'rovning barcha agentlardagi qadamlari, vaqt bo'yicha
+    /// Xaritada ochiladigan so'rov zanjiri: barcha agentlardagi qadamlar, o'ylash va javoblar — vaqt bo'yicha.
+    /// Model hozir o'ylayotgan bo'lsa (asbob ishlamayapti) — oxirida «O'ylayapti…»
     private func mapSteps(_ session: SessionSnap, turn: Int?) -> [MapStep] {
         guard let turn else { return [] }
-        return session.agents
-            .flatMap { a in a.steps.filter { $0.turn == turn }.map { MapStep(step: $0, agent: a.isMain ? nil : a.title) } }
-            .sorted { $0.step.date < $1.step.date }
+        var out: [MapStep] = session.agents.flatMap { a in
+            a.steps.filter { $0.turn == turn }.map { MapStep(step: $0, agent: a.isMain ? nil : a.title) }
+        }
+        // Matnsiz (shifrlangan) o'ylashlar ko'rsatilmaydi — ular faqat «matn yashirin» deb turadi
+        let notes = session.notes.filter { n in n.turn == turn && !(n.kind == .thinking && n.text.isEmpty) }
+        // Yakuniy javob — faqat so'rov tugagach; ish davom etayotganda hammasi oraliq «Xabar»
+        let active = session.turns.first { $0.id == turn }?.active == true
+        let lastReply = active ? nil : notes.last { $0.kind == .reply && $0.agent == nil }?.id
+        out += notes.map { MapStep(note: $0, final: $0.id == lastReply) }
+        out.sort { (a: MapStep, b: MapStep) in a.date < b.date }
+        out = Self.grouped(out)
+        if let t = session.turns.first(where: { $0.id == turn }), t.active, session.state == .running,
+           !out.contains(where: \.isLive) {
+            out.append(MapStep(liveSince: out.last?.date ?? t.start))
+        }
+        return out
+    }
+
+    /// Ikki o'ylash/xabar orasidagi (bir agentdagi) barcha asbob qadamlari bitta «5 ta qadam» bo'g'iniga yig'iladi
+    private static func grouped(_ items: [MapStep]) -> [MapStep] {
+        var out: [MapStep] = []
+        var run: [StepSnap] = []
+        var runAgent: String?
+        func flush() {
+            if run.count == 1 { out.append(MapStep(step: run[0], agent: runAgent)) }
+            else if run.count > 1 { out.append(MapStep(group: run, agent: runAgent)) }
+            run = []
+        }
+        for it in items {
+            if case .step(let s) = it.item {
+                if !run.isEmpty, runAgent != it.agent { flush() }
+                runAgent = it.agent
+                run.append(s)
+            } else {
+                flush()
+                out.append(it)
+            }
+        }
+        flush()
+        return out
     }
 
     /// Tanlangan so'rov raqami; nil — butun sessiya
@@ -287,6 +337,15 @@ struct GraphScreen: View {
         case .resource(let id, let cat)?:
             if let a = session.agents.first(where: { $0.id == id }), let g = a.resources.first(where: { $0.category == cat }) {
                 ResourceInspector(owner: a, group: g, now: now) { select(.agent(a.id)) }
+            } else {
+                EmptyStateView(symbol: "questionmark", title: "Topilmadi", text: "")
+            }
+        case .note(let aid, let nid)?:
+            if let n = session.notes.first(where: { $0.id == nid }) {
+                NoteInspector(note: n, final: session.turns.first { $0.id == n.turn }?.active != true
+                              && session.notes.last { $0.kind == .reply && $0.turn == n.turn && $0.agent == nil }?.id == n.id) {
+                    select(.agent(aid))
+                }
             } else {
                 EmptyStateView(symbol: "questionmark", title: "Topilmadi", text: "")
             }
@@ -639,6 +698,56 @@ private struct ResourceInspector: View {
 
                 InspectorBlock(title: "Qadamlar", trailing: "\(steps.count) ta") {
                     StepTimeline(steps: steps)
+                }
+            }
+            .padding(18)
+        }
+        .background(Brand.sunken)
+    }
+}
+
+/// O'ylash yoki javobning to'liq matni (saqlangan boshi), tanlab nusxa olish mumkin
+private struct NoteInspector: View {
+    let note: NoteSnap
+    let final: Bool
+    let back: () -> Void
+
+    var body: some View {
+        let reply = note.kind == .reply
+        let color = reply ? Brand.ok : Brand.inkFill
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                Button(action: back) {
+                    Label("Asosiy agent", systemImage: "chevron.left")
+                        .font(.callout.weight(.medium)).lineLimit(1)
+                        .padding(.horizontal, 10).padding(.vertical, 5)
+                        .surfaceCapsule()
+                }
+                .buttonStyle(.plain)
+
+                HStack(spacing: 12) {
+                    ToolTile(symbol: reply ? "text.bubble.fill" : "brain", color: color, size: 46)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(reply ? (final ? "Javob" : "Xabar") : "O'yladi").font(.title3.weight(.semibold))
+                        HStack(spacing: 6) {
+                            Text(Fmt.clock.string(from: note.date))
+                            if let d = note.duration, d >= 1 { Text("· ~" + Dur.text(d)) }
+                            if let t = note.turn { Text("· #\(t)-so'rov") }
+                            if let a = note.agent { Text("· " + a) }
+                        }
+                        .font(.callout).foregroundStyle(.secondary)
+                    }
+                }
+
+                InspectorBlock(title: reply ? "Matn" : "O'ylash matni",
+                               trailing: note.text.count >= TranscriptEvent.noteLimit ? "boshi · \(TranscriptEvent.noteLimit) belgi" : nil) {
+                    if note.text.isEmpty {
+                        Text("Bu o'ylash shifrlangan — Claude Code matnini saqlamagan. Faqat davomiyligi ma'lum.")
+                            .font(.callout).foregroundStyle(.secondary)
+                    } else {
+                        Text(note.text).font(.body).textSelection(.enabled)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
             }
             .padding(18)

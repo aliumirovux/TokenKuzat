@@ -1,5 +1,12 @@
 # O'zgarishlar
 
+## 4.8.0 — 2026-10-28
+
+- Xaritadagi zanjirda Claude'ning o'ylashi va javoblari: «O'yladi» (matn boshi, taxminiy davomiylik), oraliq «Xabar» va so'rov tugagach yakuniy «Javob». Model hozir o'ylayotgan bo'lsa — oxirida jonli «O'ylayapti…» (soniyalar bilan). Kartani bosish — o'ng panelda to'liq matn (tanlab nusxa olish mumkin).
+- Matnsiz (shifrlangan) o'ylashlar ko'rsatilmaydi.
+- Zanjir qisqardi: ikki o'ylash/xabar orasidagi asbob qadamlari bitta «5 ta qadam» kartasiga yig'iladi — turlar bo'yicha sanoq, oxirgi qadam va jami vaqt bilan; zanjirda ko'pi bilan 12 bo'g'in, eskilari «+N oldingi»da.
+- Engine: o'ylash va javob matnlari (boshi, 2000 belgigacha; sessiyada oxirgi 400 tasi) saqlanadi — faqat kompyuterda.
+
 ## 4.7.5 — 2026-10-28
 
 - Sessiya sahifasi endi aylantirilmaydi: Xarita, Xulosa va Fayllar kanvasi oynaning qolgan balandligini to'liq egallaydi (taxminiy hisob o'rniga moslashuvchan joylashuv) — pastda bo'sh joy ham, kesilish ham yo'q. Vaqt chizig'i ochilsa, kanvas shunga qisqaradi.

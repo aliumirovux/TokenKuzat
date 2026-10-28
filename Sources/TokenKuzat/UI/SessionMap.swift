@@ -52,11 +52,71 @@ extension TurnSnap {
     var shownPrompt: String { isContinuation ? "Kontekst yangilandi — ish davom etdi" : prompt }
 }
 
-/// Xaritada ochilgan so'rovning bitta qadami; `agent` — yordamchi agent nomi (asosiy agentda nil)
+/// Xaritada ochilgan so'rov zanjirining bir bo'g'ini: asbob qadami, o'ylash, javob yoki «hozir o'ylayapti».
+/// `agent` — yordamchi agent nomi (asosiy agentda nil)
 struct MapStep: Identifiable {
-    var id: String { step.id }
-    let step: StepSnap
+    enum Item {
+        case step(StepSnap)
+        /// Ketma-ket bir xil turdagi qadamlar (ko'pi bilan oxirgisi ko'rsatiladi)
+        case group([StepSnap])
+        /// `final` — so'rovning yakuniy javobi
+        case note(NoteSnap, final: Bool)
+        /// Model hozir o'ylayapti yoki javob yozyapti (asbob ishlamayapti)
+        case live(since: Date)
+    }
+    let id: String
+    let item: Item
     let agent: String?
+    let date: Date
+
+    init(step: StepSnap, agent: String?) {
+        id = step.id; item = .step(step); self.agent = agent; date = step.date
+    }
+
+    init(note: NoteSnap, final: Bool) {
+        id = note.id; item = .note(note, final: final); agent = note.agent; date = note.date
+    }
+
+    /// Guruhda eng ko'p uchragan asbob turi
+    static func dominant(_ g: [StepSnap]) -> ToolCategory? {
+        Dictionary(grouping: g, by: \.category).max { $0.value.count < $1.value.count }?.key
+    }
+
+    init(group: [StepSnap], agent: String?) {
+        id = "g" + (group.first?.id ?? ""); item = .group(group); self.agent = agent; date = group.first?.date ?? .now
+    }
+
+    init(liveSince: Date) {
+        id = "live"; item = .live(since: liveSince); agent = nil; date = liveSince
+    }
+
+    /// Zanjirdagi balandligi: matnli o'ylash va javob — kattaroq
+    var height: CGFloat {
+        switch item {
+        case .step, .group, .live: return M.stepH
+        case .note(let n, _):
+            if n.text.isEmpty { return M.stepH }
+            return n.kind == .reply ? 96 : 76
+        }
+    }
+
+    var color: Color {
+        switch item {
+        case .step(let s): return s.category.color
+        case .group(let g): return MapStep.dominant(g)?.color ?? .secondary
+        case .note(let n, _): return n.kind == .reply ? Brand.ok : Brand.inkFill
+        case .live: return Brand.inkFill
+        }
+    }
+
+    var isLive: Bool {
+        switch item {
+        case .step(let s): return s.status == .running
+        case .group(let g): return g.contains { $0.status == .running }
+        case .note: return false
+        case .live: return true
+        }
+    }
 }
 
 // MARK: - Joylashuv
@@ -77,7 +137,7 @@ private enum M {
     static let stepH: CGFloat = 52
     static let stepGap: CGFloat = 14
     static let stepTop: CGFloat = 46
-    static let maxSteps = 14
+    static let maxSteps = 12
     /// Qadamlarsiz xarita balandligi — masshtab shu bo'yicha tanlanadi
     static let baseH: CGFloat = rowY + cardH / 2 + toolDrop + toolD + 50
 }
@@ -201,9 +261,9 @@ private struct MapLayout {
         }
         for st in shown {
             let n = MapNode(id: card.id + "/s/" + st.id, kind: .step(st, sessionId: sessionId, turnId: turnId),
-                            center: CGPoint(x: card.center.x, y: y + M.stepH / 2), size: CGSize(width: M.cardW, height: M.stepH))
+                            center: CGPoint(x: card.center.x, y: y + st.height / 2), size: CGSize(width: M.cardW, height: st.height))
             nodes.append(n)
-            link(n, live: st.step.status == .running, color: st.step.category.color)
+            link(n, live: st.isLive, color: st.color)
             y = n.rect.maxY + M.stepGap
         }
         stepsBottom = y
@@ -272,6 +332,8 @@ struct SessionMapView: View {
     var waiting: HookNotice? = nil
     let onSelectTurn: (_ sessionId: String, _ turnId: Int) -> Void
     let onSelectTool: (_ sessionId: String, _ turnId: Int, _ category: ToolCategory) -> Void
+    /// O'ylash yoki javob kartasi bosildi — to'liq matn o'ng panelda
+    var onSelectNote: (_ sessionId: String, _ note: NoteSnap) -> Void = { _, _ in }
 
     @State private var scale: CGFloat = 0.9
     @State private var pan = CGSize.zero
@@ -393,7 +455,14 @@ struct SessionMapView: View {
                 }
         case .step(let st, let sid, let tid):
             MapStepNode(item: st)
-                .onTapGesture { onSelectTool(sid, tid, st.step.category) }
+                .onTapGesture {
+                    switch st.item {
+                    case .step(let s): onSelectTool(sid, tid, s.category)
+                    case .group(let g): if let c = g.first?.category { onSelectTool(sid, tid, c) }
+                    case .note(let n, _): onSelectNote(sid, n)
+                    case .live: break
+                    }
+                }
         case .earlier(let k):
             Text("+\(k) oldingi qadam")
                 .font(.caption.weight(.semibold)).foregroundStyle(.secondary)
@@ -804,7 +873,7 @@ private struct MiniMap: View {
                     break
                 case .step(let st, _, _):
                     g.fill(Path(ellipseIn: CGRect(x: n.center.x * k - 1.5, y: toolY + 5, width: 3, height: 3)),
-                           with: .color(st.step.category.color))
+                           with: .color(st.color))
                 case .earlier:
                     break
                 default:
@@ -831,17 +900,47 @@ private struct MiniMap: View {
     }
 }
 
-/// Qadam tuguni: asbob belgisi, nima qilindi, vaqti va davomiyligi; bajarilayotgani — jonli chegara bilan
+/// Zanjir bo'g'ini: asbob qadami (belgi, nima qilindi, vaqti), o'ylash (💭 matni yoki davomiyligi),
+/// javob (💬 matn boshi) yoki «O'ylayapti…». Bajarilayotgani — jonli chegara bilan
 private struct MapStepNode: View {
     let item: MapStep
 
     var body: some View {
-        let s = item.step
-        let color = s.category.color
         let shape = RoundedRectangle(cornerRadius: 12, style: .continuous)
-        HStack(spacing: 10) {
+        let color = item.color
+        HStack(alignment: isText ? .top : .center, spacing: 10) {
+            icon.frame(width: 28, height: 28)
+            VStack(alignment: .leading, spacing: 3) {
+                content
+                meta.font(.caption2.monospacedDigit()).foregroundStyle(.secondary)
+            }
+            Spacer(minLength: 0)
+            if item.isLive { ProgressView().controlSize(.mini) }
+        }
+        .padding(.horizontal, 10).padding(.vertical, isText ? 10 : 0)
+        .frame(width: M.cardW, height: item.height, alignment: isText ? .topLeading : .leading)
+        .modifier(Surface(shape: shape, tint: item.isLive || isReply ? color : nil, interactive: true))
+        .overlay { if item.isLive { LiveBorder(shape: shape, color: color, lineWidth: 1.6, period: 2.6) } }
+        .contentShape(shape)
+        .help(help)
+    }
+
+    private var isText: Bool {
+        if case .note(let n, _) = item.item { return !n.text.isEmpty }
+        return false
+    }
+
+    private var isReply: Bool {
+        if case .note(let n, _) = item.item { return n.kind == .reply }
+        return false
+    }
+
+    @ViewBuilder
+    private var icon: some View {
+        switch item.item {
+        case .step(let s):
             ZStack {
-                Circle().fill(color.opacity(s.status == .failed ? 0 : 0.15))
+                Circle().fill(s.category.color.opacity(s.status == .failed ? 0 : 0.15))
                 if s.status == .failed {
                     Circle().fill(Brand.err)
                     Image(systemName: "xmark").font(.system(size: 10, weight: .bold)).foregroundStyle(.white)
@@ -849,26 +948,115 @@ private struct MapStepNode: View {
                     Image(systemName: s.symbol).font(.system(size: 11, weight: .semibold)).foregroundStyle(s.category.iconColor)
                 }
             }
-            .frame(width: 28, height: 28)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(s.text).font(.callout).lineLimit(1).truncationMode(.tail)
-                    .foregroundStyle(s.status == .failed ? Brand.err : Color.primary)
-                HStack(spacing: 5) {
-                    Text(Fmt.clock.string(from: s.date))
-                    if let d = s.duration { Text("· " + Self.dur(d)) }
-                    if let a = item.agent { Text("· " + a).lineLimit(1) }
+        case .group(let g):
+            ZStack(alignment: .topTrailing) {
+                Circle().fill(item.color.opacity(0.15))
+                    .overlay {
+                        Image(systemName: "square.stack.3d.up.fill")
+                            .font(.system(size: 11, weight: .semibold)).foregroundStyle(MapStep.dominant(g)?.iconColor ?? .secondary)
+                    }
+                if g.contains(where: { $0.status == .failed }) {
+                    Circle().fill(Brand.err).frame(width: 8, height: 8).offset(x: 1, y: -1)
                 }
-                .font(.caption2.monospacedDigit()).foregroundStyle(.secondary)
             }
-            Spacer(minLength: 0)
-            if s.status == .running { ProgressView().controlSize(.mini) }
+        case .note(let n, _):
+            ZStack {
+                Circle().fill(item.color.opacity(0.16))
+                Image(systemName: n.kind == .reply ? "text.bubble.fill" : "brain")
+                    .font(.system(size: 12, weight: .semibold)).foregroundStyle(item.color)
+            }
+        case .live:
+            ZStack {
+                Circle().fill(item.color.opacity(0.16))
+                Image(systemName: "brain").font(.system(size: 12, weight: .semibold)).foregroundStyle(item.color)
+            }
         }
-        .padding(.horizontal, 10)
-        .frame(width: M.cardW, height: M.stepH)
-        .modifier(Surface(shape: shape, tint: s.status == .running ? color : nil, interactive: true))
-        .overlay { if s.status == .running { LiveBorder(shape: shape, color: color, lineWidth: 1.6, period: 2.6) } }
-        .contentShape(shape)
-        .help(s.text)
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        switch item.item {
+        case .step(let s):
+            Text(s.text).font(.callout).lineLimit(1).truncationMode(.tail)
+                .foregroundStyle(s.status == .failed ? Brand.err : Color.primary)
+        case .group(let g):
+            // «6 ta qadam  ▣3 ⌘2 ◎1» — turlar bo'yicha sanoq
+            HStack(spacing: 6) {
+                Text("\(g.count) ta qadam").font(.callout.weight(.medium))
+                let byCat = Dictionary(grouping: g, by: \.category).sorted { $0.value.count > $1.value.count }
+                ForEach(byCat.prefix(4), id: \.key) { cat, list in
+                    HStack(spacing: 2) {
+                        Image(systemName: cat.symbol).font(.system(size: 9, weight: .semibold))
+                        Text("\(list.count)").font(.caption2.weight(.semibold)).monospacedDigit()
+                    }
+                    .foregroundStyle(cat.iconColor)
+                    .help(cat.title)
+                }
+                let errs = g.filter { $0.status == .failed }.count
+                if errs > 0 { Text("\(errs) xato").font(.caption2.weight(.semibold)).foregroundStyle(Brand.err) }
+            }
+            .lineLimit(1)
+        case .note(let n, let final):
+            if n.text.isEmpty {
+                Text("O'yladi").font(.callout.weight(.medium))
+            } else {
+                Text(n.kind == .reply ? (final ? "Javob" : "Xabar") : "O'yladi")
+                    .font(.caption.weight(.semibold)).foregroundStyle(item.color)
+                Text(Self.oneLine(n.text)).font(.callout).lineLimit(n.kind == .reply ? 3 : 2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        case .live:
+            Text("O'ylayapti…").font(.callout.weight(.medium))
+        }
+    }
+
+    @ViewBuilder
+    private var meta: some View {
+        HStack(spacing: 5) {
+            switch item.item {
+            case .step(let s):
+                Text(Fmt.clock.string(from: s.date))
+                if let d = s.duration { Text("· " + Self.dur(d)) }
+            case .group(let g):
+                // Oxirgi qadam nima edi va jami qancha vaqt ketdi
+                Text(g.last?.text ?? "").lineLimit(1).truncationMode(.tail)
+                let total = g.compactMap(\.duration).reduce(0, +)
+                if total >= 1 { Text("· " + Self.dur(total)).fixedSize() }
+            case .note(let n, _):
+                Text(Fmt.clock.string(from: n.date))
+                if let d = n.duration, d >= 1 { Text("· ~" + Self.dur(d)) }
+                if n.kind == .thinking && n.text.isEmpty { Text("· matn yashirin") }
+            case .live(let since):
+                TimelineView(.periodic(from: .now, by: 1)) { ctx in
+                    Text(Self.dur(ctx.date.timeIntervalSince(since)))
+                }
+            }
+            if let a = item.agent { Text("· " + a).lineLimit(1) }
+        }
+    }
+
+    private var help: String {
+        switch item.item {
+        case .step(let s): return s.text
+        case .group(let g): return g.map(\.text).joined(separator: "\n")
+        case .note(let n, _): return n.text.isEmpty ? "O'ylash matni shifrlangan" : "Bosing — to'liq matn o'ng panelda"
+        case .live: return "Model hozir o'ylayapti yoki javob yozyapti"
+        }
+    }
+
+    /// «Terminal · Read event dispatch» → «Read event dispatch» (tur nomi sarlavhada bor)
+    static func shortText(_ s: String) -> String {
+        guard let r = s.range(of: " · ") else { return s }
+        return String(s[r.upperBound...])
+    }
+
+    /// Markdown belgilari va qator uzilishlarisiz qisqa ko'rinish
+    static func oneLine(_ s: String) -> String {
+        s.replacingOccurrences(of: "\n", with: " ")
+            .replacingOccurrences(of: "**", with: "")
+            .replacingOccurrences(of: "`", with: "")
+            .replacingOccurrences(of: "#", with: "")
+            .trimmingCharacters(in: .whitespaces)
     }
 
     private static func dur(_ s: TimeInterval) -> String {

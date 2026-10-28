@@ -11,9 +11,14 @@ public struct TranscriptEvent {
 
     public enum Item: Equatable {
         case tool(id: String, name: String, description: ToolDescriber.Description, target: ToolTarget)
-        case text
-        case thinking
+        /// Javob matni (boshi, ko'pi bilan `noteLimit` belgi)
+        case text(String)
+        /// O'ylash matni; shifrlangan bo'lsa — bo'sh
+        case thinking(String)
     }
+
+    /// Saqlanadigan matn uzunligi — uzun sessiyalarda xotira o'smasin
+    public static let noteLimit = 2000
 
     public struct Assistant {
         public var model: String?
@@ -87,11 +92,13 @@ public enum TranscriptParser {
                 a.items.append(.tool(id: id, name: name, description: ToolDescriber.describe(name, input),
                                      target: ToolDescriber.target(name, input)))
             case "text":
-                if let t = b["text"] as? String, !t.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    a.items.append(.text)
+                if let t = b["text"] as? String {
+                    let s = t.trimmingCharacters(in: .whitespacesAndNewlines)
+                    if !s.isEmpty { a.items.append(.text(String(s.prefix(TranscriptEvent.noteLimit)))) }
                 }
             case "thinking", "redacted_thinking":
-                a.items.append(.thinking)
+                let s = (b["thinking"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+                a.items.append(.thinking(String(s.prefix(TranscriptEvent.noteLimit))))
             default:
                 break
             }

@@ -211,6 +211,7 @@ public final class Engine {
         let agent = session.agent(fs.agentKey ?? ev.sidechainAgentId ?? "main")
         if !agent.isMain && !agent.metaFound && agent.metaAttempts < 30 { loadMeta(agent, fs) }
 
+        let prevActivity = agent.lastActivity
         if let ts = ev.timestamp ?? fs.mtime {
             if agent.firstActivity.map({ ts < $0 }) ?? true { agent.firstActivity = ts }
             if agent.lastActivity.map({ ts > $0 }) ?? true { agent.lastActivity = ts }
@@ -218,7 +219,7 @@ public final class Engine {
         }
 
         switch ev.kind {
-        case .assistant(let a): apply(a, ev, fs, session, agent)
+        case .assistant(let a): apply(a, ev, fs, session, agent, prev: prevActivity)
         case .user(let u): apply(u, ev, session, agent)
         case .title: break
         }
@@ -235,7 +236,7 @@ public final class Engine {
     }
 
     private func apply(_ a: TranscriptEvent.Assistant, _ ev: TranscriptEvent, _ fs: FileState,
-                       _ session: SessionAcc, _ agent: AgentAcc) {
+                       _ session: SessionAcc, _ agent: AgentAcc, prev: Date?) {
         if let m = a.model {
             agent.model = m
             if agent.isMain { session.model = m }
@@ -259,10 +260,14 @@ public final class Engine {
                 agent.lastAction = d.text
                 agent.lastStop = "tool_use"
                 if let ts = ev.timestamp, ts >= dayStart { addFeed(id, ts, session, agent, d.symbol, d.text) }
-            case .text:
+            case .text(let t):
                 agent.lastAction = "Javob yozdi"
-            case .thinking:
+                addNote(ev, session, agent, kind: .reply, text: t, duration: nil, index: 1)
+            case .thinking(let t):
                 agent.lastAction = "O'ylayapti"
+                let ts = ev.timestamp ?? now
+                let d = prev.map { ts.timeIntervalSince($0) }.flatMap { $0 > 0 && $0 < 3600 ? $0 : nil }
+                addNote(ev, session, agent, kind: .thinking, text: t, duration: d, index: 0)
             }
         }
 
@@ -293,6 +298,17 @@ public final class Engine {
             if agent.isMain { b.main.add(c) } else { b.agents.add(c) }
             minutes[minute] = b
         }
+    }
+
+    /// Bir qator ikki marta o'qilsa (fayl qayta yozilgan) — takrorlanmaydi
+    private func addNote(_ ev: TranscriptEvent, _ session: SessionAcc, _ agent: AgentAcc,
+                         kind: NoteSnap.Kind, text: String, duration: TimeInterval?, index: Int) {
+        guard let ts = ev.timestamp else { return }
+        let id = (ev.uuid ?? "\(ts.timeIntervalSince1970)") + "#\(index)"
+        guard session.noteIds.insert(id).inserted else { return }
+        session.notes.append(NoteAcc(id: id, date: ts, kind: kind, text: text, duration: duration,
+                                     agent: agent.isMain ? nil : agent.title))
+        if session.notes.count > 600 { session.notes.removeFirst(session.notes.count - 400) }
     }
 
     private func apply(_ u: TranscriptEvent.User, _ ev: TranscriptEvent, _ session: SessionAcc, _ agent: AgentAcc) {
@@ -395,7 +411,11 @@ public final class Engine {
                 tokens: main + sub, mainTokens: main, agentTokens: sub,
                 agents: agentSnaps, lastActivity: la, state: best,
                 turns: turnSnaps(s, starts: starts, active: best != .idle),
-                contextWindow: s.contextPeak > 200_000 ? 1_000_000 : 200_000))
+                contextWindow: s.contextPeak > 200_000 ? 1_000_000 : 200_000,
+                notes: s.notes.suffix(400).map {
+                    NoteSnap(id: $0.id, date: $0.date, kind: $0.kind, text: $0.text, duration: $0.duration,
+                             turn: Engine.turnIndex(starts, $0.date).map { $0 + 1 }, agent: $0.agent)
+                }))
         }
         sessSnaps.sort { ($0.lastActivity ?? .distantPast) > ($1.lastActivity ?? .distantPast) }
         snap.sessions = sessSnaps
@@ -648,6 +668,15 @@ private final class StepAcc {
     }
 }
 
+private struct NoteAcc {
+    let id: String
+    let date: Date
+    let kind: NoteSnap.Kind
+    let text: String
+    let duration: TimeInterval?
+    let agent: String?
+}
+
 private final class SessionAcc {
     let id: String
     var project = ""
@@ -665,6 +694,8 @@ private final class SessionAcc {
     /// Barcha qadamlar (agentdagi ro'yxat qisqartiriladi, bu yerda — yo'q): so'rovlar xaritasi uchun.
     /// Ikkinchi qiymat — yordamchi agent nomi (asosiy agentda nil)
     var allSteps: [(StepAcc, String?)] = []
+    var notes: [NoteAcc] = []
+    var noteIds: Set<String> = []
 
     init(id: String) { self.id = id }
 
