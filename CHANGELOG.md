@@ -1,5 +1,11 @@
 # O'zgarishlar
 
+## 6.12.0 — 2026-10-28
+
+- Ikkala yon panel bir uslubda. Chap menyu: tepadagi bo'sh joy olib tashlandi; nom ostida holat («2 sessiya ishlayapti» / «Tinch»); tanlangan qator urg'u rangida; ishlayotgan loyihada takroriy «hozir» yozuvi yo'q (avatar nuqtasi yetarli); limitlar «Claude limiti» sarlavhali ixcham kartada.
+- Tafsilotlar paneli: xarita kartasi ichida emas — o'ngda, oyna tepasigacha cho'zilgan alohida panel (chap menyu bilan bir xil material), «Tafsilotlar» sarlavhasi va yopish tugmasi; yopiq paytda — oynaning yuqori o'ng burchagida ochish tugmasi (tablar qatoridagi kichik tugma olib tashlandi). Tor oynada — suzuvchi panel.
+- Panel ichi ixchamroq: «Hozir» — bitta qator; tokenlar — bir qatorli ro'yxat, izohlar sichqoncha ustiga borganda; asbob belgilari chap menyudagidek oddiy; aylantirish chizig'i yashirin.
+
 ## 6.11.1 — 2026-10-28
 
 - Yon menyuni ochish/yopish belgilari oyna tugmalari (qizil-sariq-yashil) bilan bir qatorda: yopiq paytda — tugmalarning o'ng yonida, sarlavha ustida osilib qolmaydi.

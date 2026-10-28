@@ -49,6 +49,8 @@ struct GraphScreen: View {
     @State private var contentWidth: CGFloat = 1200
     private var isNarrow: Bool { contentWidth < 1000 }
     private var inspectorVisible: Bool { isNarrow ? narrowInspector : showInspector }
+    /// Tafsilotlar paneli Xarita va Xulosa tablarida bor («Faqat xarita»da yo'q)
+    private var panelAvailable: Bool { !mapFocus && ["map", "summary"].contains(currentTab) }
     /// «flow» — n8n oqimi, «timeline» — vaqt chizig'i
     @AppStorage("graphMode") private var graphMode = "flow"
     @State private var selection: Selection?
@@ -70,7 +72,9 @@ struct GraphScreen: View {
         // Replay paytida hamma ko'rinish sessiyaning o'sha paytdagi holatini oladi
         let session = live.map { l in replayOn ? l.replay(at: replayTime ?? range?.upperBound ?? s.updatedAt) : l }
         let now = replayOn ? (replayTime ?? range?.upperBound ?? s.updatedAt) : s.updatedAt
-        // Sahifa aylantirilmaydi: kanvas oynaning qolgan balandligini to'liq egallaydi
+        // Sahifa aylantirilmaydi: kanvas oynaning qolgan balandligini to'liq egallaydi.
+        // O'ngda — to'liq balandlikdagi tafsilotlar paneli (yon menyu bilan bir uslubda)
+        HStack(spacing: 0) {
         VStack(spacing: 0) {
             if let session, let live {
                 let turnNo = effectiveTurn(session)
@@ -129,12 +133,7 @@ struct GraphScreen: View {
                                            }
                                        },
                                        interactive: !replayOn)
-                        if showInspector && !isNarrow && !mapFocus {
-                            Divider()
-                            inspector(session, now: now).frame(width: min(384, max(300, contentWidth * 0.3)))
-                        }
                     }
-                    .overlay(alignment: .trailing) { narrowPanel(session, now: now) }
                     .frame(minHeight: 320, maxHeight: .infinity)
                     .card(padding: 0)
                     // Faqat xaritada — oyna chetigacha (sarlavha paneli ostidan)
@@ -150,12 +149,7 @@ struct GraphScreen: View {
                                        if let c = b.category { select(.resource(agentId: b.ownerId, category: c)) }
                                        else { select(.agent(b.ownerId)) }
                                    })
-                        if showInspector && !isNarrow {
-                            Divider()
-                            inspector(session, now: now).frame(width: min(384, max(300, contentWidth * 0.3)))
-                        }
                     }
-                    .overlay(alignment: .trailing) { narrowPanel(session, now: now) }
                     .frame(minHeight: 320, maxHeight: .infinity)
                     .card(padding: 0)
                     .padding(.horizontal, 24).padding(.bottom, 20)
@@ -187,6 +181,27 @@ struct GraphScreen: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            if let session, panelAvailable && !isNarrow && showInspector {
+                DetailsPanel(onClose: { withAnimation(Motion.spring) { showInspector = false } }) {
+                    inspector(session, now: now)
+                }
+                .frame(width: min(360, max(300, contentWidth * 0.26)))
+                .transition(.move(edge: .trailing).combined(with: .opacity))
+            }
+        }
+        .overlay(alignment: .trailing) { if let session { narrowPanel(session, now: now) } }
+        .overlay(alignment: .topTrailing) {
+            // Panel yopiq — oynaning yuqori o'ng burchagida ochish tugmasi (chap menyudagidek)
+            if panelAvailable && !inspectorVisible {
+                PaneToggle(symbol: "sidebar.right", help: "Tafsilotlarni ko'rsatish") {
+                    withAnimation(Motion.spring) { if isNarrow { narrowInspector = true } else { showInspector = true } }
+                }
+                .padding(.top, 2).padding(.trailing, 8)
+                .ignoresSafeArea(.container, edges: .top)
+                .transition(.opacity)
+            }
+        }
+        .animation(Motion.spring, value: showInspector)
         .background(GeometryReader { g in
             Color.clear
                 .onAppear { contentWidth = g.size.width }
@@ -224,13 +239,6 @@ struct GraphScreen: View {
             tab("outputs", "Natijalar", "photo.on.rectangle.angled",
                 help: "Jarayonda yaratilgan yoki ko'rilgan rasm, HTML, PDF va videolar")
             Spacer()
-            if !["files", "outputs"].contains(graphMode) {
-                Button {
-                    withAnimation(Motion.spring) { if isNarrow { narrowInspector.toggle() } else { showInspector.toggle() } }
-                } label: { Image(systemName: "sidebar.right") }
-                    .buttonStyle(.borderless)
-                    .help(inspectorVisible ? "Tafsilotlarni yashirish" : "Tafsilotlarni ko'rsatish")
-            }
         }
     }
 
@@ -343,13 +351,13 @@ struct GraphScreen: View {
     /// Tor oynada: tafsilotlar xarita ustida, o'ng tomonda suzib turadi
     @ViewBuilder
     private func narrowPanel(_ session: SessionSnap, now: Date) -> some View {
-        if isNarrow && narrowInspector {
-            inspector(session, now: now)
-                .frame(width: min(340, contentWidth * 0.75))
-                .background(Brand.surface)
-                .overlay(alignment: .leading) { Divider() }
-                .shadow(color: .black.opacity(0.35), radius: 18, x: -6)
-                .transition(.move(edge: .trailing).combined(with: .opacity))
+        if panelAvailable && isNarrow && narrowInspector {
+            DetailsPanel(onClose: { withAnimation(Motion.spring) { narrowInspector = false } }) {
+                inspector(session, now: now)
+            }
+            .frame(width: min(340, contentWidth * 0.8))
+            .shadow(color: .black.opacity(0.35), radius: 18, x: -6)
+            .transition(.move(edge: .trailing).combined(with: .opacity))
         }
     }
 
@@ -517,15 +525,15 @@ private struct AgentInspector: View {
             }
             .padding(18)
         }
-        .background(Brand.sunken)
+        .scrollIndicators(.never)
     }
 
     private var header: some View {
         HStack(alignment: .center, spacing: 12) {
-            ToolTile(symbol: agentSymbol(agent), color: agent.isMain ? Palette.main : Palette.agents, size: 46)
-            VStack(alignment: .leading, spacing: 4) {
+            ToolTile(symbol: agentSymbol(agent), color: agent.isMain ? Palette.main : Palette.agents, size: 36)
+            VStack(alignment: .leading, spacing: 3) {
                 Text(agent.isMain ? "Asosiy agent" : agent.title)
-                    .font(.title3.weight(.semibold)).fixedSize(horizontal: false, vertical: true)
+                    .font(.headline).fixedSize(horizontal: false, vertical: true)
                 HStack(spacing: 8) {
                     if !agent.subtitle.isEmpty {
                         Text(agent.subtitle).font(.callout).foregroundStyle(.secondary).lineLimit(1)
@@ -539,22 +547,20 @@ private struct AgentInspector: View {
     @ViewBuilder
     private var now: some View {
         if let running = agent.steps.last, running.status == .running {
-            HStack(alignment: .top, spacing: 12) {
-                ToolTile(symbol: running.symbol, color: running.category.color, size: 32)
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(running.text).font(.body.weight(.medium)).fixedSize(horizontal: false, vertical: true)
-                    HStack(spacing: 6) {
-                        Spinner(size: 10)
-                        Text("\(Dur.text(running.duration)) davom etyapti")
-                    }
-                    .font(.callout).foregroundStyle(Brand.ok)
-                }
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Image(systemName: running.symbol).font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(running.category.color).frame(width: 16)
+                Text(running.text).font(.callout.weight(.medium)).lineLimit(2)
+                Spacer(minLength: 6)
+                HStack(spacing: 4) { Spinner(size: 9); Text(Dur.text(running.duration)) }
+                    .font(.caption).monospacedDigit().foregroundStyle(Brand.ok)
             }
         } else {
-            VStack(alignment: .leading, spacing: 3) {
-                Text(agent.state == .waiting ? "Asbob natijasini kutyapti" : "Oxirgi harakat")
-                    .font(.caption).foregroundStyle(.secondary)
-                Text(agent.lastAction).font(.body.weight(.medium)).fixedSize(horizontal: false, vertical: true)
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Image(systemName: agent.state == .waiting ? "hourglass" : "clock.arrow.circlepath")
+                    .font(.system(size: 12, weight: .medium)).foregroundStyle(.secondary).frame(width: 16)
+                Text(agent.lastAction).font(.callout.weight(.medium)).lineLimit(2)
+                    .help(agent.state == .waiting ? "Asbob natijasini kutyapti" : "Oxirgi harakat")
             }
         }
     }
@@ -595,11 +601,13 @@ private struct TokenBreakdown: View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Text(Fmt.tokens(tokens.value(mode)))
-                    .font(.system(size: 30, weight: .bold, design: .rounded)).monospacedDigit()
-                Text(mode == .weighted ? "vaznli token" : "token").font(.callout).foregroundStyle(.secondary)
-                Spacer()
-                Text("sessiyaning \(Fmt.percent(tokens.value(mode), of: sessionTotal))")
+                    .font(.system(size: 24, weight: .bold, design: .rounded)).monospacedDigit()
+                Text(mode == .weighted ? "vaznli" : "token").font(.callout).foregroundStyle(.secondary).lineLimit(1)
+                Spacer(minLength: 6)
+                Text(Fmt.percent(tokens.value(mode), of: sessionTotal))
                     .font(.caption.weight(.semibold)).foregroundStyle(Brand.accent)
+                    .lineLimit(1).fixedSize()
+                    .help("Sessiya tokenlarining shu agentga to'g'ri keladigan ulushi")
                     .padding(.horizontal, 8).padding(.vertical, 3)
                     .background(Capsule().fill(Brand.accentSoft))
             }
@@ -619,23 +627,20 @@ private struct TokenBreakdown: View {
             }
             .frame(height: 10)
 
-            VStack(spacing: 10) {
+            // Bir qatorli ro'yxat; izoh — sichqoncha ustiga borganda
+            VStack(spacing: 7) {
                 ForEach(ps) { p in
-                    HStack(alignment: .top, spacing: 10) {
-                        RoundedRectangle(cornerRadius: 3, style: .continuous).fill(p.color)
-                            .frame(width: 10, height: 10).padding(.top, 4)
-                        VStack(alignment: .leading, spacing: 1) {
-                            Text(p.title).font(.callout.weight(.medium))
-                            Text(p.hint).font(.caption).foregroundStyle(.secondary)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
+                    HStack(spacing: 8) {
+                        RoundedRectangle(cornerRadius: 2.5, style: .continuous).fill(p.color).frame(width: 8, height: 8)
+                        Text(p.title).font(.callout)
                         Spacer(minLength: 8)
-                        VStack(alignment: .trailing, spacing: 1) {
-                            Text(Fmt.tokens(Double(p.value))).font(.callout.weight(.semibold)).monospacedDigit()
-                            Text(Fmt.percent(Double(p.value), of: Double(total)))
-                                .font(.caption).foregroundStyle(.secondary).monospacedDigit()
-                        }
+                        Text(Fmt.tokens(Double(p.value))).font(.callout.weight(.semibold)).monospacedDigit()
+                        Text(Fmt.percent(Double(p.value), of: Double(total)))
+                            .font(.caption).foregroundStyle(.secondary).monospacedDigit()
+                            .frame(width: 34, alignment: .trailing)
                     }
+                    .contentShape(Rectangle())
+                    .help(p.hint)
                 }
             }
         }
@@ -654,7 +659,8 @@ private struct ResourceList: View {
             ForEach(sorted) { g in
                 Button { open(g.category) } label: {
                     HStack(spacing: 12) {
-                        ToolTile(symbol: g.category.symbol, color: g.category.color, size: 34)
+                        Image(systemName: g.category.symbol).font(.system(size: 14, weight: .medium))
+                            .foregroundStyle(g.category.color).frame(width: 22)
                         VStack(alignment: .leading, spacing: 5) {
                             HStack(spacing: 6) {
                                 Text(g.category.title).font(.body.weight(.medium))
@@ -748,7 +754,7 @@ private struct ResourceInspector: View {
             }
             .padding(18)
         }
-        .background(Brand.sunken)
+        .scrollIndicators(.never)
     }
 }
 
@@ -798,7 +804,7 @@ private struct NoteInspector: View {
             }
             .padding(18)
         }
-        .background(Brand.sunken)
+        .scrollIndicators(.never)
     }
 }
 
@@ -958,4 +964,62 @@ private struct TightLabel: LabelStyle {
     func makeBody(configuration: Configuration) -> some View {
         HStack(spacing: 4) { configuration.icon; configuration.title }
     }
+}
+
+/// O'ng tafsilotlar paneli: yon menyu bilan bir xil material, oyna tepasigacha; sarlavha qatorida yopish tugmasi
+private struct DetailsPanel<Content: View>: View {
+    let onClose: () -> Void
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Text("Tafsilotlar").font(.system(size: 12, weight: .semibold)).foregroundStyle(.secondary)
+                Spacer()
+                PaneToggle(symbol: "sidebar.right", help: "Tafsilotlarni yashirish", action: onClose)
+            }
+            .padding(.leading, 18).padding(.trailing, 8).padding(.top, 2).frame(height: 30)
+            content
+        }
+        .background(SidebarMaterial().ignoresSafeArea())
+        .overlay(alignment: .leading) {
+            Rectangle().fill(Color.black.opacity(0.35)).frame(width: 1).ignoresSafeArea()
+        }
+        .ignoresSafeArea(.container, edges: .top)
+    }
+}
+
+/// Yon menyu va panel tugmasi (oyna tugmalari qatorida)
+struct PaneToggle: View {
+    let symbol: String
+    let help: String
+    let action: () -> Void
+    @State private var hover = false
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(hover ? Color.primary : Color.secondary)
+                .frame(width: 28, height: 24)
+                .background(RoundedRectangle(cornerRadius: 6, style: .continuous).fill(Color.primary.opacity(hover ? 0.08 : 0)))
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .noFocusRing()
+        .onHover { hover = $0 }
+        .help(help)
+    }
+}
+
+/// macOS yon menyu materiali — chap menyu bilan bir xil fon
+struct SidebarMaterial: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSVisualEffectView {
+        let v = NSVisualEffectView()
+        v.material = .sidebar
+        v.blendingMode = .behindWindow
+        v.state = .followsWindowActiveState
+        return v
+    }
+    func updateNSView(_ v: NSVisualEffectView, context: Context) {}
 }

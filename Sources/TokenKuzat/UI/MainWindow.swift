@@ -31,7 +31,7 @@ struct MainWindow: View {
             .overlay(alignment: .topLeading) {
                 // Yon menyu yopiq — oyna tugmalari yonida ochish tugmasi
                 if columns == .detailOnly && !mapFocus {
-                    SidebarToggle(open: false) { setCollapsed(false) }
+                    PaneToggle(symbol: "sidebar.left", help: "Yon menyuni ochish (⌃⌘S)") { setCollapsed(false) }
                         .padding(.leading, 76).padding(.top, 2)
                         .ignoresSafeArea(.container, edges: .top)
                         .transition(.opacity)
@@ -102,7 +102,7 @@ private struct Sidebar: View {
     var body: some View {
         let snap = store.snap
         VStack(alignment: .leading, spacing: 0) {
-            brand(snap).padding(.horizontal, 8).padding(.bottom, 20)
+            brand(snap).padding(.horizontal, 8).padding(.bottom, 18)
 
             VStack(spacing: 1) {
                 navItem(.overview, "Bugun", "sun.max", key: "1")
@@ -125,11 +125,11 @@ private struct Sidebar: View {
             limits(snap)
             navItem(.settings, "Sozlamalar", "gearshape", key: ",")
         }
-        .padding(.horizontal, 10).padding(.top, 40).padding(.bottom, 10)
+        .padding(.horizontal, 10).padding(.top, 14).padding(.bottom, 10)
         .frame(maxHeight: .infinity, alignment: .top)
         // Oyna tugmalari qatorida, o'ng burchakda — yon menyuni yopish
         .overlay(alignment: .topTrailing) {
-            SidebarToggle(open: true, action: onCollapse).padding(.top, 2).padding(.trailing, 8)
+            PaneToggle(symbol: "sidebar.left", help: "Yon menyuni yopish (⌃⌘S)", action: onCollapse).padding(.top, 2).padding(.trailing, 8)
                 .ignoresSafeArea(.container, edges: .top)
         }
     }
@@ -138,17 +138,20 @@ private struct Sidebar: View {
 
     private func brand(_ snap: Snapshot) -> some View {
         let waiting = !snap.permissionWaits.isEmpty, running = snap.runningAgents > 0
-        return HStack(spacing: 9) {
-            Image(nsImage: NSApp.applicationIconImage).resizable().frame(width: 24, height: 24)
-            Text("Token Kuzatuv").font(.system(size: 13.5, weight: .semibold, design: .rounded))
-            Spacer(minLength: 4)
-            Group {
-                if waiting { Circle().fill(Brand.warn).frame(width: 7, height: 7) }
-                else if running { StateDot(state: .running, size: 7) }
+        let color: Color = waiting ? Brand.warn : (running ? Brand.ok : .secondary)
+        return HStack(spacing: 10) {
+            Image(nsImage: NSApp.applicationIconImage).resizable().frame(width: 30, height: 30)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Token Kuzatuv").font(.system(size: 13.5, weight: .semibold, design: .rounded))
+                HStack(spacing: 5) {
+                    if running && !waiting { StateDot(state: .running, size: 6) }
+                    else { Circle().fill(color.opacity(waiting ? 1 : 0.6)).frame(width: 6, height: 6) }
+                    Text(waiting ? "Ruxsat kutyapti" : (running ? "\(snap.activeSessions) sessiya ishlayapti" : "Tinch"))
+                }
+                .font(.system(size: 11, weight: .medium)).foregroundStyle(color)
             }
-            .help(waiting ? "Claude ruxsatingizni kutyapti"
-                  : "\(snap.activeSessions) sessiya ishlayapti · yangilandi \(Fmt.ago(snap.updatedAt)) · \(snap.filesWatched) fayl")
         }
+        .help("Yangilandi \(Fmt.ago(snap.updatedAt)) · \(snap.filesWatched) fayl kuzatilyapti")
     }
 
     // MARK: Bo'limlar
@@ -162,7 +165,7 @@ private struct Sidebar: View {
                     .foregroundStyle(on ? Brand.accent : .secondary)
                     .frame(width: 18)
                 Text(title).font(.system(size: 13, weight: on ? .semibold : .regular))
-                    .foregroundStyle(on ? .primary : .secondary)
+                    .foregroundStyle(on ? Color.primary : Color.primary.opacity(0.75))
                 Spacer(minLength: 4)
                 if live > 0 {
                     HStack(spacing: 4) { StateDot(state: .running, size: 5); Text("\(live)") }
@@ -170,7 +173,7 @@ private struct Sidebar: View {
                 }
             }
             .padding(.horizontal, 8).frame(height: 30)
-            .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(Color.primary.opacity(on ? 0.08 : 0)))
+            .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(Brand.accent.opacity(on ? 0.18 : 0)))
             .contentShape(Rectangle())
         }
         .buttonStyle(RowButtonStyle())
@@ -208,14 +211,18 @@ private struct Sidebar: View {
                         }
                     }
                 Text(sess.project).font(.system(size: 13, weight: on ? .semibold : .regular))
-                    .foregroundStyle(on ? .primary : .secondary).lineLimit(1)
+                    .foregroundStyle(on ? Color.primary : Color.primary.opacity(0.75)).lineLimit(1)
                 Spacer(minLength: 4)
-                Text(waiting ? "ruxsat" : (running ? "hozir" : Self.short(sess.lastActivity, now: now)))
-                    .font(.system(size: 11)).monospacedDigit()
-                    .foregroundStyle(waiting ? Brand.warn : (running ? Brand.ok : Color.secondary.opacity(0.7)))
+                // Ishlayotganini avatar nuqtasi ko'rsatadi — bu yerda faqat tinch loyihaning vaqti
+                if waiting {
+                    Text("ruxsat").font(.system(size: 11, weight: .medium)).foregroundStyle(Brand.warn)
+                } else if !running {
+                    Text(Self.short(sess.lastActivity, now: now))
+                        .font(.system(size: 11)).monospacedDigit().foregroundStyle(Color.secondary.opacity(0.7))
+                }
             }
             .padding(.horizontal, 8).frame(height: 30)
-            .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(Color.primary.opacity(on ? 0.08 : 0)))
+            .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(Brand.accent.opacity(on ? 0.18 : 0)))
             .contentShape(Rectangle())
         }
         .buttonStyle(RowButtonStyle())
@@ -239,12 +246,14 @@ private struct Sidebar: View {
     private func limits(_ snap: Snapshot) -> some View {
         let five = snap.limits?.fiveHour, week = snap.limits?.sevenDay
         if five != nil || week != nil {
-            VStack(spacing: 9) {
+            VStack(alignment: .leading, spacing: 9) {
+                Text("Claude limiti").font(.system(size: 11, weight: .semibold)).foregroundStyle(.secondary)
                 if let five { limitRow("5 soat", five) }
                 if let week { limitRow("Hafta", week) }
             }
-            .padding(.horizontal, 10).padding(.vertical, 10)
-            .padding(.bottom, 6)
+            .padding(12)
+            .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color.primary.opacity(0.05)))
+            .padding(.bottom, 8)
         }
     }
 
@@ -277,24 +286,3 @@ private struct Sidebar: View {
 }
 
 
-/// Yon menyuni ochish/yopish tugmasi (⌃⌘S)
-private struct SidebarToggle: View {
-    let open: Bool
-    let action: () -> Void
-    @State private var hover = false
-
-    var body: some View {
-        Button(action: action) {
-            Image(systemName: "sidebar.left")
-                .font(.system(size: 13, weight: .medium))
-                .foregroundStyle(hover ? Color.primary : Color.secondary)
-                .frame(width: 28, height: 24)
-                .background(RoundedRectangle(cornerRadius: 6, style: .continuous).fill(Color.primary.opacity(hover ? 0.08 : 0)))
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .noFocusRing()
-        .onHover { hover = $0 }
-        .help(open ? "Yon menyuni yopish (⌃⌘S)" : "Yon menyuni ochish (⌃⌘S)")
-    }
-}
