@@ -97,16 +97,19 @@ public enum SavingsAdvisor {
             let pct = Int((s.contextFraction * 100).rounded())
             out.append(SavingsTip(
                 kind: .bigContext, level: s.contextTokens >= 300_000 ? .high : .notable,
-                title: "Kontekst \(Fmt.tokens(s.contextTokens)) (\(pct)%)",
-                detail: "Har javobdan oldin Claude butun suhbatni qayta o'qiydi. Yangi mavzu bo'lsa — yangi sessiya oching "
+                title: tr("Kontekst \(Fmt.tokens(s.contextTokens)) (\(pct)%)", "Context \(Fmt.tokens(s.contextTokens)) (\(pct)%)"),
+                detail: tr("Har javobdan oldin Claude butun suhbatni qayta o'qiydi. Yangi mavzu bo'lsa — yangi sessiya oching "
                     + "(«Davom etish xulosasi» bilan); shu mavzu bo'lsa — /compact. So'rov boshiga ~\(Int(perTurn.rounded())) chaqiruv "
                     + "≈ \(Fmt.tokens(Double(extra) * perTurn)) tejaladi.",
+                    "Before every reply Claude re-reads the whole conversation. New topic — start a new session "
+                    + "(with the «Handoff summary»); same topic — /compact. ~\(Int(perTurn.rounded())) calls per prompt "
+                    + "≈ \(Fmt.tokens(Double(extra) * perTurn)) saved."),
                 tokens: extra, perCall: true))
         }
 
         // 2) Kesh qayta yozilishi: kesh muddatidan uzoq tanaffusdan keyin kontekst qaytadan keshlanadi
         let ttl = cacheTTL(for: s)
-        let ttlText = ttl >= longCacheTTL ? "1 soat" : "5 daqiqa"
+        let ttlText = ttl >= longCacheTTL ? tr("1 soat", "1 hour") : tr("5 daqiqa", "5 minutes")
         if let usage = main?.usage, usage.count > 1 {
             var rebuilt = 0, count = 0
             for (a, b) in zip(usage, usage.dropFirst()) where b.date.timeIntervalSince(a.date) > ttl {
@@ -115,9 +118,11 @@ public enum SavingsAdvisor {
             if count > 0 {
                 out.append(SavingsTip(
                     kind: .cacheRebuilds, level: rebuilt > 500_000 ? .notable : .info,
-                    title: "Tanaffusdan keyin kesh \(count) marta qayta yozildi",
-                    detail: "\(ttlText)dan uzoq jim tursangiz, kesh o'chadi va keyingi so'rovda butun kontekst qimmatroq narxda qayta yoziladi. "
+                    title: tr("Tanaffusdan keyin kesh \(count) marta qayta yozildi", count == 1 ? "Cache rewritten once after a break" : "Cache rewritten \(count) times after breaks"),
+                    detail: tr("\(ttlText)dan uzoq jim tursangiz, kesh o'chadi va keyingi so'rovda butun kontekst qimmatroq narxda qayta yoziladi. "
                         + "Uzoq tanaffusdan oldin ishni yakunlang yoki qaytgach yangi sessiya oching.",
+                        "If you stay idle longer than \(ttlText), the cache expires and the next prompt rewrites the whole context at a higher price. "
+                        + "Wrap up before a long break, or start a new session when you're back."),
                     tokens: rebuilt, perCall: false))
             }
         }
@@ -137,9 +142,11 @@ public enum SavingsAdvisor {
             let top = extraReads.sorted { $0.value > $1.value }.prefix(3).map { "\($0.key) ×\($0.value + 1)" }.joined(separator: ", ")
             out.append(SavingsTip(
                 kind: .repeatedReads, level: extra >= 12 ? .notable : .info,
-                title: "\(extra) ta takroriy fayl o'qish",
-                detail: "O'zgarmagan fayl qayta o'qilgan: \(top). Har o'qish fayl hajmicha kontekstni oshiradi. "
+                title: tr("\(extra) ta takroriy fayl o'qish", extra == 1 ? "1 repeated file read" : "\(extra) repeated file reads"),
+                detail: tr("O'zgarmagan fayl qayta o'qilgan: \(top). Har o'qish fayl hajmicha kontekstni oshiradi. "
                     + "Claude'ga «faylni qayta o'qima, avvalgisidan foydalan» deb aytish yoki faylning kerakli qismini ko'rsatish mumkin.",
+                    "Unchanged files were read again: \(top). Each read grows the context by the file's size. "
+                    + "You can tell Claude «don't re-read the file, use the earlier copy» or point to the part you need."),
                 tokens: extra * 3_000, perCall: false))
         }
 
@@ -148,9 +155,11 @@ public enum SavingsAdvisor {
         if shots >= 15 {
             out.append(SavingsTip(
                 kind: .screenshots, level: shots >= 40 ? .notable : .info,
-                title: "\(shots) ta skrinshot",
-                detail: "Har bir skrinshot sessiya oxirigacha kontekstda qoladi. Kerakli joyni kichik (zoom) yoki pastroq "
+                title: tr("\(shots) ta skrinshot", shots == 1 ? "1 screenshot" : "\(shots) screenshots"),
+                detail: tr("Har bir skrinshot sessiya oxirigacha kontekstda qoladi. Kerakli joyni kichik (zoom) yoki pastroq "
                     + "masshtabda olish, natijani matn bilan tekshirish kontekstni sekinroq o'stiradi.",
+                    "Every screenshot stays in context until the session ends. Capturing just the needed area (zoom) or at a lower "
+                    + "scale, and checking results as text, grows the context more slowly."),
                 tokens: shots * 1_500, perCall: false))
         }
 
@@ -160,8 +169,8 @@ public enum SavingsAdvisor {
         if worst >= 3 {
             out.append(SavingsTip(
                 kind: .errorLoop, level: .notable,
-                title: "Ketma-ket \(worst) ta xato",
-                detail: "Claude bir joyda aylanib qolgan bo'lishi mumkin. To'xtatib, aniqroq ko'rsatma bersangiz — keyingi urinishlar tejaladi.",
+                title: tr("Ketma-ket \(worst) ta xato", "\(worst) errors in a row"),
+                detail: tr("Claude bir joyda aylanib qolgan bo'lishi mumkin. To'xtatib, aniqroq ko'rsatma bersangiz — keyingi urinishlar tejaladi.", "Claude may be going in circles. Stop it and give clearer instructions to save further attempts."),
                 tokens: 0, perCall: false))
         }
 
@@ -183,10 +192,13 @@ public enum SavingsAdvisor {
                     .joined(separator: "; ")
                 out.append(SavingsTip(
                     kind: .bigResults, level: total >= 10_000_000 ? .notable : .info,
-                    title: "\(live.count) ta katta natija kontekstda (~\(Fmt.tokens(inContext)))",
-                    detail: "Eng qimmatlari: \(top). Har biri keyingi har javobda qayta o'qiladi. Kerakli qismini so'rang "
+                    title: tr("\(live.count) ta katta natija kontekstda (~\(Fmt.tokens(inContext)))", live.count == 1 ? "1 large result in context (~\(Fmt.tokens(inContext)))" : "\(live.count) large results in context (~\(Fmt.tokens(inContext)))"),
+                    detail: tr("Eng qimmatlari: \(top). Har biri keyingi har javobda qayta o'qiladi. Kerakli qismini so'rang "
                         + "(«oxirgi 30 qator», faylning kerakli joyi) yoki keng qidiruvni yordamchi agentga bering — "
                         + "u ko'p o'qisa ham asosiy suhbatga faqat xulosa qaytadi.",
+                        "Most expensive: \(top). Each is re-read on every following reply. Ask for just the part you need "
+                        + "(«last 30 lines», the relevant part of a file) or hand broad searches to a subagent — "
+                        + "it can read a lot, but only a summary comes back to the main conversation."),
                     tokens: total, perCall: false))
             }
         }
@@ -197,11 +209,15 @@ public enum SavingsAdvisor {
             let used = main.resources.first { $0.category == .mcp }?.items.prefix(6).map(\.name) ?? []
             out.append(SavingsTip(
                 kind: .heavyStart, level: main.calls >= 150 ? .notable : .info,
-                title: "Sessiya \(Fmt.tokens(start)) bilan boshlangan",
-                detail: "Bu — ish boshlanmasdan oldingi qism: tizim ko'rsatmalari, ulangan konnektorlar, pluginlar va skill'lar ro'yxati. "
+                title: tr("Sessiya \(Fmt.tokens(start)) bilan boshlangan", "Session started at \(Fmt.tokens(start))"),
+                detail: tr("Bu — ish boshlanmasdan oldingi qism: tizim ko'rsatmalari, ulangan konnektorlar, pluginlar va skill'lar ro'yxati. "
                     + "Terminalda sessiyalar ~40–65K dan boshlanadi. Claude ilovasida shu ishga kerakmas konnektorlarni o'chirsangiz, "
                     + "har chaqiruv yengillashadi"
                     + (used.isEmpty ? " — bu sessiyada birorta ham tashqi xizmat ishlatilmagan." : ". Bu sessiyada ishlatilganlari: \(used.joined(separator: ", ")).") ,
+                    "This is what loads before any work: system instructions, connected connectors, the list of plugins and skills. "
+                    + "In the terminal, sessions start at ~40–65K. Turning off connectors this task doesn't need in the Claude app "
+                    + "makes every call lighter"
+                    + (used.isEmpty ? " — this session didn't use a single external service." : ". Used in this session: \(used.joined(separator: ", ")).")) ,
                 tokens: extra, perCall: true))
         }
 
@@ -218,27 +234,27 @@ public enum SavingsAdvisor {
     /// Yangi sessiyada sifat tushmasligi uchun «davom etish xulosasi»: so'nggi vazifalar, o'zgargan fayllar, oxirgi holat
     public static func handoff(for s: SessionSnap, lastTurns: Int = 6) -> String {
         var lines: [String] = []
-        lines.append("Bu — oldingi Claude Code sessiyasining davomi (\(s.project)). Quyidagi xulosaga tayanib ishni davom ettir.")
+        lines.append(tr("Bu — oldingi Claude Code sessiyasining davomi (\(s.project)). Quyidagi xulosaga tayanib ishni davom ettir.", "This continues a previous Claude Code session (\(s.project)). Continue the work based on the summary below."))
         let turns = s.turns.filter { !$0.isContinuation }.suffix(lastTurns)
         if !turns.isEmpty {
             lines.append("")
-            lines.append("So'nggi vazifalar:")
+            lines.append(tr("So'nggi vazifalar:", "Recent tasks:"))
             for t in turns { lines.append("- #\(t.id): \(t.prompt)") }
         }
         let changed = Array(Set(s.agents.flatMap(\.steps).filter { $0.category == .files && $0.access == .write }
             .map { $0.targetKey.replacingOccurrences(of: "files|", with: "") })).sorted()
         if !changed.isEmpty {
             lines.append("")
-            lines.append("O'zgartirilgan fayllar:")
+            lines.append(tr("O'zgartirilgan fayllar:", "Changed files:"))
             for f in changed.prefix(25) { lines.append("- \(f)") }
         }
         if let reply = s.notes.last(where: { $0.kind == .reply && $0.agent == nil }) {
             lines.append("")
-            lines.append("Oxirgi holat (oldingi javobdan):")
+            lines.append(tr("Oxirgi holat (oldingi javobdan):", "Last state (from the previous reply):"))
             lines.append(String(reply.text.prefix(1200)))
         }
         lines.append("")
-        lines.append("Avval kerakli fayllarni o'qib chiq, keyin davom et. Allaqachon bajarilganlarni qayta qilma.")
+        lines.append(tr("Avval kerakli fayllarni o'qib chiq, keyin davom et. Allaqachon bajarilganlarni qayta qilma.", "Read the relevant files first, then continue. Don't redo what's already done."))
         return lines.joined(separator: "\n")
     }
 }

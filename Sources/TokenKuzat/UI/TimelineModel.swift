@@ -85,7 +85,7 @@ struct TimelineModel {
         let mainBars = rows.first(where: { $0.agent.isMain })?.bars ?? []
         let mainBusy = TimelineModel.union(mainBars.map { ($0.start, $0.end) })
         let total = end.timeIntervalSince(start)
-        var shares = [TimeShare(title: "Model: o'ylash va javob", symbol: "sparkles", color: Palette.main,
+        var shares = [TimeShare(title: tr("Model: o'ylash va javob", "Model: thinking and output"), symbol: "sparkles", color: Palette.main,
                                 seconds: max(0, total - mainBusy))]
         shares += byCat.sorted { $0.value > $1.value }.map {
             TimeShare(title: $0.key.title, symbol: $0.key.symbol, color: $0.key.color, seconds: $0.value)

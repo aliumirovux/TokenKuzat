@@ -143,7 +143,7 @@ final class AccountUsage {
                     if let w = r.fiveHour { self.record(w, at: now) }
                     Self.save(data, plan: cred.plan, at: now)
                 } else {
-                    self._status = .failed("Javobni o'qib bo'lmadi")
+                    self._status = .failed(tr("Javobni o'qib bo'lmadi", "Couldn't read the response"))
                 }
             }
         }.resume()

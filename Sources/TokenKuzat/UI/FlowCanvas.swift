@@ -348,7 +348,7 @@ struct FlowCanvas: View {
             if let turn = session.turns.last, turn.active, now.timeIntervalSince(turn.start) < 8, turn.steps == 0 {
                 return (top, .greeting)
             }
-            if model.main?.agent.lastAction == "Javob yozdi" { return (top, .answering) }
+            if isAnsweredAction(model.main?.agent.lastAction) { return (top, .answering) }
             return (top, .thinking)
         }
         if let la = session.lastActivity, now.timeIntervalSince(la) < 40 { return (top, .celebrating) }
@@ -382,11 +382,11 @@ struct FlowCanvas: View {
 
     private var zoomControls: some View {
         HStack(spacing: 0) {
-            zoomButton("minus", "Kichraytirish") { zoom = max(0.4, zoom / 1.25) }
+            zoomButton("minus", tr("Kichraytirish", "Zoom out")) { zoom = max(0.4, zoom / 1.25) }
             Divider().frame(height: 16)
-            zoomButton("arrow.up.left.and.arrow.down.right", "Oynaga sig'dirish") { zoom = 1 }
+            zoomButton("arrow.up.left.and.arrow.down.right", tr("Oynaga sig'dirish", "Fit to window")) { zoom = 1 }
             Divider().frame(height: 16)
-            zoomButton("plus", "Kattalashtirish") { zoom = min(3, zoom * 1.25) }
+            zoomButton("plus", tr("Kattalashtirish", "Zoom in")) { zoom = min(3, zoom * 1.25) }
         }
         .surface(radius: 10, interactive: true)
     }
@@ -494,7 +494,7 @@ private struct TriggerShapeNode: View {
                 .frame(width: F.trig, height: F.trig)
                 .modifier(Surface(shape: UnevenRoundedShape(left: F.trig / 2, right: 18), tint: Palette.cacheRead))
             VStack(spacing: 2) {
-                Text("Sizning so'rovingiz").font(.caption.weight(.semibold))
+                Text(tr("Sizning so'rovingiz", "Your prompt")).font(.caption.weight(.semibold))
                 Text(prompt).font(.caption2).foregroundStyle(.secondary).lineLimit(2).multilineTextAlignment(.center)
             }
             .frame(width: 170)
@@ -542,12 +542,12 @@ private struct FlowAgentNode: View {
                 .frame(width: big ? 44 : 34)
             VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 6) {
-                    Text(agent.isMain ? "Asosiy agent" : agent.title)
+                    Text(agent.isMain ? tr("Asosiy agent", "Main agent") : agent.title)
                         .font((big ? Font.headline : .callout).weight(.semibold)).lineLimit(1)
                     StateDot(state: agent.state, size: 7)
                 }
                 Text(agent.lastAction).font(.caption).foregroundStyle(agent.state == .idle ? .secondary : .primary).lineLimit(2)
-                Text([agent.subtitle, steps > 0 ? "\(steps) qadam" : ""].filter { !$0.isEmpty }.joined(separator: " · "))
+                Text([agent.subtitle, steps > 0 ? tr("\(steps) qadam", steps == 1 ? "1 step" : "\(steps) steps") : ""].filter { !$0.isEmpty }.joined(separator: " · "))
                     .font(.caption2.monospaced()).foregroundStyle(.secondary).lineLimit(1)
             }
             Spacer(minLength: 0)
@@ -563,12 +563,12 @@ private struct FlowAgentNode: View {
             if big {
                 // Port yorliqlari — chiziq boshlanadigan nuqta ustida, fonli: chiziq yorliq tagidan chiqadi
                 portPill("Model", Brand.accent).position(x: w * 0.2, y: h + 14)
-                portPill("Asboblar", .secondary).position(x: w * 0.6, y: h + 14)
+                portPill(tr("Asboblar", "Tools"), .secondary).position(x: w * 0.6, y: h + 14)
             }
         }
         .shadow(color: .black.opacity(0.18), radius: 4, y: 2)
         .contentShape(shape)
-        .help("Bosing — jarayon va tokenlar")
+        .help(tr("Bosing — jarayon va tokenlar", "Click — process and tokens"))
     }
 }
 
@@ -623,7 +623,7 @@ private struct ToolBubbleNode: View {
         }
         .shadow(color: .black.opacity(0.15), radius: 3, y: 1)
         .contentShape(Rectangle())
-        .help(bubble.category == nil ? "Model" : "\(bubble.title): \(bubble.calls) chaqiruv — bosing, ro'yxat ochiladi")
+        .help(bubble.category == nil ? "Model" : tr("\(bubble.title): \(bubble.calls) chaqiruv — bosing, ro'yxat ochiladi", "\(bubble.title): \(bubble.calls) \(bubble.calls == 1 ? "call" : "calls") — click to open the list"))
     }
 }
 
@@ -647,13 +647,13 @@ private struct ResultNode: View {
             .modifier(Surface(shape: shape, tint: result.active ? .green : color))
             .overlay { if result.active { LiveBorder(shape: shape, color: Brand.ok, lineWidth: 2) } }
             VStack(spacing: 2) {
-                Text(result.active ? "Ishlayapti…" : "Natija").font(.caption.weight(.semibold))
+                Text(result.active ? tr("Ishlayapti…", "Working…") : tr("Natija", "Result")).font(.caption.weight(.semibold))
                 Text("\(Alerts.duration(result.duration)) · \(Fmt.tokens(result.tokens.value(mode)))")
                     .font(.caption2.monospaced()).foregroundStyle(.secondary)
-                Text("\(result.steps) qadam\(result.errors > 0 ? " · \(result.errors) xato" : "")")
+                Text(tr("\(result.steps) qadam\(result.errors > 0 ? " · \(result.errors) xato" : "")", "\(result.steps) \(result.steps == 1 ? "step" : "steps")\(result.errors > 0 ? " · \(result.errors) \(result.errors == 1 ? "error" : "errors")" : "")"))
                     .font(.caption2.monospaced()).foregroundStyle(result.errors > 0 ? .orange : .secondary)
                 if !result.changedFiles.isEmpty {
-                    Text("✎ \(result.changedFiles.count) fayl o'zgardi")
+                    Text(tr("✎ \(result.changedFiles.count) fayl o'zgardi", "✎ \(result.changedFiles.count) \(result.changedFiles.count == 1 ? "file" : "files") changed"))
                         .font(.caption2.monospaced()).foregroundStyle(.orange)
                         .help(result.changedFiles.joined(separator: "\n"))
                 }
@@ -671,18 +671,18 @@ private struct FlowLegend: View {
         HStack(spacing: 14) {
             HStack(spacing: 5) {
                 Rectangle().fill(Color.primary.opacity(0.4)).frame(width: 18, height: 2)
-                Text("Jarayon")
+                Text(tr("Jarayon", "Process"))
             }
             HStack(spacing: 5) {
                 DashLine().stroke(Color.primary.opacity(0.4), style: StrokeStyle(lineWidth: 1.6, dash: [4, 3]))
                     .frame(width: 18, height: 2)
-                Text("Asbob")
+                Text(tr("Asbob", "Tool"))
             }
             HStack(spacing: 5) {
                 Circle().fill(Color.green).frame(width: 7, height: 7)
-                Text("Hozir ishlayapti")
+                Text(tr("Hozir ishlayapti", "Working now"))
             }
-            Text("Raqam — chaqiruvlar").foregroundStyle(.secondary)
+            Text(tr("Raqam — chaqiruvlar", "Number — calls")).foregroundStyle(.secondary)
         }
         .font(.caption2)
         .padding(.horizontal, 10).padding(.vertical, 6)

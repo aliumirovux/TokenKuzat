@@ -7,9 +7,9 @@ public enum AgentState: Int, Comparable, Sendable {
 
     public var title: String {
         switch self {
-        case .running: return "Ishlayapti"
-        case .waiting: return "Asbob natijasini kutyapti"
-        case .idle: return "Tugagan / tinch"
+        case .running: return tr("Ishlayapti", "Working")
+        case .waiting: return tr("Asbob natijasini kutyapti", "Waiting for tool result")
+        case .idle: return tr("Tugagan / tinch", "Done / idle")
         }
     }
 }

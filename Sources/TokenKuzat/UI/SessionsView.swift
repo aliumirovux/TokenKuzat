@@ -16,18 +16,18 @@ struct SessionsView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
-                    Text("Oxirgi 7 kun · \(all.count) ta sessiya").font(.callout).foregroundStyle(.secondary)
+                    Text(tr("Oxirgi 7 kun · \(all.count) ta sessiya", "Last 7 days · \(all.count == 1 ? "1 session" : "\(all.count) sessions")")).font(.callout).foregroundStyle(.secondary)
                     Spacer()
-                    TextField("Loyiha yoki so'rov bo'yicha qidirish", text: $query)
+                    TextField(tr("Loyiha yoki so'rov bo'yicha qidirish", "Search by project or prompt"), text: $query)
                         .textFieldStyle(.roundedBorder)
                         .frame(maxWidth: 280)
                 }
                 if list.isEmpty {
                     EmptyStateView(symbol: all.isEmpty ? "moon.zzz" : "magnifyingglass",
-                                   title: all.isEmpty ? "Sessiya yo'q" : "Hech narsa topilmadi",
+                                   title: all.isEmpty ? tr("Sessiya yo'q", "No sessions") : tr("Hech narsa topilmadi", "Nothing found"),
                                    text: all.isEmpty
-                                       ? "Mac'dagi Claude Code yoki Cowork sessiyalari shu yerda chiqadi. Bulutdagi sessiyalar Mac'ga yozilmaydi."
-                                       : "Boshqa so'z bilan qidirib ko'ring.")
+                                       ? tr("Mac'dagi Claude Code yoki Cowork sessiyalari shu yerda chiqadi. Bulutdagi sessiyalar Mac'ga yozilmaydi.", "Claude Code and Cowork sessions on this Mac show up here. Cloud sessions aren't saved to this Mac.")
+                                       : tr("Boshqa so'z bilan qidirib ko'ring.", "Try a different search."))
                         .card()
                     if all.isEmpty { SourcesList(sources: store.snap.sources).card() }
                 } else {
@@ -84,19 +84,19 @@ struct SessionCard: View {
                 HStack(spacing: 6) {
                     if !session.model.isEmpty { Chip(text: session.model, symbol: "cpu") }
                     if session.contextTokens > 0 {
-                        Chip(text: "Kontekst \(Fmt.tokens(session.contextTokens))", symbol: "text.alignleft")
+                        Chip(text: tr("Kontekst \(Fmt.tokens(session.contextTokens))", "Context \(Fmt.tokens(session.contextTokens))"), symbol: "text.alignleft")
                     }
-                    Chip(text: "\(session.helperCount) yordamchi agent", symbol: "person.2")
+                    Chip(text: tr("\(session.helperCount) yordamchi agent", session.helperCount == 1 ? "1 subagent" : "\(session.helperCount) subagents"), symbol: "person.2")
                     if let cost = costUSD {
                         Chip(text: String(format: "$%.2f", cost).replacingOccurrences(of: ".", with: ","), symbol: "dollarsign.circle")
-                            .help("Claude Code hisoblagan taxminiy narx (API narxlarida)")
+                            .help(tr("Claude Code hisoblagan taxminiy narx (API narxlarida)", "Estimated cost calculated by Claude Code (at API prices)"))
                     }
                     Spacer()
                     Button {
                         UserDefaults.standard.set(session.id, forKey: GraphScreen.selectedSessionKey)
                         WindowManager.shared.show(.graph)
                     } label: {
-                        Label("Sxemada ochish", systemImage: "point.3.connected.trianglepath.dotted")
+                        Label(tr("Sxemada ochish", "Open in map"), systemImage: "point.3.connected.trianglepath.dotted")
                     }
                     .buttonStyle(.link).font(.caption)
                 }
@@ -122,7 +122,7 @@ struct AgentRow: View {
             IconTile(symbol: agentSymbol(agent), tint: agent.isMain ? Palette.main : Palette.agents, size: 30)
             VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 6) {
-                    Text(agent.isMain ? "Asosiy agent" : agent.title).font(.callout.weight(.medium)).lineLimit(1)
+                    Text(agent.isMain ? tr("Asosiy agent", "Main agent") : agent.title).font(.callout.weight(.medium)).lineLimit(1)
                     if !agent.subtitle.isEmpty { Chip(text: agent.subtitle) }
                     StateDot(state: agent.state, size: 7)
                 }
@@ -135,7 +135,7 @@ struct AgentRow: View {
             Spacer(minLength: 8)
             VStack(alignment: .trailing, spacing: 3) {
                 Text(Fmt.tokens(v)).font(.callout.weight(.medium)).monospacedDigit()
-                Text("\(Fmt.percent(v, of: sessionTotal)) · \(agent.calls) chaqiruv")
+                Text(tr("\(Fmt.percent(v, of: sessionTotal)) · \(agent.calls) chaqiruv", "\(Fmt.percent(v, of: sessionTotal)) · \(agent.calls == 1 ? "1 call" : "\(agent.calls) calls")"))
                     .font(.caption2).foregroundStyle(.secondary).monospacedDigit()
             }
         }
@@ -148,7 +148,7 @@ struct SourcesList: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Manbalar").font(.headline)
+            Text(tr("Manbalar", "Sources")).font(.headline)
             ForEach(sources) { src in
                 HStack(alignment: .top, spacing: 8) {
                     Image(systemName: src.exists ? (src.recent > 0 ? "checkmark.circle.fill" : "circle") : "xmark.circle")
@@ -164,9 +164,9 @@ struct SourcesList: View {
     }
 
     private func detail(_ s: SourceInfo) -> String {
-        guard s.exists else { return "Papka yo'q" }
-        guard s.total > 0 else { return "Papka bor, lekin sessiya fayli yo'q" }
+        guard s.exists else { return tr("Papka yo'q", "No folder") }
+        guard s.total > 0 else { return tr("Papka bor, lekin sessiya fayli yo'q", "Folder exists, but no session files") }
         let last = s.latest.map { Fmt.dayTime.string(from: $0) } ?? "—"
-        return "Jami \(s.total) fayl · 30 kunda \(s.recent) · bugun \(s.today) · oxirgisi: \(last)"
+        return tr("Jami \(s.total) fayl · 30 kunda \(s.recent) · bugun \(s.today) · oxirgisi: \(last)", "\(s.total == 1 ? "1 file" : "\(s.total) files") total · \(s.recent) in 30 days · \(s.today) today · latest: \(last)")
     }
 }

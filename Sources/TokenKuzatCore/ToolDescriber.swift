@@ -36,24 +36,24 @@ public enum ToolDescriber {
         func d(_ symbol: String, _ text: String) -> Description { Description(symbol: symbol, text: text) }
 
         switch name {
-        case "Read": return d("doc.text", "O'qiyapti · \(file())")
-        case "Write": return d("square.and.pencil", "Yozyapti · \(file())")
-        case "Edit", "MultiEdit", "NotebookEdit": return d("pencil", "Tahrirlayapti · \(file())")
+        case "Read": return d("doc.text", tr("O'qiyapti · \(file())", "Reading · \(file())"))
+        case "Write": return d("square.and.pencil", tr("Yozyapti · \(file())", "Writing · \(file())"))
+        case "Edit", "MultiEdit", "NotebookEdit": return d("pencil", tr("Tahrirlayapti · \(file())", "Editing · \(file())"))
         case "Bash":
             var x = d("terminal", "Terminal · \(clip(str("description") ?? str("command") ?? ""))")
             x.paths = SessionOutputs.paths(in: str("command") ?? "")
             return x
-        case "Grep": return d("magnifyingglass", "Matn qidiryapti · \(clip(str("pattern") ?? "", 50))")
-        case "Glob": return d("folder", "Fayl qidiryapti · \(clip(str("pattern") ?? "", 50))")
-        case "WebSearch": return d("globe", "Internetda qidiryapti · \(clip(str("query") ?? ""))")
+        case "Grep": return d("magnifyingglass", tr("Matn qidiryapti · ", "Searching text · ") + clip(str("pattern") ?? "", 50))
+        case "Glob": return d("folder", tr("Fayl qidiryapti · ", "Finding files · ") + clip(str("pattern") ?? "", 50))
+        case "WebSearch": return d("globe", tr("Internetda qidiryapti · ", "Searching the web · ") + clip(str("query") ?? ""))
         case "WebFetch":
             let host = str("url").flatMap { URL(string: $0)?.host } ?? ""
-            return d("safari", "Sahifa o'qiyapti · \(host)")
+            return d("safari", tr("Sahifa o'qiyapti · \(host)", "Reading page · \(host)"))
         case "Agent", "Task":
-            return d("person.2.fill", "Agent ishga tushirdi · \(clip(str("description") ?? str("subagent_type") ?? ""))")
-        case "TodoWrite", "TaskCreate", "TaskUpdate": return d("checklist", "Vazifalar ro'yxatini yangiladi")
+            return d("person.2.fill", tr("Agent ishga tushirdi · ", "Launched agent · ") + clip(str("description") ?? str("subagent_type") ?? ""))
+        case "TodoWrite", "TaskCreate", "TaskUpdate": return d("checklist", tr("Vazifalar ro'yxatini yangiladi", "Updated the task list"))
         case "Skill": return d("sparkles", "Skill · \(str("skill") ?? "")")
-        case "ToolSearch": return d("wrench.and.screwdriver", "Asbob yuklayapti")
+        case "ToolSearch": return d("wrench.and.screwdriver", tr("Asbob yuklayapti", "Loading tools"))
         default:
             if name.hasPrefix("mcp__") { return d("puzzlepiece.extension", shortName(name)) }
             return d("gearshape", name)
@@ -69,12 +69,12 @@ public enum ToolCategory: String, CaseIterable, Sendable {
 
     public var title: String {
         switch self {
-        case .files: return "Fayllar"
+        case .files: return tr("Fayllar", "Files")
         case .shell: return "Terminal"
-        case .web: return "Internet"
-        case .mcp: return "Tashqi xizmatlar"
-        case .agent: return "Agent chaqiruvlari"
-        case .other: return "Boshqa asboblar"
+        case .web: return tr("Internet", "Web")
+        case .mcp: return tr("Tashqi xizmatlar", "External services")
+        case .agent: return tr("Agent chaqiruvlari", "Agent calls")
+        case .other: return tr("Boshqa asboblar", "Other tools")
         }
     }
 
@@ -124,8 +124,8 @@ extension ToolDescriber {
             return t(.files, path, (path as NSString).lastPathComponent, shortDir(path), name == "Read" ? .read : .write)
         case "Grep", "Glob":
             let pattern = str("pattern") ?? ""
-            let where_ = str("path").map { ($0 as NSString).lastPathComponent } ?? "loyiha"
-            return t(.files, "search|" + pattern, "🔍 " + pattern, "qidiruv · \(where_)", .read)
+            let where_ = str("path").map { ($0 as NSString).lastPathComponent } ?? tr("loyiha", "project")
+            return t(.files, "search|" + pattern, "🔍 " + pattern, tr("qidiruv · \(where_)", "search · \(where_)"), .read)
         case "Bash":
             let cmd = str("command") ?? ""
             // «cd x && git status» → «git»: buyruq dasturi bo'yicha guruhlanadi
@@ -137,13 +137,13 @@ extension ToolDescriber {
             return t(.shell, prog, prog, str("description") ?? String(cmd.prefix(80)), .run)
         case "WebFetch":
             let host = str("url").flatMap { URL(string: $0)?.host } ?? "?"
-            return t(.web, host, host, "sahifa o'qildi", .read)
+            return t(.web, host, host, tr("sahifa o'qildi", "page read"), .read)
         case "WebSearch":
             let q = str("query") ?? ""
-            return t(.web, "search|" + q, "🔍 " + q, "internetda qidiruv", .read)
+            return t(.web, "search|" + q, "🔍 " + q, tr("internetda qidiruv", "web search"), .read)
         case "Agent", "Task":
             let d = str("description") ?? str("subagent_type") ?? "agent"
-            return t(.agent, d, d, str("subagent_type") ?? "yordamchi agent", .run)
+            return t(.agent, d, d, str("subagent_type") ?? tr("yordamchi agent", "subagent"), .run)
         default:
             if name.hasPrefix("mcp__") {
                 let p = name.components(separatedBy: "__")

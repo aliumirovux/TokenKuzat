@@ -15,7 +15,7 @@ struct OverviewView: View {
         let s = store.snap
         ScrollView {
             if !s.initialScanDone {
-                ProgressView("Yozuvlar o'qilmoqda…").padding(80)
+                ProgressView(tr("Yozuvlar o'qilmoqda…", "Reading logs…")).padding(80)
             } else {
                 VStack(alignment: .leading, spacing: 18) {
                     if let l = s.limits, let w = l.sessionWindow {
@@ -45,15 +45,15 @@ struct OverviewView: View {
         let shown = list.isEmpty ? Array(s.sessions.prefix(3)) : Array(list.prefix(6))
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .firstTextBaseline) {
-                Text(list.isEmpty ? "So'nggi sessiyalar" : "Bugun nima ustida ishlandi")
+                Text(list.isEmpty ? tr("So'nggi sessiyalar", "Recent sessions") : tr("Bugun nima ustida ishlandi", "What was worked on today"))
                     .font(.system(size: 15, weight: .semibold, design: .rounded))
                 Spacer()
-                Button("Barcha sessiyalar") { WindowManager.shared.show(.sessions) }
+                Button(tr("Barcha sessiyalar", "All sessions")) { WindowManager.shared.show(.sessions) }
                     .buttonStyle(.link).font(.callout.weight(.medium)).tint(Brand.accent)
             }
             if shown.isEmpty {
-                EmptyStateView(symbol: "moon.zzz", title: "Hali sessiya yo'q",
-                               text: "Claude Code yoki Cowork'da ish boshlansa, shu yerda jonli ko'rinadi.")
+                EmptyStateView(symbol: "moon.zzz", title: tr("Hali sessiya yo'q", "No sessions yet"),
+                               text: tr("Claude Code yoki Cowork'da ish boshlansa, shu yerda jonli ko'rinadi.", "When work starts in Claude Code or Cowork, it shows up here live."))
                     .card()
             } else {
                 VStack(spacing: 0) {
@@ -89,22 +89,22 @@ struct LimitHero: View {
             // Tor oynada — sarlavha va bashorat ustma-ust, kartalar ham ustma-ust (kesilib qolmasin)
             ViewThatFits(in: .horizontal) {
                 HStack(alignment: .center, spacing: 12) {
-                    Text("CLAUDE LIMITI" + (plan.map { " · " + $0.uppercased() } ?? "")).eyebrow(Brand.inkDim)
+                    Text(tr("CLAUDE LIMITI", "CLAUDE LIMITS") + (plan.map { " · " + $0.uppercased() } ?? "")).eyebrow(Brand.inkDim)
                     Spacer(minLength: 12)
                     paceLine
                 }
                 VStack(alignment: .leading, spacing: 10) {
-                    Text("CLAUDE LIMITI" + (plan.map { " · " + $0.uppercased() } ?? "")).eyebrow(Brand.inkDim)
+                    Text(tr("CLAUDE LIMITI", "CLAUDE LIMITS") + (plan.map { " · " + $0.uppercased() } ?? "")).eyebrow(Brand.inkDim)
                     paceLine
                 }
             }
             // Asosiy: ikki katta karta — ikkalasi ham «ishlatildi», Claude sahifasidagidek
             AdaptiveStack(spacing: 16) {
-                LimitCard(title: "Joriy sessiya", subtitle: "5 soatlik oyna", window: window,
-                          columns: hourColumns, columnsTitle: "soatlar bo'yicha")
+                LimitCard(title: tr("Joriy sessiya", "Current session"), subtitle: tr("5 soatlik oyna", "5-hour window"), window: window,
+                          columns: hourColumns, columnsTitle: tr("soatlar bo'yicha", "by hour"))
                 if let week {
-                    LimitCard(title: "Bu hafta", subtitle: "7 kunlik oyna", window: week,
-                              columns: dayColumns(week), columnsTitle: "kunlar bo'yicha")
+                    LimitCard(title: tr("Bu hafta", "This week"), subtitle: tr("7 kunlik oyna", "7-day window"), window: week,
+                              columns: dayColumns(week), columnsTitle: tr("kunlar bo'yicha", "by day"))
                 }
             }
             if let o = outside, o.hasWindow, !window.isNotStarted, window.usedPercentage >= 1 {
@@ -121,11 +121,11 @@ struct LimitHero: View {
         let warn = Color(light: 0xFFC46B, dark: 0xFFC46B), ok = Color(light: 0x7CF0B6, dark: 0x7CF0B6)
         let (symbol, text, color): (String, String, Color) = {
             if case .runsOut(let at) = forecast {
-                return ("exclamationmark.triangle.fill", "Sessiya ~\(Fmt.hourMinute.string(from: at)) da tugaydi — tiklanishidan oldin", warn)
+                return ("exclamationmark.triangle.fill", tr("Sessiya ~\(Fmt.hourMinute.string(from: at)) da tugaydi — tiklanishidan oldin", "Session runs out at ~\(Fmt.hourMinute.string(from: at)) — before it resets"), warn)
             }
             if let week, let w = LimitText.weekWarning(weekForecast, week: week) { return ("exclamationmark.triangle.fill", w, warn) }
             if let stale { return ("clock.arrow.circlepath", stale, Brand.inkDim) }
-            return ("checkmark.circle.fill", "Sur'at me'yorida — limit tiklanguncha yetadi", ok)
+            return ("checkmark.circle.fill", tr("Sur'at me'yorida — limit tiklanguncha yetadi", "Pace is fine — the limit will last until reset"), ok)
         }()
         return HStack(spacing: 7) {
             Image(systemName: symbol)
@@ -152,7 +152,7 @@ struct LimitHero: View {
             // O'rganilgan koeffitsiyent bo'lsa — Mac sarfining o'zi (chat ulushi Mac soatlariga yozilmaydi)
             let pct = outside?.tokensPerPct.map { w[i] / $0 } ?? (total > 0 ? w[i] / total * window.usedPercentage : 0)
             return .init(id: i, value: w[i], label: Fmt.hourMinute.string(from: a), state: state,
-                         help: state == .future ? "Hali kelmagan soat" : "\(Fmt.hourMinute.string(from: a)) — \(outside?.tokensPerPct != nil ? "Mac'da limitning" : "limitning") ~\(Int(pct.rounded()))%")
+                         help: state == .future ? tr("Hali kelmagan soat", "Upcoming hour") : tr("\(Fmt.hourMinute.string(from: a)) — \(outside?.tokensPerPct != nil ? "Mac'da limitning" : "limitning") ~\(Int(pct.rounded()))%", "\(Fmt.hourMinute.string(from: a)) — ~\(Int(pct.rounded()))% of the limit\(outside?.tokensPerPct != nil ? " on this Mac" : "")"))
         }
     }
 
@@ -163,12 +163,12 @@ struct LimitHero: View {
         let start = cal.startOfDay(for: wk.resetsAt.addingTimeInterval(-WeeklyForecast.window + 12 * 3600))
         let today = cal.startOfDay(for: Date())
         let byDay = Dictionary(days.map { (cal.startOfDay(for: $0.date), $0.tokens.weighted) }, uniquingKeysWith: +)
-        let short = ["Ya", "Du", "Se", "Ch", "Pa", "Ju", "Sh"]
+        let short = Lang.isEnglish ? ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"] : ["Ya", "Du", "Se", "Ch", "Pa", "Ju", "Sh"]
         return (0..<7).compactMap { i -> LimitCard.Column? in
             guard let d = cal.date(byAdding: .day, value: i, to: start), d <= wk.resetsAt else { return nil }
             let state: LimitCard.Column.State = d < today ? .past : (d == today ? .now : .future)
             return .init(id: i, value: byDay[d] ?? 0, label: short[cal.component(.weekday, from: d) - 1], state: state,
-                         help: state == .future ? "Hali kelmagan kun" : LimitText.date(d))
+                         help: state == .future ? tr("Hali kelmagan kun", "Upcoming day") : LimitText.date(d))
         }
     }
 }
@@ -203,7 +203,7 @@ private struct LimitCard: View {
                     Text("\(Int(pct.rounded()))%").font(.system(size: 40, weight: .bold, design: .rounded)).monospacedDigit()
                         .foregroundStyle(.white)
                         .contentTransition(.numericText()).animation(Motion.smooth, value: pct)
-                    Text("ishlatildi").font(.caption.weight(.medium)).foregroundStyle(Brand.inkDim)
+                    Text(tr("ishlatildi", "used")).font(.caption.weight(.medium)).foregroundStyle(Brand.inkDim)
                 }
             }
             .frame(width: 136, height: 136)
@@ -216,10 +216,10 @@ private struct LimitCard: View {
                 }
                 HStack(spacing: 6) {
                     Image(systemName: "arrow.clockwise")
-                    Text(window.isNotStarted ? "Yangi oyna birinchi so'rov bilan boshlanadi" : LimitText.dayTime(window.resetsAt) + " da tiklanadi")
+                    Text(window.isNotStarted ? tr("Yangi oyna birinchi so'rov bilan boshlanadi", "A new window starts with your first prompt") : tr(LimitText.dayTime(window.resetsAt) + " da tiklanadi", "Resets " + LimitText.dayTime(window.resetsAt)))
                 }
                 .font(.callout.weight(.medium)).foregroundStyle(.white.opacity(0.9))
-                Text(window.isNotStarted ? "limit to'liq" : Self.left(window.resetsAt.timeIntervalSinceNow) + " qoldi")
+                Text(window.isNotStarted ? tr("limit to'liq", "full limit") : Self.left(window.resetsAt.timeIntervalSinceNow) + tr(" qoldi", " left"))
                     .font(.callout).foregroundStyle(Brand.inkDim)
                 Spacer(minLength: 8)
                 MiniColumns(columns: columns).frame(height: 44)
@@ -236,8 +236,8 @@ private struct LimitCard: View {
     /// «25 daq», «4 soat 10 daq», «6 kun»
     static func left(_ t: TimeInterval) -> String {
         let t = max(0, t)
-        if t >= 2 * 86400 { return "\(Int(t) / 86400) kun" }
-        if t >= 86400 { return "1 kun \((Int(t) % 86400) / 3600) soat" }
+        if t >= 2 * 86400 { return tr("\(Int(t) / 86400) kun", "\(Int(t) / 86400) d") }
+        if t >= 86400 { return tr("1 kun \((Int(t) % 86400) / 3600) soat", "1 d \((Int(t) % 86400) / 3600) h") }
         return Alerts.duration(t)
     }
 }
@@ -312,18 +312,18 @@ private struct ConnectHero: View {
     var body: some View {
         HStack(alignment: .center, spacing: 28) {
             VStack(alignment: .leading, spacing: 8) {
-                Text("BUGUN SARFLANDI").eyebrow(Brand.inkDim)
+                Text(tr("BUGUN SARFLANDI", "USED TODAY")).eyebrow(Brand.inkDim)
                 Text(Fmt.tokens(today.value(mode)))
                     .font(.system(size: 64, weight: .bold, design: .rounded)).foregroundStyle(.white)
                     .contentTransition(.numericText()).animation(Motion.smooth, value: today.total)
-                Text("token").foregroundStyle(Brand.inkDim)
+                Text(tr("token", "tokens")).foregroundStyle(Brand.inkDim)
             }
             Spacer()
             VStack(alignment: .leading, spacing: 8) {
-                Text("Claude'ning haqiqiy limitini ko'ring").font(.headline).foregroundStyle(.white)
-                Text("5 soatlik va haftalik limit qancha qolgani, qachon tiklanishi va «shu sur'atda qachon tugaydi».")
+                Text(tr("Claude'ning haqiqiy limitini ko'ring", "See your real Claude limits")).font(.headline).foregroundStyle(.white)
+                Text(tr("5 soatlik va haftalik limit qancha qolgani, qachon tiklanishi va «shu sur'atda qachon tugaydi».", "How much of the 5-hour and weekly limits is left, when they reset, and when you'll run out at this pace."))
                     .font(.callout).foregroundStyle(Brand.inkDim).frame(maxWidth: 340, alignment: .leading)
-                Button("Claude Code'ga ulash…") { WindowManager.shared.show(.settings) }
+                Button(tr("Claude Code'ga ulash…", "Connect to Claude Code…")) { WindowManager.shared.show(.settings) }
                     .buttonStyle(.borderedProminent).tint(Brand.inkFill).padding(.top, 4)
             }
         }
@@ -369,17 +369,17 @@ struct NowRow: View {
                     HStack(spacing: 6) {
                         if let w = snap.permissionWaits[sess.id] {
                             Image(systemName: "hand.raised.fill").font(.system(size: 10)).foregroundStyle(Brand.warn)
-                            Text("RUXSATINGIZNI KUTYAPTI · \(sess.project.uppercased())").eyebrow(Brand.warn)
+                            Text(tr("RUXSATINGIZNI KUTYAPTI · \(sess.project.uppercased())", "WAITING FOR YOUR PERMISSION · \(sess.project.uppercased())")).eyebrow(Brand.warn)
                                 .help(w.message)
                         } else {
                             StateDot(state: .running, size: 6)
-                            Text("HOZIR · \(sess.project.uppercased())").eyebrow(Brand.ok)
+                            Text(tr("HOZIR · \(sess.project.uppercased())", "NOW · \(sess.project.uppercased())")).eyebrow(Brand.ok)
                         }
                         if sess.contextFraction >= 0.8 {
-                            Text("· KONTEKST \(Int((sess.contextFraction * 100).rounded()))%").eyebrow(Brand.warn)
+                            Text(tr("· KONTEKST \(Int((sess.contextFraction * 100).rounded()))%", "· CONTEXT \(Int((sess.contextFraction * 100).rounded()))%")).eyebrow(Brand.warn)
                         }
                     }
-                    Text(snap.permissionWaits[sess.id].map { Alerts.uz($0.message) } ?? running?.text ?? sess.main?.lastAction ?? "Ishlayapti…")
+                    Text(snap.permissionWaits[sess.id].map { Alerts.uz($0.message) } ?? running?.text ?? sess.main?.lastAction ?? tr("Ishlayapti…", "Working…"))
                         .font(.system(size: 16, weight: .semibold, design: .rounded))
                         .lineLimit(1)
                         .id(running?.id ?? "idle")
@@ -392,24 +392,24 @@ struct NowRow: View {
                         .font(.system(size: 22, weight: .semibold, design: .monospaced))
                         .contentTransition(.numericText())
                     if let turn {
-                        Text("#\(turn.id) · \(turn.steps) qadam").font(.caption).foregroundStyle(.secondary)
+                        Text(tr("#\(turn.id) · \(turn.steps) qadam", "#\(turn.id) · \(turn.steps) \(turn.steps == 1 ? "step" : "steps")")).font(.caption).foregroundStyle(.secondary)
                     }
                 }
             }
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .help("Sessiyani ochish")
+        .help(tr("Sessiyani ochish", "Open session"))
     }
 
     private var idle: some View {
         HStack(spacing: 16) {
             ToolTile(symbol: "moon.stars.fill", color: Color(light: 0x8A8A93, dark: 0x4A4A52), size: 44)
             VStack(alignment: .leading, spacing: 4) {
-                Text("HOZIR").eyebrow()
-                Text("Hammasi tinch").font(.system(size: 16, weight: .semibold, design: .rounded))
+                Text(tr("HOZIR", "NOW")).eyebrow()
+                Text(tr("Hammasi tinch", "All quiet")).font(.system(size: 16, weight: .semibold, design: .rounded))
                 if let last = snap.sessions.first {
-                    Text("Oxirgi ish: \(last.project) · \(Fmt.ago(last.lastActivity))").font(.caption).foregroundStyle(.secondary)
+                    Text(tr("Oxirgi ish: \(last.project) · \(Fmt.ago(last.lastActivity))", "Last task: \(last.project) · \(Fmt.ago(last.lastActivity))")).font(.caption).foregroundStyle(.secondary)
                 }
             }
             Spacer()
@@ -458,19 +458,19 @@ private struct TodayBento: View {
         let byCat = Dictionary(grouping: steps, by: \.category).mapValues(\.count).sorted { $0.value > $1.value }
 
         AdaptiveStack(spacing: 14) {
-            tile("TOKENLAR", Fmt.tokens(today),
+            tile(tr("TOKENLAR", "TOKENS"), Fmt.tokens(today),
                  yesterday > 0 ? AnyView(HStack(spacing: 4) {
-                     Text("kecha \(Fmt.tokens(yesterday)) ·")
+                     Text(tr("kecha \(Fmt.tokens(yesterday)) ·", "yesterday \(Fmt.tokens(yesterday)) ·"))
                      Text(ratio(today, yesterday)).foregroundStyle(today > yesterday ? Brand.warn : Brand.ok).fontWeight(.semibold)
-                 }) : AnyView(Text("kecha ma'lumot yo'q"))) {
+                 }) : AnyView(Text(tr("kecha ma'lumot yo'q", "no data for yesterday")))) {
                 MiniBars(values: Array(snap.todayHours.prefix(nowHour + 1)).map { $0.value(mode) }, highlightLast: 3)
                     .frame(height: 44)
             }
-            tile("FAOL VAQT", Alerts.duration(Double(snap.activeMinutesToday) * 60),
-                 AnyView(Text(snap.firstActivityToday.map { "\(Fmt.hourMinute.string(from: $0)) dan beri" } ?? "bugun faollik yo'q"))) {
+            tile(tr("FAOL VAQT", "ACTIVE TIME"), Alerts.duration(Double(snap.activeMinutesToday) * 60),
+                 AnyView(Text(snap.firstActivityToday.map { tr("\(Fmt.hourMinute.string(from: $0)) dan beri", "since \(Fmt.hourMinute.string(from: $0))") } ?? tr("bugun faollik yo'q", "no activity today")))) {
                 DayStrip(hours: snap.todayHours.map { $0.total }, now: nowHour)
             }
-            tile("QADAMLAR", "\(steps.count)", AnyView(Text("\(turns) so'rov · \(errors) xato"))) {
+            tile(tr("QADAMLAR", "STEPS"), "\(steps.count)", AnyView(Text(tr("\(turns) so'rov · \(errors) xato", "\(turns) \(turns == 1 ? "prompt" : "prompts") · \(errors) \(errors == 1 ? "error" : "errors")")))) {
                 VStack(alignment: .leading, spacing: 8) {
                     GeometryReader { g in
                         HStack(spacing: 2) {
@@ -499,7 +499,7 @@ private struct TodayBento: View {
 
     private func ratio(_ a: Double, _ b: Double) -> String {
         let r = a / b
-        return r >= 1.5 ? String(format: "%.1f×", r).replacingOccurrences(of: ".", with: ",")
+        return r >= 1.5 ? (Lang.isEnglish ? String(format: "%.1f×", r) : String(format: "%.1f×", r).replacingOccurrences(of: ".", with: ","))
                         : (a >= b ? "+" : "−") + Fmt.percent(abs(a - b), of: b)
     }
 
@@ -568,7 +568,7 @@ struct SessionLine: View {
                         if session.state != .idle {
                             HStack(spacing: 4) {
                                 StateDot(state: session.state, size: 6)
-                                Text(session.state == .running ? "Ishlayapti" : "Kutyapti")
+                                Text(session.state == .running ? tr("Ishlayapti", "Working") : tr("Kutyapti", "Waiting"))
                             }
                             .font(.caption2.weight(.semibold))
                             .foregroundStyle(Palette.state(session.state))

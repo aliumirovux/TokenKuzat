@@ -186,8 +186,8 @@ struct GraphScreen: View {
                 ScrollView {
                     VStack(spacing: 16) {
                         EmptyStateView(symbol: "rectangle.stack",
-                                       title: "Sessiya yo'q",
-                                       text: "Mac'da Claude Code yoki Cowork'da ish boshlansa, jarayon shu yerda qadamma-qadam chiqadi.")
+                                       title: tr("Sessiya yo'q", "No sessions"),
+                                       text: tr("Mac'da Claude Code yoki Cowork'da ish boshlansa, jarayon shu yerda qadamma-qadam chiqadi.", "When work starts in Claude Code or Cowork on this Mac, the process shows up here step by step."))
                         SourcesList(sources: s.sources).card()
                     }
                     .padding(24)
@@ -207,7 +207,7 @@ struct GraphScreen: View {
         .overlay(alignment: .topTrailing) {
             // Panel yopiq — oynaning yuqori o'ng burchagida ochish tugmasi (chap menyudagidek)
             if panelAvailable && !inspectorVisible {
-                PaneToggle(symbol: "sidebar.right", help: "Tafsilotlarni ko'rsatish") {
+                PaneToggle(symbol: "sidebar.right", help: tr("Tafsilotlarni ko'rsatish", "Show details")) {
                     withAnimation(Motion.spring) { if isNarrow { narrowInspector = true } else { showInspector = true } }
                 }
                 .padding(.top, 2).padding(.trailing, 8)
@@ -245,13 +245,13 @@ struct GraphScreen: View {
     /// Teng tablar: Xarita, Xulosa (ikkalasi Oqim'ning ko'rinishlari), Fayllar va Natijalar
     private var tabs: some View {
         HStack(spacing: 4) {
-            tab("map", "Xarita", "point.3.connected.trianglepath.dotted",
-                help: "Butun sessiya: so'rovlar, asboblar va qadamlar zanjiri")
-            tab("summary", "Xulosa", "circle.hexagongrid",
-                help: "Tanlangan so'rovda qaysi agent va asboblar ishlatilgani")
-            tab("files", "Fayllar", "square.grid.3x3", help: "Qaysi fayllar o'qildi va o'zgartirildi")
-            tab("outputs", "Natijalar", "photo.on.rectangle.angled",
-                help: "Jarayonda yaratilgan yoki ko'rilgan rasm, HTML, PDF va videolar")
+            tab("map", tr("Xarita", "Map"), "point.3.connected.trianglepath.dotted",
+                help: tr("Butun sessiya: so'rovlar, asboblar va qadamlar zanjiri", "The whole session: chain of prompts, tools and steps"))
+            tab("summary", tr("Xulosa", "Summary"), "circle.hexagongrid",
+                help: tr("Tanlangan so'rovda qaysi agent va asboblar ishlatilgani", "Which agents and tools the selected prompt used"))
+            tab("files", tr("Fayllar", "Files"), "square.grid.3x3", help: tr("Qaysi fayllar o'qildi va o'zgartirildi", "Which files were read and changed"))
+            tab("outputs", tr("Natijalar", "Outputs"), "photo.on.rectangle.angled",
+                help: tr("Jarayonda yaratilgan yoki ko'rilgan rasm, HTML, PDF va videolar", "Images, HTML, PDFs and videos created or viewed during the process"))
             Spacer()
         }
     }
@@ -408,7 +408,7 @@ struct GraphScreen: View {
                 ResourceInspector(owner: a, group: g, now: now,
                                   openStep: { selection = .step(agentId: a.id, stepId: $0.id) }) { select(.agent(a.id)) }
             } else {
-                EmptyStateView(symbol: "questionmark", title: "Topilmadi", text: "")
+                EmptyStateView(symbol: "questionmark", title: tr("Topilmadi", "Not found"), text: "")
             }
         case .note(let aid, let nid)?:
             if let n = session.notes.first(where: { $0.id == nid }) {
@@ -417,19 +417,19 @@ struct GraphScreen: View {
                     select(.agent(aid))
                 }
             } else {
-                EmptyStateView(symbol: "questionmark", title: "Topilmadi", text: "")
+                EmptyStateView(symbol: "questionmark", title: tr("Topilmadi", "Not found"), text: "")
             }
         case .step(let aid, let sid)?:
             if let a = session.agents.first(where: { $0.id == aid }), let st = a.steps.first(where: { $0.id == sid }) {
                 StepInspector(step: st, agent: a) { select(.agent(aid)) }
                     .id(sid)
             } else {
-                EmptyStateView(symbol: "questionmark", title: "Qadam topilmadi",
-                               text: "Juda eski qadamlar xotirada saqlanmaydi.")
+                EmptyStateView(symbol: "questionmark", title: tr("Qadam topilmadi", "Step not found"),
+                               text: tr("Juda eski qadamlar xotirada saqlanmaydi.", "Very old steps aren't kept in memory."))
             }
         case nil:
-            EmptyStateView(symbol: "cursorarrow.click", title: "Tugunni tanlang",
-                           text: "Agent yoki asbob tugunini bosing — jarayon shu yerda chiqadi.")
+            EmptyStateView(symbol: "cursorarrow.click", title: tr("Tugunni tanlang", "Select a node"),
+                           text: tr("Agent yoki asbob tugunini bosing — jarayon shu yerda chiqadi.", "Click an agent or tool node — its process shows up here."))
         }
     }
 }
@@ -441,10 +441,10 @@ private struct AccessBadges: View {
     var body: some View {
         let runs = item.calls - item.reads - item.writes
         HStack(spacing: 6) {
-            if item.reads > 0 { badge("eye", item.reads, .secondary, "o'qildi") }
-            if item.writes > 0 { badge("pencil", item.writes, .orange, "o'zgartirildi") }
-            if runs > 0 { badge("play.fill", runs, .secondary, "chaqirildi") }
-            if item.errors > 0 { badge("exclamationmark.triangle.fill", item.errors, .red, "xato") }
+            if item.reads > 0 { badge("eye", item.reads, .secondary, tr("o'qildi", "read")) }
+            if item.writes > 0 { badge("pencil", item.writes, .orange, tr("o'zgartirildi", "changed")) }
+            if runs > 0 { badge("play.fill", runs, .secondary, tr("chaqirildi", "run")) }
+            if item.errors > 0 { badge("exclamationmark.triangle.fill", item.errors, .red, tr("xato", "error")) }
         }
     }
 
@@ -454,7 +454,7 @@ private struct AccessBadges: View {
             Text("\(n)").font(.caption2).monospacedDigit()
         }
         .foregroundStyle(color)
-        .help("\(n) marta \(help)")
+        .help(tr("\(n) marta \(help)", "\(help) \(n)×"))
     }
 }
 
@@ -465,7 +465,7 @@ private enum Dur {
         guard let s else { return "" }
         if s < 1 { return "<1 s" }
         if s < 60 { return "\(Int(s)) s" }
-        return "\(Int(s) / 60) daq \(Int(s) % 60) s"
+        return tr("\(Int(s) / 60) daq \(Int(s) % 60) s", "\(Int(s) / 60) min \(Int(s) % 60) s")
     }
 }
 
@@ -504,7 +504,7 @@ private struct StatePill: View {
         let color: Color = state == .idle ? .secondary : (state == .running ? Brand.ok : Brand.warn)
         HStack(spacing: 6) {
             StateDot(state: state, size: 7)
-            Text(state == .idle ? "Tugagan" : state.title)
+            Text(state == .idle ? tr("Tugagan", "Done") : state.title)
         }
         .font(.caption.weight(.semibold))
         .foregroundStyle(color)
@@ -524,25 +524,25 @@ private struct AgentInspector: View {
     private var trailing: String? {
         let n = agent.isMain ? turns.count : Set(agent.steps.compactMap(\.turn)).count
         guard n > 0 || !agent.steps.isEmpty else { return nil }
-        return "\(n) so'rov · \(agent.steps.count) qadam"
+        return tr("\(n) so'rov · \(agent.steps.count) qadam", "\(n) \(n == 1 ? "prompt" : "prompts") · \(agent.steps.count) \(agent.steps.count == 1 ? "step" : "steps")")
     }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 header
-                InspectorBlock(title: "Hozir") { now }
-                InspectorBlock(title: "Tokenlar", trailing: "\(agent.calls) API chaqiruv") {
+                InspectorBlock(title: tr("Hozir", "Now")) { now }
+                InspectorBlock(title: tr("Tokenlar", "Tokens"), trailing: tr("\(agent.calls) API chaqiruv", "\(agent.calls) API \(agent.calls == 1 ? "call" : "calls")")) {
                     TokenBreakdown(tokens: agent.tokens, mode: mode, sessionTotal: sessionTotal)
                 }
                 if !agent.resources.isEmpty {
-                    InspectorBlock(title: "Nimalarga kirdi", trailing: "\(agent.resources.reduce(0) { $0 + $1.calls }) chaqiruv") {
+                    InspectorBlock(title: tr("Nimalarga kirdi", "What it accessed"), trailing: tr("\(agent.resources.reduce(0) { $0 + $1.calls }) chaqiruv", "\(agent.resources.reduce(0) { $0 + $1.calls }) calls")) {
                         ResourceList(groups: agent.resources, open: openResource)
                     }
                 }
-                InspectorBlock(title: "Jarayon", trailing: trailing, card: false) {
+                InspectorBlock(title: tr("Jarayon", "Process"), trailing: trailing, card: false) {
                     if agent.steps.isEmpty && (!agent.isMain || turns.isEmpty) {
-                        Text("Hali asbob chaqirilmagan.").font(.callout).foregroundStyle(.secondary)
+                        Text(tr("Hali asbob chaqirilmagan.", "No tools called yet.")).font(.callout).foregroundStyle(.secondary)
                     } else {
                         TurnTimeline(steps: agent.steps, turns: turns, showEmptyTurns: agent.isMain, mode: mode, onStep: openStep)
                     }
@@ -557,7 +557,7 @@ private struct AgentInspector: View {
         HStack(alignment: .center, spacing: 12) {
             ToolTile(symbol: agentSymbol(agent), color: agent.isMain ? Palette.main : Palette.agents, size: 36)
             VStack(alignment: .leading, spacing: 3) {
-                Text(agent.isMain ? "Asosiy agent" : agent.title)
+                Text(agent.isMain ? tr("Asosiy agent", "Main agent") : agent.title)
                     .font(.headline).fixedSize(horizontal: false, vertical: true)
                 HStack(spacing: 8) {
                     if !agent.subtitle.isEmpty {
@@ -585,7 +585,7 @@ private struct AgentInspector: View {
                 Image(systemName: agent.state == .waiting ? "hourglass" : "clock.arrow.circlepath")
                     .font(.system(size: 12, weight: .medium)).foregroundStyle(.secondary).frame(width: 16)
                 Text(agent.lastAction).font(.callout.weight(.medium)).lineLimit(2)
-                    .help(agent.state == .waiting ? "Asbob natijasini kutyapti" : "Oxirgi harakat")
+                    .help(agent.state == .waiting ? tr("Asbob natijasini kutyapti", "Waiting for the tool result") : tr("Oxirgi harakat", "Last action"))
             }
         }
     }
@@ -607,15 +607,15 @@ private struct TokenBreakdown: View {
 
     private var parts: [Part] {
         [
-            Part(id: "cr", title: "Keshdan o'qildi", hint: "Avvalgi kontekst qayta ishlatildi — eng arzon",
+            Part(id: "cr", title: tr("Keshdan o'qildi", "Cache read"), hint: tr("Avvalgi kontekst qayta ishlatildi — eng arzon", "Earlier context reused — the cheapest"),
                  value: tokens.cacheRead, color: Brand.accent),
-            Part(id: "cw", title: "Keshga yozildi", hint: "Yangi kontekst keyingi so'rovlar uchun saqlandi",
+            Part(id: "cw", title: tr("Keshga yozildi", "Cache write"), hint: tr("Yangi kontekst keyingi so'rovlar uchun saqlandi", "New context saved for later requests"),
                  value: tokens.cacheWrite, color: Color(light: 0x2F7BE5, dark: 0x4A8FF0)),
-            Part(id: "in", title: "Yangi kiritish", hint: "Keshsiz yuborilgan matn",
+            Part(id: "in", title: tr("Yangi kiritish", "New input"), hint: tr("Keshsiz yuborilgan matn", "Text sent without cache"),
                  value: tokens.input, color: Color(light: 0x0E9F8E, dark: 0x16B3A0)),
-            Part(id: "out", title: "Javob", hint: tokens.thinking > 0
-                    ? "Model yozgan matn · shundan fikrlash \(Fmt.tokens(Double(tokens.thinking)))"
-                    : "Model yozgan matn",
+            Part(id: "out", title: tr("Javob", "Output"), hint: tokens.thinking > 0
+                    ? tr("Model yozgan matn · shundan fikrlash \(Fmt.tokens(Double(tokens.thinking)))", "Text the model wrote · of which thinking \(Fmt.tokens(Double(tokens.thinking)))")
+                    : tr("Model yozgan matn", "Text the model wrote"),
                  value: tokens.output, color: Color(light: 0xE0731C, dark: 0xEC8432)),
         ]
     }
@@ -627,12 +627,12 @@ private struct TokenBreakdown: View {
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Text(Fmt.tokens(tokens.value(mode)))
                     .font(.system(size: 24, weight: .bold, design: .rounded)).monospacedDigit()
-                Text(mode == .weighted ? "vaznli" : "token").font(.callout).foregroundStyle(.secondary).lineLimit(1)
+                Text(mode == .weighted ? tr("vaznli", "weighted") : tr("token", "tokens")).font(.callout).foregroundStyle(.secondary).lineLimit(1)
                 Spacer(minLength: 6)
                 Text(Fmt.percent(tokens.value(mode), of: sessionTotal))
                     .font(.caption.weight(.semibold)).foregroundStyle(Brand.accent)
                     .lineLimit(1).fixedSize()
-                    .help("Sessiya tokenlarining shu agentga to'g'ri keladigan ulushi")
+                    .help(tr("Sessiya tokenlarining shu agentga to'g'ri keladigan ulushi", "This agent's share of the session's tokens"))
                     .padding(.horizontal, 8).padding(.vertical, 3)
                     .background(Capsule().fill(Brand.accentSoft))
             }
@@ -702,8 +702,8 @@ private struct ResourceList: View {
                             }
                             .frame(height: 4)
                             HStack(spacing: 6) {
-                                Text("\(g.items.count) ta nishon")
-                                if g.errors > 0 { Text("· \(g.errors) xato").foregroundStyle(Brand.err) }
+                                Text(tr("\(g.items.count) ta nishon", "\(g.items.count) \(g.items.count == 1 ? "target" : "targets")"))
+                                if g.errors > 0 { Text(tr("· \(g.errors) xato", "· \(g.errors) \(g.errors == 1 ? "error" : "errors")")).foregroundStyle(Brand.err) }
                             }
                             .font(.caption).foregroundStyle(.secondary)
                         }
@@ -713,7 +713,7 @@ private struct ResourceList: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(RowButtonStyle())
-                .help("\(g.category.title): ro'yxat va qadamlarni ochish")
+                .help(tr("\(g.category.title): ro'yxat va qadamlarni ochish", "\(g.category.title): open list and steps"))
             }
         }
         .padding(.horizontal, -6).padding(.vertical, -4)
@@ -732,7 +732,7 @@ private struct ResourceInspector: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 Button(action: back) {
-                    Label(owner.isMain ? "Asosiy agent" : owner.title, systemImage: "chevron.left")
+                    Label(owner.isMain ? tr("Asosiy agent", "Main agent") : owner.title, systemImage: "chevron.left")
                         .font(.callout.weight(.medium)).lineLimit(1)
                         .padding(.horizontal, 10).padding(.vertical, 5)
                         .surfaceCapsule()
@@ -744,14 +744,14 @@ private struct ResourceInspector: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(group.category.title).font(.title3.weight(.semibold))
                         HStack(spacing: 6) {
-                            Text("\(group.items.count) ta nishon · \(group.calls) chaqiruv")
-                            if group.errors > 0 { Text("· \(group.errors) xato").foregroundStyle(Brand.err) }
+                            Text(tr("\(group.items.count) ta nishon · \(group.calls) chaqiruv", "\(group.items.count) \(group.items.count == 1 ? "target" : "targets") · \(group.calls) \(group.calls == 1 ? "call" : "calls")"))
+                            if group.errors > 0 { Text(tr("· \(group.errors) xato", "· \(group.errors) \(group.errors == 1 ? "error" : "errors")")).foregroundStyle(Brand.err) }
                         }
                         .font(.callout).foregroundStyle(.secondary)
                     }
                 }
 
-                InspectorBlock(title: "Ro'yxat", trailing: "\(group.items.count) ta") {
+                InspectorBlock(title: tr("Ro'yxat", "List"), trailing: "\(group.items.count)") {
                     VStack(spacing: 0) {
                         ForEach(Array(group.items.enumerated()), id: \.element.id) { i, item in
                             VStack(alignment: .leading, spacing: 3) {
@@ -774,7 +774,7 @@ private struct ResourceInspector: View {
                     .padding(.vertical, -6)
                 }
 
-                InspectorBlock(title: "Qadamlar", trailing: "\(steps.count) ta") {
+                InspectorBlock(title: tr("Qadamlar", "Steps"), trailing: "\(steps.count)") {
                     StepTimeline(steps: steps, onSelect: openStep)
                 }
             }
@@ -796,7 +796,7 @@ private struct NoteInspector: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 Button(action: back) {
-                    Label("Asosiy agent", systemImage: "chevron.left")
+                    Label(tr("Asosiy agent", "Main agent"), systemImage: "chevron.left")
                         .font(.callout.weight(.medium)).lineLimit(1)
                         .padding(.horizontal, 10).padding(.vertical, 5)
                         .surfaceCapsule()
@@ -806,21 +806,21 @@ private struct NoteInspector: View {
                 HStack(spacing: 12) {
                     ToolTile(symbol: reply ? "text.bubble.fill" : "brain", color: color, size: 46)
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(reply ? (final ? "Javob" : "Xabar") : "O'yladi").font(.title3.weight(.semibold))
+                        Text(reply ? (final ? tr("Javob", "Answer") : tr("Xabar", "Message")) : tr("O'yladi", "Thought")).font(.title3.weight(.semibold))
                         HStack(spacing: 6) {
                             Text(Fmt.clock.string(from: note.date))
                             if let d = note.duration, d >= 1 { Text("· ~" + Dur.text(d)) }
-                            if let t = note.turn { Text("· #\(t)-so'rov") }
+                            if let t = note.turn { Text(tr("· #\(t)-so'rov", "· prompt #\(t)")) }
                             if let a = note.agent { Text("· " + a) }
                         }
                         .font(.callout).foregroundStyle(.secondary)
                     }
                 }
 
-                InspectorBlock(title: reply ? "Matn" : "O'ylash matni",
-                               trailing: note.text.count >= TranscriptEvent.noteLimit ? "boshi · \(TranscriptEvent.noteLimit) belgi" : nil) {
+                InspectorBlock(title: reply ? tr("Matn", "Text") : tr("O'ylash matni", "Thinking text"),
+                               trailing: note.text.count >= TranscriptEvent.noteLimit ? tr("boshi · \(TranscriptEvent.noteLimit) belgi", "first \(TranscriptEvent.noteLimit) chars") : nil) {
                     if note.text.isEmpty {
-                        Text("Bu o'ylash shifrlangan — Claude Code matnini saqlamagan. Faqat davomiyligi ma'lum.")
+                        Text(tr("Bu o'ylash shifrlangan — Claude Code matnini saqlamagan. Faqat davomiyligi ma'lum.", "This thinking is encrypted — Claude Code didn't save its text. Only the duration is known."))
                             .font(.callout).foregroundStyle(.secondary)
                     } else {
                         Text(note.text).font(.body).textSelection(.enabled)
@@ -858,7 +858,7 @@ private struct StepTimeline: View {
                         HStack(spacing: 6) {
                             Text(Fmt.clock.string(from: s.date))
                             if let d = s.duration { Text("· " + Dur.text(d)) }
-                            if s.status == .failed { Text("· xato").foregroundStyle(Brand.err) }
+                            if s.status == .failed { Text(tr("· xato", "· error")).foregroundStyle(Brand.err) }
                         }
                         .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
                     }
@@ -871,7 +871,7 @@ private struct StepTimeline: View {
                 }
                 .contentShape(Rectangle())
                 .onTapGesture { onSelect?(s) }
-                .help(onSelect == nil ? "" : "Kirish va chiqishni ko'rish")
+                .help(onSelect == nil ? "" : tr("Kirish va chiqishni ko'rish", "View input and output"))
             }
         }
     }
@@ -936,7 +936,7 @@ private struct TurnTimeline: View {
                     .buttonStyle(.plain)
                     if open {
                         if g.steps.isEmpty {
-                            Text("Asbob chaqirilmadi — faqat javob yozildi.")
+                            Text(tr("Asbob chaqirilmadi — faqat javob yozildi.", "No tools called — only an answer was written."))
                                 .font(.callout).foregroundStyle(.secondary)
                         } else {
                             StepTimeline(steps: g.steps, onSelect: onStep)
@@ -948,7 +948,7 @@ private struct TurnTimeline: View {
                 .surface(radius: 14, stroke: active ? Brand.ok.opacity(0.55) : nil)
             }
             if gs.count > 40 {
-                Text("Yana \(gs.count - 40) ta eski so'rov").font(.caption).foregroundStyle(.secondary)
+                Text(tr("Yana \(gs.count - 40) ta eski so'rov", "\(gs.count - 40) more older \(gs.count - 40 == 1 ? "prompt" : "prompts")")).font(.caption).foregroundStyle(.secondary)
             }
         }
     }
@@ -961,7 +961,7 @@ private struct TurnTimeline: View {
                 .padding(.horizontal, 7).padding(.vertical, 3)
                 .background(Capsule().fill(Brand.accentSoft))
             VStack(alignment: .leading, spacing: 6) {
-                Text(g.turn?.shownPrompt ?? "So'rovdan oldingi qadamlar")
+                Text(g.turn?.shownPrompt ?? tr("So'rovdan oldingi qadamlar", "Steps before the prompt"))
                     .font(.callout.weight(.medium)).lineLimit(open ? 4 : 2)
                     .multilineTextAlignment(.leading)
                     .fixedSize(horizontal: false, vertical: true)
@@ -975,9 +975,9 @@ private struct TurnTimeline: View {
                         }
                         HStack(spacing: 10) {
                             Label(Fmt.tokens(t.tokens.value(mode)), systemImage: "circle.hexagongrid")
-                            Label("\(t.steps) qadam", systemImage: "list.bullet")
+                            Label(tr("\(t.steps) qadam", "\(t.steps) \(t.steps == 1 ? "step" : "steps")"), systemImage: "list.bullet")
                             if t.errors > 0 {
-                                Label("\(t.errors) xato", systemImage: "exclamationmark.triangle.fill")
+                                Label(tr("\(t.errors) xato", "\(t.errors) \(t.errors == 1 ? "error" : "errors")"), systemImage: "exclamationmark.triangle.fill")
                                     .foregroundStyle(Brand.err)
                             }
                         }
@@ -1010,9 +1010,9 @@ private struct DetailsPanel<Content: View>: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                Text("Tafsilotlar").font(.system(size: 12, weight: .semibold)).foregroundStyle(.secondary)
+                Text(tr("Tafsilotlar", "Details")).font(.system(size: 12, weight: .semibold)).foregroundStyle(.secondary)
                 Spacer()
-                PaneToggle(symbol: "sidebar.right", help: "Tafsilotlarni yashirish", action: onClose)
+                PaneToggle(symbol: "sidebar.right", help: tr("Tafsilotlarni yashirish", "Hide details"), action: onClose)
             }
             .padding(.leading, 18).padding(.trailing, 8).padding(.top, 2).frame(height: 30)
             content
@@ -1079,7 +1079,7 @@ private struct StepInspector: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 Button(action: back) {
-                    Label(agent.isMain ? "Asosiy agent" : agent.title, systemImage: "chevron.left")
+                    Label(agent.isMain ? tr("Asosiy agent", "Main agent") : agent.title, systemImage: "chevron.left")
                         .font(.callout.weight(.medium)).lineLimit(1)
                         .padding(.horizontal, 10).padding(.vertical, 5)
                         .surfaceCapsule()
@@ -1089,9 +1089,9 @@ private struct StepInspector: View {
                 header
 
                 PillSegments(selection: Binding(get: { current }, set: { tab = $0; copied = false }), items: [
-                    .init(id: .output, title: "Chiqish", symbol: "arrow.down.doc"),
-                    .init(id: .input, title: "Kirish", symbol: "arrow.up.doc"),
-                    .init(id: .details, title: "Tafsilot", symbol: "info.circle"),
+                    .init(id: .output, title: tr("Chiqish", "Output"), symbol: "arrow.down.doc"),
+                    .init(id: .input, title: tr("Kirish", "Input"), symbol: "arrow.up.doc"),
+                    .init(id: .details, title: tr("Tafsilot", "Details"), symbol: "info.circle"),
                 ], compact: true)
 
                 switch current {
@@ -1125,9 +1125,9 @@ private struct StepInspector: View {
     private var statusChip: some View {
         let (text, color): (String, Color) = {
             switch step.status {
-            case .running: return ("Bajarilmoqda", Brand.accent)
-            case .failed: return ("Xato", Brand.err)
-            case .done: return ("Bajarildi", Brand.ok)
+            case .running: return (tr("Bajarilmoqda", "Running"), Brand.accent)
+            case .failed: return (tr("Xato", "Error"), Brand.err)
+            case .done: return (tr("Bajarildi", "Done"), Brand.ok)
             }
         }()
         return Text(text).font(.caption.weight(.semibold)).foregroundStyle(color)
@@ -1137,50 +1137,50 @@ private struct StepInspector: View {
 
     @ViewBuilder
     private var outputBlock: some View {
-        let trailing = step.resultTokens.map { "~\(Fmt.tokens($0)) token" }
-        InspectorBlock(title: step.status == .failed ? "Xato matni" : "Asbob qaytardi", trailing: trailing, card: false) {
+        let trailing = step.resultTokens.map { tr("~\(Fmt.tokens($0)) token", "~\(Fmt.tokens($0)) tokens") }
+        InspectorBlock(title: step.status == .failed ? tr("Xato matni", "Error text") : tr("Asbob qaytardi", "Tool returned"), trailing: trailing, card: false) {
             if let out = step.output {
                 if out.isEmpty {
-                    empty("Asbob bo'sh natija qaytardi.")
+                    empty(tr("Asbob bo'sh natija qaytardi.", "The tool returned an empty result."))
                 } else {
                     code(out, limit: TranscriptEvent.outputLimit, error: step.status == .failed)
                 }
             } else if step.status == .running {
-                empty("Natija hali kelmadi — asbob ishlayapti.")
+                empty(tr("Natija hali kelmadi — asbob ishlayapti.", "No result yet — the tool is working."))
             } else if step.input == nil {
-                empty("Matn saqlanmagan: sessiyaning oxirgi \(Engine.keepStepIO) ta qadami uchungina saqlanadi.")
+                empty(tr("Matn saqlanmagan: sessiyaning oxirgi \(Engine.keepStepIO) ta qadami uchungina saqlanadi.", "Text not saved: it's kept only for the session's last \(Engine.keepStepIO) steps."))
             } else {
-                empty("Asbob matnli natija qaytarmadi.")
+                empty(tr("Asbob matnli natija qaytarmadi.", "The tool returned no text result."))
             }
         }
     }
 
     @ViewBuilder
     private var inputBlock: some View {
-        InspectorBlock(title: "Asbobga berildi", card: false) {
+        InspectorBlock(title: tr("Asbobga berildi", "Given to the tool"), card: false) {
             if let inp = step.input, !inp.isEmpty {
                 code(inp, limit: TranscriptEvent.inputLimit, error: false)
             } else if step.output == nil && step.status != .running {
-                empty("Matn saqlanmagan: sessiyaning oxirgi \(Engine.keepStepIO) ta qadami uchungina saqlanadi.")
+                empty(tr("Matn saqlanmagan: sessiyaning oxirgi \(Engine.keepStepIO) ta qadami uchungina saqlanadi.", "Text not saved: it's kept only for the session's last \(Engine.keepStepIO) steps."))
             } else {
-                empty("Parametrsiz chaqirilgan.")
+                empty(tr("Parametrsiz chaqirilgan.", "Called without parameters."))
             }
         }
     }
 
     private var detailsBlock: some View {
-        InspectorBlock(title: "Bajarilish") {
+        InspectorBlock(title: tr("Bajarilish", "Execution")) {
             VStack(spacing: 0) {
-                row("Asbob", step.category.title)
-                row("Nishon", step.targetName, step.targetDetail)
-                row("Boshlandi", Fmt.clock.string(from: step.date))
+                row(tr("Asbob", "Tool"), step.category.title)
+                row(tr("Nishon", "Target"), step.targetName, step.targetDetail)
+                row(tr("Boshlandi", "Started"), Fmt.clock.string(from: step.date))
                 if let d = step.duration {
-                    row(step.status == .running ? "Ketmoqda" : "Davomiyligi", Dur.text(d))
+                    row(step.status == .running ? tr("Ketmoqda", "Elapsed") : tr("Davomiyligi", "Duration"), Dur.text(d))
                 }
-                row("Agent", agent.isMain ? "Asosiy agent" : agent.title)
+                row(tr("Agent", "Agent"), agent.isMain ? tr("Asosiy agent", "Main agent") : agent.title)
                 if let t = step.resultTokens {
-                    row("Kontekstga qo'shdi", "~\(Fmt.tokens(t)) token",
-                        "Natija kontekstda qoladi va keyingi har chaqiruvda qayta o'qiladi", last: true)
+                    row(tr("Kontekstga qo'shdi", "Added to context"), tr("~\(Fmt.tokens(t)) token", "~\(Fmt.tokens(t)) tokens"),
+                        tr("Natija kontekstda qoladi va keyingi har chaqiruvda qayta o'qiladi", "The result stays in context and is re-read on every later call"), last: true)
                 }
             }
             .padding(.vertical, -6)
@@ -1221,7 +1221,7 @@ private struct StepInspector: View {
                 .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(Brand.line))
             HStack {
                 if s.hasSuffix("…") {
-                    Text("Faqat boshi saqlangan · \(limit) belgi").font(.caption).foregroundStyle(.secondary)
+                    Text(tr("Faqat boshi saqlangan · \(limit) belgi", "Only the first \(limit) chars saved")).font(.caption).foregroundStyle(.secondary)
                 }
                 Spacer()
                 Button {
@@ -1229,7 +1229,7 @@ private struct StepInspector: View {
                     NSPasteboard.general.setString(s, forType: .string)
                     withAnimation(Motion.snappy) { copied = true }
                 } label: {
-                    Label(copied ? "Nusxalandi" : "Nusxa olish", systemImage: copied ? "checkmark" : "doc.on.doc")
+                    Label(copied ? tr("Nusxalandi", "Copied") : tr("Nusxa olish", "Copy"), systemImage: copied ? "checkmark" : "doc.on.doc")
                         .font(.caption.weight(.medium))
                 }
                 .buttonStyle(.borderless)

@@ -49,7 +49,7 @@ extension ToolCategory {
 
 extension TurnSnap {
     /// Ro'yxat va chiplarda ko'rinadigan matn: xulosa matni o'rniga tushunarli yozuv
-    var shownPrompt: String { isContinuation ? "Kontekst yangilandi — ish davom etdi" : prompt }
+    var shownPrompt: String { isContinuation ? tr("Kontekst yangilandi — ish davom etdi", "Context refreshed — work continued") : prompt }
 }
 
 /// Xaritada ochilgan so'rov zanjirining bir bo'g'ini: asbob qadami, o'ylash, javob yoki «hozir o'ylayapti».
@@ -207,7 +207,7 @@ private struct MapSection: Identifiable {
         for (si, s) in chain.enumerated() {
             for t in s.turns {
                 let newSession = si > 0 && t.id == s.turns.first?.id
-                let reason: String? = t.isContinuation ? "Kontekst yangilandi" : (newSession ? "Yangi sessiya" : nil)
+                let reason: String? = t.isContinuation ? tr("Kontekst yangilandi", "Context refreshed") : (newSession ? tr("Yangi sessiya", "New session") : nil)
                 let gap = prevEnd.map { t.start.timeIntervalSince($0) > M.sectionBreak } ?? true
                 let follow = reason == nil && !gap && !t.isContinuation && isFollowUp(t.prompt)
                     && !(out.last?.cards.isEmpty ?? true)
@@ -215,7 +215,7 @@ private struct MapSection: Identifiable {
                     out[out.count - 1].cards[out[out.count - 1].cards.count - 1].followUps.append(t)
                 } else {
                     if out.isEmpty || reason != nil || gap {
-                        let topic = t.isContinuation ? (lastReal.map { "Davomi: " + $0 } ?? "Ish davom etdi") : t.prompt
+                        let topic = t.isContinuation ? (lastReal.map { tr("Davomi: ", "Continued: ") + $0 } ?? tr("Ish davom etdi", "Work continued")) : t.prompt
                         out.append(MapSection(id: "\(s.id)#\(t.id)", topic: topic, reason: reason, start: t.start, end: t.end))
                     }
                     out[out.count - 1].cards.append(MapCard(turn: t, sessionId: s.id,
@@ -667,7 +667,7 @@ struct SessionMapView: View {
                         .frame(width: 220, height: 110, alignment: .bottom)
                         .contentShape(Rectangle())
                         .onTapGesture { poke = Date() }
-                        .help("Bosing — robot salom beradi")
+                        .help(tr("Bosing — robot salom beradi", "Click — the robot says hi"))
                         .scaleEffect(scale)
                         .position(screen(robot.0))
                         .animation(.spring(response: 0.95, dampingFraction: 0.74), value: robot.0)
@@ -713,7 +713,7 @@ struct SessionMapView: View {
                     } label: {
                         HStack(spacing: 8) {
                             Image(systemName: "location.north.circle")
-                            Text("Xarita bu yerda emas · Hozirgiga qaytish")
+                            Text(tr("Xarita bu yerda emas · Hozirgiga qaytish", "Map is elsewhere · Back to current"))
                         }
                         .font(.callout.weight(.semibold))
                         .foregroundStyle(Brand.accent)
@@ -743,7 +743,7 @@ struct SessionMapView: View {
                     }
                     .buttonStyle(.plain)
                     .keyboardShortcut(mapOnly ? .cancelAction : KeyboardShortcut("f", modifiers: [.command, .shift]))
-                    .help(mapOnly ? "Oddiy ko'rinishga qaytish (Esc)" : "Faqat xarita — qolgan hamma narsa yashiriladi (⇧⌘F)")
+                    .help(mapOnly ? tr("Oddiy ko'rinishga qaytish (Esc)", "Back to normal view (Esc)") : tr("Faqat xarita — qolgan hamma narsa yashiriladi (⇧⌘F)", "Map only — hides everything else (⇧⌘F)"))
                     .padding(12)
                 }
             }
@@ -879,18 +879,18 @@ struct SessionMapView: View {
                     }
                 }
         case .earlier(let k):
-            Text("+\(k) oldingi qadam")
+            Text(tr("+\(k) oldingi qadam", k == 1 ? "+1 earlier step" : "+\(k) earlier steps"))
                 .font(.caption.weight(.semibold)).foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .surfaceCapsule()
-                .help("Eski qadamlar — o'ng paneldagi «Jarayon»da to'liq ro'yxat")
+                .help(tr("Eski qadamlar — o'ng paneldagi «Jarayon»da to'liq ro'yxat", "Earlier steps — full list under «Process» in the right panel"))
         case .outputs(let files):
             MapOutputsNode(files: files)
         case .more(let k):
             VStack(spacing: 6) {
                 Text("+\(k)").font(.callout.weight(.semibold)).foregroundStyle(.secondary)
                     .frame(width: M.toolD, height: M.toolD).surfaceCircle()
-                Text("yana").font(.caption2).foregroundStyle(.secondary)
+                Text(tr("yana", "more")).font(.caption2).foregroundStyle(.secondary)
             }
             .frame(maxHeight: .infinity, alignment: .top)
         case .end(let active, let at):
@@ -903,12 +903,12 @@ struct SessionMapView: View {
     private func controls(_ layout: MapLayout, _ vs: CGSize) -> some View {
         // Bitta yaxlit panel: masshtab | ergashish | faqat shu so'rov
         HStack(spacing: 0) {
-            iconButton("minus", "Kichraytirish") { zoom(to: scale / 1.25, around: center(vs)) }
+            iconButton("minus", tr("Kichraytirish", "Zoom out")) { zoom(to: scale / 1.25, around: center(vs)) }
             Text("\(Int((scale * 100).rounded()))%")
                 .font(.caption.weight(.semibold)).monospacedDigit().frame(width: 44)
-            iconButton("plus", "Kattalashtirish") { zoom(to: scale * 1.25, around: center(vs)) }
+            iconButton("plus", tr("Kattalashtirish", "Zoom in")) { zoom(to: scale * 1.25, around: center(vs)) }
             Divider().frame(height: 16)
-            iconButton("viewfinder", "Hammasini sig'dirish (masshtabni moslash)") { fit(layout, vs) }
+            iconButton("viewfinder", tr("Hammasini sig'dirish (masshtabni moslash)", "Fit all (zoom to fit)")) { fit(layout, vs) }
             Divider().frame(height: 16)
 
             Button {
@@ -917,14 +917,14 @@ struct SessionMapView: View {
             } label: {
                 HStack(spacing: 6) {
                     Circle().fill(follow ? Brand.ok : Color.secondary.opacity(0.5)).frame(width: 7, height: 7)
-                    Text(follow ? "Ergashyapti" : "Hozirgiga qaytish")
+                    Text(follow ? tr("Ergashyapti", "Following") : tr("Hozirgiga qaytish", "Back to current"))
                 }
                 .font(.caption.weight(.semibold))
                 .padding(.horizontal, 10).frame(height: 28)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .help("Oxirgi so'rovga o'tish va yangi so'rovlarga ergashish")
+            .help(tr("Oxirgi so'rovga o'tish va yangi so'rovlarga ergashish", "Jump to the latest prompt and follow new ones"))
             Divider().frame(height: 16)
 
             Button {
@@ -935,7 +935,7 @@ struct SessionMapView: View {
             } label: {
                 HStack(spacing: 6) {
                     Image(systemName: focusOne ? "rectangle.on.rectangle" : "scope")
-                    Text(focusOne ? "Hammasini ko'rsatish" : "Faqat shu so'rov")
+                    Text(focusOne ? tr("Hammasini ko'rsatish", "Show all") : tr("Faqat shu so'rov", "This prompt only"))
                 }
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(focusOne ? Brand.accent : Color.primary)
@@ -943,8 +943,8 @@ struct SessionMapView: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .help(focusOne ? "Barcha so'rovlarni qaytarish"
-                           : "Faqat hozirgi (yoki tepada tanlangan) so'rovni ko'rsatish, qolganlarini yashirish")
+            .help(focusOne ? tr("Barcha so'rovlarni qaytarish", "Show all prompts again")
+                           : tr("Faqat hozirgi (yoki tepada tanlangan) so'rovni ko'rsatish, qolganlarini yashirish", "Show only the current (or selected) prompt, hide the rest"))
         }
         .padding(.horizontal, 2)
         .surface(radius: 10, interactive: true)
@@ -1192,7 +1192,7 @@ private struct TurnCard: View {
                 Spacer()
                 if turn.errors > 0 { Circle().fill(Brand.err).frame(width: 8 * k, height: 8 * k) }
             }
-            Text(turn.isContinuation ? "↻ Davom etdi" : turn.prompt)
+            Text(turn.isContinuation ? tr("↻ Davom etdi", "↻ Continued") : turn.prompt)
                 .font(.system(size: 12.5 * k, weight: .semibold)).lineLimit(3)
                 .foregroundStyle(turn.isContinuation ? Brand.warn : .primary)
             Spacer(minLength: 0)
@@ -1221,7 +1221,7 @@ private struct TurnCard: View {
             }
             VStack(alignment: .leading, spacing: 2) {
                 if turn.isContinuation {
-                    Label("Ish davom etdi", systemImage: "arrow.triangle.2.circlepath")
+                    Label(tr("Ish davom etdi", "Work continued"), systemImage: "arrow.triangle.2.circlepath")
                         .font(.callout.weight(.semibold)).foregroundStyle(Brand.warn)
                     if let previousPrompt {
                         Text(previousPrompt).font(.caption).foregroundStyle(.secondary).lineLimit(2)
@@ -1255,15 +1255,15 @@ private struct TurnCard: View {
         .overlay { if isLive { LiveBorder(shape: shape, color: Brand.ok, lineWidth: 2) } }
         .overlay(alignment: .bottom) {
             if let n = expandedSteps {
-                portPill("Jarayon · \(n) qadam", Brand.accent).offset(y: 11)
+                portPill(tr("Jarayon · \(n) qadam", n == 1 ? "Process · 1 step" : "Process · \(n) steps"), Brand.accent).offset(y: 11)
             } else if (([turn] + followUps).flatMap(\.tools)).contains(where: { !MapLayout.goesUp($0.category) }) {
                 // Faqat pastga shox bo'lsa (tashqi ishlar); mahalliylari tepadan chiqadi
-                portPill("Asboblar", .secondary).offset(y: 11)
+                portPill(tr("Asboblar", "Tools"), .secondary).offset(y: 11)
             }
         }
         .shadow(color: .black.opacity(0.16), radius: 4, y: 2)
         .contentShape(shape)
-        .help(turn.isContinuation ? "Kontekst tugab, suhbat xulosa bilan davom ettirildi" : turn.prompt)
+        .help(turn.isContinuation ? tr("Kontekst tugab, suhbat xulosa bilan davom ettirildi", "Context ran out; the conversation continued from a summary") : turn.prompt)
     }
 
     /// «↳ Bosdim · 20 s · 2 qadam» — bosilsa, qadamlari karta ostida ochiladi
@@ -1273,8 +1273,8 @@ private struct TurnCard: View {
             Text(f.prompt).font(.caption.weight(.medium)).lineLimit(1)
             Spacer(minLength: 4)
             if f.active { Spinner(size: 10) }
-            if f.errors > 0 { Text("\(f.errors) xato").font(.caption2.weight(.semibold)).foregroundStyle(Brand.err) }
-            Text("\(Alerts.duration(f.duration)) · \(f.steps) qadam")
+            if f.errors > 0 { Text(tr("\(f.errors) xato", f.errors == 1 ? "1 error" : "\(f.errors) errors")).font(.caption2.weight(.semibold)).foregroundStyle(Brand.err) }
+            Text(tr("\(Alerts.duration(f.duration)) · \(f.steps) qadam", "\(Alerts.duration(f.duration)) · \(f.steps == 1 ? "1 step" : "\(f.steps) steps")"))
                 .font(.caption2.monospacedDigit()).foregroundStyle(.secondary).fixedSize()
         }
         .padding(.horizontal, 14)
@@ -1282,16 +1282,16 @@ private struct TurnCard: View {
         .background(selectedFollowUp == f.id ? Brand.accentSoft : .clear)
         .contentShape(Rectangle())
         .onTapGesture { onSelectFollowUp(f.id) }
-        .help(f.prompt + " — bosing, qadamlari karta ostida ochiladi")
+        .help(f.prompt + tr(" — bosing, qadamlari karta ostida ochiladi", " — click to show its steps below the card"))
     }
 
     @ViewBuilder
     private var status: some View {
         if isLive {
-            HStack(spacing: 4) { Spinner(size: 10); Text("ishlayapti") }
+            HStack(spacing: 4) { Spinner(size: 10); Text(tr("ishlayapti", "working")) }
                 .font(.caption.weight(.semibold)).foregroundStyle(Brand.ok)
         } else if turn.errors > 0 {
-            Label("\(turn.errors) xato", systemImage: "exclamationmark.triangle.fill")
+            Label(tr("\(turn.errors) xato", turn.errors == 1 ? "1 error" : "\(turn.errors) errors"), systemImage: "exclamationmark.triangle.fill")
                 .font(.caption.weight(.semibold)).foregroundStyle(Brand.err)
         } else {
             Image(systemName: "checkmark.circle.fill").font(.caption).foregroundStyle(.tertiary)
@@ -1325,7 +1325,7 @@ private struct MapSectionHeader: View {
                     Text(section.topic).font(.system(size: 13 * k, weight: .semibold)).lineLimit(1)
                     Spacer(minLength: 8)
                     if lod == nil {
-                        Text("\(section.turnCount) so'rov · \(dur) · \(Fmt.tokens(section.tokens))")
+                        Text(tr("\(section.turnCount) so'rov · \(dur) · \(Fmt.tokens(section.tokens))", "\(section.turnCount == 1 ? "1 prompt" : "\(section.turnCount) prompts") · \(dur) · \(Fmt.tokens(section.tokens))"))
                             .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
                     }
                 }
@@ -1335,7 +1335,7 @@ private struct MapSectionHeader: View {
                 VStack(alignment: .leading, spacing: 6 * k) {
                     HStack(spacing: 6 * k) {
                         status
-                        Text("\(section.turnCount) so'rov").font(.system(size: 11 * k, weight: .semibold)).foregroundStyle(.secondary)
+                        Text(tr("\(section.turnCount) so'rov", section.turnCount == 1 ? "1 prompt" : "\(section.turnCount) prompts")).font(.system(size: 11 * k, weight: .semibold)).foregroundStyle(.secondary)
                         Spacer(minLength: 4)
                         if let r = section.reason, lod == nil { reason(r) }
                     }
@@ -1344,10 +1344,10 @@ private struct MapSectionHeader: View {
                     if lod == nil {
                         Text("\(time) · \(dur)").font(.caption.monospacedDigit()).foregroundStyle(.secondary)
                         HStack {
-                            Text("\(Fmt.tokens(section.tokens)) · \(section.steps) qadam")
+                            Text(tr("\(Fmt.tokens(section.tokens)) · \(section.steps) qadam", "\(Fmt.tokens(section.tokens)) · \(section.steps == 1 ? "1 step" : "\(section.steps) steps")"))
                                 .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
                             Spacer()
-                            Label("Ochish", systemImage: "chevron.right").labelStyle(.titleAndIcon)
+                            Label(tr("Ochish", "Open"), systemImage: "chevron.right").labelStyle(.titleAndIcon)
                                 .font(.caption.weight(.semibold)).foregroundStyle(Brand.accent)
                         }
                     }
@@ -1364,7 +1364,7 @@ private struct MapSectionHeader: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         .contentShape(Rectangle())
-        .help(open ? "Bosing — bo'limni yig'ish" : "Bosing — bo'limni ochish: \(section.turnCount) so'rov")
+        .help(open ? tr("Bosing — bo'limni yig'ish", "Click to collapse the section") : tr("Bosing — bo'limni ochish: \(section.turnCount) so'rov", "Click to expand the section: \(section.turnCount == 1 ? "1 prompt" : "\(section.turnCount) prompts")"))
     }
 
     @ViewBuilder
@@ -1379,7 +1379,7 @@ private struct MapSectionHeader: View {
     }
 
     private func reason(_ r: String) -> some View {
-        Label(r, systemImage: r == "Yangi sessiya" ? "plus.circle" : "arrow.triangle.2.circlepath")
+        Label(r, systemImage: r == tr("Yangi sessiya", "New session") ? "plus.circle" : "arrow.triangle.2.circlepath")
             .font(.system(size: 11 * k, weight: .semibold)).foregroundStyle(Brand.warn)
             .padding(.horizontal, 8).padding(.vertical, 3)
             .background(Capsule().fill(Brand.warn.opacity(0.12)))
@@ -1394,7 +1394,7 @@ private struct MapOutputsNode: View {
 
     var body: some View {
         VStack(spacing: 6) {
-            Text("Natijalar").font(.caption2.weight(.medium)).lineLimit(1).minimumScaleFactor(0.8)
+            Text(tr("Natijalar", "Results")).font(.caption2.weight(.medium)).lineLimit(1).minimumScaleFactor(0.8)
             ZStack(alignment: .topTrailing) {
                 Thumbnail(path: files[0].path)
                     .frame(width: M.toolD + 8, height: M.toolD)
@@ -1412,7 +1412,7 @@ private struct MapOutputsNode: View {
         .frame(maxHeight: .infinity, alignment: .bottom)
         .contentShape(Rectangle())
         .onTapGesture { open = true }
-        .help("Natijalar: " + files.prefix(3).map(\.name).joined(separator: ", ") + (files.count > 3 ? "…" : "") + " — bosing")
+        .help(tr("Natijalar: ", "Results: ") + files.prefix(3).map(\.name).joined(separator: ", ") + (files.count > 3 ? "…" : "") + tr(" — bosing", " — click"))
         .popover(isPresented: $open, arrowEdge: .top) { OutputsPopover(files: files) }
     }
 }
@@ -1462,7 +1462,7 @@ private struct MapToolNode: View {
         }
         .frame(maxHeight: .infinity, alignment: up ? .bottom : .top)
         .contentShape(Rectangle())
-        .help("\(tool.category.title): \(tool.calls) chaqiruv\(tool.top.isEmpty ? "" : " · ko'pi: \(tool.top)")")
+        .help(tr("\(tool.category.title): \(tool.calls) chaqiruv\(tool.top.isEmpty ? "" : " · ko'pi: \(tool.top)")", "\(tool.category.title): \(tool.calls == 1 ? "1 call" : "\(tool.calls) calls")\(tool.top.isEmpty ? "" : " · mostly: \(tool.top)")"))
     }
 
     private var label: some View {
@@ -1508,7 +1508,7 @@ private struct MapEndNode: View {
             .overlay { LiveBorder(shape: Circle(), color: Brand.warn, lineWidth: 2, period: 1.8) }
             .overlay(alignment: .bottom) {
                 VStack(spacing: 1) {
-                    Text("Ruxsatingizni kutyapti").font(.caption.weight(.semibold)).foregroundStyle(Brand.warn)
+                    Text(tr("Ruxsatingizni kutyapti", "Waiting for your permission")).font(.caption.weight(.semibold)).foregroundStyle(Brand.warn)
                     Text(Alerts.uz(n.message)).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
                 }
                 .fixedSize().offset(y: 34)
@@ -1528,7 +1528,7 @@ private struct MapEndNode: View {
         .surfaceCircle(tint: active ? Brand.ok : nil)
         .overlay { if active { LiveBorder(shape: Circle(), color: Brand.ok, lineWidth: 2) } }
         .overlay(alignment: .bottom) {
-            Text(active ? "Ishlayapti" : at.map { "Tugadi · " + Fmt.hourMinute.string(from: $0) } ?? "Tugadi")
+            Text(active ? tr("Ishlayapti", "Working") : at.map { tr("Tugadi · ", "Done · ") + Fmt.hourMinute.string(from: $0) } ?? tr("Tugadi", "Done"))
                 .font(.caption2.weight(.medium)).foregroundStyle(active ? Brand.ok : .secondary)
                 .fixedSize().offset(y: 20)
         }
@@ -1582,7 +1582,7 @@ private struct MiniMap: View {
         })
         .padding(8)
         .surface(radius: 12)
-        .help("Mini-xarita: bosing yoki suring")
+        .help(tr("Mini-xarita: bosing yoki suring", "Minimap: click or drag"))
     }
 }
 
@@ -1616,9 +1616,9 @@ private struct MapStepNode: View {
                     }
                     .foregroundStyle(cat.iconColor)
                 }
-                Text("\(g.count) qadam").font(.caption).foregroundStyle(.secondary)
+                Text(tr("\(g.count) qadam", g.count == 1 ? "1 step" : "\(g.count) steps")).font(.caption).foregroundStyle(.secondary)
                 let errs = g.filter { $0.status == .failed }.count
-                if errs > 0 { Text("\(errs) xato").font(.caption2.weight(.semibold)).foregroundStyle(Brand.err) }
+                if errs > 0 { Text(tr("\(errs) xato", errs == 1 ? "1 error" : "\(errs) errors")).font(.caption2.weight(.semibold)).foregroundStyle(Brand.err) }
                 let total = g.compactMap(\.duration).reduce(0, +)
                 if total >= 1 { Text("· " + Self.dur(total)).font(.caption2.monospacedDigit()).foregroundStyle(.secondary).fixedSize() }
             case .note(let n, _):
@@ -1626,7 +1626,7 @@ private struct MapStepNode: View {
                 Text(Self.oneLine(n.text)).font(.caption).italic().lineLimit(1).foregroundStyle(.secondary)
             case .live(let since):
                 Image(systemName: "brain").font(.system(size: 10, weight: .semibold)).foregroundStyle(color)
-                Text("O'ylayapti…").font(.caption.weight(.medium))
+                Text(tr("O'ylayapti…", "Thinking…")).font(.caption.weight(.medium))
                 TimelineView(.periodic(from: .now, by: 1)) { ctx in
                     Text(Self.dur(ctx.date.timeIntervalSince(since))).font(.caption2.monospacedDigit()).foregroundStyle(.secondary)
                 }
@@ -1721,7 +1721,7 @@ private struct MapStepNode: View {
         case .group(let g):
             // «6 ta qadam  ▣3 ⌘2 ◎1» — turlar bo'yicha sanoq
             HStack(spacing: 6) {
-                Text("\(g.count) ta qadam").font(.callout.weight(.medium))
+                Text(tr("\(g.count) ta qadam", g.count == 1 ? "1 step" : "\(g.count) steps")).font(.callout.weight(.medium))
                 let byCat = Dictionary(grouping: g, by: \.category).sorted { $0.value.count > $1.value.count }
                 ForEach(byCat.prefix(4), id: \.key) { cat, list in
                     HStack(spacing: 2) {
@@ -1732,20 +1732,20 @@ private struct MapStepNode: View {
                     .help(cat.title)
                 }
                 let errs = g.filter { $0.status == .failed }.count
-                if errs > 0 { Text("\(errs) xato").font(.caption2.weight(.semibold)).foregroundStyle(Brand.err) }
+                if errs > 0 { Text(tr("\(errs) xato", errs == 1 ? "1 error" : "\(errs) errors")).font(.caption2.weight(.semibold)).foregroundStyle(Brand.err) }
             }
             .lineLimit(1)
         case .note(let n, let final):
             if n.text.isEmpty {
-                Text("O'yladi").font(.callout.weight(.medium))
+                Text(tr("O'yladi", "Thought")).font(.callout.weight(.medium))
             } else {
-                Text(n.kind == .reply ? (final ? "Javob" : "Xabar") : "O'yladi")
+                Text(n.kind == .reply ? (final ? tr("Javob", "Answer") : tr("Xabar", "Message")) : tr("O'yladi", "Thought"))
                     .font(.caption.weight(.semibold)).foregroundStyle(item.color)
                 Text(Self.oneLine(n.text)).font(.callout).lineLimit(final ? 4 : 3)
                     .fixedSize(horizontal: false, vertical: true)
             }
         case .live:
-            Text("O'ylayapti…").font(.callout.weight(.medium))
+            Text(tr("O'ylayapti…", "Thinking…")).font(.callout.weight(.medium))
         }
     }
 
@@ -1764,7 +1764,7 @@ private struct MapStepNode: View {
             case .note(let n, _):
                 Text(Fmt.clock.string(from: n.date))
                 if let d = n.duration, d >= 1 { Text("· ~" + Self.dur(d)) }
-                if n.kind == .thinking && n.text.isEmpty { Text("· matn yashirin") }
+                if n.kind == .thinking && n.text.isEmpty { Text(tr("· matn yashirin", "· text hidden")) }
             case .live(let since):
                 TimelineView(.periodic(from: .now, by: 1)) { ctx in
                     Text(Self.dur(ctx.date.timeIntervalSince(since)))
@@ -1778,8 +1778,8 @@ private struct MapStepNode: View {
         switch item.item {
         case .step(let s): return s.text
         case .group(let g): return g.map(\.text).joined(separator: "\n")
-        case .note(let n, _): return n.text.isEmpty ? "O'ylash matni shifrlangan" : "Bosing — to'liq matn o'ng panelda"
-        case .live: return "Model hozir o'ylayapti yoki javob yozyapti"
+        case .note(let n, _): return n.text.isEmpty ? tr("O'ylash matni shifrlangan", "Thinking text is encrypted") : tr("Bosing — to'liq matn o'ng panelda", "Click — full text in the right panel")
+        case .live: return tr("Model hozir o'ylayapti yoki javob yozyapti", "The model is thinking or writing a reply")
         }
     }
 
@@ -1801,6 +1801,6 @@ private struct MapStepNode: View {
     private static func dur(_ s: TimeInterval) -> String {
         if s < 1 { return "<1 s" }
         if s < 60 { return "\(Int(s)) s" }
-        return "\(Int(s) / 60) daq \(Int(s) % 60) s"
+        return tr("\(Int(s) / 60) daq \(Int(s) % 60) s", "\(Int(s) / 60) min \(Int(s) % 60) s")
     }
 }

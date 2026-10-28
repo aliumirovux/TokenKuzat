@@ -35,7 +35,7 @@ struct MainWindow: View {
             .overlay(alignment: .topLeading) {
                 // Yon menyu yopiq — oyna tugmalari yonida ochish tugmasi
                 if columns == .detailOnly && !mapFocus {
-                    PaneToggle(symbol: "sidebar.left", help: "Yon menyuni ochish (⌃⌘S)") { setCollapsed(false) }
+                    PaneToggle(symbol: "sidebar.left", help: tr("Yon menyuni ochish (⌃⌘S)", "Show sidebar (⌃⌘S)")) { setCollapsed(false) }
                         .padding(.leading, 76).padding(.top, 2)
                         .ignoresSafeArea(.container, edges: .top)
                         .transition(.opacity)
@@ -81,7 +81,7 @@ struct MainWindow: View {
     /// Sahifa sarlavhasi: nom (yumaloq displey shrift), sana, jonli holat va hisoblash usuli
     private var header: some View {
         HStack(alignment: .firstTextBaseline, spacing: 10) {
-            Text(section == .overview ? "Bugun" : section.title)
+            Text(section == .overview ? tr("Bugun", "Today") : section.title)
                 .font(.system(size: 24, weight: .semibold, design: .rounded))
             if section == .overview {
                 Text(Fmt.longDay.string(from: store.snap.updatedAt)).foregroundStyle(.secondary)
@@ -110,15 +110,15 @@ private struct Sidebar: View {
             brand(snap).padding(.horizontal, 8).padding(.bottom, 18)
 
             VStack(spacing: 1) {
-                navItem(.overview, "Bugun", "sun.max", key: "1")
+                navItem(.overview, tr("Bugun", "Today"), "sun.max", key: "1")
                 // Bir vaqtda ishlayotgan sessiyalar — yonma-yon kartalarda
-                navItem(.live, "Jonli", "rectangle.grid.2x2", key: "2",
+                navItem(.live, tr("Jonli", "Live"), "rectangle.grid.2x2", key: "2",
                         live: snap.runningAgents > 0 ? snap.activeSessions : 0)
-                navItem(.sessions, "Sessiyalar", "rectangle.stack", key: "3")
-                navItem(.history, "Tarix", "chart.bar", key: "4")
+                navItem(.sessions, tr("Sessiyalar", "Sessions"), "rectangle.stack", key: "3")
+                navItem(.history, tr("Tarix", "History"), "chart.bar", key: "4")
             }
 
-            Text("Loyihalar")
+            Text(tr("Loyihalar", "Projects"))
                 .font(.system(size: 11, weight: .semibold)).foregroundStyle(.tertiary)
                 .padding(.horizontal, 10).padding(.top, 22).padding(.bottom, 6)
 
@@ -130,13 +130,13 @@ private struct Sidebar: View {
 
             Spacer(minLength: 10)
             limits(snap)
-            navItem(.settings, "Sozlamalar", "gearshape", key: ",")
+            navItem(.settings, tr("Sozlamalar", "Settings"), "gearshape", key: ",")
         }
         .padding(.horizontal, 10).padding(.top, 14).padding(.bottom, 10)
         .frame(maxHeight: .infinity, alignment: .top)
         // Oyna tugmalari qatorida, o'ng burchakda — yon menyuni yopish
         .overlay(alignment: .topTrailing) {
-            PaneToggle(symbol: "sidebar.left", help: "Yon menyuni yopish (⌃⌘S)", action: onCollapse).padding(.top, 2).padding(.trailing, 8)
+            PaneToggle(symbol: "sidebar.left", help: tr("Yon menyuni yopish (⌃⌘S)", "Hide sidebar (⌃⌘S)"), action: onCollapse).padding(.top, 2).padding(.trailing, 8)
                 .ignoresSafeArea(.container, edges: .top)
         }
     }
@@ -153,12 +153,12 @@ private struct Sidebar: View {
                 HStack(spacing: 5) {
                     if running && !waiting { StateDot(state: .running, size: 6) }
                     else { Circle().fill(color.opacity(waiting ? 1 : 0.6)).frame(width: 6, height: 6) }
-                    Text(waiting ? "Ruxsat kutyapti" : (running ? "\(snap.activeSessions) sessiya ishlayapti" : "Tinch"))
+                    Text(waiting ? tr("Ruxsat kutyapti", "Waiting for permission") : (running ? tr("\(snap.activeSessions) sessiya ishlayapti", snap.activeSessions == 1 ? "1 session working" : "\(snap.activeSessions) sessions working") : tr("Tinch", "Idle")))
                 }
                 .font(.system(size: 11, weight: .medium)).foregroundStyle(color)
             }
         }
-        .help("Yangilandi \(Fmt.ago(snap.updatedAt)) · \(snap.filesWatched) fayl kuzatilyapti")
+        .help(tr("Yangilandi \(Fmt.ago(snap.updatedAt)) · \(snap.filesWatched) fayl kuzatilyapti", "Updated \(Fmt.ago(snap.updatedAt)) · watching \(snap.filesWatched) \(snap.filesWatched == 1 ? "file" : "files")"))
     }
 
     // MARK: Bo'limlar
@@ -222,7 +222,7 @@ private struct Sidebar: View {
                 Spacer(minLength: 4)
                 // Ishlayotganini avatar nuqtasi ko'rsatadi — bu yerda faqat tinch loyihaning vaqti
                 if waiting {
-                    Text("ruxsat").font(.system(size: 11, weight: .medium)).foregroundStyle(Brand.warn)
+                    Text(tr("ruxsat", "permission")).font(.system(size: 11, weight: .medium)).foregroundStyle(Brand.warn)
                 } else if !running {
                     Text(Self.short(sess.lastActivity, now: now))
                         .font(.system(size: 11)).monospacedDigit().foregroundStyle(Color.secondary.opacity(0.7))
@@ -241,10 +241,10 @@ private struct Sidebar: View {
     static func short(_ d: Date?, now: Date) -> String {
         guard let d else { return "" }
         let t = max(0, now.timeIntervalSince(d))
-        if t < 60 { return "hozir" }
-        if t < 3600 { return "\(Int(t / 60)) daq" }
-        if t < 86_400 { return "\(Int(t / 3600)) soat" }
-        return "\(Int(t / 86_400)) kun"
+        if t < 60 { return tr("hozir", "now") }
+        if t < 3600 { return tr("\(Int(t / 60)) daq", "\(Int(t / 60)) min") }
+        if t < 86_400 { return tr("\(Int(t / 3600)) soat", "\(Int(t / 3600)) h") }
+        return tr("\(Int(t / 86_400)) kun", "\(Int(t / 86_400)) d")
     }
 
     // MARK: Limitlar
@@ -254,9 +254,9 @@ private struct Sidebar: View {
         let five = snap.limits?.fiveHour, week = snap.limits?.sevenDay
         if five != nil || week != nil {
             VStack(alignment: .leading, spacing: 9) {
-                Text("Claude limiti").font(.system(size: 11, weight: .semibold)).foregroundStyle(.secondary)
-                if let five { limitRow("5 soat", five) }
-                if let week { limitRow("Hafta", week) }
+                Text(tr("Claude limiti", "Claude limits")).font(.system(size: 11, weight: .semibold)).foregroundStyle(.secondary)
+                if let five { limitRow(tr("5 soat", "5 h"), five, weekly: false) }
+                if let week { limitRow(tr("Hafta", "Week"), week, weekly: true) }
             }
             .padding(12)
             .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color.primary.opacity(0.05)))
@@ -264,7 +264,7 @@ private struct Sidebar: View {
         }
     }
 
-    private func limitRow(_ title: String, _ w: LimitWindow) -> some View {
+    private func limitRow(_ title: String, _ w: LimitWindow, weekly: Bool) -> some View {
         let pct = min(100, max(0, w.usedPercentage))
         let color = pct >= 90 ? Brand.err : (pct >= 70 ? Brand.warn : Brand.accent)
         return HStack(spacing: 8) {
@@ -280,7 +280,7 @@ private struct Sidebar: View {
                 .foregroundStyle(pct >= 70 ? color : .secondary)
                 .frame(width: 32, alignment: .trailing)
         }
-        .help("\(title == "Hafta" ? "Haftalik" : "5 soatlik") limit: \(Int(pct.rounded()))% · tiklanadi \(Self.until(w.resetsAt)) dan keyin")
+        .help(tr("\(weekly ? "Haftalik" : "5 soatlik") limit: \(Int(pct.rounded()))% · tiklanadi \(Self.until(w.resetsAt)) dan keyin", "\(weekly ? "Weekly" : "5-hour") limit: \(Int(pct.rounded()))% · resets in \(Self.until(w.resetsAt))"))
     }
 
     /// «2 soat 49 daq», bir kundan ko'p bo'lsa — «6 kun 0 soat»
@@ -288,7 +288,7 @@ private struct Sidebar: View {
         let sec = max(0, date.timeIntervalSinceNow)
         guard sec >= 86_400 else { return Alerts.duration(sec) }
         let days = Int(sec / 86_400), hours = Int(sec.truncatingRemainder(dividingBy: 86_400) / 3600)
-        return hours > 0 ? "\(days) kun \(hours) soat" : "\(days) kun"
+        return hours > 0 ? tr("\(days) kun \(hours) soat", "\(days) d \(hours) h") : tr("\(days) kun", "\(days) d")
     }
 }
 

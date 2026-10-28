@@ -13,7 +13,7 @@ struct DailyChart: View {
     var body: some View {
         Chart {
             ForEach(days) { d in
-                BarMark(x: .value("Kun", d.date, unit: .day),
+                BarMark(x: .value(tr("Kun", "Day"), d.date, unit: .day),
                         y: .value("Token", d.tokens.value(mode)))
                     .foregroundStyle(Calendar.current.isDateInToday(d.date) ? Palette.main.gradient : Palette.main.opacity(0.55).gradient)
                     .cornerRadius(3)
@@ -68,20 +68,20 @@ enum Composition {
         let inW = Double(t.input)
         let writeW = max(0, t.weighted - readW - outW - inW)
         return [
-            Slice(id: "read", label: "Kesh o'qish", value: v(t.cacheRead, readW), color: Palette.cacheRead,
-                  hint: "Kontekst har javobda qayta o'qiladi — arzon (×0,1), lekin ko'p"),
-            Slice(id: "write", label: "Kesh yozish", value: v(t.cacheWrite, writeW), color: Palette.fresh,
-                  hint: "Yangi kontekst keshga yoziladi (×1,25–2)"),
-            Slice(id: "in", label: "Kiritish", value: v(t.input, inW), color: Palette.input,
-                  hint: "Keshlanmagan kiritish"),
-            Slice(id: "out", label: "Javob va fikrlash", value: v(t.output, outW), color: Palette.output,
-                  hint: t.thinking > 0 ? "Shundan fikrlash: \(Fmt.tokens(t.thinking))" : "Eng qimmat qism (×5)"),
+            Slice(id: "read", label: tr("Kesh o'qish", "Cache read"), value: v(t.cacheRead, readW), color: Palette.cacheRead,
+                  hint: tr("Kontekst har javobda qayta o'qiladi — arzon (×0,1), lekin ko'p", "Context is re-read on every response — cheap (×0.1), but a lot of it")),
+            Slice(id: "write", label: tr("Kesh yozish", "Cache write"), value: v(t.cacheWrite, writeW), color: Palette.fresh,
+                  hint: tr("Yangi kontekst keshga yoziladi (×1,25–2)", "New context written to cache (×1.25–2)")),
+            Slice(id: "in", label: tr("Kiritish", "Input"), value: v(t.input, inW), color: Palette.input,
+                  hint: tr("Keshlanmagan kiritish", "Uncached input")),
+            Slice(id: "out", label: tr("Javob va fikrlash", "Output & thinking"), value: v(t.output, outW), color: Palette.output,
+                  hint: t.thinking > 0 ? tr("Shundan fikrlash: \(Fmt.tokens(t.thinking))", "Of which thinking: \(Fmt.tokens(t.thinking))") : tr("Eng qimmat qism (×5)", "Most expensive part (×5)")),
         ]
     }
 
     /// Sessiya: yordamchi agentlar alohida, asosiy agent tarkibi bo'yicha
     static func session(_ s: SessionSnap, _ mode: CountMode) -> [Slice] {
-        [Slice(id: "agents", label: "Yordamchi agentlar", value: s.agentTokens.value(mode), color: Palette.agents)]
+        [Slice(id: "agents", label: tr("Yordamchi agentlar", "Subagents"), value: s.agentTokens.value(mode), color: Palette.agents)]
             + slices(s.mainTokens, mode)
     }
 }

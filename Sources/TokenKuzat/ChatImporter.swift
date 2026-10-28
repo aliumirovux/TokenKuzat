@@ -7,8 +7,8 @@ import TokenKuzatCore
 enum ChatImporter {
     static func pick() {
         let p = NSOpenPanel()
-        p.title = "Chat yozuvini qo'shish"
-        p.message = "Claude chatdan olingan .jsonl yozuv faylini tanlang"
+        p.title = tr("Chat yozuvini qo'shish", "Add chat transcript")
+        p.message = tr("Claude chatdan olingan .jsonl yozuv faylini tanlang", "Choose a .jsonl transcript exported from Claude chat")
         p.allowedContentTypes = [UTType(filenameExtension: "jsonl") ?? .json, .json, .plainText]
         p.allowsMultipleSelection = true
         p.canChooseDirectories = false
@@ -32,8 +32,8 @@ enum ChatImporter {
         if ok > 0 { WindowManager.shared.show(.sessions) }
         if !failed.isEmpty || ok == 0 {
             let a = NSAlert()
-            a.messageText = ok == 0 ? "Chat yozuvi qo'shilmadi" : "\(ok) ta qo'shildi, ba'zilari qo'shilmadi"
-            a.informativeText = failed.isEmpty ? "Faqat .jsonl fayllar qabul qilinadi." : failed.joined(separator: "\n")
+            a.messageText = ok == 0 ? tr("Chat yozuvi qo'shilmadi", "Chat transcript wasn't added") : tr("\(ok) ta qo'shildi, ba'zilari qo'shilmadi", "\(ok) added, some weren't")
+            a.informativeText = failed.isEmpty ? tr("Faqat .jsonl fayllar qabul qilinadi.", "Only .jsonl files are accepted.") : failed.joined(separator: "\n")
             a.runModal()
         }
         return ok

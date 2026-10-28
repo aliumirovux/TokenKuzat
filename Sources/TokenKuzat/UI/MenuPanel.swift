@@ -12,7 +12,7 @@ struct MenuPanel: View {
         let s = store.snap
         VStack(spacing: 0) {
             if !s.initialScanDone {
-                ProgressView("Yozuvlar o'qilmoqda…").controlSize(.small).padding(40)
+                ProgressView(tr("Yozuvlar o'qilmoqda…", "Reading logs…")).controlSize(.small).padding(40)
             } else {
                 limits(s)
                 VStack(spacing: 10) {
@@ -43,16 +43,16 @@ struct MenuPanel: View {
                 if s.rate(mode) > 0 && s.runningAgents > 0 {
                     HStack(spacing: 5) {
                         Image(systemName: "bolt.fill")
-                        Text("\(Fmt.tokens(s.rate(mode)))/daq").monospacedDigit()
+                        Text(tr("\(Fmt.tokens(s.rate(mode)))/daq", "\(Fmt.tokens(s.rate(mode)))/min")).monospacedDigit()
                     }
                     .font(.caption.weight(.semibold)).foregroundStyle(Color(light: 0x7CF0B6, dark: 0x7CF0B6))
                 }
             }
             if let l = s.limits, let w = l.sessionWindow {
                 HStack(spacing: 12) {
-                    LimitRing(title: "Sessiya", window: w, caption: "5 soatlik oyna")
+                    LimitRing(title: tr("Sessiya", "Session"), window: w, caption: tr("5 soatlik oyna", "5-hour window"))
                     if let wk = l.sevenDay {
-                        LimitRing(title: "Hafta", window: wk, caption: "7 kunlik oyna")
+                        LimitRing(title: tr("Hafta", "Week"), window: wk, caption: tr("7 kunlik oyna", "7-day window"))
                     }
                 }
                 if let o = s.outside, o.hasWindow, !w.isNotStarted, w.usedPercentage >= 1 {
@@ -61,9 +61,9 @@ struct MenuPanel: View {
                 paceLine(s, l)
             } else {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Bugun \(Fmt.tokens(s.today.value(mode))) token").font(.title3.weight(.semibold)).foregroundStyle(.white)
-                    Text("Haqiqiy limitni ko'rish uchun Claude hisobini ulang.").font(.caption).foregroundStyle(Brand.inkDim)
-                    Button("Sozlamalarni ochish…") { WindowManager.shared.show(.settings) }
+                    Text(tr("Bugun \(Fmt.tokens(s.today.value(mode))) token", "Today \(Fmt.tokens(s.today.value(mode))) tokens")).font(.title3.weight(.semibold)).foregroundStyle(.white)
+                    Text(tr("Haqiqiy limitni ko'rish uchun Claude hisobini ulang.", "Connect your Claude account to see your real limits.")).font(.caption).foregroundStyle(Brand.inkDim)
+                    Button(tr("Sozlamalarni ochish…", "Open Settings…")) { WindowManager.shared.show(.settings) }
                         .buttonStyle(.link).tint(Brand.inkFill).font(.caption.weight(.semibold))
                 }
             }
@@ -79,13 +79,13 @@ struct MenuPanel: View {
         let okColor = Color(light: 0x7CF0B6, dark: 0x7CF0B6)
         let (symbol, text, color): (String, String, Color) = {
             if case .runsOut(let at) = s.fiveHourForecast {
-                return ("exclamationmark.triangle.fill", "Sessiya ~\(Fmt.hourMinute.string(from: at)) da tugaydi — tiklanishidan oldin", warnColor)
+                return ("exclamationmark.triangle.fill", tr("Sessiya ~\(Fmt.hourMinute.string(from: at)) da tugaydi — tiklanishidan oldin", "Session runs out at ~\(Fmt.hourMinute.string(from: at)) — before it resets"), warnColor)
             }
             if let wk = l.sevenDay, let w = LimitText.weekWarning(s.weekForecast, week: wk) {
                 return ("exclamationmark.triangle.fill", w, warnColor)
             }
             if let stale = LimitText.staleNote(l, now: s.updatedAt) { return ("clock.arrow.circlepath", stale, Brand.inkDim) }
-            return ("checkmark.circle.fill", "Sur'at me'yorida — limit tiklanguncha yetadi", okColor)
+            return ("checkmark.circle.fill", tr("Sur'at me'yorida — limit tiklanguncha yetadi", "Pace is fine — the limit will last until reset"), okColor)
         }()
         return HStack(alignment: .top, spacing: 8) {
             Image(systemName: symbol).font(.caption)
@@ -121,7 +121,7 @@ struct MenuPanel: View {
                         if waiting != nil { Image(systemName: "hand.raised.fill") }
                         else if live { StateDot(state: .running, size: 7) }
                         else { Image(systemName: "checkmark.circle.fill") }
-                        Text(waiting != nil ? "RUXSATINGIZNI KUTYAPTI" : (live ? "HOZIR ISHLAYAPTI" : "OXIRGI ISH · " + Fmt.ago(sess.lastActivity).uppercased()))
+                        Text(waiting != nil ? tr("RUXSATINGIZNI KUTYAPTI", "WAITING FOR YOUR PERMISSION") : (live ? tr("HOZIR ISHLAYAPTI", "WORKING NOW") : tr("OXIRGI ISH · ", "LAST TASK · ") + Fmt.ago(sess.lastActivity).uppercased()))
                             .eyebrow(color)
                         Spacer()
                         ProjectAvatar(name: sess.project, size: 16)
@@ -150,13 +150,13 @@ struct MenuPanel: View {
                     MiniTrace(steps: Array(steps.suffix(14)), notes: notes, live: live)
                         .frame(height: 58)
                     HStack(spacing: 12) {
-                        meta("list.bullet", "\(turn.steps) qadam")
+                        meta("list.bullet", tr("\(turn.steps) qadam", turn.steps == 1 ? "1 step" : "\(turn.steps) steps"))
                         meta("clock", Alerts.duration(turn.duration))
                         meta("circle.hexagongrid", Fmt.tokens(turn.tokens.value(mode)))
                         Spacer()
                         if sess.contextTokens > 0 {
                             let f = sess.contextFraction
-                            meta("text.alignleft", "kontekst \(Int((f * 100).rounded()))%")
+                            meta("text.alignleft", tr("kontekst \(Int((f * 100).rounded()))%", "context \(Int((f * 100).rounded()))%"))
                                 .foregroundStyle(f >= 0.8 ? Brand.warn : .secondary)
                         }
                     }
@@ -169,15 +169,15 @@ struct MenuPanel: View {
                 .contentShape(shape)
             }
             .buttonStyle(.plain)
-            .help("Bosing — sessiya xaritada ochiladi")
+            .help(tr("Bosing — sessiya xaritada ochiladi", "Click to open the session on the map"))
         }
     }
 
     /// «Terminal», «Fayllar», «O'ylayapti…» — nima bo'lyapti, bir so'zda
     private func actionTitle(running: StepSnap?, waiting: HookNotice?, live: Bool) -> String {
-        if waiting != nil { return "Ruxsat kerak" }
+        if waiting != nil { return tr("Ruxsat kerak", "Needs permission") }
         if let r = running { return r.category.title }
-        return live ? "O'ylayapti…" : "Javob berdi"
+        return live ? tr("O'ylayapti…", "Thinking…") : tr("Javob berdi", "Answered")
     }
 
     /// Batafsil: qaysi buyruq/fayl yoki so'rov matni
@@ -202,11 +202,11 @@ struct MenuPanel: View {
     private func today(_ s: Snapshot) -> some View {
         let todaySessions = s.sessions.filter { Calendar.current.isDateInToday($0.lastActivity ?? .distantPast) }.count
         return HStack(spacing: 0) {
-            todayItem("Bugun", Fmt.tokens(s.today.value(mode)), "token")
+            todayItem(tr("Bugun", "Today"), Fmt.tokens(s.today.value(mode)), tr("token", "tokens"))
             Divider().frame(height: 26)
-            todayItem("Faol", Alerts.duration(Double(s.activeMinutesToday) * 60), "vaqt")
+            todayItem(tr("Faol", "Active"), Alerts.duration(Double(s.activeMinutesToday) * 60), tr("vaqt", "time"))
             Divider().frame(height: 26)
-            todayItem("Sessiya", "\(todaySessions)", s.runningAgents > 0 ? "\(s.runningAgents) ishlayapti" : "bugun")
+            todayItem(tr("Sessiya", "Sessions"), "\(todaySessions)", s.runningAgents > 0 ? tr("\(s.runningAgents) ishlayapti", "\(s.runningAgents) working") : tr("bugun", "today"))
         }
         .padding(.vertical, 10)
         .surface(radius: 12)
@@ -250,11 +250,11 @@ struct MenuPanel: View {
 
     private var footer: some View {
         HStack(spacing: 14) {
-            Button("Token Kuzatuv'ni ochish") { WindowManager.shared.show() }
+            Button(tr("Token Kuzatuv'ni ochish", "Open Token Kuzatuv")) { WindowManager.shared.show() }
                 .buttonStyle(.link).tint(Brand.accent).font(.callout.weight(.semibold))
             Spacer()
-            Button { WindowManager.shared.show(.settings) } label: { Image(systemName: "gearshape") }.help("Sozlamalar")
-            Button { NSApp.terminate(nil) } label: { Image(systemName: "power") }.help("Chiqish")
+            Button { WindowManager.shared.show(.settings) } label: { Image(systemName: "gearshape") }.help(tr("Sozlamalar", "Settings"))
+            Button { NSApp.terminate(nil) } label: { Image(systemName: "power") }.help(tr("Chiqish", "Quit"))
         }
         .buttonStyle(.borderless)
         .padding(.horizontal, 16).padding(.vertical, 10)
@@ -299,9 +299,9 @@ private struct MiniTrace: View {
         HStack(spacing: 6) {
         // Yo'lak nomlari: chizmaning qaysi qatori nimani bildiradi
         VStack(alignment: .trailing, spacing: 0) {
-            Text("Mahalliy").frame(maxHeight: .infinity)
+            Text(tr("Mahalliy", "Local")).frame(maxHeight: .infinity)
             Text("Model").frame(maxHeight: .infinity)
-            Text("Tashqi").frame(maxHeight: .infinity)
+            Text(tr("Tashqi", "External")).frame(maxHeight: .infinity)
         }
         .font(.system(size: 8.5, weight: .medium)).foregroundStyle(.tertiary)
         .frame(width: 42, alignment: .trailing)
@@ -365,11 +365,11 @@ private struct MiniTrace: View {
         }
         .overlay(alignment: .leading) {
             if items.isEmpty {
-                Text("Hali qadam yo'q").font(.caption2).foregroundStyle(.tertiary).padding(.leading, 4)
+                Text(tr("Hali qadam yo'q", "No steps yet")).font(.caption2).foregroundStyle(.tertiary).padding(.leading, 4)
             }
         }
         }
-        .accessibilityLabel("So'nggi \(items.count) ta hodisa")
+        .accessibilityLabel(tr("So'nggi \(items.count) ta hodisa", "Last \(items.count) events"))
     }
 }
 
@@ -383,8 +383,8 @@ struct LimitRing: View {
     /// «31 daq», «4 soat 10 daq», «6 kun 3 soat»
     static func left(_ t: TimeInterval) -> String {
         let t = max(0, t)
-        if t >= 2 * 86400 { return "\(Int(t) / 86400) kun" }
-        if t >= 86400 { return "1 kun \((Int(t) % 86400) / 3600) soat" }
+        if t >= 2 * 86400 { return tr("\(Int(t) / 86400) kun", "\(Int(t) / 86400) d") }
+        if t >= 86400 { return tr("1 kun \((Int(t) % 86400) / 3600) soat", "1 d \((Int(t) % 86400) / 3600) h") }
         return Alerts.duration(t)
     }
 
@@ -400,21 +400,21 @@ struct LimitRing: View {
                 VStack(spacing: -2) {
                     Text("\(Int(pct.rounded()))%").font(.system(size: size * 0.27, weight: .bold, design: .rounded)).monospacedDigit()
                         .foregroundStyle(.white)
-                    Text("ishlatildi").font(.system(size: max(8.5, size * 0.13), weight: .medium)).foregroundStyle(Brand.inkDim)
+                    Text(tr("ishlatildi", "used")).font(.system(size: max(8.5, size * 0.13), weight: .medium)).foregroundStyle(Brand.inkDim)
                 }
             }
             .frame(width: size, height: size)
             .animation(Motion.smooth, value: pct)
             VStack(alignment: .leading, spacing: 3) {
                 Text(title).font(size > 70 ? .title3.weight(.semibold) : .callout.weight(.semibold)).foregroundStyle(.white)
-                Text(window.isNotStarted ? "boshlanmagan" : "↻ " + LimitText.dayTime(window.resetsAt)).font(.caption).foregroundStyle(Brand.inkDim)
+                Text(window.isNotStarted ? tr("boshlanmagan", "not started") : "↻ " + LimitText.dayTime(window.resetsAt)).font(.caption).foregroundStyle(Brand.inkDim)
                     .lineLimit(1).minimumScaleFactor(0.8)
-                Text(window.isNotStarted ? "limit to'liq" : Self.left(window.resetsAt.timeIntervalSinceNow) + " qoldi").font(.caption2)
+                Text(window.isNotStarted ? tr("limit to'liq", "full limit") : Self.left(window.resetsAt.timeIntervalSinceNow) + tr(" qoldi", " left")).font(.caption2)
                     .foregroundStyle(Brand.inkDim.opacity(0.8)).lineLimit(1).minimumScaleFactor(0.8)
             }
             Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .help("\(title) (\(caption)): \(Int(pct.rounded()))% ishlatildi, \(LimitText.dayTime(window.resetsAt)) da tiklanadi")
+        .help(tr("\(title) (\(caption)): \(Int(pct.rounded()))% ishlatildi, \(LimitText.dayTime(window.resetsAt)) da tiklanadi", "\(title) (\(caption)): \(Int(pct.rounded()))% used, resets \(LimitText.dayTime(window.resetsAt))"))
     }
 }

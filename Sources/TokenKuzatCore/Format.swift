@@ -1,6 +1,6 @@
 import Foundation
 
-/// Raqam va vaqtni o'zbekcha ko'rinishda yozish.
+/// Raqam va vaqtni joriy tilda (o'zbekcha yoki inglizcha) yozish.
 public enum Fmt {
     /// 1234 → «1,2K», 12_345_678 → «12M»
     public static func tokens(_ v: Double) -> String {
@@ -12,24 +12,24 @@ public enum Fmt {
         else if a >= 100_000 { s = String(format: "%.0fK", v / 1_000) }
         else if a >= 1_000 { s = String(format: "%.1fK", v / 1_000) }
         else { s = String(format: "%.0f", v) }
-        return s.replacingOccurrences(of: ".", with: ",")
+        return Lang.isEnglish ? s : s.replacingOccurrences(of: ".", with: ",")
     }
 
     public static func tokens(_ v: Int) -> String { tokens(Double(v)) }
 
-    /// To'liq raqam, minglar bo'sh joy bilan: 1 234 567
+    /// To'liq raqam, minglar bo'sh joy bilan: 1 234 567 (inglizchada 1,234,567)
     public static func full(_ v: Double) -> String {
-        grouped.string(from: NSNumber(value: v.rounded())) ?? "\(Int(v))"
+        (Lang.isEnglish ? groupedEN : grouped).string(from: NSNumber(value: v.rounded())) ?? "\(Int(v))"
     }
 
     public static func ago(_ d: Date?, now: Date = Date()) -> String {
         guard let d else { return "—" }
         let s = Int(now.timeIntervalSince(d))
-        if s < 5 { return "hozir" }
-        if s < 60 { return "\(s) s oldin" }
-        if s < 3600 { return "\(s / 60) daq oldin" }
-        if s < 86_400 { return "\(s / 3600) soat oldin" }
-        return "\(s / 86_400) kun oldin"
+        if s < 5 { return tr("hozir", "now") }
+        if s < 60 { return tr("\(s) s oldin", "\(s)s ago") }
+        if s < 3600 { return tr("\(s / 60) daq oldin", "\(s / 60) min ago") }
+        if s < 86_400 { return tr("\(s / 3600) soat oldin", "\(s / 3600)h ago") }
+        return tr("\(s / 86_400) kun oldin", "\(s / 86_400)d ago")
     }
 
     public static func percent(_ part: Double, of whole: Double) -> String {
@@ -49,13 +49,13 @@ public enum Fmt {
         return (words + [nums]).filter { !$0.isEmpty }.joined(separator: " ")
     }
 
-    public static let clock = formatter("HH:mm:ss")
-    public static let hourMinute = formatter("HH:mm")
-    public static let dayTime = formatter("dd.MM HH:mm")
-    /// «28-okt», «3-noy»
-    public static let shortDay = formatter("d-MMM")
-    /// «28-oktabr, chorshanba»
-    public static let longDay = formatter("d-MMMM, EEEE")
+    public static var clock: DateFormatter { formatter("HH:mm:ss") }
+    public static var hourMinute: DateFormatter { formatter("HH:mm") }
+    public static var dayTime: DateFormatter { formatter("dd.MM HH:mm") }
+    /// «28-okt», «3-noy» (inglizchada «Oct 28»)
+    public static var shortDay: DateFormatter { formatter("d-MMM", en: "MMM d") }
+    /// «28-oktabr, chorshanba» (inglizchada «Wednesday, October 28»)
+    public static var longDay: DateFormatter { formatter("d-MMMM, EEEE", en: "EEEE, MMMM d") }
 
     private static let grouped: NumberFormatter = {
         let f = NumberFormatter()
@@ -65,10 +65,27 @@ public enum Fmt {
         return f
     }()
 
-    private static func formatter(_ format: String) -> DateFormatter {
+    private static let groupedEN: NumberFormatter = {
+        let f = NumberFormatter()
+        f.numberStyle = .decimal
+        f.groupingSeparator = ","
+        f.maximumFractionDigits = 0
+        return f
+    }()
+
+    /// Har bir til va shakl uchun bitta formatter (til almashganda yangisi olinadi)
+    private static var cache: [String: DateFormatter] = [:]
+    private static let lock = NSLock()
+
+    private static func formatter(_ format: String, en: String? = nil) -> DateFormatter {
+        let format = Lang.isEnglish ? (en ?? format) : format
+        let key = (Lang.isEnglish ? "en|" : "uz|") + format
+        lock.lock(); defer { lock.unlock() }
+        if let f = cache[key] { return f }
         let f = DateFormatter()
-        f.locale = Locale(identifier: "uz_Latn_UZ")
+        f.locale = Lang.locale
         f.dateFormat = format
+        cache[key] = f
         return f
     }
 }

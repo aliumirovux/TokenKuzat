@@ -1,5 +1,12 @@
 # O'zgarishlar
 
+## 6.20.0 — 2026-10-28
+
+- Ingliz tili: ilova endi ikki tilda — O'zbekcha va English. Sozlamalar → Umumiy → «Til / Language»: O'zbekcha / English / Tizim tili (sukut — Mac tili inglizcha bo'lsa English, aks holda o'zbekcha). Tanlov darhol qo'llanadi — oyna va menyu paneli qaytadan chiziladi.
+- Tarjima qilingan: barcha sahifalar, menyu paneli va menyu satri, bildirishnomalar, robot pufaklari, bo'sh holatlar, tooltip'lar, status line, «daq oldin» kabi vaqtlar va sanalar (inglizchada «Oct 28», «Wednesday, October 28»), raqamlar (1,2K → 1.2K).
+- Matnlar kod ichida juft yoziladi: `tr("Bugun", "Today")` (`TokenKuzatCore/Localization.swift`) — yangi matn qo'shish oson, alohida resurs fayli kerak emas.
+- README'da inglizcha bo'lim. MCP server o'zgarmadi (u allaqachon inglizcha).
+
 ## 6.19.0 — 2026-10-28
 
 - «Jonli» sahifada «Chat va boshqa joylar»: claude.ai / desktop chat, bulut va boshqa qurilmadagi ish vaqt bo'yicha — kartada (faol/tinch, so'nggi 30 daqiqada 5 soatlik limitdan ~%, 2 soatlik ustunlar) va «Chiziqlar»da alohida qatorda. Hisob — 6.16 dagi «limitning chat va bulutga ketgan qismi» (bitta manba): har o'sish qaydiga boshlanish vaqti qo'shildi va `OutsideUsage.segments` — so'nggi 6 soat bo'yicha bo'laklar.

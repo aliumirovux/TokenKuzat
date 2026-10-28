@@ -58,7 +58,7 @@ public final class ActivityMonitor {
             let steps = session.agents.reduce(0) { $0 + $1.steps.count }
             func event(_ kind: ActivityEvent.Kind, _ agent: AgentSnap?) -> ActivityEvent {
                 ActivityEvent(kind: kind, sessionId: session.id, project: session.project, title: session.title,
-                              agentTitle: agent.map { $0.isMain ? "Asosiy agent" : $0.title } ?? "")
+                              agentTitle: agent.map { $0.isMain ? tr("Asosiy agent", "Main agent") : $0.title } ?? "")
             }
 
             // Tugadi: faol → tinch

@@ -10,10 +10,10 @@ enum LaneWindow: Int, CaseIterable, Identifiable {
     var id: Int { rawValue }
     var title: String {
         switch self {
-        case .m10: return "10 daq"
-        case .m30: return "30 daq"
-        case .h1: return "1 soat"
-        case .h3: return "3 soat"
+        case .m10: return tr("10 daq", "10 min")
+        case .m30: return tr("30 daq", "30 min")
+        case .h1: return tr("1 soat", "1 h")
+        case .h3: return tr("3 soat", "3 h")
         }
     }
     var seconds: TimeInterval { TimeInterval(rawValue) }
@@ -49,8 +49,8 @@ struct LiveLanes: View {
         if groups.isEmpty && other.isEmpty {
             VStack {
                 Spacer()
-                EmptyStateView(symbol: "chart.bar.xaxis", title: "Bu oraliqda harakat yo'q",
-                               text: "Vaqt oralig'ini kattalashtiring yoki agentlar ishga tushishini kuting.")
+                EmptyStateView(symbol: "chart.bar.xaxis", title: tr("Bu oraliqda harakat yo'q", "No activity in this range"),
+                               text: tr("Vaqt oralig'ini kattalashtiring yoki agentlar ishga tushishini kuting.", "Widen the time range or wait for agents to start."))
                 Spacer()
             }
         } else {
@@ -87,7 +87,7 @@ struct LiveLanes: View {
                 ZStack(alignment: .topLeading) {
                     ForEach(0...n, id: \.self) { i in
                         let t = start.addingTimeInterval(window.seconds * Double(i) / Double(n))
-                        Text(i == n ? "hozir" : Fmt.hourMinute.string(from: t))
+                        Text(i == n ? tr("hozir", "now") : Fmt.hourMinute.string(from: t))
                             .font(.caption2.weight(i == n ? .semibold : .regular)).monospacedDigit()
                             .foregroundStyle(i == n ? Brand.ok : Color.secondary)
                             .fixedSize()
@@ -125,8 +125,8 @@ struct LiveLanes: View {
                     .frame(width: 22, height: 22)
                     .background(RoundedRectangle(cornerRadius: 6, style: .continuous).fill(Palette.agents))
                 VStack(alignment: .leading, spacing: 1) {
-                    Text("Chat va boshqa joylar").font(.system(size: 13, weight: .semibold)).lineLimit(1)
-                    Text(active ? "faol · limitdan taxmin" : "limitdan taxmin")
+                    Text(tr("Chat va boshqa joylar", "Chat & elsewhere")).font(.system(size: 13, weight: .semibold)).lineLimit(1)
+                    Text(active ? tr("faol · limitdan taxmin", "active · estimated from limit") : tr("limitdan taxmin", "estimated from limit"))
                         .font(.caption2.weight(.semibold)).foregroundStyle(active ? Brand.ok : .secondary)
                 }
             }
@@ -149,7 +149,7 @@ struct LiveLanes: View {
                             }
                             .frame(width: max(3, b - a), height: h - 10)
                             .position(x: (a + b) / 2, y: h / 2)
-                            .help("\(Fmt.hourMinute.string(from: sg.start))–\(Fmt.hourMinute.string(from: sg.end)): 5 soatlik limitdan ~\(Int(sg.percent.rounded()))%")
+                            .help(tr("\(Fmt.hourMinute.string(from: sg.start))–\(Fmt.hourMinute.string(from: sg.end)): 5 soatlik limitdan ~\(Int(sg.percent.rounded()))%", "\(Fmt.hourMinute.string(from: sg.start))–\(Fmt.hourMinute.string(from: sg.end)): ~\(Int(sg.percent.rounded()))% of the 5-hour limit"))
                     }
                 }
             }
@@ -157,7 +157,7 @@ struct LiveLanes: View {
         }
         .padding(.vertical, 10)
         .overlay(alignment: .bottom) { Rectangle().fill(Brand.line).frame(height: 1) }
-        .help("Claude desktop Chat, claude.ai yoki boshqa qurilma — suhbat ichi ko'rinmaydi, limit o'zgarishidan taxmin")
+        .help(tr("Claude desktop Chat, claude.ai yoki boshqa qurilma — suhbat ichi ko'rinmaydi, limit o'zgarishidan taxmin", "Claude desktop Chat, claude.ai or another device — conversation content isn't visible, estimated from limit changes"))
     }
 
     // MARK: Sessiya guruhi
@@ -185,7 +185,7 @@ struct LiveLanes: View {
         .overlay(alignment: .bottom) { Rectangle().fill(Brand.line).frame(height: 1) }
         .contentShape(Rectangle())
         .onTapGesture { open(s) }
-        .help("Bosing — \(s.project) xaritasini ochish")
+        .help(tr("Bosing — \(s.project) xaritasini ochish", "Click to open the \(s.project) map"))
     }
 
     @ViewBuilder
@@ -203,7 +203,7 @@ struct LiveLanes: View {
                     HStack(spacing: 4) {
                         if running && !waiting { StateDot(state: .running, size: 5) }
                         else { Circle().fill(color).frame(width: 5, height: 5) }
-                        Text(waiting ? "ruxsat kutyapti" : (running ? "ishlayapti" : Fmt.ago(lane.session.lastActivity, now: snap.updatedAt)))
+                        Text(waiting ? tr("ruxsat kutyapti", "waiting for permission") : (running ? tr("ishlayapti", "working") : Fmt.ago(lane.session.lastActivity, now: snap.updatedAt)))
                     }
                     .font(.caption2.weight(.semibold)).foregroundStyle(color)
                 }
@@ -311,8 +311,8 @@ struct LiveLanes: View {
                 Text(st.text).lineLimit(1)
             }
             .font(.caption.weight(.semibold))
-            Text("\(agent.isMain ? "Asosiy agent" : agent.title) · \(Fmt.clock.string(from: st.date))"
-                 + (st.status == .running ? " · ishlayapti" : st.duration.map { " · \(Alerts.duration($0))" } ?? ""))
+            Text("\(agent.isMain ? tr("Asosiy agent", "Main agent") : agent.title) · \(Fmt.clock.string(from: st.date))"
+                 + (st.status == .running ? tr(" · ishlayapti", " · working") : st.duration.map { " · \(Alerts.duration($0))" } ?? ""))
                 .font(.caption2).foregroundStyle(.secondary)
         }
         .padding(.horizontal, 10).padding(.vertical, 7)

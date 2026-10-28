@@ -36,7 +36,7 @@ struct SessionHeader: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(session.project)
                         .font(.system(size: 22, weight: .semibold, design: .rounded)).lineLimit(1)
-                    Text(session.turns.isEmpty ? "Sessiya" : "Sessiya · \(session.turns.count) so'rov")
+                    Text(session.turns.isEmpty ? tr("Sessiya", "Session") : tr("Sessiya · \(session.turns.count) so'rov", "Session · \(session.turns.count == 1 ? "1 prompt" : "\(session.turns.count) prompts")"))
                         .font(.callout).foregroundStyle(.secondary)
                 }
             }
@@ -44,10 +44,10 @@ struct SessionHeader: View {
                 StatusChip(active: active, errors: turn?.errors ?? 0, waiting: waiting != nil).fixedSize()
                 if session.contextTokens > 0 { ContextGauge(session: session).fixedSize() }
                 SavingsChip(session: session).fixedSize()
-                if let turn { Text("#\(turn.id)-so'rov").fontWeight(.semibold).foregroundStyle(.primary).fixedSize() }
+                if let turn { Text(tr("#\(turn.id)-so'rov", "Prompt #\(turn.id)")).fontWeight(.semibold).foregroundStyle(.primary).fixedSize() }
                 if !session.model.isEmpty { Text(session.model).fixedSize() }
                 if let start = turn?.start ?? session.timeRange?.lowerBound {
-                    Text("\(Fmt.hourMinute.string(from: start)) da boshlangan").foregroundStyle(.tertiary).fixedSize()
+                    Text(tr("\(Fmt.hourMinute.string(from: start)) da boshlangan", "Started at \(Fmt.hourMinute.string(from: start))")).foregroundStyle(.tertiary).fixedSize()
                 }
             }
             .font(.callout).foregroundStyle(.secondary)
@@ -56,8 +56,8 @@ struct SessionHeader: View {
 
     private func kpis(duration: TimeInterval, steps: Int, tokens: TokenCounts) -> some View {
         HStack(spacing: 20) {
-            kpi(Alerts.duration(duration), "davomiylik")
-            kpi("\(steps)", "qadam")
+            kpi(Alerts.duration(duration), tr("davomiylik", "duration"))
+            kpi("\(steps)", tr("qadam", steps == 1 ? "step" : "steps"))
             kpi(Fmt.tokens(tokens.value(mode)), costUSD.map { "token · " + String(format: "$%.2f", $0).replacingOccurrences(of: ".", with: ",") } ?? "token")
         }
         .fixedSize()
@@ -82,7 +82,7 @@ struct StatusChip: View {
         HStack(spacing: 5) {
             if waiting { Image(systemName: "hand.raised.fill") }
             else if active { StateDot(state: .running, size: 6) } else { Image(systemName: errors > 0 ? "exclamationmark.circle.fill" : "checkmark.circle.fill") }
-            Text(waiting ? "Ruxsatingizni kutyapti" : (active ? "Ishlayapti" : (errors > 0 ? "Tugadi · \(errors) xato" : "Tugadi")))
+            Text(waiting ? tr("Ruxsatingizni kutyapti", "Waiting for your permission") : (active ? tr("Ishlayapti", "Working") : (errors > 0 ? tr("Tugadi · \(errors) xato", errors == 1 ? "Done · 1 error" : "Done · \(errors) errors") : tr("Tugadi", "Done"))))
         }
         .font(.caption.weight(.semibold))
         .foregroundStyle(color)
@@ -184,14 +184,14 @@ struct LanesCard: View {
                         .background(Circle().fill(Brand.ink))
                 }
                 .buttonStyle(.plain)
-                .help(replayOn ? "Replay'ni to'xtatish" : "Bu so'rovni boshidan qayta ijro etish")
+                .help(replayOn ? tr("Replay'ni to'xtatish", "Stop replay") : tr("Bu so'rovni boshidan qayta ijro etish", "Replay this prompt from the start"))
                 Text("Replay").font(.callout).foregroundStyle(.secondary)
                 Divider().frame(height: 16)
                 shares
                 Spacer(minLength: 8)
                 Button { withAnimation(Motion.spring) { open.toggle() } } label: {
                     HStack(spacing: 5) {
-                        Text(open ? "Yig'ish" : "Vaqt chizig'i")
+                        Text(open ? tr("Yig'ish", "Collapse") : tr("Vaqt chizig'i", "Timeline"))
                         Image(systemName: "chevron.down").rotationEffect(.degrees(open ? 180 : 0))
                     }
                     .font(.caption.weight(.semibold)).foregroundStyle(.secondary)
@@ -200,7 +200,7 @@ struct LanesCard: View {
                     .contentShape(Capsule())
                 }
                 .buttonStyle(.plain)
-                .help(open ? "Vaqt chizig'ini yashirish" : "Qaysi asbob qachon va qancha ishlaganini qatorlarda ko'rsatish")
+                .help(open ? tr("Vaqt chizig'ini yashirish", "Hide timeline") : tr("Qaysi asbob qachon va qancha ishlaganini qatorlarda ko'rsatish", "Show in lanes which tool ran when and for how long"))
             }
         }
         .padding(open ? 16 : 10)
@@ -212,12 +212,12 @@ struct LanesCard: View {
     private var shares: some View {
         let sum = max(1, timeline.shares.reduce(0) { $0 + $1.seconds })
         return HStack(spacing: 4) {
-            Text("Vaqtning").foregroundStyle(.secondary)
+            Text(tr("Vaqtning", "Time:")).foregroundStyle(.secondary)
             ForEach(Array(timeline.shares.prefix(3).enumerated()), id: \.offset) { i, s in
                 if i > 0 { Text("·").foregroundStyle(.tertiary) }
                 if let c = shareColor(s.title) { Circle().fill(c).frame(width: 7, height: 7) }
                 Text(Fmt.percent(s.seconds, of: sum)).fontWeight(.semibold)
-                Text("— \(i == 0 && s.title.hasPrefix("Model") ? "model o'ylashi" : s.title.lowercased())").foregroundStyle(.secondary)
+                Text("— \(i == 0 && s.title.hasPrefix("Model") ? tr("model o'ylashi", "model thinking") : s.title.lowercased())").foregroundStyle(.secondary)
             }
         }
         .font(.callout)
@@ -238,7 +238,7 @@ struct ContextGauge: View {
         let f = session.contextFraction
         let color = f >= 0.92 ? Brand.err : (f >= 0.8 ? Brand.warn : Brand.accent)
         HStack(spacing: 6) {
-            Text("Kontekst").lineLimit(1).fixedSize()
+            Text(tr("Kontekst", "Context")).lineLimit(1).fixedSize()
             ZStack(alignment: .leading) {
                 Capsule().fill(Brand.line)
                 Capsule().fill(color).frame(width: max(3, 54 * f))
@@ -246,8 +246,9 @@ struct ContextGauge: View {
             .frame(width: 54, height: 5)
             Text("\(Int((f * 100).rounded()))%").monospacedDigit().foregroundStyle(f >= 0.8 ? color : .secondary)
         }
-        .help("Kontekst: \(Fmt.tokens(Double(session.contextTokens))) / \(Fmt.tokens(Double(session.contextWindow))) token."
-              + (f >= 0.8 ? " Tez orada suhbat avtomatik xulosa qilinadi." : ""))
+        .help(tr("Kontekst: \(Fmt.tokens(Double(session.contextTokens))) / \(Fmt.tokens(Double(session.contextWindow))) token.",
+                 "Context: \(Fmt.tokens(Double(session.contextTokens))) / \(Fmt.tokens(Double(session.contextWindow))) tokens.")
+              + (f >= 0.8 ? tr(" Tez orada suhbat avtomatik xulosa qilinadi.", " The conversation will be auto-summarized soon.") : ""))
         .animation(Motion.smooth, value: f)
     }
 }

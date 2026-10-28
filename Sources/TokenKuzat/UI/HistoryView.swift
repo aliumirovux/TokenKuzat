@@ -19,37 +19,37 @@ struct HistoryView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 HStack {
-                    Picker("Davr", selection: $range) {
-                        Text("7 kun").tag(7)
-                        Text("14 kun").tag(14)
-                        Text("30 kun").tag(30)
+                    Picker(tr("Davr", "Period"), selection: $range) {
+                        Text(tr("7 kun", "7 days")).tag(7)
+                        Text(tr("14 kun", "14 days")).tag(14)
+                        Text(tr("30 kun", "30 days")).tag(30)
                     }
                     .pickerStyle(.segmented).labelsHidden().fixedSize()
                     Spacer()
-                    Button { exportCSV() } label: { Label("CSV eksport", systemImage: "square.and.arrow.up") }
+                    Button { exportCSV() } label: { Label(tr("CSV eksport", "Export CSV"), systemImage: "square.and.arrow.up") }
                 }
 
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 3), spacing: 12) {
-                    MetricTile(title: "\(range) kunda jami", value: Fmt.tokens(total.value(mode)), unit: "token",
-                               footnote: "\(active.count) faol kun", symbol: "sum", tint: .blue)
-                    MetricTile(title: "Faol kunda o'rtacha",
-                               value: Fmt.tokens(active.isEmpty ? 0 : total.value(mode) / Double(active.count)), unit: "token",
-                               footnote: "Bo'sh kunlar hisobga olinmaydi", symbol: "chart.line.flattrend.xyaxis", tint: .teal)
-                    MetricTile(title: "Eng ko'p kun", value: Fmt.tokens(peak?.tokens.value(mode) ?? 0), unit: "token",
+                    MetricTile(title: tr("\(range) kunda jami", "Total, \(range) days"), value: Fmt.tokens(total.value(mode)), unit: tr("token", "tokens"),
+                               footnote: tr("\(active.count) faol kun", active.count == 1 ? "1 active day" : "\(active.count) active days"), symbol: "sum", tint: .blue)
+                    MetricTile(title: tr("Faol kunda o'rtacha", "Average per active day"),
+                               value: Fmt.tokens(active.isEmpty ? 0 : total.value(mode) / Double(active.count)), unit: tr("token", "tokens"),
+                               footnote: tr("Bo'sh kunlar hisobga olinmaydi", "Empty days aren't counted"), symbol: "chart.line.flattrend.xyaxis", tint: .teal)
+                    MetricTile(title: tr("Eng ko'p kun", "Peak day"), value: Fmt.tokens(peak?.tokens.value(mode) ?? 0), unit: tr("token", "tokens"),
                                footnote: peak.map { Fmt.longDay.string(from: $0.date) } ?? "—", symbol: "flame.fill", tint: .orange)
                 }
 
                 VStack(alignment: .leading, spacing: 10) {
-                    SectionHeader(title: "Kunlar bo'yicha", subtitle: "kunni bosing — tarkibi chiqadi")
+                    SectionHeader(title: tr("Kunlar bo'yicha", "By day"), subtitle: tr("kunni bosing — tarkibi chiqadi", "click a day to see its breakdown"))
                     DailyChart(days: days, mode: mode, height: 220, selected: $selected)
                 }
                 .card()
 
                 let detail = focus?.tokens ?? total
                 VStack(alignment: .leading, spacing: 12) {
-                    SectionHeader(title: focus.map { Fmt.longDay.string(from: $0.date) } ?? "\(range) kunlik tarkib",
+                    SectionHeader(title: focus.map { Fmt.longDay.string(from: $0.date) } ?? tr("\(range) kunlik tarkib", "\(range)-day breakdown"),
                                   trailing: focus == nil ? nil : AnyView(
-                                      Button("Tanlovni bekor qilish") { selected = nil }.buttonStyle(.link).font(.caption)))
+                                      Button(tr("Tanlovni bekor qilish", "Clear selection")) { selected = nil }.buttonStyle(.link).font(.caption)))
                     let slices = Composition.slices(detail, mode)
                     BreakdownBar(slices: slices, height: 12)
                     BreakdownLegend(slices: slices, total: detail.value(mode))
@@ -57,12 +57,12 @@ struct HistoryView: View {
                 .card()
 
                 VStack(alignment: .leading, spacing: 8) {
-                    SectionHeader(title: "Jadval")
+                    SectionHeader(title: tr("Jadval", "Table"))
                     DayTable(days: days.reversed(), mode: mode)
                 }
                 .card()
 
-                Text("Kunlik jami ~/Library/Application Support/TokenKuzat/history.json da saqlanadi — Claude yozuvlari o'chsa ham tarix qoladi.")
+                Text(tr("Kunlik jami ~/Library/Application Support/TokenKuzat/history.json da saqlanadi — Claude yozuvlari o'chsa ham tarix qoladi.", "Daily totals are saved to ~/Library/Application Support/TokenKuzat/history.json — history stays even if Claude's logs are deleted."))
                     .font(.caption).foregroundStyle(.tertiary)
             }
             .padding(20)
@@ -89,7 +89,7 @@ private struct DayTable: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            row(["Sana", "Jami", "Kesh o'qish", "Kesh yozish", "Kiritish", "Javob"], header: true)
+            row([tr("Sana", "Date"), tr("Jami", "Total"), tr("Kesh o'qish", "Cache read"), tr("Kesh yozish", "Cache write"), tr("Kiritish", "Input"), tr("Javob", "Output")], header: true)
             Divider()
             ForEach(days.filter { !$0.tokens.isEmpty }) { d in
                 let t = d.tokens
@@ -102,7 +102,7 @@ private struct DayTable: View {
                      Fmt.tokens(w ? Double(t.output) * Pricing.output : Double(t.output))], header: false)
             }
             if days.allSatisfy({ $0.tokens.isEmpty }) {
-                Text("Bu davrda ma'lumot yo'q").font(.caption).foregroundStyle(.secondary).padding(12)
+                Text(tr("Bu davrda ma'lumot yo'q", "No data for this period")).font(.caption).foregroundStyle(.secondary).padding(12)
             }
         }
     }

@@ -9,7 +9,7 @@ public struct OutputFile: Identifiable, Equatable, Sendable {
 
         public var title: String {
             switch self {
-            case .image: return "Rasm"
+            case .image: return tr("Rasm", "Image")
             case .web: return "HTML"
             case .pdf: return "PDF"
             case .video: return "Video"

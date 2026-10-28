@@ -120,15 +120,15 @@ struct RobotView: View {
         case .typing(let s), .reading(let s), .writing(let s), .browsing(let s), .plugging(let s),
              .delegating(let s), .tinkering(let s):
             return s
-        case .thinking: return "o'ylayapti"
-        case .answering: return "javob yozyapti"
-        case .waiting: return "ruxsat kerak"
-        case .error: return "voy, xato!"
-        case .greeting: return "yangi vazifa!"
-        case .celebrating: return "tayyor!"
+        case .thinking: return tr("o'ylayapti", "thinking")
+        case .answering: return tr("javob yozyapti", "answering")
+        case .waiting: return tr("ruxsat kerak", "need permission")
+        case .error: return tr("voy, xato!", "oops, error!")
+        case .greeting: return tr("yangi vazifa!", "new task!")
+        case .celebrating: return tr("tayyor!", "done!")
         case .sleeping: return Int(t * 1.2) % 2 == 0 ? "z z" : "z Z"
-        case .watching: return "nazorat qilyapman"
-        case .hello: return "salom!"
+        case .watching: return tr("nazorat qilyapman", "keeping watch")
+        case .hello: return tr("salom!", "hello!")
         }
     }
 
@@ -575,7 +575,7 @@ extension RobotView {
                 return .error
             }
             if let t = session.turns.last, t.active, now.timeIntervalSince(t.start) < 8, t.steps == 0 { return .greeting }
-            if session.main?.lastAction == "Javob yozdi" { return .answering }
+            if isAnsweredAction(session.main?.lastAction) { return .answering }
             return .thinking
         }
         if let la = session.lastActivity, now.timeIntervalSince(la) < 40 { return .celebrating }

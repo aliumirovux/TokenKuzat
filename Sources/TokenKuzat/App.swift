@@ -8,6 +8,8 @@ struct TokenKuzatApp: App {
     @StateObject private var store = Store.shared
 
     init() {
+        // Til birinchi bo'lib yuklanadi: status line va bildirishnomalar ham shu tilda chiqadi
+        Lang.load()
         // Claude Code status line chaqirig'i — oynasiz, darhol chiqadi
         if CommandLine.arguments.contains(StatusLine.flag) { StatusLine.runAndExit() }
         if CommandLine.arguments.contains(Hooks.flag) { Hooks.runAndExit() }
@@ -19,9 +21,9 @@ struct TokenKuzatApp: App {
 
     var body: some Scene {
         MenuBarExtra {
-            MenuPanel().environmentObject(store)
+            LanguageScope { MenuPanel() }.environmentObject(store)
         } label: {
-            MenuBarLabel().environmentObject(store)
+            LanguageScope { MenuBarLabel() }.environmentObject(store)
         }
         .menuBarExtraStyle(.window)
     }
@@ -147,6 +149,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 }
 
+/// Til almashganda ichidagi ko'rinish qaytadan quriladi — barcha matnlar darhol yangi tilda chiqadi
+struct LanguageScope<Content: View>: View {
+    @AppStorage(Lang.prefKey) private var language = AppLanguage.system.rawValue
+    @ViewBuilder var content: () -> Content
+
+    var body: some View {
+        content().id(language)
+    }
+}
+
 /// Menyu satridagi yozuv: tinch paytda bugungi jami, agent ishlayotganda ⚡ va tezlik.
 struct MenuBarLabel: View {
     @EnvironmentObject var store: Store
@@ -160,7 +172,7 @@ struct MenuBarLabel: View {
             // Ruxsat kutilayotgani har qanday uslubdan ustun: ish to'xtab turibdi
             HStack(spacing: 3) {
                 Image(systemName: "hand.raised.fill")
-                Text("Ruxsat")
+                Text(tr("Ruxsat", "Permission"))
             }
         } else {
             styled(s, active)
@@ -194,7 +206,7 @@ struct MenuBarLabel: View {
     private func tokens(_ s: Snapshot, _ active: Bool) -> some View {
         HStack(spacing: 3) {
             Image(systemName: active ? "bolt.fill" : "chart.bar.xaxis")
-            Text(active ? "\(Fmt.tokens(s.rate(mode)))/daq" : Fmt.tokens(s.today.value(mode)))
+            Text(active ? tr("\(Fmt.tokens(s.rate(mode)))/daq", "\(Fmt.tokens(s.rate(mode)))/min") : Fmt.tokens(s.today.value(mode)))
                 .monospacedDigit()
         }
     }

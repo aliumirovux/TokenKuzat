@@ -51,7 +51,7 @@ extension SessionSnap {
             replayed.append(AgentSnap(
                 id: a.id, title: a.title, subtitle: a.subtitle, kind: a.kind, isMain: a.isMain,
                 tokens: tokens, calls: usage.count, topTools: SessionSnap.topTools(steps),
-                lastAction: steps.last?.text ?? (a.isMain ? "So'rov oldi" : "Boshlandi"),
+                lastAction: steps.last?.text ?? (a.isMain ? tr("So'rov oldi", "Got a prompt") : tr("Boshlandi", "Started")),
                 state: state, lastActivity: lastSeen, firstActivity: a.firstActivity,
                 steps: steps, resources: SessionSnap.resourceGroups(steps, now: t), usage: usage,
                 bigResults: a.bigResults.filter { $0.date <= t }, outputs: a.outputs.filter { $0.value <= t }))

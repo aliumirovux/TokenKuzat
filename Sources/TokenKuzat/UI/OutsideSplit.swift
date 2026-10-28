@@ -26,18 +26,18 @@ struct OutsideSplitRow: View {
 
     private var parts: [Part] {
         var p: [Part] = [
-            .init(id: "mac", label: "Mac'da", pct: outside.macPct, color: SplitColor.mac,
-                  help: "Shu Mac'dagi Claude Code va Cowork ishlari"),
-            .init(id: "out", label: "Chat va bulut", pct: outside.outsidePct, color: SplitColor.outside,
-                  help: "claude.ai va desktop chatlar, bulutdagi sessiyalar, telefon — Mac'ga yozilmaydi, limit o'sishidan hisoblandi"),
+            .init(id: "mac", label: tr("Mac'da", "On this Mac"), pct: outside.macPct, color: SplitColor.mac,
+                  help: tr("Shu Mac'dagi Claude Code va Cowork ishlari", "Claude Code and Cowork work on this Mac")),
+            .init(id: "out", label: tr("Chat va bulut", "Chat & cloud"), pct: outside.outsidePct, color: SplitColor.outside,
+                  help: tr("claude.ai va desktop chatlar, bulutdagi sessiyalar, telefon — Mac'ga yozilmaydi, limit o'sishidan hisoblandi", "claude.ai and desktop chats, cloud sessions, phone — not written to this Mac, estimated from limit growth")),
         ]
         if outside.uncertainPct >= 0.5 {
-            p.append(.init(id: "unc", label: "Aniqlanmoqda", pct: outside.uncertainPct, color: SplitColor.uncertain,
-                           help: "Mac va chat bir vaqtda ishlagan; ulushlar bir necha o'lchovdan keyin ajratiladi"))
+            p.append(.init(id: "unc", label: tr("Aniqlanmoqda", "Detecting"), pct: outside.uncertainPct, color: SplitColor.uncertain,
+                           help: tr("Mac va chat bir vaqtda ishlagan; ulushlar bir necha o'lchovdan keyin ajratiladi", "Mac and chat were active at the same time; shares are split after a few measurements")))
         }
         if outside.unobservedPct >= 0.5 {
-            p.append(.init(id: "pre", label: "Kuzatuvdan oldin", pct: outside.unobservedPct, color: SplitColor.unobserved,
-                           help: "Ilova yopiq yoki Mac uxlab turgan paytda ishlatilgan qism"))
+            p.append(.init(id: "pre", label: tr("Kuzatuvdan oldin", "Before tracking"), pct: outside.unobservedPct, color: SplitColor.unobserved,
+                           help: tr("Ilova yopiq yoki Mac uxlab turgan paytda ishlatilgan qism", "Used while the app was closed or the Mac was asleep")))
         }
         return p
     }
@@ -46,7 +46,7 @@ struct OutsideSplitRow: View {
         VStack(alignment: .leading, spacing: compact ? 6 : 9) {
             if !compact {
                 HStack(alignment: .firstTextBaseline) {
-                    Text("SESSIYA LIMITI QAYERGA KETDI").eyebrow(Brand.inkDim)
+                    Text(tr("SESSIYA LIMITI QAYERGA KETDI", "WHERE THE SESSION LIMIT WENT")).eyebrow(Brand.inkDim)
                     Spacer(minLength: 8)
                     if let today = todayText {
                         Text(today).font(.caption.weight(.medium)).foregroundStyle(Brand.inkDim).lineLimit(1)
@@ -56,7 +56,7 @@ struct OutsideSplitRow: View {
             bar.frame(height: compact ? 6 : 8)
             legend
         }
-        .help("Chat va bulutdagi ishlar Mac diskiga yozilmaydi. Ularning ulushi Claude hisobidagi haqiqiy limit o'sishidan Mac'dagi sarfni ayirib taxminan hisoblanadi.")
+        .help(tr("Chat va bulutdagi ishlar Mac diskiga yozilmaydi. Ularning ulushi Claude hisobidagi haqiqiy limit o'sishidan Mac'dagi sarfni ayirib taxminan hisoblanadi.", "Chat and cloud work isn't written to this Mac's disk. Its share is estimated by subtracting this Mac's usage from the real limit growth on your Claude account."))
     }
 
     private var bar: some View {
@@ -100,8 +100,8 @@ struct OutsideSplitRow: View {
     private var todayText: String? {
         guard outside.outsideTodayPct >= 0.5 else { return nil }
         if let t = outside.outsideTodayTokens {
-            return "Bugun chat va bulutda ~\(Fmt.tokens(t)) vaznli token"
+            return tr("Bugun chat va bulutda ~\(Fmt.tokens(t)) vaznli token", "Today in chat & cloud: ~\(Fmt.tokens(t)) weighted tokens")
         }
-        return "Bugun chat va bulutda limitning \(Int(outside.outsideTodayPct.rounded()))%"
+        return tr("Bugun chat va bulutda limitning \(Int(outside.outsideTodayPct.rounded()))%", "Today in chat & cloud: \(Int(outside.outsideTodayPct.rounded()))% of the limit")
     }
 }

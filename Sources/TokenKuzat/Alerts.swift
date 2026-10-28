@@ -37,8 +37,9 @@ final class Alerts: NSObject, UNUserNotificationCenterDelegate {
     /// Sozlamalardagi «Sinov bildirishnomasi» tugmasi
     func sendTest() {
         requestPermission { _ in
-            self.post("Token Kuzatuv: bildirishnomalar ishlayapti",
-                      "Claude ishni tugatganda, qadam osilib qolganda yoki xatolar takrorlanganda shunday xabar keladi.")
+            self.post(tr("Token Kuzatuv: bildirishnomalar ishlayapti", "Token Kuzatuv: notifications are working"),
+                      tr("Claude ishni tugatganda, qadam osilib qolganda yoki xatolar takrorlanganda shunday xabar keladi.",
+                         "You'll get a message like this when Claude finishes, a step gets stuck, or errors repeat."))
         }
     }
 
@@ -65,9 +66,11 @@ final class Alerts: NSObject, UNUserNotificationCenterDelegate {
             savingsAnnounced[sess.id] = t.id
             guard savingsPrimed, UserDefaults.standard.bool(forKey: Pref.notifySavings) else { continue }
             let save = sess.contextTokens - SavingsAdvisor.baseline
-            post("\(sess.project): yangi mavzu — yangi sessiya arzonroq",
-                 "Kontekst \(Fmt.tokens(Double(sess.contextTokens))). Yangi sessiyada har javobda ~\(Fmt.tokens(Double(save))) token tejaladi. "
+            post(tr("\(sess.project): yangi mavzu — yangi sessiya arzonroq", "\(sess.project): new topic — a new session is cheaper"),
+                 tr("Kontekst \(Fmt.tokens(Double(sess.contextTokens))). Yangi sessiyada har javobda ~\(Fmt.tokens(Double(save))) token tejaladi. "
                  + "Bosing — «Davom etish xulosasi»ni nusxalab, yangi sessiyaga qo'ying.",
+                    "Context \(Fmt.tokens(Double(sess.contextTokens))). A new session saves ~\(Fmt.tokens(Double(save))) tokens on every reply. "
+                 + "Click to copy the «Handoff summary» and paste it into a new session."),
                  session: sess.id)
         }
     }
@@ -85,8 +88,9 @@ final class Alerts: NSObject, UNUserNotificationCenterDelegate {
             announcedWaits[sid] = n.date
             guard waitsPrimed, UserDefaults.standard.bool(forKey: Pref.notifyPermission) else { continue }
             let project = s.sessions.first { $0.id == sid }?.project ?? "Claude"
-            post("\(project): Claude ruxsatingizni kutyapti",
-                 (n.message.isEmpty ? "Asbobdan foydalanish uchun ruxsat kerak." : Self.uz(n.message)) + "\nClaude Code oynasida javob bering.",
+            post(tr("\(project): Claude ruxsatingizni kutyapti", "\(project): Claude is waiting for your permission"),
+                 (n.message.isEmpty ? tr("Asbobdan foydalanish uchun ruxsat kerak.", "Permission is needed to use a tool.") : Self.uz(n.message))
+                    + tr("\nClaude Code oynasida javob bering.", "\nRespond in the Claude Code window."),
                  session: sid)
         }
     }
@@ -94,7 +98,7 @@ final class Alerts: NSObject, UNUserNotificationCenterDelegate {
     /// Hook xabarini o'zbekchaga: «Claude needs your permission to use Bash» → «Bash uchun ruxsat so'rayapti»
     static func uz(_ message: String) -> String {
         let p = "Claude needs your permission to use "
-        if message.hasPrefix(p) { return "\(message.dropFirst(p.count)) uchun ruxsat so'rayapti." }
+        if message.hasPrefix(p) { return tr("\(message.dropFirst(p.count)) uchun ruxsat so'rayapti.", "Asking for permission to use \(message.dropFirst(p.count)).") }
         return message
     }
 
@@ -106,8 +110,10 @@ final class Alerts: NSObject, UNUserNotificationCenterDelegate {
             guard f >= 0.85, sess.state != .idle, !contextWarned.contains(sess.id) else { continue }
             contextWarned.insert(sess.id)
             guard UserDefaults.standard.bool(forKey: Pref.notifyContext) else { continue }
-            post("\(sess.project): kontekst \(Int((f * 100).rounded()))% to'ldi",
-                 "\(Fmt.tokens(Double(sess.contextTokens))) / \(Fmt.tokens(Double(sess.contextWindow))). Tez orada suhbat avtomatik xulosa qilinadi — muhim narsalarni hozir ayting yoki ishni bo'lib bering.",
+            post(tr("\(sess.project): kontekst \(Int((f * 100).rounded()))% to'ldi", "\(sess.project): context \(Int((f * 100).rounded()))% full"),
+                 "\(Fmt.tokens(Double(sess.contextTokens))) / \(Fmt.tokens(Double(sess.contextWindow))). "
+                    + tr("Tez orada suhbat avtomatik xulosa qilinadi — muhim narsalarni hozir ayting yoki ishni bo'lib bering.",
+                         "The conversation will soon be auto-summarized — say anything important now or split up the work."),
                  session: sess.id)
         }
     }
@@ -119,18 +125,19 @@ final class Alerts: NSObject, UNUserNotificationCenterDelegate {
         let d = UserDefaults.standard
         guard d.bool(forKey: Pref.notifyRealLimit), let l = s.limits else { return }
         var fired = d.dictionary(forKey: "realLimitFired") as? [String: Double] ?? [:]
-        for (name, w) in [("5 soatlik", l.fiveHour), ("Haftalik", l.sevenDay)] {
+        for (name, label, w) in [("5 soatlik", tr("5 soatlik", "5-hour"), l.fiveHour), ("Haftalik", tr("Haftalik", "Weekly"), l.sevenDay)] {
             guard let w else { continue }
             for t in [80.0, 95.0] where w.usedPercentage >= t {
                 let key = "\(name)-\(Int(t))"
                 guard fired[key] != w.resetsAt.timeIntervalSince1970 else { continue }
                 fired[key] = w.resetsAt.timeIntervalSince1970
                 let reset = Fmt.hourMinute.string(from: w.resetsAt)
-                var body = "\(Int(w.usedPercentage.rounded()))% ishlatildi · \(reset) da tiklanadi (\(Self.duration(w.resetsAt.timeIntervalSinceNow)))."
+                var body = tr("\(Int(w.usedPercentage.rounded()))% ishlatildi · \(reset) da tiklanadi (\(Self.duration(w.resetsAt.timeIntervalSinceNow))).",
+                               "\(Int(w.usedPercentage.rounded()))% used · resets at \(reset) (\(Self.duration(w.resetsAt.timeIntervalSinceNow))).")
                 if name == "5 soatlik", case .runsOut(let at) = s.fiveHourForecast {
-                    body += " Shu tezlikda ~\(Fmt.hourMinute.string(from: at)) da tugaydi."
+                    body += tr(" Shu tezlikda ~\(Fmt.hourMinute.string(from: at)) da tugaydi.", " At this pace it runs out at ~\(Fmt.hourMinute.string(from: at)).")
                 }
-                post("\(name) Claude limiti: \(Int(t))%", body)
+                post(tr("\(label) Claude limiti: \(Int(t))%", "\(label) Claude limit: \(Int(t))%"), body)
             }
         }
         d.set(fired, forKey: "realLimitFired")
@@ -148,19 +155,21 @@ final class Alerts: NSObject, UNUserNotificationCenterDelegate {
             switch e.kind {
             case .finished(let duration, let tokens, let steps):
                 guard d.bool(forKey: Pref.notifyFinished) else { continue }
-                post("\(e.project): Claude tugatdi",
-                     "\(e.title)\n\(Self.duration(duration)) · \(steps) qadam · \(Fmt.tokens(tokens)) token. Javobingizni kutyapti.",
+                post(tr("\(e.project): Claude tugatdi", "\(e.project): Claude finished"),
+                     tr("\(e.title)\n\(Self.duration(duration)) · \(steps) qadam · \(Fmt.tokens(tokens)) token. Javobingizni kutyapti.",
+                        "\(e.title)\n\(Self.duration(duration)) · \(steps) \(steps == 1 ? "step" : "steps") · \(Fmt.tokens(tokens)) tokens. Waiting for your reply."),
                      session: e.sessionId)
             case .stuck(let step, let duration):
                 // Ruxsat kutilayotgani aniq bo'lsa — u haqda alohida xabar ketgan
                 guard d.bool(forKey: Pref.notifyStuck), s.permissionWaits[e.sessionId] == nil else { continue }
-                post("\(e.project): qadam \(Self.duration(duration)) dan beri tugamadi",
-                     "\(e.agentTitle) · \(step)\nRuxsat so'rayotgan yoki osilib qolgan bo'lishi mumkin.",
+                post(tr("\(e.project): qadam \(Self.duration(duration)) dan beri tugamadi", "\(e.project): step hasn't finished for \(Self.duration(duration))"),
+                     "\(e.agentTitle) · \(step)\n" + tr("Ruxsat so'rayotgan yoki osilib qolgan bo'lishi mumkin.", "It may be asking for permission or stuck."),
                      session: e.sessionId)
             case .errorStreak(let count, let step):
                 guard d.bool(forKey: Pref.notifyErrors) else { continue }
-                post("\(e.project): ketma-ket \(count) ta xato",
-                     "\(e.agentTitle) bir joyda aylanib qolgan bo'lishi mumkin.\nOxirgisi: \(step)",
+                post(tr("\(e.project): ketma-ket \(count) ta xato", "\(e.project): \(count) errors in a row"),
+                     tr("\(e.agentTitle) bir joyda aylanib qolgan bo'lishi mumkin.\nOxirgisi: \(step)",
+                        "\(e.agentTitle) may be going in circles.\nLast one: \(step)"),
                      session: e.sessionId)
             }
         }
@@ -168,8 +177,8 @@ final class Alerts: NSObject, UNUserNotificationCenterDelegate {
 
     static func duration(_ s: TimeInterval) -> String {
         let m = Int(s) / 60
-        if m >= 60 { return "\(m / 60) soat \(m % 60) daq" }
-        if m > 0 { return "\(m) daq" }
+        if m >= 60 { return tr("\(m / 60) soat \(m % 60) daq", "\(m / 60) h \(m % 60) min") }
+        if m > 0 { return tr("\(m) daq", "\(m) min") }
         return "\(Int(s)) s"
     }
 
@@ -195,12 +204,13 @@ final class Alerts: NSObject, UNUserNotificationCenterDelegate {
             let k = String(t)
             guard fired[k] != periodKey else { continue }
             fired[k] = periodKey
-            let period = b.period == .day ? "Bugungi" : "5 soatlik"
+            let period = b.period == .day ? tr("Bugungi", "Today's") : tr("5 soatlik", "5-hour")
             if t >= 1 {
-                post("Token limiti tugadi", "\(period) limit: \(Fmt.tokens(b.used)) / \(Fmt.tokens(b.limit)) vaznli token.")
+                post(tr("Token limiti tugadi", "Token limit reached"),
+                     tr("\(period) limit: \(Fmt.tokens(b.used)) / \(Fmt.tokens(b.limit)) vaznli token.", "\(period) limit: \(Fmt.tokens(b.used)) / \(Fmt.tokens(b.limit)) weighted tokens."))
             } else {
-                post("Token limitining \(Int(t * 100))% ishlatildi",
-                     "\(period) sarf: \(Fmt.tokens(b.used)) / \(Fmt.tokens(b.limit)) vaznli token.")
+                post(tr("Token limitining \(Int(t * 100))% ishlatildi", "\(Int(t * 100))% of token limit used"),
+                     tr("\(period) sarf: \(Fmt.tokens(b.used)) / \(Fmt.tokens(b.limit)) vaznli token.", "\(period) usage: \(Fmt.tokens(b.used)) / \(Fmt.tokens(b.limit)) weighted tokens."))
             }
         }
         d.set(fired, forKey: firedKey)

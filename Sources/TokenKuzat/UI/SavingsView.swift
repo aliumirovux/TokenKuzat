@@ -28,7 +28,7 @@ extension SavingsTip {
     /// «har javobda ~460K» yoki «~1,2M token ketgan»
     var amount: String? {
         guard tokens > 0 else { return nil }
-        return perCall ? "har javobda ~\(Fmt.tokens(tokens)) tejaladi" : "~\(Fmt.tokens(tokens)) token ketgan"
+        return perCall ? tr("har javobda ~\(Fmt.tokens(tokens)) tejaladi", "saves ~\(Fmt.tokens(tokens)) per response") : tr("~\(Fmt.tokens(tokens)) token ketgan", "~\(Fmt.tokens(tokens)) tokens spent")
     }
 }
 
@@ -45,17 +45,17 @@ struct HandoffButton: View {
         TimelineView(.periodic(from: .now, by: 2)) { _ in
             HStack(spacing: 8) {
                 if armed && HandoffStore.pending() != nil {
-                    Label("Tayyor — yangi sessiya oching, Claude xulosani o'zi oladi", systemImage: "arrow.right.circle.fill")
+                    Label(tr("Tayyor — yangi sessiya oching, Claude xulosani o'zi oladi", "Ready — open a new session, Claude will pick up the summary itself"), systemImage: "arrow.right.circle.fill")
                         .font(.callout.weight(.semibold)).foregroundStyle(Brand.ok)
-                    Button("Bekor qilish") { HandoffStore.cancel(); withAnimation(Motion.snappy) { armed = false } }
+                    Button(tr("Bekor qilish", "Cancel")) { HandoffStore.cancel(); withAnimation(Motion.snappy) { armed = false } }
                         .buttonStyle(.link).font(.caption)
                 } else if delivered || (armed && !FileManager.default.fileExists(atPath: HandoffStore.defaultURL.path)) {
-                    Label("Yangi sessiyaga berildi", systemImage: "checkmark.circle.fill")
+                    Label(tr("Yangi sessiyaga berildi", "Handed to the new session"), systemImage: "checkmark.circle.fill")
                         .font(.callout.weight(.semibold)).foregroundStyle(Brand.ok)
                         .onAppear { armed = false; delivered = true }
                 } else {
                     Button(action: arm) {
-                        Label(failed ? "Ulab bo'lmadi — xulosa nusxalandi" : "Yangi sessiyada davom ettirish",
+                        Label(failed ? tr("Ulab bo'lmadi — xulosa nusxalandi", "Couldn't connect — summary copied") : tr("Yangi sessiyada davom ettirish", "Continue in a new session"),
                               systemImage: failed ? "exclamationmark.triangle.fill" : "arrow.triangle.branch")
                             .font(.callout.weight(.semibold))
                             .padding(.horizontal, 12).padding(.vertical, 7)
@@ -63,8 +63,10 @@ struct HandoffButton: View {
                             .background(Capsule().fill(prominent ? (failed ? Brand.warn : Brand.accent) : Brand.accentSoft))
                     }
                     .buttonStyle(.plain)
-                    .help("Nima qilingani, o'zgargan fayllar va oxirgi holat saqlanadi. Keyingi 2 soat ichida ochilgan yangi "
-                          + "Claude Code sessiyasi uni avtomatik oladi — hech narsa qo'yish shart emas. Zaxira uchun nusxaga ham olinadi.")
+                    .help(tr("Nima qilingani, o'zgargan fayllar va oxirgi holat saqlanadi. Keyingi 2 soat ichida ochilgan yangi "
+                          + "Claude Code sessiyasi uni avtomatik oladi — hech narsa qo'yish shart emas. Zaxira uchun nusxaga ham olinadi.",
+                          "What was done, changed files and the latest state are saved. A new Claude Code session opened within "
+                          + "the next 2 hours picks it up automatically — nothing to paste. It's also copied as a backup."))
                 }
             }
         }
@@ -95,15 +97,15 @@ struct SavingsList: View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 8) {
                 Image(systemName: "leaf.fill").foregroundStyle(Brand.ok)
-                Text("Tokenni tejash").font(.headline)
+                Text(tr("Tokenni tejash", "Save tokens")).font(.headline)
                 Spacer()
-                Text("model va sifat o'zgarmaydi").font(.caption).foregroundStyle(.secondary)
+                Text(tr("model va sifat o'zgarmaydi", "model and quality stay the same")).font(.caption).foregroundStyle(.secondary)
             }
             if let left = SavingsAdvisor.cacheTimeLeft(for: session) {
                 CacheBanner(until: Date().addingTimeInterval(left), context: session.contextTokens)
             }
             if tips.isEmpty {
-                Text("Hozircha isrof ko'rinmayapti — kontekst kichik va qadamlar takrorlanmayapti.")
+                Text(tr("Hozircha isrof ko'rinmayapti — kontekst kichik va qadamlar takrorlanmayapti.", "No waste so far — the context is small and steps aren't repeating."))
                     .font(.callout).foregroundStyle(.secondary)
             }
             ForEach(tips) { TipRow(tip: $0) }
@@ -112,9 +114,12 @@ struct SavingsList: View {
                 HandoffButton(session: session)
                 Spacer()
             }
-            Text("Tugmani bosing va yangi sessiya oching — Claude ishni qayerda to'xtaganini o'zi biladi, kontekst esa "
+            Text(tr("Tugmani bosing va yangi sessiya oching — Claude ishni qayerda to'xtaganini o'zi biladi, kontekst esa "
                  + "\(Fmt.tokens(session.contextTokens)) emas, ~\(Fmt.tokens(SavingsAdvisor.startContext(for: session) ?? SavingsAdvisor.baseline)) "
-                 + "dan boshlanadi. Model va sifat o'zgarmaydi.")
+                 + "dan boshlanadi. Model va sifat o'zgarmaydi.",
+                 "Click the button and open a new session — Claude knows where the work stopped, and the context starts at "
+                 + "~\(Fmt.tokens(SavingsAdvisor.startContext(for: session) ?? SavingsAdvisor.baseline)) instead of "
+                 + "\(Fmt.tokens(session.contextTokens)). Model and quality stay the same."))
                 .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
         }
         .padding(18)
@@ -153,8 +158,10 @@ private struct CacheBanner: View {
             let rem = max(0, until.timeIntervalSince(ctx.date))
             HStack(spacing: 8) {
                 Image(systemName: "timer")
-                Text("Kesh yana ~\(Alerts.duration(rem)) saqlanadi — shu vaqt ichida davom etsangiz, \(Fmt.tokens(context)) "
-                     + "kontekst qayta yozilmaydi.")
+                Text(tr("Kesh yana ~\(Alerts.duration(rem)) saqlanadi — shu vaqt ichida davom etsangiz, \(Fmt.tokens(context)) "
+                     + "kontekst qayta yozilmaydi.",
+                     "Cache is kept for ~\(Alerts.duration(rem)) more — continue within that time and \(Fmt.tokens(context)) "
+                     + "of context won't be rewritten."))
                     .fixedSize(horizontal: false, vertical: true)
             }
             .font(.caption.weight(.medium)).foregroundStyle(Brand.ok)
@@ -176,7 +183,7 @@ struct SavingsChip: View {
         Button { open.toggle() } label: {
             HStack(spacing: 5) {
                 Image(systemName: "leaf.fill")
-                Text(top.flatMap { $0.perCall ? "Tejash: ~\(Fmt.tokens($0.tokens))/javob" : nil } ?? "Tejash · \(tips.count)")
+                Text(top.flatMap { $0.perCall ? tr("Tejash: ~\(Fmt.tokens($0.tokens))/javob", "Save: ~\(Fmt.tokens($0.tokens))/response") : nil } ?? tr("Tejash · \(tips.count)", "Savings · \(tips.count)"))
             }
             .font(.caption.weight(.semibold))
             .foregroundStyle(top?.level == .high ? Brand.warn : Brand.ok)
@@ -184,7 +191,7 @@ struct SavingsChip: View {
             .background(Capsule().fill((top?.level == .high ? Brand.warn : Brand.ok).opacity(0.12)))
         }
         .buttonStyle(.plain)
-        .help("Tokenni qayerda tejash mumkin — bosing")
+        .help(tr("Tokenni qayerda tejash mumkin — bosing", "Where you can save tokens — click"))
         .popover(isPresented: $open, arrowEdge: .bottom) { SavingsList(session: session, tips: tips) }
         .opacity(tips.isEmpty ? 0 : 1)
         .disabled(tips.isEmpty)
@@ -201,9 +208,9 @@ struct SavingsCard: View {
             VStack(alignment: .leading, spacing: 12) {
                 HStack(spacing: 8) {
                     Image(systemName: "leaf.fill").foregroundStyle(Brand.ok)
-                    Text("TOKENNI TEJASH · \(session.project.uppercased())").eyebrow(Brand.ok)
+                    Text(tr("TOKENNI TEJASH · \(session.project.uppercased())", "SAVE TOKENS · \(session.project.uppercased())")).eyebrow(Brand.ok)
                     Spacer()
-                    Text("model va sifat o'zgarmaydi").font(.caption).foregroundStyle(.secondary)
+                    Text(tr("model va sifat o'zgarmaydi", "model and quality stay the same")).font(.caption).foregroundStyle(.secondary)
                 }
                 ForEach(tips.prefix(2)) { TipRow(tip: $0) }
                 HStack {

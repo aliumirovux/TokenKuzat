@@ -14,20 +14,20 @@ struct ActivityView: View {
         }
         VStack(spacing: 0) {
             HStack(spacing: 12) {
-                Picker("Loyiha", selection: $project) {
-                    Text("Barcha loyihalar").tag("")
+                Picker(tr("Loyiha", "Project"), selection: $project) {
+                    Text(tr("Barcha loyihalar", "All projects")).tag("")
                     ForEach(projects, id: \.self) { Text($0).tag($0) }
                 }
                 .frame(maxWidth: 260)
-                Toggle("Faqat so'rovlarim", isOn: $onlyPrompts)
+                Toggle(tr("Faqat so'rovlarim", "Only my prompts"), isOn: $onlyPrompts)
                 Spacer()
-                Text("Bugun · \(shown.count) ta harakat").font(.caption).foregroundStyle(.secondary)
+                Text(tr("Bugun · \(shown.count) ta harakat", shown.count == 1 ? "Today · 1 action" : "Today · \(shown.count) actions")).font(.caption).foregroundStyle(.secondary)
             }
             .padding(.horizontal, 20).padding(.vertical, 12)
             Divider()
             if shown.isEmpty {
-                EmptyStateView(symbol: "waveform.path.ecg", title: "Hali harakat yo'q",
-                               text: "Agentlar fayl o'qisa, tahrir qilsa yoki terminal ishlatsa — shu yerda jonli chiqadi.")
+                EmptyStateView(symbol: "waveform.path.ecg", title: tr("Hali harakat yo'q", "No activity yet"),
+                               text: tr("Agentlar fayl o'qisa, tahrir qilsa yoki terminal ishlatsa — shu yerda jonli chiqadi.", "When agents read or edit files or use the terminal, it shows up here live."))
                 Spacer()
             } else {
                 List(shown) { FeedRow(event: $0, showProject: project.isEmpty).padding(.vertical, 3) }

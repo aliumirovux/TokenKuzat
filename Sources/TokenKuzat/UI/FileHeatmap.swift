@@ -63,7 +63,7 @@ struct HeatmapModel {
                 if failed { f.errors += 1; f.cells[i].errors += 1 }
                 f.last = max(f.last, s.date)
                 f.agents[row.agent.id, default: 0] += 1
-                f.agentTitles[row.agent.id] = row.agent.isMain ? "Asosiy agent" : row.agent.title
+                f.agentTitles[row.agent.id] = row.agent.isMain ? tr("Asosiy agent", "Main agent") : row.agent.title
                 byPath[path] = f
             }
         }
@@ -99,10 +99,10 @@ struct FileHeatmapScreen: View {
             summary.padding(.horizontal, 16).padding(.vertical, 12)
             Divider()
             if model.files.isEmpty {
-                EmptyStateView(symbol: "doc.on.doc", title: "Bu davrda fayllarga tegilmagan",
+                EmptyStateView(symbol: "doc.on.doc", title: tr("Bu davrda fayllarga tegilmagan", "No files touched in this period"),
                                text: model.searches > 0
-                                   ? "\(model.searches) ta qidiruv bo'ldi, lekin birorta fayl o'qilmadi yoki o'zgartirilmadi."
-                                   : "Agent fayl o'qisa yoki tahrir qilsa — shu yerda issiqlik xaritasi bo'lib chiqadi.")
+                                   ? tr("\(model.searches) ta qidiruv bo'ldi, lekin birorta fayl o'qilmadi yoki o'zgartirilmadi.", model.searches == 1 ? "1 search ran, but no files were read or changed." : "\(model.searches) searches ran, but no files were read or changed.")
+                                   : tr("Agent fayl o'qisa yoki tahrir qilsa — shu yerda issiqlik xaritasi bo'lib chiqadi.", "When an agent reads or edits files, a heatmap shows up here."))
                 Spacer()
             } else {
                 GeometryReader { geo in
@@ -115,7 +115,7 @@ struct FileHeatmapScreen: View {
                                 Divider().opacity(0.5)
                             }
                             if shown.isEmpty {
-                                Text("Hech narsa topilmadi").font(.caption).foregroundStyle(.secondary).padding(20)
+                                Text(tr("Hech narsa topilmadi", "Nothing found")).font(.caption).foregroundStyle(.secondary).padding(20)
                             }
                         }
                         .padding(.horizontal, 16)
@@ -131,18 +131,18 @@ struct FileHeatmapScreen: View {
     private var summary: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 18) {
-                stat("\(model.files.count)", "fayl", "doc.on.doc.fill", .blue)
-                stat("\(model.totalReads)", "o'qish", "eye.fill", .blue)
-                stat("\(model.totalWrites)", "o'zgartirish", "pencil", .orange)
-                if model.totalErrors > 0 { stat("\(model.totalErrors)", "xato", "exclamationmark.triangle.fill", .red) }
-                if model.searches > 0 { stat("\(model.searches)", "qidiruv", "magnifyingglass", .secondary) }
+                stat("\(model.files.count)", model.files.count == 1 ? tr("fayl", "file") : tr("fayl", "files"), "doc.on.doc.fill", .blue)
+                stat("\(model.totalReads)", model.totalReads == 1 ? tr("o'qish", "read") : tr("o'qish", "reads"), "eye.fill", .blue)
+                stat("\(model.totalWrites)", model.totalWrites == 1 ? tr("o'zgartirish", "change") : tr("o'zgartirish", "changes"), "pencil", .orange)
+                if model.totalErrors > 0 { stat("\(model.totalErrors)", model.totalErrors == 1 ? tr("xato", "error") : tr("xato", "errors"), "exclamationmark.triangle.fill", .red) }
+                if model.searches > 0 { stat("\(model.searches)", model.searches == 1 ? tr("qidiruv", "search") : tr("qidiruv", "searches"), "magnifyingglass", .secondary) }
                 Spacer()
-                Toggle("Faqat o'zgarganlar", isOn: $onlyChanged).toggleStyle(.checkbox).font(.caption).fixedSize()
-                TextField("Fayl qidirish", text: $query).textFieldStyle(.roundedBorder).frame(minWidth: 100, maxWidth: 180)
+                Toggle(tr("Faqat o'zgarganlar", "Changed only"), isOn: $onlyChanged).toggleStyle(.checkbox).font(.caption).fixedSize()
+                TextField(tr("Fayl qidirish", "Search files"), text: $query).textFieldStyle(.roundedBorder).frame(minWidth: 100, maxWidth: 180)
             }
             if !model.dirs.isEmpty {
                 HStack(spacing: 6) {
-                    Text("Eng issiq papkalar:").font(.caption).foregroundStyle(.secondary)
+                    Text(tr("Eng issiq papkalar:", "Hottest folders:")).font(.caption).foregroundStyle(.secondary)
                     ForEach(model.dirs.prefix(4), id: \.dir) { d in
                         Button { query = d.dir } label: {
                             Chip(text: "\((d.dir as NSString).lastPathComponent) · \(d.files)", symbol: "folder.fill")
@@ -165,7 +165,7 @@ struct FileHeatmapScreen: View {
 
     private func header(_ gridW: CGFloat) -> some View {
         HStack(spacing: 12) {
-            Text("Fayl").frame(width: nameW, alignment: .leading)
+            Text(tr("Fayl", "File")).frame(width: nameW, alignment: .leading)
             HStack {
                 Text(Fmt.hourMinute.string(from: model.start))
                 Spacer()
@@ -215,16 +215,16 @@ struct FileHeatmapScreen: View {
         .contentShape(Rectangle())
         .onTapGesture { onSelectFile(f) }
         .contextMenu {
-            Button("Finder'da ko'rsatish") {
+            Button(tr("Finder'da ko'rsatish", "Show in Finder")) {
                 NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: f.id)])
             }
             .disabled(!FileManager.default.fileExists(atPath: f.id))
-            Button("Yo'lni nusxalash") {
+            Button(tr("Yo'lni nusxalash", "Copy path")) {
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString(f.id, forType: .string)
             }
         }
-        .help("\(f.id)\nOxirgi marta: \(Fmt.clock.string(from: f.last)) · o'ng tugma — Finder")
+        .help(tr("\(f.id)\nOxirgi marta: \(Fmt.clock.string(from: f.last)) · o'ng tugma — Finder", "\(f.id)\nLast: \(Fmt.clock.string(from: f.last)) · right-click — Finder"))
     }
 }
 

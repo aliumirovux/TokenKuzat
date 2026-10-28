@@ -16,8 +16,8 @@ struct OutputsScreen: View {
         let current = files.first { $0.path == selected } ?? files.first
         if all.isEmpty {
             EmptyStateView(symbol: "photo.on.rectangle.angled",
-                           title: "Hozircha natija yo'q",
-                           text: "Claude bu sessiyada rasm, HTML, PDF yoki video yaratsa yoki ochsa — shu yerda ko'rinadi.")
+                           title: tr("Hozircha natija yo'q", "No outputs yet"),
+                           text: tr("Claude bu sessiyada rasm, HTML, PDF yoki video yaratsa yoki ochsa — shu yerda ko'rinadi.", "If Claude creates or opens an image, HTML, PDF or video in this session, it shows up here."))
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
             HStack(spacing: 0) {
@@ -48,7 +48,7 @@ struct OutputsScreen: View {
     private func filters(_ all: [OutputFile]) -> some View {
         let kinds = [OutputFile.Kind.image, .web, .pdf, .video].filter { k in all.contains { $0.kind == k } }
         return HStack(spacing: 6) {
-            chip(nil, "Hammasi · \(all.count)")
+            chip(nil, tr("Hammasi · \(all.count)", "All · \(all.count)"))
             ForEach(kinds, id: \.self) { k in chip(k, "\(k.title) · \(all.filter { $0.kind == k }.count)") }
         }
     }
@@ -85,7 +85,7 @@ private struct OutputTile: View {
                 Spacer(minLength: 0)
             }
             HStack(spacing: 6) {
-                Text(file.written ? "Yaratildi" : "Ko'rildi")
+                Text(file.written ? tr("Yaratildi", "Created") : tr("Ko'rildi", "Viewed"))
                 if let d = file.lastActivity { Text("· " + d.formatted(date: .omitted, time: .shortened)) }
             }
             .font(.caption2).foregroundStyle(.secondary)
@@ -111,7 +111,7 @@ struct OutputDetail: View {
                 Spacer()
                 Button {
                     NSWorkspace.shared.open(URL(fileURLWithPath: file.path))
-                } label: { Label(file.kind == .web ? "Brauzerda ochish" : "Ochish", systemImage: "arrow.up.forward.app") }
+                } label: { Label(file.kind == .web ? tr("Brauzerda ochish", "Open in browser") : tr("Ochish", "Open"), systemImage: "arrow.up.forward.app") }
                 Button {
                     NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: file.path)])
                 } label: { Label("Finder", systemImage: "folder") }

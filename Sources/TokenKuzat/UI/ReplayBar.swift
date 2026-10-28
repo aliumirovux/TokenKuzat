@@ -22,12 +22,12 @@ struct ReplayBar: View {
             }
             .buttonStyle(.borderless)
             .keyboardShortcut(.space, modifiers: [])
-            .help(playing ? "Pauza (bo'sh joy)" : "Ijro etish (bo'sh joy)")
+            .help(playing ? tr("Pauza (bo'sh joy)", "Pause (Space)") : tr("Ijro etish (bo'sh joy)", "Play (Space)"))
 
             Button { step(-1) } label: { Image(systemName: "backward.end.fill") }
-                .buttonStyle(.borderless).help("Oldingi qadam")
+                .buttonStyle(.borderless).help(tr("Oldingi qadam", "Previous step"))
             Button { step(1) } label: { Image(systemName: "forward.end.fill") }
-                .buttonStyle(.borderless).help("Keyingi qadam")
+                .buttonStyle(.borderless).help(tr("Keyingi qadam", "Next step"))
 
             VStack(spacing: 2) {
                 StepTicks(steps: steps, range: range, duration: duration).frame(height: 8).padding(.horizontal, 8)
@@ -45,7 +45,7 @@ struct ReplayBar: View {
             }
             .frame(width: 120, alignment: .trailing)
 
-            Picker("Tezlik", selection: $speed) {
+            Picker(tr("Tezlik", "Speed"), selection: $speed) {
                 Text("1×").tag(1.0)
                 Text("5×").tag(5.0)
                 Text("20×").tag(20.0)
@@ -53,15 +53,15 @@ struct ReplayBar: View {
             }
             .labelsHidden()
             .frame(width: 64)
-            .help("Ijro tezligi")
+            .help(tr("Ijro tezligi", "Playback speed"))
 
             Button {
                 playing = false
                 time = nil
             } label: {
-                Label("Jonli", systemImage: "dot.radiowaves.left.and.right")
+                Label(tr("Jonli", "Live"), systemImage: "dot.radiowaves.left.and.right")
             }
-            .help("Replay'dan chiqib, hozirgi holatga qaytish")
+            .help(tr("Replay'dan chiqib, hozirgi holatga qaytish", "Exit replay and return to the current state"))
         }
         .padding(.horizontal, 14).padding(.vertical, 8)
         .surface(radius: 14, tint: .accentColor)

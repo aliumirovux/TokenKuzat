@@ -20,13 +20,13 @@ struct LiveView: View {
         VStack(spacing: 0) {
             HStack(spacing: 12) {
                 PillSegments(selection: $style, items: [
-                    .init(id: "cards", title: "Kartalar", symbol: "rectangle.grid.2x2"),
-                    .init(id: "lanes", title: "Chiziqlar", symbol: "chart.bar.xaxis"),
+                    .init(id: "cards", title: tr("Kartalar", "Cards"), symbol: "rectangle.grid.2x2"),
+                    .init(id: "lanes", title: tr("Chiziqlar", "Lanes"), symbol: "chart.bar.xaxis"),
                 ])
                 if style == "lanes" {
                     PillSegments(selection: $window, items: LaneWindow.allCases.map { .init(id: $0, title: $0.title) },
                                  compact: true)
-                        .help("Ko'rinadigan vaqt oralig'i")
+                        .help(tr("Ko'rinadigan vaqt oralig'i", "Visible time range"))
                         .transition(.opacity.combined(with: .move(edge: .leading)))
                 }
                 Spacer()
@@ -55,8 +55,8 @@ struct LiveView: View {
         if shown.isEmpty && other == nil {
             VStack {
                 Spacer()
-                EmptyStateView(symbol: "square.grid.2x2", title: "Hozir hech qaysi agent ishlamayapti",
-                               text: "Claude Code sessiyalari ishga tushsa — har biri shu yerda alohida kartada jonli ko'rinadi.")
+                EmptyStateView(symbol: "square.grid.2x2", title: tr("Hozir hech qaysi agent ishlamayapti", "No agents are working right now"),
+                               text: tr("Claude Code sessiyalari ishga tushsa — har biri shu yerda alohida kartada jonli ko'rinadi.", "When Claude Code sessions start, each one shows up live here on its own card."))
                 Spacer()
             }
         } else {
@@ -123,7 +123,7 @@ private struct LiveCard: View {
             .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         }
         .buttonStyle(.plain)
-        .help("Bosing — \(session.project) xaritasini ochish")
+        .help(tr("Bosing — \(session.project) xaritasini ochish", "Click to open the \(session.project) map"))
     }
 
     private func header(color: Color, running: Bool) -> some View {
@@ -146,9 +146,9 @@ private struct LiveCard: View {
     }
 
     private func status(running: Bool) -> String {
-        if waiting != nil { return "Ruxsat kutyapti" }
-        if running { return "Ishlayapti · \(Fmt.model(session.model))" }
-        return "Tugadi · \(Fmt.ago(session.lastActivity, now: now))"
+        if waiting != nil { return tr("Ruxsat kutyapti", "Waiting for permission") }
+        if running { return tr("Ishlayapti · \(Fmt.model(session.model))", "Working · \(Fmt.model(session.model))") }
+        return tr("Tugadi · \(Fmt.ago(session.lastActivity, now: now))", "Done · \(Fmt.ago(session.lastActivity, now: now))")
     }
 
     /// Asosiy agent hozir nima qilyapti
@@ -299,10 +299,10 @@ private struct OutsideUsageCard: View {
                     .frame(width: 30, height: 30)
                     .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(Palette.agents))
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Chat va boshqa joylar").font(.system(size: 15, weight: .semibold, design: .rounded)).lineLimit(1)
+                    Text(tr("Chat va boshqa joylar", "Chat & elsewhere")).font(.system(size: 15, weight: .semibold, design: .rounded)).lineLimit(1)
                     HStack(spacing: 5) {
                         if active { StateDot(state: .running, size: 6) } else { Circle().fill(color).frame(width: 6, height: 6) }
-                        Text(active ? "Faol" : "Tinch · \(Fmt.ago(usage.lastActivity, now: now))")
+                        Text(active ? tr("Faol", "Active") : tr("Tinch · \(Fmt.ago(usage.lastActivity, now: now))", "Idle · \(Fmt.ago(usage.lastActivity, now: now))"))
                     }
                     .font(.caption.weight(.semibold)).foregroundStyle(color)
                 }
@@ -310,17 +310,17 @@ private struct OutsideUsageCard: View {
             }
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Text("~\(Int(recent.rounded()))%").font(.system(size: 26, weight: .semibold, design: .rounded)).monospacedDigit()
-                Text("so'nggi 30 daqiqada 5 soatlik limitdan").font(.callout).foregroundStyle(.secondary)
+                Text(tr("so'nggi 30 daqiqada 5 soatlik limitdan", "of the 5-hour limit in the last 30 min")).font(.callout).foregroundStyle(.secondary)
             }
             bars
             Divider()
-            Text("Claude desktop Chat, claude.ai yoki boshqa qurilma. Suhbat ichi ko'rinmaydi — limit o'zgarishidan taxmin (bir necha daqiqa kechikishi mumkin).")
+            Text(tr("Claude desktop Chat, claude.ai yoki boshqa qurilma. Suhbat ichi ko'rinmaydi — limit o'zgarishidan taxmin (bir necha daqiqa kechikishi mumkin).", "Claude desktop Chat, claude.ai or another device. Conversation content isn't visible — estimated from limit changes (may lag a few minutes)."))
                 .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .topLeading)
         .surface(radius: 16)
-        .help("Limit o'sgan, lekin shu Mac'dagi Claude Code sessiyalari buni tushuntirmagan qismi")
+        .help(tr("Limit o'sgan, lekin shu Mac'dagi Claude Code sessiyalari buni tushuntirmagan qismi", "Limit growth not explained by Claude Code sessions on this Mac"))
     }
 
     /// Oxirgi 2 soat, 15 daqiqalik ustunlar
@@ -343,7 +343,7 @@ private struct OutsideUsageCard: View {
             }
             .frame(height: 34, alignment: .bottom)
             HStack {
-                Text("2 soat oldin"); Spacer(); Text("hozir")
+                Text(tr("2 soat oldin", "2 h ago")); Spacer(); Text(tr("hozir", "now"))
             }
             .font(.caption2).foregroundStyle(.tertiary)
         }

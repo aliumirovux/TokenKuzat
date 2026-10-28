@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import TokenKuzatCore
 
 enum Section: String, CaseIterable, Identifiable {
     case overview, live, graph, sessions, history, activity, settings
@@ -7,13 +8,13 @@ enum Section: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .overview: return "Bugun"
-        case .live: return "Jonli"
-        case .graph: return "Sessiya"
-        case .sessions: return "Sessiyalar"
-        case .history: return "Tarix"
-        case .activity: return "Jonli lenta"
-        case .settings: return "Sozlamalar"
+        case .overview: return tr("Bugun", "Today")
+        case .live: return tr("Jonli", "Live")
+        case .graph: return tr("Sessiya", "Session")
+        case .sessions: return tr("Sessiyalar", "Sessions")
+        case .history: return tr("Tarix", "History")
+        case .activity: return tr("Jonli lenta", "Activity feed")
+        case .settings: return tr("Sozlamalar", "Settings")
         }
     }
 
@@ -40,7 +41,7 @@ final class WindowManager: NSObject, NSWindowDelegate {
     func show(_ section: Section? = nil) {
         if let section { UserDefaults.standard.set(section.rawValue, forKey: Pref.section) }
         if window == nil {
-            let root = MainWindow().environmentObject(Store.shared)
+            let root = LanguageScope { MainWindow() }.environmentObject(Store.shared)
             let w = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1180, height: 780),
                              styleMask: [.titled, .closable, .resizable, .miniaturizable, .fullSizeContentView],
                              backing: .buffered, defer: false)

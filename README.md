@@ -1,8 +1,12 @@
 # Token Kuzatuv
 
+**[English](#english)** · O'zbekcha
+
 Mac menyu satrida turadigan ilova. Claude Code va Cowork sessiyalarida tokenlar qayerga ketayotganini, qaysi agentlar ishlayotganini va nimalarga kirayotganini jonli ko'rsatadi; kunlik tarixni saqlaydi, ish tugaganda, qadam osilib qolganda va limitga yaqinlashganda xabar beradi.
 
 Faqat o'zingiz uchun: internetga hech narsa yubormaydi, faqat diskdagi `~/.claude/projects` fayllarini o'qiydi.
+
+Ilova ikki tilda: O'zbekcha va English — Sozlamalar → «Til / Language» (sukut bo'yicha Mac tiliga qarab).
 
 ## O'rnatish
 
@@ -114,3 +118,44 @@ Tests/                   parser, engine, tarix, formatlash testlari
 
 - Faqat shu Mac'dagi Claude Code va Cowork sessiyalari ko'rinadi (terminal, desktop ilovadagi Code yoki Cowork). claude.ai chatlari va bulutdagi sessiyalar Mac diskiga yozilmaydi — ularning qadamlari bu yerga tushmaydi, faqat limitdagi umumiy ulushi (yuqoriga qarang).
 - Vaznli hisob taxminiy: Anthropic limitni aynan qanday hisoblashini e'lon qilmaydi.
+
+---
+
+## English
+
+Token Kuzatuv ("token watch" in Uzbek) is a macOS menu bar app that shows, live, where your tokens go in Claude Code and Cowork sessions: which agents are running, which tools and files they touch, how close you are to the 5-hour and weekly limits. It keeps a daily history and notifies you when a task finishes, a step gets stuck, Claude asks for permission or a limit is near.
+
+The app speaks **English and Uzbek** — Settings → "Til / Language" (defaults to your Mac's language: English if it's English, Uzbek otherwise). It reads only local `~/.claude/projects` files and chat transcripts you add yourself; nothing is uploaded (the optional account limit check talks only to `api.anthropic.com` with Claude Code's own key).
+
+### Install
+
+From Claude Code (easiest):
+
+```
+/plugin install tokenkuzat --marketplace aliumirovux/TokenKuzat
+/tokenkuzat:install
+```
+
+The plugin also gives Claude read-only MCP tools (`usage_summary`, `list_sessions`, `session_details`), so you can ask "how many tokens today?" or "how much of my limit is left?".
+
+Or by hand, in the repo folder (requires macOS 13+ and Xcode or Command Line Tools):
+
+```bash
+bash build.sh
+```
+
+It builds, installs to `~/Applications/Token Kuzatuv.app` and opens it. `bash build.sh --test` runs the tests first; `swift test` runs only the tests.
+
+### What's inside
+
+- **Menu bar** — today's total, or ⚡ and tokens/min while an agent works; click for a compact panel with limits, the last hour and recent projects.
+- **Today** — what's happening now, Claude limit rings, key numbers vs. yesterday, hourly chart and token breakdown.
+- **Live** — every running session as a card or as parallel lanes, plus "Chat & elsewhere" (claude.ai, desktop chat, cloud work that never reaches your disk).
+- **Session map** — an n8n-style flow of prompt → main agent → tools and subagents, a file heatmap, a timeline and Replay; click a step to see its input, output and tokens.
+- **Sessions / History / Activity feed** — search, 7/14/30-day history with CSV export, every tool call.
+- **Settings** — language, launch at login, menu bar style, raw vs. weighted counting, limits and notifications.
+
+### Adding translations
+
+User-visible text sits next to its translation: `tr("Bugun", "Today")` (`Sources/TokenKuzatCore/Localization.swift`). Add both strings when you add new text.
+

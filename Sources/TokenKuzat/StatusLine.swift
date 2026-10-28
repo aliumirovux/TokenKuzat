@@ -61,7 +61,7 @@ enum StatusLine {
 
     enum InstallError: LocalizedError {
         case unreadable
-        var errorDescription: String? { "~/.claude/settings.json ni o'qib bo'lmadi (JSON buzuq bo'lishi mumkin)." }
+        var errorDescription: String? { tr("~/.claude/settings.json ni o'qib bo'lmadi (JSON buzuq bo'lishi mumkin).", "Couldn't read ~/.claude/settings.json (the JSON may be broken).") }
     }
 
     static func install() throws {
@@ -163,9 +163,9 @@ enum StatusLine {
         guard let p else { return "Token Kuzatuv" }
         var parts: [String] = []
         if let w = p.fiveHour {
-            parts.append("5 soat \(Int(w.usedPercentage.rounded()))% ↻\(Fmt.hourMinute.string(from: w.resetsAt))")
+            parts.append(tr("5 soat", "5h") + " \(Int(w.usedPercentage.rounded()))% ↻\(Fmt.hourMinute.string(from: w.resetsAt))")
         }
-        if let w = p.sevenDay { parts.append("hafta \(Int(w.usedPercentage.rounded()))%") }
+        if let w = p.sevenDay { parts.append(tr("hafta", "week") + " \(Int(w.usedPercentage.rounded()))%") }
         if let c = p.costUSD { parts.append(String(format: "$%.2f", c).replacingOccurrences(of: ".", with: ",")) }
         return parts.isEmpty ? "Token Kuzatuv" : parts.joined(separator: " · ")
     }

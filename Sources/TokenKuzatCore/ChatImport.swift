@@ -56,7 +56,7 @@ public enum ChatImport {
 
     public enum ImportError: LocalizedError {
         case notTranscript
-        public var errorDescription: String? { "Bu fayl Claude yozuviga (.jsonl transcript) o'xshamaydi." }
+        public var errorDescription: String? { tr("Bu fayl Claude yozuviga (.jsonl transcript) o'xshamaydi.", "This file doesn't look like a Claude transcript (.jsonl).") }
     }
 
     // MARK: - Ixchamlash

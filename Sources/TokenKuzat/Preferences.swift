@@ -57,9 +57,9 @@ enum MenuBarStyle: String, CaseIterable, Identifiable {
     var id: String { rawValue }
     var title: String {
         switch self {
-        case .tokens: return "Tokenlar va tezlik"
-        case .budget: return "5 soatlik limit — qancha qoldi"
-        case .icon: return "Faqat belgi"
+        case .tokens: return tr("Tokenlar va tezlik", "Tokens and rate")
+        case .budget: return tr("5 soatlik limit — qancha qoldi", "5-hour limit — how much is left")
+        case .icon: return tr("Faqat belgi", "Icon only")
         }
     }
 }
@@ -69,8 +69,8 @@ enum BudgetPeriod: String, CaseIterable, Identifiable {
     var id: String { rawValue }
     var title: String {
         switch self {
-        case .fiveHours: return "Oxirgi 5 soat"
-        case .day: return "Bugun"
+        case .fiveHours: return tr("Oxirgi 5 soat", "Last 5 hours")
+        case .day: return tr("Bugun", "Today")
         }
     }
 }

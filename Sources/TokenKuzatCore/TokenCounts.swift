@@ -7,8 +7,8 @@ public enum CountMode: String, CaseIterable, Codable, Sendable {
 
     public var title: String {
         switch self {
-        case .raw: return "Xom"
-        case .weighted: return "Vaznli"
+        case .raw: return tr("Xom", "Raw")
+        case .weighted: return tr("Vaznli", "Weighted")
         }
     }
 }

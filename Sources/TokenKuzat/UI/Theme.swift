@@ -95,7 +95,7 @@ struct Spinner: View {
             }
         }
         .frame(width: size, height: size)
-        .accessibilityLabel("Ishlayapti")
+        .accessibilityLabel(tr("Ishlayapti", "Working"))
     }
 }
 
@@ -134,9 +134,9 @@ struct StatusPill: View {
 
     private var state: AgentState { running > 0 ? .running : (active > 0 ? .waiting : .idle) }
     private var text: String {
-        if running > 0 { return "Jonli · \(running) agent" }
-        if active > 0 { return "Kutyapti" }
-        return "Tinch"
+        if running > 0 { return tr("Jonli · \(running) agent", running == 1 ? "Live · 1 agent" : "Live · \(running) agents") }
+        if active > 0 { return tr("Kutyapti", "Waiting") }
+        return tr("Tinch", "Idle")
     }
 
     var body: some View {
@@ -149,8 +149,8 @@ struct StatusPill: View {
         .padding(.horizontal, 10).padding(.vertical, 5)
         .surfaceCapsule(tint: state == .idle ? nil : Palette.state(state))
         .animation(Motion.spring, value: running)
-        .help(running > 0 ? "\(running) ta agent hozir ishlayapti"
-              : (active > 0 ? "Agent asbob natijasini kutyapti (masalan, terminal buyrug'i)" : "Hech qanday agent ishlamayapti"))
+        .help(running > 0 ? tr("\(running) ta agent hozir ishlayapti", running == 1 ? "1 agent is working now" : "\(running) agents are working now")
+              : (active > 0 ? tr("Agent asbob natijasini kutyapti (masalan, terminal buyrug'i)", "Agent is waiting for a tool result (e.g. a terminal command)") : tr("Hech qanday agent ishlamayapti", "No agents are working")))
     }
 }
 
@@ -217,7 +217,7 @@ struct BudgetBar: View {
         let color = Palette.budget(status.level)
         VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .firstTextBaseline) {
-                Label("Limit · \(status.period.title.lowercased())", systemImage: "gauge.with.dots.needle.50percent")
+                Label(tr("Limit · \(status.period.title.lowercased())", "Limit · \(status.period.title.lowercased())"), systemImage: "gauge.with.dots.needle.50percent")
                     .font(.caption.weight(.medium))
                 Spacer()
                 Text("\(Fmt.tokens(status.used)) / \(Fmt.tokens(status.limit))")
@@ -260,13 +260,13 @@ struct CountModePicker: View {
     @AppStorage(Pref.countMode) private var mode = CountMode.raw
 
     var body: some View {
-        Picker("Hisoblash", selection: $mode) {
+        Picker(tr("Hisoblash", "Counting"), selection: $mode) {
             ForEach(CountMode.allCases, id: \.self) { Text($0.title).tag($0) }
         }
         .pickerStyle(.segmented)
         .labelsHidden()
         .fixedSize()
-        .help("Xom — hamma token teng. Vaznli — taxminiy narx: javob ×5, kesh o'qish ×0,1, kesh yozish ×1,25–2.")
+        .help(tr("Xom — hamma token teng. Vaznli — taxminiy narx: javob ×5, kesh o'qish ×0,1, kesh yozish ×1,25–2.", "Raw — every token counts the same. Weighted — approximate cost: output ×5, cache read ×0.1, cache write ×1.25–2."))
     }
 }
 
@@ -309,13 +309,13 @@ struct RealLimitsView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: compact ? 8 : 12) {
             if let w = limits.fiveHour {
-                row("5 soatlik oyna", w, note: forecastText(w))
+                row(tr("5 soatlik oyna", "5-hour window"), w, note: forecastText(w))
             }
             if let w = limits.sevenDay {
-                row("Haftalik", w, note: nil)
+                row(tr("Haftalik", "Weekly"), w, note: nil)
             }
             if limits.isEmpty {
-                Text("Limit ma'lumoti hali kelmadi — Claude Code'da biror so'rov yuboring.")
+                Text(tr("Limit ma'lumoti hali kelmadi — Claude Code'da biror so'rov yuboring.", "No limit data yet — send a prompt in Claude Code."))
                     .font(.caption).foregroundStyle(.secondary)
             }
         }
@@ -348,9 +348,9 @@ struct RealLimitsView: View {
     private func forecastText(_ w: LimitWindow) -> (String, Color)? {
         switch forecast {
         case .runsOut(let at):
-            return ("Shu tezlikda ~\(Fmt.hourMinute.string(from: at)) da tugaydi (\(Alerts.duration(at.timeIntervalSinceNow)) qoldi)", .orange)
+            return (tr("Shu tezlikda ~\(Fmt.hourMinute.string(from: at)) da tugaydi (\(Alerts.duration(at.timeIntervalSinceNow)) qoldi)", "At this pace, runs out at ~\(Fmt.hourMinute.string(from: at)) (\(Alerts.duration(at.timeIntervalSinceNow)) left)"), .orange)
         case .lasts:
-            return compact ? nil : ("Shu tezlikda tiklanguncha yetadi", .secondary)
+            return compact ? nil : (tr("Shu tezlikda tiklanguncha yetadi", "At this pace, lasts until reset"), .secondary)
         case .unknown:
             return nil
         }
@@ -370,43 +370,46 @@ enum LimitText {
     private static let weekdays = ["Yakshanba", "Dushanba", "Seshanba", "Chorshanba", "Payshanba", "Juma", "Shanba"]
     private static let months = ["yanvar", "fevral", "mart", "aprel", "may", "iyun", "iyul", "avgust",
                                  "sentabr", "oktabr", "noyabr", "dekabr"]
+    private static let weekdaysEn = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+    private static let monthsEn = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+    private static var wd: [String] { Lang.isEnglish ? weekdaysEn : weekdays }
 
     /// «bugun 18:30», «ertaga 09:00», «Seshanba 21:00»
     static func dayTime(_ d: Date, now: Date = Date()) -> String {
         let cal = Calendar.current
         let hm = Fmt.hourMinute.string(from: d)
-        if cal.isDate(d, inSameDayAs: now) { return "bugun " + hm }
-        if let t = cal.date(byAdding: .day, value: 1, to: now), cal.isDate(d, inSameDayAs: t) { return "ertaga " + hm }
-        return weekdays[cal.component(.weekday, from: d) - 1] + " " + hm
+        if cal.isDate(d, inSameDayAs: now) { return tr("bugun ", "today ") + hm }
+        if let t = cal.date(byAdding: .day, value: 1, to: now), cal.isDate(d, inSameDayAs: t) { return tr("ertaga ", "tomorrow ") + hm }
+        return wd[cal.component(.weekday, from: d) - 1] + " " + hm
     }
 
     /// «juma ertalab», «bugun kechqurun»
     static func dayPart(_ d: Date, now: Date = Date()) -> String {
         let cal = Calendar.current
         let h = cal.component(.hour, from: d)
-        let part = h < 5 ? "tunda" : (h < 12 ? "ertalab" : (h < 17 ? "tushdan keyin" : (h < 22 ? "kechqurun" : "tunda")))
-        if cal.isDate(d, inSameDayAs: now) { return "bugun " + part }
-        if let t = cal.date(byAdding: .day, value: 1, to: now), cal.isDate(d, inSameDayAs: t) { return "ertaga " + part }
-        return weekdays[cal.component(.weekday, from: d) - 1].lowercased() + " " + part
+        let part = h < 5 ? tr("tunda", "night") : (h < 12 ? tr("ertalab", "morning") : (h < 17 ? tr("tushdan keyin", "afternoon") : (h < 22 ? tr("kechqurun", "evening") : tr("tunda", "night"))))
+        if cal.isDate(d, inSameDayAs: now) { return tr("bugun ", "this ") + part }
+        if let t = cal.date(byAdding: .day, value: 1, to: now), cal.isDate(d, inSameDayAs: t) { return tr("ertaga ", "tomorrow ") + part }
+        return (Lang.isEnglish ? wd[cal.component(.weekday, from: d) - 1] : weekdays[cal.component(.weekday, from: d) - 1].lowercased()) + " " + part
     }
 
     /// «3-noyabr»
     static func date(_ d: Date) -> String {
         let c = Calendar.current.dateComponents([.day, .month], from: d)
-        return "\(c.day ?? 0)-\(months[(c.month ?? 1) - 1])"
+        return tr("\(c.day ?? 0)-\(months[(c.month ?? 1) - 1])", "\(monthsEn[(c.month ?? 1) - 1]) \(c.day ?? 0)")
     }
 
     /// Haftalik bashorat jumlasi; tugamaydigan bo'lsa — nil
     static func weekWarning(_ f: LimitForecast.Outcome, week: LimitWindow) -> String? {
         guard case .runsOut(let at) = f else { return nil }
-        return "Shu sur'atda \(dayPart(at)) tugaydi — \(date(week.resetsAt)) tiklanishidan oldin."
+        return tr("Shu sur'atda \(dayPart(at)) tugaydi — \(date(week.resetsAt)) tiklanishidan oldin.", "At this pace, runs out \(dayPart(at)) — before the \(date(week.resetsAt)) reset.")
     }
 
     /// Ma'lumot eskirgan bo'lsa — ogohlantirish (status line faqat terminaldagi Claude Code'da yangilanadi)
     static func staleNote(_ l: RateLimits, now: Date = Date()) -> String? {
         let age = now.timeIntervalSince(l.updatedAt)
         guard !l.fromAccount, age > 10 * 60 else { return nil }
-        return "\(Alerts.duration(age)) oldingi ma'lumot — terminalda Claude Code ishlaganda yangilanadi"
+        return tr("\(Alerts.duration(age)) oldingi ma'lumot — terminalda Claude Code ishlaganda yangilanadi", "Data from \(Alerts.duration(age)) ago — updates when Claude Code runs in the terminal")
     }
 }
 
@@ -422,10 +425,10 @@ struct LimitBarRow: View {
         VStack(alignment: .leading, spacing: 5) {
             HStack(alignment: .firstTextBaseline) {
                 Text(title).font(.caption.weight(.semibold)).foregroundStyle(dark ? Color.white : .primary)
-                Text(window.isNotStarted ? "birinchi so'rov bilan boshlanadi" : "↻ " + LimitText.dayTime(window.resetsAt)).font(.caption2)
+                Text(window.isNotStarted ? tr("birinchi so'rov bilan boshlanadi", "starts with your first prompt") : "↻ " + LimitText.dayTime(window.resetsAt)).font(.caption2)
                     .foregroundStyle(dark ? Brand.inkDim : .secondary)
                 Spacer()
-                Text("\(Int(pct.rounded()))% ishlatildi").font(.caption.weight(.semibold)).monospacedDigit()
+                Text(tr("\(Int(pct.rounded()))% ishlatildi", "\(Int(pct.rounded()))% used")).font(.caption.weight(.semibold)).monospacedDigit()
                     .foregroundStyle(dark ? Color.white : .primary)
             }
             GeometryReader { g in

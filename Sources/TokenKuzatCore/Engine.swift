@@ -279,10 +279,10 @@ public final class Engine {
                 agent.lastStop = "tool_use"
                 if let ts = ev.timestamp, ts >= dayStart { addFeed(id, ts, session, agent, d.symbol, d.text) }
             case .text(let t):
-                agent.lastAction = "Javob yozdi"
+                agent.lastAction = tr("Javob yozdi", "Answered")
                 addNote(ev, session, agent, kind: .reply, text: t, duration: nil, index: 1)
             case .thinking(let t):
-                agent.lastAction = "O'ylayapti"
+                agent.lastAction = tr("O'ylayapti", "Thinking")
                 let ts = ev.timestamp ?? now
                 let d = prev.map { ts.timeIntervalSince($0) }.flatMap { $0 > 0 && $0 < 3600 ? $0 : nil }
                 addNote(ev, session, agent, kind: .thinking, text: t, duration: d, index: 0)
@@ -351,10 +351,10 @@ public final class Engine {
         if agent.isMain {
             if session.firstPrompt.isEmpty { session.firstPrompt = String(firstLine.prefix(90)) }
             if let ts = ev.timestamp { session.addTurn(start: ts, prompt: String(firstLine.prefix(160))) }
-            agent.lastAction = "Yangi so'rov oldi"
+            agent.lastAction = tr("Yangi so'rov oldi", "Got a new prompt")
             if let ts = ev.timestamp, ts >= dayStart {
                 addFeed(ev.uuid ?? UUID().uuidString, ts, session, agent, "person.fill",
-                        "Siz: " + String(firstLine.prefix(120)))
+                        tr("Siz: ", "You: ") + String(firstLine.prefix(120)))
             }
         } else if !agent.titled {
             agent.title = String(firstLine.prefix(70))
@@ -365,7 +365,7 @@ public final class Engine {
     private func addFeed(_ id: String, _ ts: Date, _ s: SessionAcc, _ a: AgentAcc, _ sym: String, _ text: String) {
         guard feedIds.insert(id).inserted else { return }
         feed.append(FeedEvent(id: id, date: ts, sessionId: s.id, project: s.displayProject,
-                              agentTitle: a.isMain ? "Asosiy" : a.title, isMain: a.isMain, symbol: sym, text: text))
+                              agentTitle: a.isMain ? tr("Asosiy", "Main") : a.title, isMain: a.isMain, symbol: sym, text: text))
         if feed.count > 800 {
             feed.sort { $0.date < $1.date }
             let drop = feed.prefix(feed.count - 500)
@@ -652,7 +652,7 @@ private final class AgentAcc {
     init(key: String) {
         self.key = key
         isMain = key == "main"
-        title = isMain ? "Asosiy agent" : "Yordamchi agent"
+        title = isMain ? tr("Asosiy agent", "Main agent") : tr("Yordamchi agent", "Subagent")
     }
 }
 
@@ -749,7 +749,7 @@ private final class SessionAcc {
     var displayProject: String { project.isEmpty ? String(id.prefix(8)) : project }
     var displayTitle: String {
         if !customTitle.isEmpty { return customTitle }
-        return firstPrompt.isEmpty ? "Nomsiz sessiya" : firstPrompt
+        return firstPrompt.isEmpty ? tr("Nomsiz sessiya", "Untitled session") : firstPrompt
     }
 
     func agent(_ key: String) -> AgentAcc {
