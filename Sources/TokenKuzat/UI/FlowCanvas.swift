@@ -267,7 +267,7 @@ struct FlowCanvas: View {
             .overlay(alignment: .bottomTrailing) { zoomControls.padding(12) }
             .overlay(alignment: .bottomLeading) { FlowLegend().padding(12) }
         }
-        .background(Color(nsColor: .underPageBackgroundColor))
+        .background(Color.clear)
     }
 
     private func canvas(_ l: FlowLayout) -> some View {
@@ -290,6 +290,7 @@ struct FlowCanvas: View {
                     FlowAgentNode(agent: lane.agent, steps: lane.steps.count, big: false,
                                   selected: selectedAgent == lane.agent.id && selectedBubble == nil)
                         .position(p)
+                        .transition(.scale(scale: 0.85).combined(with: .opacity))
                         .onTapGesture { onSelectAgent(lane.agent.id) }
                     bubbles(lane, l, d: F.bubbleSmall)
                 }
@@ -299,6 +300,12 @@ struct FlowCanvas: View {
                 .onTapGesture { if let m = model.main { onSelectAgent(m.agent.id) } }
         }
         .frame(width: l.size.width, height: l.size.height, alignment: .topLeading)
+        .animation(Motion.spring, value: signature)
+    }
+
+    /// Tugunlar to'plami o'zgarganda (yangi asbob, yangi yordamchi) — yumshoq qayta joylashuv
+    private var signature: String {
+        ([model.main].compactMap { $0 } + model.helpers).map { "\($0.id):\($0.bubbles.map(\.id).joined())" }.joined(separator: "|")
     }
 
     @ViewBuilder
@@ -307,6 +314,7 @@ struct FlowCanvas: View {
             if let p = l.bubbles[b.id] {
                 ToolBubbleNode(bubble: b, diameter: d, selected: selectedBubble == b.id)
                     .position(x: p.x, y: p.y + 22)   // yozuv bilan birga: markaz doira markaziga to'g'ri keladi
+                    .transition(.scale(scale: 0.6).combined(with: .opacity))
                     .onTapGesture { onSelectBubble(b) }
             }
         }
@@ -320,7 +328,7 @@ struct FlowCanvas: View {
             Divider().frame(height: 16)
             zoomButton("plus", "Kattalashtirish") { zoom = min(3, zoom * 1.25) }
         }
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .glass(radius: 10, interactive: true)
     }
 
     private func zoomButton(_ symbol: String, _ help: String, _ action: @escaping () -> Void) -> some View {
@@ -404,8 +412,6 @@ private struct DotGridBackground: View {
 
 // MARK: - Tugunlar
 
-private let nodeFill = Color(nsColor: .controlBackgroundColor)
-private let nodeStroke = Color.primary.opacity(0.16)
 
 private struct PulseStroke<S: Shape>: View {
     let shape: S
@@ -426,13 +432,10 @@ private struct TriggerShapeNode: View {
 
     var body: some View {
         VStack(spacing: 10) {
-            ZStack {
-                UnevenRoundedShape(left: F.trig / 2, right: 16).fill(nodeFill)
-                UnevenRoundedShape(left: F.trig / 2, right: 16).stroke(nodeStroke)
-                Image(systemName: "person.wave.2.fill").font(.system(size: 32, weight: .medium))
-                    .foregroundStyle(Palette.cacheRead)
-            }
-            .frame(width: F.trig, height: F.trig)
+            Image(systemName: "person.wave.2.fill").font(.system(size: 32, weight: .medium))
+                .foregroundStyle(Palette.cacheRead)
+                .frame(width: F.trig, height: F.trig)
+                .modifier(GlassSurface(shape: UnevenRoundedShape(left: F.trig / 2, right: 18), tint: Palette.cacheRead))
             VStack(spacing: 2) {
                 Text("Sizning so'rovingiz").font(.caption.weight(.semibold))
                 Text(prompt).font(.caption2).foregroundStyle(.secondary).lineLimit(2).multilineTextAlignment(.center)
@@ -494,9 +497,11 @@ private struct FlowAgentNode: View {
         }
         .padding(.horizontal, 16)
         .frame(width: w, height: h)
-        .background(shape.fill(nodeFill))
-        .overlay(shape.stroke(selected ? Color.accentColor : nodeStroke, lineWidth: selected ? 2 : 1))
+        .modifier(GlassSurface(shape: shape, tint: agent.state == .running ? .green : nil, interactive: true,
+                               stroke: selected ? .accentColor : nil))
         .overlay { if agent.state == .running { PulseStroke(shape: shape, color: .green) } }
+        .scaleEffect(selected ? 1.02 : 1)
+        .animation(Motion.spring, value: selected)
         .overlay(alignment: .bottom) {
             if big {
                 HStack {
@@ -523,8 +528,9 @@ private struct ToolBubbleNode: View {
         let color = bubble.category?.color ?? Palette.main
         VStack(spacing: 7) {
             ZStack(alignment: .topTrailing) {
-                Circle().fill(nodeFill)
-                    .overlay(Circle().stroke(selected ? Color.accentColor : nodeStroke, lineWidth: selected ? 2 : 1))
+                Color.clear
+                    .modifier(GlassSurface(shape: Circle(), tint: bubble.busy || bubble.recent ? color : nil, interactive: true,
+                                           stroke: selected ? .accentColor : nil))
                     .overlay {
                         Image(systemName: bubble.category?.symbol ?? "sparkles")
                             .font(.system(size: diameter * 0.36, weight: .medium))
@@ -564,8 +570,6 @@ private struct ResultNode: View {
         let color: Color = result.active ? .green : (result.errors > 0 ? .orange : .accentColor)
         VStack(spacing: 10) {
             ZStack {
-                shape.fill(nodeFill)
-                shape.stroke(nodeStroke)
                 if result.active {
                     ProgressView().controlSize(.regular)
                 } else {
@@ -573,8 +577,9 @@ private struct ResultNode: View {
                         .font(.system(size: 34, weight: .medium)).foregroundStyle(color)
                 }
             }
-            .overlay { if result.active { PulseStroke(shape: shape, color: .green) } }
             .frame(width: F.resultW, height: F.resultW)
+            .modifier(GlassSurface(shape: shape, tint: result.active ? .green : color))
+            .overlay { if result.active { PulseStroke(shape: shape, color: .green) } }
             VStack(spacing: 2) {
                 Text(result.active ? "Ishlayapti…" : "Natija").font(.caption.weight(.semibold))
                 Text("\(Alerts.duration(result.duration)) · \(Fmt.tokens(result.tokens.value(mode)))")
@@ -615,7 +620,7 @@ private struct FlowLegend: View {
         }
         .font(.caption2)
         .padding(.horizontal, 10).padding(.vertical, 6)
-        .background(.regularMaterial, in: Capsule())
+        .glassCapsule()
     }
 
     private struct DashLine: Shape {

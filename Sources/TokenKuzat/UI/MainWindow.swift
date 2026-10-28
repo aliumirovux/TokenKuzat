@@ -23,9 +23,13 @@ struct MainWindow: View {
         } detail: {
             VStack(spacing: 0) {
                 header
-                Divider()
-                detail.frame(maxWidth: .infinity, maxHeight: .infinity)
+                detail
+                    .id(section)
+                    .transition(.opacity.combined(with: .offset(y: 8)))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
+            .animation(Motion.spring, value: section)
+            .background(AmbientBackground())
             .frame(minWidth: 640, minHeight: 520)
         }
     }
@@ -51,7 +55,12 @@ struct MainWindow: View {
     /// Har bir sahifa tepasidagi sarlavha: nom, jonli holat va hisoblash usuli
     private var header: some View {
         HStack(spacing: 12) {
-            Text(section.title).font(.title2.weight(.semibold))
+            Image(systemName: section.symbol)
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(.tint)
+                .frame(width: 34, height: 34)
+                .glassCircle(tint: .accentColor)
+            Text(section.title).font(.system(.title2, design: .rounded).weight(.semibold))
             Spacer()
             StatusPill(running: store.snap.runningAgents, active: store.snap.activeSessions)
             if section != .settings { CountModePicker() }

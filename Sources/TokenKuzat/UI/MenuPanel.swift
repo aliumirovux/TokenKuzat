@@ -58,10 +58,12 @@ struct MenuPanel: View {
             Text(title).font(.caption2).foregroundStyle(.secondary)
             Text(value).font(.system(size: 15, weight: .semibold, design: .rounded)).monospacedDigit()
                 .lineLimit(1).minimumScaleFactor(0.7)
+                .contentTransition(.numericText())
+                .animation(Motion.smooth, value: value)
         }
         .padding(.horizontal, 10).padding(.vertical, 8)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: 9, style: .continuous).fill(Color.primary.opacity(0.05)))
+        .glass(radius: 12)
     }
 
     @ViewBuilder
@@ -125,8 +127,11 @@ struct RowButtonStyle: ButtonStyle {
         @State private var hover = false
         var body: some View {
             configuration.label
-                .background(RoundedRectangle(cornerRadius: 7, style: .continuous)
-                    .fill(Color.primary.opacity(configuration.isPressed ? 0.1 : (hover ? 0.05 : 0))))
+                .background(RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(Color.primary.opacity(configuration.isPressed ? 0.10 : (hover ? 0.06 : 0))))
+                .scaleEffect(configuration.isPressed ? 0.985 : 1)
+                .animation(Motion.snappy, value: hover)
+                .animation(Motion.snappy, value: configuration.isPressed)
                 .onHover { hover = $0 }
         }
     }

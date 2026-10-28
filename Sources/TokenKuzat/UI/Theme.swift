@@ -42,9 +42,7 @@ struct CardModifier: ViewModifier {
         content
             .padding(padding)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Palette.surface))
-            .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .strokeBorder(highlight?.opacity(0.45) ?? Palette.stroke, lineWidth: 1))
+            .glass(radius: 18, tint: highlight, stroke: highlight?.opacity(0.45))
     }
 }
 
@@ -61,7 +59,7 @@ struct SectionHeader: View {
 
     var body: some View {
         HStack(alignment: .firstTextBaseline) {
-            Text(title).font(.headline)
+            Text(title).font(.system(.headline, design: .rounded))
             if let subtitle {
                 Text(subtitle).font(.caption).foregroundStyle(.secondary)
             }
@@ -80,12 +78,14 @@ struct StateDot: View {
     var body: some View {
         Group {
             if state == .running {
-                TimelineView(.animation(minimumInterval: 1.0 / 15)) { ctx in
+                TimelineView(.animation(minimumInterval: 1.0 / 20)) { ctx in
                     let t = ctx.date.timeIntervalSinceReferenceDate
+                    let p = CGFloat((sin(t * 2.4) + 1) / 2)
                     ZStack {
-                        Circle().fill(Palette.state(state).opacity(0.25))
-                            .scaleEffect(1 + 0.8 * CGFloat((sin(t * 3) + 1) / 2))
+                        Circle().fill(Palette.state(state).opacity(0.35 * (1 - p)))
+                            .scaleEffect(1 + 1.2 * p)
                         Circle().fill(Palette.state(state))
+                            .shadow(color: Palette.state(state).opacity(0.6), radius: 3)
                     }
                 }
             } else {
@@ -116,8 +116,9 @@ struct StatusPill: View {
         }
         .lineLimit(1)
         .fixedSize()
-        .padding(.horizontal, 9).padding(.vertical, 4)
-        .background(Capsule().fill(Palette.state(state).opacity(state == .idle ? 0.12 : 0.16)))
+        .padding(.horizontal, 10).padding(.vertical, 5)
+        .glassCapsule(tint: state == .idle ? nil : Palette.state(state))
+        .animation(Motion.spring, value: running)
         .help(running > 0 ? "\(running) ta agent hozir ishlayapti"
               : (active > 0 ? "Agent asbob natijasini kutyapti (masalan, terminal buyrug'i)" : "Hech qanday agent ishlamayapti"))
     }
@@ -156,20 +157,23 @@ struct MetricTile: View {
                 Image(systemName: symbol)
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(tint)
-                    .frame(width: 22, height: 22)
-                    .background(RoundedRectangle(cornerRadius: 6, style: .continuous).fill(tint.opacity(0.14)))
+                    .frame(width: 24, height: 24)
+                    .background(Circle().fill(tint.opacity(0.16)))
                 Text(title).font(.caption).foregroundStyle(.secondary).lineLimit(1)
             }
             HStack(alignment: .firstTextBaseline, spacing: 4) {
-                Text(value).font(.system(size: 24, weight: .semibold, design: .rounded)).monospacedDigit()
+                Text(value).font(.system(size: 26, weight: .semibold, design: .rounded)).monospacedDigit()
                     .lineLimit(1).minimumScaleFactor(0.6)
+                    .contentTransition(.numericText())
+                    .animation(Motion.smooth, value: value)
                 if let unit { Text(unit).font(.caption).foregroundStyle(.secondary) }
             }
             if let footnote {
                 Text(footnote).font(.caption2).foregroundStyle(.tertiary).lineLimit(1)
             }
         }
-        .card(padding: 12)
+        .card(padding: 14)
+        .hoverLift(1.01)
     }
 }
 

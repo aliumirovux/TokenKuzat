@@ -123,7 +123,7 @@ struct FileHeatmapScreen: View {
                 }
             }
         }
-        .background(Color(nsColor: .underPageBackgroundColor))
+        .background(Color.clear)
     }
 
     // MARK: Qismlar

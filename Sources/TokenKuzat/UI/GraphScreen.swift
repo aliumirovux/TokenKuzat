@@ -60,7 +60,6 @@ struct GraphScreen: View {
         let now = replayOn ? (replayTime ?? range?.upperBound ?? s.updatedAt) : s.updatedAt
         VStack(spacing: 0) {
             topBar(s, live)
-            Divider()
             if replayOn, let range, let live {
                 ReplayBar(range: range,
                           steps: live.agents.flatMap(\.steps).filter { range.contains($0.date) },
@@ -69,7 +68,6 @@ struct GraphScreen: View {
                               replayTime = t
                           }),
                           playing: $playing, speed: $speed)
-                Divider()
             }
             if let session {
                 HStack(spacing: 0) {
@@ -113,6 +111,8 @@ struct GraphScreen: View {
                 }
             }
         }
+        .animation(Motion.spring, value: replayOn)
+        .animation(Motion.spring, value: graphMode)
         .onChange(of: sessionId) { _ in selection = nil; turnId = nil; stopReplay() }
         .onChange(of: turnId) { _ in if replayOn { replayTime = live.flatMap { replayRange($0) }?.lowerBound } }
         .onReceive(ticker) { _ in
@@ -434,7 +434,7 @@ private struct AgentInspector: View {
             }
             .padding(16)
         }
-        .background(Color(nsColor: .windowBackgroundColor))
+        .background(.thinMaterial)
     }
 }
 
@@ -490,7 +490,7 @@ private struct ResourceInspector: View {
             }
             .padding(16)
         }
-        .background(Color(nsColor: .windowBackgroundColor))
+        .background(.thinMaterial)
     }
 }
 

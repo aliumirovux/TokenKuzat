@@ -153,7 +153,7 @@ struct TimelineScreen: View {
             }
             .overlay(alignment: .bottomTrailing) { zoomControls.padding(12) }
         }
-        .background(Color(nsColor: .underPageBackgroundColor))
+        .background(Color.clear)
     }
 
     // MARK: Qismlar
@@ -255,7 +255,7 @@ struct TimelineScreen: View {
             Divider().frame(height: 16)
             zoomButton("plus", "Kattalashtirish") { zoom = min(20, zoom * 1.5) }
         }
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .glass(radius: 10, interactive: true)
     }
 
     private func zoomButton(_ symbol: String, _ help: String, _ action: @escaping () -> Void) -> some View {

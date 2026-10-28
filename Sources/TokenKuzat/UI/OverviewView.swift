@@ -13,16 +13,18 @@ struct OverviewView: View {
                 ProgressView("Yozuvlar o'qilmoqda…").padding(80)
             } else {
                 VStack(alignment: .leading, spacing: 18) {
-                    metrics(s)
-                    if let l = s.limits, !l.isEmpty {
-                        VStack(alignment: .leading, spacing: 12) {
-                            SectionHeader(title: "Claude limiti", subtitle: "Claude Code'ning o'zidan · \(Fmt.ago(l.updatedAt))")
-                            RealLimitsView(limits: l, forecast: s.fiveHourForecast)
+                    // Eng muhimi tepada: hozir nima bo'lyapti va limit qancha qoldi
+                    HStack(alignment: .top, spacing: 18) {
+                        NowCard(snap: s, mode: mode).frame(maxWidth: .infinity)
+                        if let l = s.limits, !l.isEmpty {
+                            LimitRingsCard(limits: l, forecast: s.fiveHourForecast).frame(width: 340)
                         }
-                        .card()
-                    } else if !StatusLine.isInstalled {
+                    }
+                    .fixedSize(horizontal: false, vertical: true)
+                    if s.limits.map({ $0.isEmpty }) ?? true, !StatusLine.isInstalled {
                         ConnectLimitsHint().card()
                     }
+                    metrics(s)
                     if budgetEnabled, let b = BudgetStatus.current(s) {
                         BudgetBar(status: b).card()
                     }
@@ -149,5 +151,165 @@ struct SessionRow: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(RowButtonStyle())
+    }
+}
+
+// MARK: - «Hozir» kartasi
+
+/// Bir qarashda: qaysi loyihada, qaysi agent, nima qilyapti va qancha vaqtdan beri
+struct NowCard: View {
+    let snap: Snapshot
+    let mode: CountMode
+
+    var body: some View {
+        let active = snap.sessions.filter { $0.state != .idle }
+        Group {
+            if let sess = active.first {
+                live(sess, others: active.count - 1)
+            } else {
+                idle
+            }
+        }
+        .frame(maxHeight: .infinity, alignment: .topLeading)
+        .card(padding: 18, highlight: active.isEmpty ? nil : .green)
+        .frame(maxHeight: .infinity)
+        .animation(Motion.spring, value: active.first?.id)
+    }
+
+    private func live(_ sess: SessionSnap, others: Int) -> some View {
+        let steps = sess.agents.flatMap(\.steps)
+        let running = steps.filter { $0.status == .running }.max { $0.date < $1.date }
+        let turn = sess.turns.last
+        return Button {
+            UserDefaults.standard.set(sess.id, forKey: GraphScreen.selectedSessionKey)
+            WindowManager.shared.show(.graph)
+        } label: {
+            HStack(alignment: .top, spacing: 16) {
+                LiveOrb(color: running?.category.color ?? .green)
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(spacing: 8) {
+                        Text("HOZIR").font(.caption2.weight(.bold)).foregroundStyle(.green).tracking(1.2)
+                        Text(sess.project).font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                        if others > 0 { Chip(text: "+\(others) sessiya") }
+                    }
+                    Text(running?.text ?? sess.main?.lastAction ?? "Ishlayapti…")
+                        .font(.system(.title3, design: .rounded).weight(.semibold))
+                        .lineLimit(2)
+                        .contentTransition(.opacity)
+                        .animation(Motion.smooth, value: running?.id)
+                    HStack(spacing: 12) {
+                        if let d = running?.duration {
+                            Label(Alerts.duration(d), systemImage: "timer").monospacedDigit()
+                        }
+                        if let turn {
+                            Label("#\(turn.id) · \(turn.steps) qadam", systemImage: "list.bullet")
+                            Label(Fmt.tokens(turn.tokens.value(mode)), systemImage: "bolt.fill")
+                        }
+                        let helpers = sess.agents.filter { !$0.isMain && $0.state == .running }.count
+                        if helpers > 0 { Label("\(helpers) yordamchi", systemImage: "person.2.fill") }
+                    }
+                    .font(.caption).foregroundStyle(.secondary)
+                    if let turn {
+                        Text("So'rov: \(turn.prompt)").font(.caption).foregroundStyle(.tertiary).lineLimit(1)
+                    }
+                }
+                Spacer(minLength: 0)
+                Image(systemName: "arrow.up.right").font(.caption.weight(.bold)).foregroundStyle(.tertiary)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help("Agentlar sxemasida ochish")
+    }
+
+    private var idle: some View {
+        HStack(alignment: .top, spacing: 16) {
+            Image(systemName: "moon.stars.fill")
+                .font(.system(size: 26)).foregroundStyle(.indigo)
+                .frame(width: 56, height: 56)
+                .glassCircle(tint: .indigo)
+            VStack(alignment: .leading, spacing: 6) {
+                Text("HOZIR").font(.caption2.weight(.bold)).foregroundStyle(.secondary).tracking(1.2)
+                Text("Hammasi tinch").font(.system(.title3, design: .rounded).weight(.semibold))
+                if let last = snap.sessions.first {
+                    Text("Oxirgi ish: \(last.project) · \(Fmt.ago(last.lastActivity))")
+                        .font(.caption).foregroundStyle(.secondary)
+                    Text(last.title).font(.caption).foregroundStyle(.tertiary).lineLimit(1)
+                } else {
+                    Text("Claude Code'da ish boshlansa, shu yerda jonli ko'rinadi.").font(.caption).foregroundStyle(.secondary)
+                }
+            }
+            Spacer(minLength: 0)
+        }
+    }
+}
+
+/// Jonli ish belgisi: yumshoq nafas oluvchi shar
+private struct LiveOrb: View {
+    let color: Color
+    @State private var breathe = false
+
+    var body: some View {
+        ZStack {
+            Circle().fill(color.opacity(0.18)).scaleEffect(breathe ? 1.25 : 0.95).blur(radius: 6)
+            Circle().fill(RadialGradient(colors: [color.opacity(0.95), color.opacity(0.45)], center: .topLeading,
+                                         startRadius: 2, endRadius: 40))
+                .frame(width: 36, height: 36)
+                .shadow(color: color.opacity(0.55), radius: breathe ? 14 : 6)
+            Image(systemName: "waveform").font(.system(size: 15, weight: .bold)).foregroundStyle(.white)
+                .symbolEffectIfAvailable()
+        }
+        .frame(width: 56, height: 56)
+        .animation(Motion.spring, value: color)
+        .onAppear {
+            withAnimation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true)) { breathe = true }
+        }
+    }
+}
+
+private extension View {
+    @ViewBuilder
+    func symbolEffectIfAvailable() -> some View {
+        if #available(macOS 14.0, *) { self.symbolEffect(.variableColor.iterative, options: .repeating) } else { self }
+    }
+}
+
+// MARK: - Limit halqalari
+
+struct LimitRingsCard: View {
+    let limits: RateLimits
+    let forecast: LimitForecast.Outcome
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("Claude limiti").font(.system(.headline, design: .rounded))
+                Spacer()
+                Text(Fmt.ago(limits.updatedAt)).font(.caption2).foregroundStyle(.tertiary)
+            }
+            HStack(spacing: 18) {
+                if let w = limits.fiveHour {
+                    RingGauge(fraction: w.usedPercentage / 100, title: "5 soat", value: "\(Int(w.usedPercentage.rounded()))%",
+                              caption: "↻ \(Fmt.hourMinute.string(from: w.resetsAt)) · \(Alerts.duration(max(0, w.resetsAt.timeIntervalSinceNow)))")
+                }
+                if let w = limits.sevenDay {
+                    RingGauge(fraction: w.usedPercentage / 100, title: "hafta", value: "\(Int(w.usedPercentage.rounded()))%",
+                              caption: "↻ \(Fmt.shortDay.string(from: w.resetsAt)) \(Fmt.hourMinute.string(from: w.resetsAt))")
+                }
+            }
+            .frame(maxWidth: .infinity)
+            switch forecast {
+            case .runsOut(let at):
+                Label("Shu tezlikda ~\(Fmt.hourMinute.string(from: at)) da tugaydi", systemImage: "exclamationmark.triangle.fill")
+                    .font(.caption).foregroundStyle(.orange)
+            case .lasts:
+                Label("Shu tezlikda tiklanguncha yetadi", systemImage: "checkmark.circle").font(.caption).foregroundStyle(.secondary)
+            case .unknown:
+                EmptyView()
+            }
+        }
+        .frame(maxHeight: .infinity, alignment: .topLeading)
+        .card(padding: 16)
+        .frame(maxHeight: .infinity)
     }
 }
