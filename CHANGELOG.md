@@ -1,5 +1,9 @@
 # O'zgarishlar
 
+## 6.9.0 — 2026-10-28
+
+- «Faqat xarita» tugmasi (xarita pastida, ⇧⌘F): yon menyu, sessiya sarlavhasi, vaqt chizig'i, tablar va tafsilotlar paneli yashiriladi — oynada faqat xarita (yozish maydoni bilan). «Chiqish» yoki Esc — oddiy ko'rinish. Tanlov eslab qolinadi; boshqa sahifaga o'tilsa yon menyu qaytadi.
+
 ## 6.8.1 — 2026-10-28
 
 - Sessiya sahifasidagi so'rovlar qatori («Butun sessiya», «#11 · …» chiplari) olib tashlandi — so'rov xaritadagi kartani bosib tanlanadi.

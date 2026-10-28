@@ -4,9 +4,16 @@ import TokenKuzatCore
 struct MainWindow: View {
     @EnvironmentObject var store: Store
     @AppStorage(Pref.section) private var section = Section.overview
+    @AppStorage(Pref.mapOnly) private var mapOnly = false
+    @AppStorage("flowStyle") private var flowStyle = "map"
+    @AppStorage("graphMode") private var graphMode = "flow"
+    @State private var columns = NavigationSplitViewVisibility.all
+
+    /// «Faqat xarita» faqat sessiya sahifasining Xarita tabida amal qiladi
+    private var mapFocus: Bool { mapOnly && section == .graph && graphMode == "flow" && flowStyle != "summary" }
 
     var body: some View {
-        NavigationSplitView {
+        NavigationSplitView(columnVisibility: $columns) {
             Sidebar(section: $section)
                 .navigationSplitViewColumnWidth(min: 200, ideal: 220, max: 260)
         } detail: {
@@ -21,6 +28,8 @@ struct MainWindow: View {
             .background(Brand.canvas)
             .frame(minWidth: 640, minHeight: 520)
         }
+        .onAppear { if mapFocus { columns = .detailOnly } }
+        .onChange(of: mapFocus) { on in withAnimation(Motion.spring) { columns = on ? .detailOnly : .all } }
     }
 
     private func row(_ item: Section) -> some View {

@@ -43,6 +43,9 @@ struct GraphScreen: View {
     @AppStorage("graphInspector") private var showInspector = true
     /// Tor oynada tafsilotlar paneli xarita ustida ochiladi (sukut bo'yicha yopiq) — xarita siqilmaydi
     @State private var narrowInspector = false
+    @AppStorage(Pref.mapOnly) private var mapOnly = false
+    /// «Faqat xarita»: sarlavha, vaqt chizig'i, tablar va panel yashiriladi
+    private var mapFocus: Bool { mapOnly && currentTab == "map" }
     @State private var contentWidth: CGFloat = 1200
     private var isNarrow: Bool { contentWidth < 1000 }
     private var inspectorVisible: Bool { isNarrow ? narrowInspector : showInspector }
@@ -74,10 +77,12 @@ struct GraphScreen: View {
                 let turn = turnNo.flatMap { n in session.turns.first { $0.id == n } }
                 let flow = FlowModel(session: session, turnId: turnNo, now: now)
                 let tl = TimelineModel(flow: flow, session: session, turnId: turnNo, now: now)
-                SessionHeader(session: session, turn: turn, mode: mode, costUSD: s.limits?.costBySession[session.id],
-                              waiting: replayOn ? nil : s.permissionWaits[session.id])
-                LanesCard(timeline: tl, replayOn: replayOn) { toggleReplay(live) }
-                    .padding(.top, 14)
+                if !mapFocus {
+                    SessionHeader(session: session, turn: turn, mode: mode, costUSD: s.limits?.costBySession[session.id],
+                                  waiting: replayOn ? nil : s.permissionWaits[session.id])
+                    LanesCard(timeline: tl, replayOn: replayOn) { toggleReplay(live) }
+                        .padding(.top, 14)
+                }
                 if replayOn, let range {
                     ReplayBar(range: range,
                               steps: live.agents.flatMap(\.steps).filter { range.contains($0.date) },
@@ -88,7 +93,7 @@ struct GraphScreen: View {
                               playing: $playing, speed: $speed)
                         .padding(.horizontal, 14)
                 }
-                tabs.padding(.horizontal, 24).padding(.top, 16).padding(.bottom, 10)
+                if !mapFocus { tabs.padding(.horizontal, 24).padding(.top, 16).padding(.bottom, 10) }
                 // «Qadamlar» tabi olib tashlandi — eski saqlangan qiymat ham Oqim'ni ochadi
                 switch ["files", "outputs"].contains(graphMode) ? graphMode : "flow" {
                 // «Jarayon» ko'rinishi olib tashlandi — eski saqlangan qiymat xaritani ochadi
@@ -124,7 +129,7 @@ struct GraphScreen: View {
                                            }
                                        },
                                        chat: !replayOn)
-                        if showInspector && !isNarrow {
+                        if showInspector && !isNarrow && !mapFocus {
                             Divider()
                             inspector(session, now: now).frame(width: min(384, max(300, contentWidth * 0.3)))
                         }
@@ -132,7 +137,9 @@ struct GraphScreen: View {
                     .overlay(alignment: .trailing) { narrowPanel(session, now: now) }
                     .frame(minHeight: 320, maxHeight: .infinity)
                     .card(padding: 0)
-                    .padding(.horizontal, 24).padding(.bottom, 20)
+                    // Faqat xaritada — oyna chetigacha (sarlavha paneli ostidan)
+                    .padding(.horizontal, mapFocus ? 8 : 24).padding(.bottom, mapFocus ? 8 : 20)
+                    .padding(.top, mapFocus ? 30 : 0)
                 case "flow":
                     HStack(spacing: 0) {
                         FlowCanvas(session: session, model: flow, mode: mode,
@@ -187,6 +194,7 @@ struct GraphScreen: View {
         })
         .animation(Motion.spring, value: replayOn)
         .animation(Motion.spring, value: narrowInspector)
+        .animation(Motion.spring, value: mapFocus)
         .animation(Motion.spring, value: graphMode)
         .onAppear { if !["map", "summary"].contains(flowStyle) { flowStyle = "map" } }
         .onChange(of: sessionId) { _ in selection = nil; turnId = nil; stopReplay() }

@@ -588,6 +588,8 @@ struct SessionMapView: View {
     @State private var poke: Date?
     /// Faqat tanlangan (sukut bo'yicha — hozirgi) so'rovni ko'rsatish, qolganlarini yashirish
     @AppStorage("map.focusOne") private var focusOne = false
+    /// «Faqat xarita» — boshqa hamma narsa yashiriladi (sessiya sahifasi va asosiy oyna shu qiymatga qaraydi)
+    @AppStorage(Pref.mapOnly) private var mapOnly = false
     private let patrolTimer = Timer.publish(every: 5, on: .main, in: .common).autoconnect()
     @StateObject private var wheel = WheelMonitor()
     @StateObject private var cache = LayoutCache()
@@ -886,6 +888,28 @@ struct SessionMapView: View {
             .buttonStyle(.plain)
             .help(focusOne ? "Barcha so'rovlarni qaytarish"
                            : "Faqat hozirgi (yoki tepada tanlangan) so'rovni ko'rsatish, qolganlarini yashirish")
+
+            if chat {
+                Button {
+                    withAnimation(Motion.spring) { mapOnly.toggle() }
+                    follow = true
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                        if let l = cache.layout { focusLast(l, viewport, animated: true) }
+                    }
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: mapOnly ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right.square")
+                        Text(mapOnly ? "Chiqish" : "Faqat xarita")
+                    }
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(mapOnly ? Brand.accent : Color.primary)
+                    .padding(.horizontal, 10).frame(height: 28)
+                    .surface(radius: 10, interactive: true)
+                }
+                .buttonStyle(.plain)
+                .keyboardShortcut(mapOnly ? .cancelAction : KeyboardShortcut("f", modifiers: [.command, .shift]))
+                .help(mapOnly ? "Oddiy ko'rinishga qaytish (Esc)" : "Faqat xaritani ko'rsatish — qolgan hamma narsa yashiriladi (⇧⌘F)")
+            }
         }
     }
 

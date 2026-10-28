@@ -27,6 +27,8 @@ enum Pref {
     static let notifySavings = "notifySavings"
     /// Yengil rejim: bezak animatsiyalari (robot, aylanuvchi chegaralar, oqim nuqtalari) to'xtaydi — protsessor tejaladi
     static let lightMode = "lightMode"
+    /// «Faqat xarita»: sessiya sahifasida yon menyu, sarlavha va tablar yashiriladi — oynada faqat xarita
+    static let mapOnly = "mapOnly"
 
     static func register() {
         UserDefaults.standard.register(defaults: [
