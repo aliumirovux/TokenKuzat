@@ -1,5 +1,9 @@
 # O'zgarishlar
 
+## 4.7.5 — 2026-10-28
+
+- Sessiya sahifasi endi aylantirilmaydi: Xarita, Xulosa va Fayllar kanvasi oynaning qolgan balandligini to'liq egallaydi (taxminiy hisob o'rniga moslashuvchan joylashuv) — pastda bo'sh joy ham, kesilish ham yo'q. Vaqt chizig'i ochilsa, kanvas shunga qisqaradi.
+
 ## 4.7.4 — 2026-10-28
 
 - Sessiya sahifasida uchta teng tab: Xarita, Xulosa, Fayllar. «Oqim» tabi va uning ichidagi Xarita/Xulosa almashtirgichi o'rniga — bitta qatorda; o'ngda faqat tafsilotlar panelini ochish tugmasi.
