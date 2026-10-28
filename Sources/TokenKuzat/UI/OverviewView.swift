@@ -83,13 +83,20 @@ struct LimitHero: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            HStack(alignment: .center, spacing: 12) {
-                Text("CLAUDE LIMITI" + (plan.map { " · " + $0.uppercased() } ?? "")).eyebrow(Brand.inkDim)
-                Spacer(minLength: 12)
-                paceLine
+            // Tor oynada — sarlavha va bashorat ustma-ust, kartalar ham ustma-ust (kesilib qolmasin)
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .center, spacing: 12) {
+                    Text("CLAUDE LIMITI" + (plan.map { " · " + $0.uppercased() } ?? "")).eyebrow(Brand.inkDim)
+                    Spacer(minLength: 12)
+                    paceLine
+                }
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("CLAUDE LIMITI" + (plan.map { " · " + $0.uppercased() } ?? "")).eyebrow(Brand.inkDim)
+                    paceLine
+                }
             }
             // Asosiy: ikki katta karta — ikkalasi ham «ishlatildi», Claude sahifasidagidek
-            HStack(alignment: .top, spacing: 16) {
+            AdaptiveStack(spacing: 16) {
                 LimitCard(title: "Joriy sessiya", subtitle: "5 soatlik oyna", window: window,
                           columns: hourColumns, columnsTitle: "soatlar bo'yicha")
                 if let week {
@@ -442,7 +449,7 @@ private struct TodayBento: View {
         let errors = steps.filter { $0.status == .failed }.count
         let byCat = Dictionary(grouping: steps, by: \.category).mapValues(\.count).sorted { $0.value > $1.value }
 
-        HStack(alignment: .top, spacing: 14) {
+        AdaptiveStack(spacing: 14) {
             tile("TOKENLAR", Fmt.tokens(today),
                  yesterday > 0 ? AnyView(HStack(spacing: 4) {
                      Text("kecha \(Fmt.tokens(yesterday)) ·")
@@ -607,5 +614,18 @@ struct SessionLine: View {
             v[i] += u.tokens.value(mode)
         }
         return v
+    }
+}
+
+/// Sig'sa — yonma-yon, sig'masa — ustma-ust (tor oynada kartalar kesilib qolmasin)
+struct AdaptiveStack<Content: View>: View {
+    var spacing: CGFloat = 12
+    @ViewBuilder var content: () -> Content
+
+    var body: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .top, spacing: spacing, content: content)
+            VStack(alignment: .leading, spacing: spacing, content: content)
+        }
     }
 }

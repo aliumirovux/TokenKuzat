@@ -1,5 +1,11 @@
 # O'zgarishlar
 
+## 6.10.0 — 2026-10-28
+
+- Yangi yon menyu: ixcham brend qatori (ishlayotgan bo'lsa — jonli nuqta), bo'limlar yumshoq fon bilan tanlanadi (tanlanganda to'ldirilgan belgi), ⌘1/⌘2/⌘3 va ⌘, tugmalari; loyihalar — avatar burchagida jonli nuqta, o'ngda «hozir»/«5 daq»/«2 kun»; pastda ixcham 5 soatlik va haftalik limit chiziqlari (ustiga borsa — tiklanish vaqti).
+- Bosh sahifa tor oynada kesilmaydi: limit kartalari va «Bugun» kataklari sig'masa ustma-ust joylashadi; kontentning eng kichik kengligi 640 → 520 (yon menyu kontent ustiga chiqmaydi).
+- Sessiya sarlavhasi: raqamlar doim o'ngda, belgilar sig'masa keyingi qatorga o'tadi (keng oynada sarlavha o'rtaga surilib qolgan xato tuzatildi).
+
 ## 6.9.1 — 2026-10-28
 
 - Xaritadan chat (yozish maydoni) olib tashlandi — xarita faqat kuzatish uchun. «Faqat xarita» va boshqa tugmalar joyida.

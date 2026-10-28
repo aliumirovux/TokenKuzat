@@ -26,7 +26,7 @@ struct MainWindow: View {
             }
             .animation(Motion.spring, value: section)
             .background(Brand.canvas)
-            .frame(minWidth: 640, minHeight: 520)
+            .frame(minWidth: 520, minHeight: 520)
         }
         .onAppear { if mapFocus { columns = .detailOnly } }
         .onChange(of: mapFocus) { on in withAnimation(Motion.spring) { columns = on ? .detailOnly : .all } }
@@ -69,41 +69,88 @@ struct MainWindow: View {
 
 }
 
-/// Yon menyu: brend, 3 ta bo'lim, loyihalar (jonli nuqta bilan) va pastda Sozlamalar
+/// Yon menyu: brend, bo'limlar, loyihalar (jonli nuqta va vaqt), pastda ixcham limitlar va Sozlamalar
 private struct Sidebar: View {
     @EnvironmentObject var store: Store
     @Binding var section: Section
     @AppStorage(GraphScreen.selectedSessionKey) private var sessionId = ""
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            HStack(spacing: 10) {
-                Image(nsImage: NSApp.applicationIconImage).resizable().frame(width: 26, height: 26)
-                Text("Token Kuzatuv").font(.system(size: 14, weight: .semibold, design: .rounded))
+        let snap = store.snap
+        VStack(alignment: .leading, spacing: 0) {
+            brand(snap).padding(.horizontal, 8).padding(.bottom, 20)
+
+            VStack(spacing: 1) {
+                navItem(.overview, "Bugun", "sun.max", key: "1")
+                navItem(.sessions, "Sessiyalar", "rectangle.stack", key: "2",
+                        live: snap.runningAgents > 0 ? snap.activeSessions : 0)
+                navItem(.history, "Tarix", "chart.bar", key: "3")
             }
-            .padding(.horizontal, 10).padding(.bottom, 14)
 
-            item(.overview, "Bugun", "sun.max")
-            item(.sessions, "Sessiyalar", "rectangle.stack", badge: store.snap.runningAgents > 0 ? store.snap.activeSessions : 0)
-            item(.history, "Tarix", "chart.bar.xaxis")
+            Text("Loyihalar")
+                .font(.system(size: 11, weight: .semibold)).foregroundStyle(.tertiary)
+                .padding(.horizontal, 10).padding(.top, 22).padding(.bottom, 6)
 
-            Text("LOYIHALAR").eyebrow().padding(.horizontal, 10).padding(.top, 18).padding(.bottom, 4)
-            ScrollView {
+            ScrollView(showsIndicators: false) {
                 VStack(spacing: 1) {
-                    ForEach(projects, id: \.id) { sess in
-                        projectRow(sess)
-                    }
+                    ForEach(projects, id: \.id) { projectRow($0, waiting: snap.permissionWaits[$0.id] != nil, now: snap.updatedAt) }
                 }
             }
 
-            Spacer(minLength: 8)
-            item(.settings, "Sozlamalar", "gearshape")
-            Text("Yangilandi: \(Fmt.ago(store.snap.updatedAt)) · \(store.snap.filesWatched) fayl")
-                .font(.caption2).foregroundStyle(.tertiary).padding(.horizontal, 10).padding(.top, 4)
+            Spacer(minLength: 10)
+            limits(snap)
+            navItem(.settings, "Sozlamalar", "gearshape", key: ",")
         }
-        .padding(.horizontal, 8).padding(.top, 38).padding(.bottom, 12)
+        .padding(.horizontal, 10).padding(.top, 40).padding(.bottom, 10)
         .frame(maxHeight: .infinity, alignment: .top)
     }
+
+    // MARK: Brend
+
+    private func brand(_ snap: Snapshot) -> some View {
+        let waiting = !snap.permissionWaits.isEmpty, running = snap.runningAgents > 0
+        return HStack(spacing: 9) {
+            Image(nsImage: NSApp.applicationIconImage).resizable().frame(width: 24, height: 24)
+            Text("Token Kuzatuv").font(.system(size: 13.5, weight: .semibold, design: .rounded))
+            Spacer(minLength: 4)
+            Group {
+                if waiting { Circle().fill(Brand.warn).frame(width: 7, height: 7) }
+                else if running { StateDot(state: .running, size: 7) }
+            }
+            .help(waiting ? "Claude ruxsatingizni kutyapti"
+                  : "\(snap.activeSessions) sessiya ishlayapti · yangilandi \(Fmt.ago(snap.updatedAt)) · \(snap.filesWatched) fayl")
+        }
+    }
+
+    // MARK: Bo'limlar
+
+    private func navItem(_ s: Section, _ title: String, _ symbol: String, key: KeyEquivalent, live: Int = 0) -> some View {
+        let on = section == s
+        return Button { withAnimation(Motion.snappy) { section = s } } label: {
+            HStack(spacing: 9) {
+                Image(systemName: on ? symbol + ".fill" : symbol)
+                    .font(.system(size: 12.5, weight: .medium))
+                    .foregroundStyle(on ? Brand.accent : .secondary)
+                    .frame(width: 18)
+                Text(title).font(.system(size: 13, weight: on ? .semibold : .regular))
+                    .foregroundStyle(on ? .primary : .secondary)
+                Spacer(minLength: 4)
+                if live > 0 {
+                    HStack(spacing: 4) { StateDot(state: .running, size: 5); Text("\(live)") }
+                        .font(.system(size: 11, weight: .semibold)).monospacedDigit().foregroundStyle(Brand.ok)
+                }
+            }
+            .padding(.horizontal, 8).frame(height: 30)
+            .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(Color.primary.opacity(on ? 0.08 : 0)))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(RowButtonStyle())
+        .noFocusRing()
+        .keyboardShortcut(key, modifiers: .command)
+        .help("\(title) (⌘\(key.character))")
+    }
+
+    // MARK: Loyihalar
 
     /// Har loyihadan eng so'nggi sessiya, ishlayotgani tepada
     private var projects: [SessionSnap] {
@@ -114,47 +161,89 @@ private struct Sidebar: View {
             .prefix(8).map { $0 }
     }
 
-    private func item(_ s: Section, _ title: String, _ symbol: String, badge: Int = 0) -> some View {
-        let on = section == s
-        return Button { withAnimation(Motion.spring) { section = s } } label: {
-            HStack(spacing: 10) {
-                Image(systemName: symbol).font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(on ? Brand.accent : .secondary).frame(width: 18)
-                Text(title).fontWeight(on ? .semibold : .regular)
-                Spacer()
-                if badge > 0 {
-                    HStack(spacing: 4) { StateDot(state: .running, size: 6); Text("\(badge)") }
-                        .font(.caption.weight(.semibold)).foregroundStyle(Brand.ok)
-                }
-            }
-            .padding(.horizontal, 10).padding(.vertical, 7)
-            .background(RoundedRectangle(cornerRadius: 9, style: .continuous).fill(on ? Brand.surface : .clear)
-                .shadow(color: .black.opacity(on ? 0.06 : 0), radius: 2, y: 1))
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .noFocusRing()
-    }
-
-    private func projectRow(_ sess: SessionSnap) -> some View {
+    private func projectRow(_ sess: SessionSnap, waiting: Bool, now: Date) -> some View {
         let on = section == .graph && sessionId == sess.id
+        let running = sess.state != .idle
         return Button {
             sessionId = sess.id
-            withAnimation(Motion.spring) { section = .graph }
+            withAnimation(Motion.snappy) { section = .graph }
         } label: {
             HStack(spacing: 9) {
                 ProjectAvatar(name: sess.project, size: 20)
-                Text(sess.project).lineLimit(1).fontWeight(on ? .semibold : .regular)
-                Spacer()
-                if sess.state != .idle { StateDot(state: sess.state, size: 6) }
+                    .overlay(alignment: .bottomTrailing) {
+                        if running || waiting {
+                            Circle().fill(waiting ? Brand.warn : Brand.ok)
+                                .frame(width: 8, height: 8)
+                                .overlay(Circle().stroke(Brand.canvas, lineWidth: 2))
+                                .offset(x: 3, y: 3)
+                        }
+                    }
+                Text(sess.project).font(.system(size: 13, weight: on ? .semibold : .regular))
+                    .foregroundStyle(on ? .primary : .secondary).lineLimit(1)
+                Spacer(minLength: 4)
+                Text(waiting ? "ruxsat" : (running ? "hozir" : Self.short(sess.lastActivity, now: now)))
+                    .font(.system(size: 11)).monospacedDigit()
+                    .foregroundStyle(waiting ? Brand.warn : (running ? Brand.ok : Color.secondary.opacity(0.7)))
             }
-            .font(.system(size: 12.5))
-            .padding(.horizontal, 10).padding(.vertical, 5)
-            .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(on ? Brand.surface : .clear))
+            .padding(.horizontal, 8).frame(height: 30)
+            .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(Color.primary.opacity(on ? 0.08 : 0)))
             .contentShape(Rectangle())
         }
         .buttonStyle(RowButtonStyle())
         .noFocusRing()
-        .help(sess.title)
+        .help(running ? (sess.main?.lastAction ?? sess.title) : sess.title)
+    }
+
+    /// «5 daq», «3 soat», «2 kun»
+    static func short(_ d: Date?, now: Date) -> String {
+        guard let d else { return "" }
+        let t = max(0, now.timeIntervalSince(d))
+        if t < 60 { return "hozir" }
+        if t < 3600 { return "\(Int(t / 60)) daq" }
+        if t < 86_400 { return "\(Int(t / 3600)) soat" }
+        return "\(Int(t / 86_400)) kun"
+    }
+
+    // MARK: Limitlar
+
+    @ViewBuilder
+    private func limits(_ snap: Snapshot) -> some View {
+        let five = snap.limits?.fiveHour, week = snap.limits?.sevenDay
+        if five != nil || week != nil {
+            VStack(spacing: 9) {
+                if let five { limitRow("5 soat", five) }
+                if let week { limitRow("Hafta", week) }
+            }
+            .padding(.horizontal, 10).padding(.vertical, 10)
+            .padding(.bottom, 6)
+        }
+    }
+
+    private func limitRow(_ title: String, _ w: LimitWindow) -> some View {
+        let pct = min(100, max(0, w.usedPercentage))
+        let color = pct >= 90 ? Brand.err : (pct >= 70 ? Brand.warn : Brand.accent)
+        return HStack(spacing: 8) {
+            Text(title).font(.system(size: 11)).foregroundStyle(.secondary).frame(width: 42, alignment: .leading)
+            GeometryReader { g in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(Color.primary.opacity(0.08))
+                    Capsule().fill(color).frame(width: max(3, g.size.width * pct / 100))
+                }
+            }
+            .frame(height: 4)
+            Text("\(Int(pct.rounded()))%").font(.system(size: 11, weight: .semibold)).monospacedDigit()
+                .foregroundStyle(pct >= 70 ? color : .secondary)
+                .frame(width: 32, alignment: .trailing)
+        }
+        .help("\(title == "Hafta" ? "Haftalik" : "5 soatlik") limit: \(Int(pct.rounded()))% · tiklanadi \(Self.until(w.resetsAt)) dan keyin")
+    }
+
+    /// «2 soat 49 daq», bir kundan ko'p bo'lsa — «6 kun 0 soat»
+    static func until(_ date: Date) -> String {
+        let sec = max(0, date.timeIntervalSinceNow)
+        guard sec >= 86_400 else { return Alerts.duration(sec) }
+        let days = Int(sec / 86_400), hours = Int(sec.truncatingRemainder(dividingBy: 86_400) / 3600)
+        return hours > 0 ? "\(days) kun \(hours) soat" : "\(days) kun"
     }
 }
+

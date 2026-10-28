@@ -19,18 +19,11 @@ struct SessionHeader: View {
         let steps = turn?.steps ?? session.agents.reduce(0) { $0 + $1.steps.count }
         let tokens = turn?.tokens ?? session.tokens
         let active = turn?.active ?? (session.state != .idle)
-        // Keng oynada: chapda nom va belgilar, o'ngda raqamlar. Torida — raqamlar pastga tushadi,
-        // belgilar esa siqilmasdan keyingi qatorga o'tadi
-        ViewThatFits(in: .horizontal) {
-            HStack(alignment: .bottom, spacing: 24) {
-                titleBlock(active: active)
-                Spacer(minLength: 16)
-                kpis(duration: duration, steps: steps, tokens: tokens)
-            }
-            VStack(alignment: .leading, spacing: 14) {
-                titleBlock(active: active)
-                kpis(duration: duration, steps: steps, tokens: tokens)
-            }
+        // Chapda nom va belgilar (sig'masa — keyingi qatorga o'tadi), o'ngda raqamlar
+        HStack(alignment: .bottom, spacing: 16) {
+            titleBlock(active: active)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            kpis(duration: duration, steps: steps, tokens: tokens)
         }
         .padding(.horizontal, 24).padding(.top, 30)
     }
@@ -62,7 +55,7 @@ struct SessionHeader: View {
     }
 
     private func kpis(duration: TimeInterval, steps: Int, tokens: TokenCounts) -> some View {
-        HStack(spacing: 26) {
+        HStack(spacing: 20) {
             kpi(Alerts.duration(duration), "davomiylik")
             kpi("\(steps)", "qadam")
             kpi(Fmt.tokens(tokens.value(mode)), costUSD.map { "token · " + String(format: "$%.2f", $0).replacingOccurrences(of: ".", with: ",") } ?? "token")
