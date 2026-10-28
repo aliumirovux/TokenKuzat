@@ -49,6 +49,8 @@ struct GraphScreen: View {
     @State private var replayOn = false
     @State private var playing = false
     @State private var speed = 20.0
+    /// Oqim tabida: «process» — ketma-ket jarayon, «summary» — asboblar xulosasi
+    @AppStorage("flowStyle") private var flowStyle = "process"
     private let ticker = Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()
 
     var body: some View {
@@ -58,6 +60,7 @@ struct GraphScreen: View {
         // Replay paytida hamma ko'rinish sessiyaning o'sha paytdagi holatini oladi
         let session = live.map { l in replayOn ? l.replay(at: replayTime ?? range?.upperBound ?? s.updatedAt) : l }
         let now = replayOn ? (replayTime ?? range?.upperBound ?? s.updatedAt) : s.updatedAt
+        ScrollView {
         VStack(spacing: 0) {
             if let session, let live {
                 let turnNo = effectiveTurn(session)
@@ -81,6 +84,11 @@ struct GraphScreen: View {
                 }
                 tabs.padding(.horizontal, 24).padding(.top, 16).padding(.bottom, 10)
                 switch graphMode {
+                case "flow" where flowStyle == "process":
+                    ProcessFlowView(phases: Phase.build(tl), prompt: turn?.prompt ?? session.title,
+                                    result: flow.result, mode: mode, origin: tl.start)
+                        .card(padding: 0)
+                        .padding(.horizontal, 24).padding(.bottom, 20)
                 case "flow":
                     HStack(spacing: 0) {
                         FlowCanvas(session: session, model: flow, mode: mode,
@@ -96,18 +104,21 @@ struct GraphScreen: View {
                             inspector(session, now: now).frame(width: 320)
                         }
                     }
+                    .frame(height: 560)
                     .card(padding: 0)
                     .padding(.horizontal, 24).padding(.bottom, 20)
                 case "files":
                     FileHeatmapScreen(model: HeatmapModel(timeline: tl)) { f in
                         if let owner = f.ownerId { select(.resource(agentId: owner, category: .files)) }
                     }
+                    .frame(height: 560)
                     .card(padding: 0)
                     .padding(.horizontal, 24).padding(.bottom, 20)
                 default:
                     StepsPane(steps: tl.rows.flatMap { r in r.bars.map { (agent: r.agent, step: $0.step) } }
                                 .sorted { $0.step.date < $1.step.date },
                               origin: tl.start)
+                        .frame(height: 560)
                         .id(turnNo ?? 0)
                 }
             } else {
@@ -121,6 +132,7 @@ struct GraphScreen: View {
                     .padding(24)
                 }
             }
+        }
         }
         .animation(Motion.spring, value: replayOn)
         .animation(Motion.spring, value: graphMode)
@@ -147,6 +159,14 @@ struct GraphScreen: View {
             tab("files", "Fayllar", "square.grid.3x3")
             Spacer()
             if graphMode == "flow" {
+                Picker("", selection: $flowStyle) {
+                    Text("Jarayon").tag("process")
+                    Text("Xulosa").tag("summary")
+                }
+                .pickerStyle(.segmented).labelsHidden().fixedSize()
+                .help("Jarayon — qadamlar ketma-ketligi, Xulosa — qaysi asboblar ishlatilgani")
+            }
+            if graphMode == "flow" && flowStyle == "summary" {
                 Button { withAnimation(Motion.spring) { showInspector.toggle() } } label: { Image(systemName: "sidebar.right") }
                     .buttonStyle(.borderless)
                     .help(showInspector ? "Tafsilotlarni yashirish" : "Tafsilotlarni ko'rsatish")
