@@ -1,5 +1,11 @@
 # O'zgarishlar
 
+## 5.3.0 — 2026-10-28
+
+- Xarita bitta qatorda: kartalar satrga bo'linmaydi — chapdan o'ngga ulanib boradi (n8n kabi). Bo'limlar shu qatorda yonma-yon ramkalar (sarlavha o'z kartalari ustida); yig'ilgan bo'lim — qatordagi ixcham karta (mavzu, so'rovlar soni, vaqt, hajm, «Ochish»).
+- Shoxlar saqlandi: mahalliy ishlar tepaga, tashqilari pastga; tanlangan so'rov zanjiri karta ostida.
+- Xarita balandlikka sig'sa — vertikal markazda; ergashishda oxirgi karta o'ng tomonda.
+
 ## 5.2.0 — 2026-10-28
 
 - Xarita yana satrma-satr (eniga), daraxt va yo'lakli grafik o'rniga. Yangi: asboblar ma'no bo'yicha shoxlanadi — mahalliy ishlar (Fayllar, Terminal, boshqa) kartaning tepasiga, tashqi ishlar (Internet, tashqi xizmatlar, agentlar) pastiga. Tepada shox bo'lgan satr uchun joy oldindan qoldiriladi; tanlangan so'rovning jarayon zanjiri avvalgidek karta ostida.

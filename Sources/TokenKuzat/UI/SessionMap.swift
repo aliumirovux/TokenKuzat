@@ -133,6 +133,8 @@ private enum M {
     static let toolDrop: CGFloat = 112
     /// Yuqoriga shoxlar (mahalliy ishlar) uchun satr tepasida qoldiriladigan joy
     static let upReserve: CGFloat = 132
+    /// Yig'ilgan bo'lim kartasi kengligi
+    static let barW: CGFloat = 240
     static let toolD: CGFloat = 46
     static let toolStep: CGFloat = 68
     static let maxTools = 4
@@ -322,105 +324,93 @@ private struct MapLayout {
             }
         }
 
+        // Bitta qator: hamma kartalar chapdan o'ngga ulanib boradi; bo'limlar — yonma-yon ramkalar.
+        // Tepaga shox (mahalliy ishlar) bor bo'lsa — qator ustida joy qoldiriladi
+        let anyUp = !compact && sections.contains { sec in
+            isOpen(sec) && sec.cards.contains { c in
+                MapLayout.mergedTools([c.turn] + c.followUps).contains { MapLayout.goesUp($0.category) }
+            }
+        }
+        let headTop = y
+        let rowTop = headTop + M.headH + 16 + (anyUp ? M.upReserve : 0)
+        var x = left
+        var bottom = rowTop + M.cardH
+        _ = right; _ = rowGap
+
         for (si, sec) in sections.enumerated() {
             let open = isOpen(sec)
             let isLast = si == sections.count - 1
-            let frameTop = y
-            let h = open ? M.headH : M.barH
-            let head = MapNode(id: "h" + sec.id, kind: .header(sec, open: open),
-                               center: CGPoint(x: left + rowWidth / 2, y: y + h / 2), size: CGSize(width: rowWidth, height: h))
-            nodes.append(head)
             if !open {
-                // Yig'ilgan bo'lim — bitta chiziq: oqim unga kirib, undan chiqadi
+                // Yig'ilgan bo'lim — qatordagi bitta ixcham karta
+                let head = MapNode(id: "h" + sec.id, kind: .header(sec, open: false),
+                                   center: CGPoint(x: x + M.barW / 2, y: rowTop + M.cardH / 2),
+                                   size: CGSize(width: M.barW, height: M.cardH))
+                nodes.append(head)
                 connect(head, live: false)
                 flow = head
-                flowMid = nil
-                y = head.rect.maxY + M.sectionGap
-                if isLast {
-                    flowMid = y - M.sectionGap / 2
-                    let e = MapNode(id: "end", kind: .end(active: active, at: lastAt),
-                                    center: CGPoint(x: left + M.endD / 2, y: y + M.endD / 2), size: CGSize(width: M.endD, height: M.endD))
-                    nodes.append(e)
-                    connect(e, live: active)
-                    y = e.rect.maxY + 40
-                }
-                continue
-            }
-            if flow != nil { flowMid = frameTop - M.sectionGap / 2 }
-            // Satrlar oldindan bo'linadi: satrda yuqoriga shox bo'lsa — tepasida joy qoldiriladi
-            let perRow = max(1, Int((rowWidth + M.gap) / (M.cardW + M.gap)))
-            func hasUp(_ row: Int) -> Bool {
-                guard !compact else { return false }
-                return sec.cards.dropFirst(row * perRow).prefix(perRow).contains { c in
-                    MapLayout.mergedTools([c.turn] + c.followUps).contains { MapLayout.goesUp($0.category) }
-                }
-            }
-            var x = left
-            var rowTop = head.rect.maxY + 16 + (hasUp(0) ? M.upReserve : 0)
-            var rowBottom = rowTop + M.cardH
-            for (ci, card) in sec.cards.enumerated() {
-                if ci > 0 && ci % perRow == 0 {
-                    let gapTop = rowBottom + rowGap
-                    rowTop = gapTop + (hasUp(ci / perRow) ? M.upReserve : 0)
-                    rowBottom = rowTop + M.cardH
-                    x = left
-                    flowMid = gapTop - rowGap / 2
-                }
-                // Qisqa javob-so'rovlar kartaning ichida, pastki qatorlarda — karta shunga cho'ziladi
-                let h = compact ? M.cardH : M.cardH + TurnCard.followUpsHeight(card.followUps.count)
-                let n = MapNode(id: card.id, kind: .turn(card.turn, sessionId: card.sessionId, previousPrompt: card.previousPrompt,
-                                                         expanded: card.contains(expanded) && !steps.isEmpty ? steps.count : nil,
-                                                         followUps: card.followUps),
-                                center: CGPoint(x: x + M.cardW / 2, y: rowTop + h / 2), size: CGSize(width: M.cardW, height: h))
-                nodes.append(n)
-                connect(n, live: card.turn.active || card.followUps.contains(where: \.active))
-                flow = n
-                flowMid = nil
-                lastTurn = n
+                x = head.rect.maxX + M.gap
+            } else {
+                let x0 = x
+                var secBottom = rowTop + M.cardH
+                for card in sec.cards {
+                    // Qisqa javob-so'rovlar kartaning ichida, pastki qatorlarda — karta shunga cho'ziladi
+                    let h = compact ? M.cardH : M.cardH + TurnCard.followUpsHeight(card.followUps.count)
+                    let n = MapNode(id: card.id, kind: .turn(card.turn, sessionId: card.sessionId, previousPrompt: card.previousPrompt,
+                                                             expanded: card.contains(expanded) && !steps.isEmpty ? steps.count : nil,
+                                                             followUps: card.followUps),
+                                    center: CGPoint(x: x + M.cardW / 2, y: rowTop + h / 2), size: CGSize(width: M.cardW, height: h))
+                    nodes.append(n)
+                    connect(n, live: card.turn.active || card.followUps.contains(where: \.active))
+                    flow = n
+                    lastTurn = n
 
-                // Shoxlar: mahalliy ishlar (fayllar, terminal) — yuqoriga, tashqi (internet, xizmatlar, agentlar) — pastga.
-                // Tanlangan so'rovda pastga — butun jarayon zanjiri
-                var colY = n.rect.maxY
-                if !compact {
-                    let tools = MapLayout.mergedTools([card.turn] + card.followUps)
-                    let upTools = tools.filter { MapLayout.goesUp($0.category) }
-                    let downTools = tools.filter { !MapLayout.goesUp($0.category) }
-                    _ = placeTools(upTools, port: CGPoint(x: n.center.x, y: n.rect.minY), centerY: n.rect.minY - M.toolDrop + 10,
-                                   up: true, idPrefix: card.id + "/u", sessionId: card.sessionId, turnId: card.turn.id)
-                    let port = CGPoint(x: n.center.x, y: n.rect.maxY)
-                    if card.contains(expanded) && !steps.isEmpty {
-                        let tid = Int(expanded?.split(separator: "#").last ?? "") ?? card.turn.id
-                        colY = placeSteps(steps, port: port, top: colY + M.stepTop,
-                                          idPrefix: card.id, sessionId: card.sessionId, turnId: tid)
-                        stepsBottom = colY
-                    } else {
-                        colY = placeTools(downTools, port: port, centerY: colY + M.toolDrop, up: false,
-                                          idPrefix: card.id, sessionId: card.sessionId, turnId: card.turn.id) ?? colY
+                    // Shoxlar: mahalliy ishlar (fayllar, terminal) — yuqoriga, tashqi (internet, xizmatlar, agentlar) — pastga.
+                    // Tanlangan so'rovda pastga — butun jarayon zanjiri
+                    var colY = n.rect.maxY
+                    if !compact {
+                        let tools = MapLayout.mergedTools([card.turn] + card.followUps)
+                        let upTools = tools.filter { MapLayout.goesUp($0.category) }
+                        let downTools = tools.filter { !MapLayout.goesUp($0.category) }
+                        _ = placeTools(upTools, port: CGPoint(x: n.center.x, y: n.rect.minY), centerY: n.rect.minY - M.toolDrop + 10,
+                                       up: true, idPrefix: card.id + "/u", sessionId: card.sessionId, turnId: card.turn.id)
+                        let port = CGPoint(x: n.center.x, y: n.rect.maxY)
+                        if card.contains(expanded) && !steps.isEmpty {
+                            let tid = Int(expanded?.split(separator: "#").last ?? "") ?? card.turn.id
+                            colY = placeSteps(steps, port: port, top: colY + M.stepTop,
+                                              idPrefix: card.id, sessionId: card.sessionId, turnId: tid)
+                            stepsBottom = colY
+                        } else {
+                            colY = placeTools(downTools, port: port, centerY: colY + M.toolDrop, up: false,
+                                              idPrefix: card.id, sessionId: card.sessionId, turnId: card.turn.id) ?? colY
+                        }
                     }
+                    secBottom = max(secBottom, colY)
+                    x += M.cardW + M.gap
                 }
-                rowBottom = max(rowBottom, colY)
-                x += M.cardW + M.gap
+                let secW = max(M.cardW, x - M.gap - x0)
+                // Bo'lim sarlavhasi — o'z kartalari ustida, ramka tepasida
+                let head = MapNode(id: "h" + sec.id, kind: .header(sec, open: true),
+                                   center: CGPoint(x: x0 + secW / 2, y: headTop + M.headH / 2),
+                                   size: CGSize(width: secW, height: M.headH))
+                nodes.append(head)
+                frames.append(MapFrame(id: sec.id,
+                                       rect: CGRect(x: x0 - M.framePad, y: headTop - 8,
+                                                    width: secW + 2 * M.framePad, height: secBottom + M.framePad - headTop + 8),
+                                       active: sec.active))
+                bottom = max(bottom, secBottom)
+                x += 2 * M.framePad
             }
             if isLast {
-                // Yakun tuguni — oxirgi karta yonida (sig'sa) yoki keyingi satr boshida
-                if x + M.endD > right + M.gap {
-                    rowTop = rowBottom + rowGap
-                    rowBottom = rowTop + M.cardH
-                    x = left
-                    flowMid = rowTop - rowGap / 2
-                }
                 let e = MapNode(id: "end", kind: .end(active: active, at: lastAt),
                                 center: CGPoint(x: x + M.endD / 2, y: rowTop + M.cardH / 2), size: CGSize(width: M.endD, height: M.endD))
                 nodes.append(e)
                 connect(e, live: active)
+                x = e.rect.maxX + M.gap
             }
-            frames.append(MapFrame(id: sec.id,
-                                   rect: CGRect(x: left - M.framePad, y: frameTop - 8,
-                                                width: rowWidth + 2 * M.framePad, height: rowBottom + M.framePad - frameTop + 8),
-                                   active: sec.active))
-            y = rowBottom + M.framePad + M.sectionGap
         }
-        size = CGSize(width: right + M.pad, height: y + M.pad)
+        y = bottom + M.framePad
+        size = CGSize(width: x + M.pad, height: y + M.pad)
+
     }
 
     /// Qadamlar ustun bo'ylab pastga, vaqt bo'yicha; ko'p bo'lsa — oxirgilari, tepada «+N oldingi». Pastki chegarani qaytaradi
@@ -818,9 +808,13 @@ struct SessionMapView: View {
         let rightEdge = max(card.maxX, end?.maxX ?? 0)
         let bottom = max(card.maxY, layout.stepsBottom ?? 0)
         let x = min(0, vs.width - (rightEdge + M.pad) * scale)
-        let a = 56 - card.minY * scale
+        // Bitta qator: tepasi (bo'lim sarlavhalari va yuqori shoxlar) ko'rinadi; zanjir uzun bo'lsa — uning oxiri
+        let a = 16 - (M.pad - 16) * scale
         let b = vs.height - (bottom + 40) * scale
-        let target = clamped(CGSize(width: x, height: b < a ? b : a), vs: vs, world: layout.size)
+        // Balandlikka sig'sa — vertikal markazda
+        let ch = layout.size.height * scale
+        let ty = ch <= vs.height ? (vs.height - ch) / 2 : (b < a ? b : a)
+        let target = clamped(CGSize(width: x, height: ty), vs: vs, world: layout.size)
         if animated && !reduceMotion { withAnimation(Motion.spring) { pan = target } } else { pan = target }
     }
 
@@ -1135,24 +1129,35 @@ private struct MapSectionHeader: View {
                 }
                 .padding(.horizontal, 6)
             } else {
-                HStack(spacing: 12 * k) {
-                    Image(systemName: "chevron.right").font(.system(size: 11 * k, weight: .bold)).foregroundStyle(.tertiary)
-                    status
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(section.topic).font(.system(size: 13 * k, weight: .semibold)).lineLimit(1)
-                        if lod == nil {
-                            Text("\(time) · \(section.turnCount) so'rov · \(dur) · \(Fmt.tokens(section.tokens)) · \(section.steps) qadam")
-                                .font(.caption.monospacedDigit()).foregroundStyle(.secondary).lineLimit(1)
+                // Yig'ilgan bo'lim — qatordagi ixcham karta: mavzu, vaqt va hajm
+                VStack(alignment: .leading, spacing: 6 * k) {
+                    HStack(spacing: 6 * k) {
+                        status
+                        Text("\(section.turnCount) so'rov").font(.system(size: 11 * k, weight: .semibold)).foregroundStyle(.secondary)
+                        Spacer(minLength: 4)
+                        if let r = section.reason, lod == nil { reason(r) }
+                    }
+                    Text(section.topic).font(.system(size: 13 * k, weight: .semibold)).lineLimit(3)
+                    Spacer(minLength: 0)
+                    if lod == nil {
+                        Text("\(time) · \(dur)").font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+                        HStack {
+                            Text("\(Fmt.tokens(section.tokens)) · \(section.steps) qadam")
+                                .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+                            Spacer()
+                            Label("Ochish", systemImage: "chevron.right").labelStyle(.titleAndIcon)
+                                .font(.caption.weight(.semibold)).foregroundStyle(Brand.accent)
                         }
                     }
-                    Spacer(minLength: 8)
-                    if let r = section.reason { reason(r) }
-                    if lod == nil {
-                        Text("Ochish").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
-                    }
                 }
-                .padding(.horizontal, 16)
-                .surface(radius: 14, tint: section.active ? Brand.ok : nil, interactive: true)
+                .padding(14)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .surface(radius: 16, tint: section.active ? Brand.ok : nil, interactive: true)
+                .overlay(alignment: .trailing) {
+                    // Ichida kartalar borligini bildiruvchi qatlam izi
+                    RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(Brand.line)
+                        .offset(x: 5, y: 5).allowsHitTesting(false)
+                }
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
