@@ -233,6 +233,22 @@ private struct MapSection: Identifiable {
         }
         return out
     }
+
+    /// «Faqat shu so'rov» rejimi: tanlangan (yoki eng so'nggi) karta o'z bo'limida yolg'iz qoladi, qolganlari yashiriladi
+    static func focused(_ secs: [MapSection], on key: String?, mode: CountMode) -> [MapSection] {
+        guard let si = secs.lastIndex(where: { $0.contains(key) }) ?? (secs.isEmpty ? nil : secs.count - 1),
+              let card = secs[si].cards.last(where: { $0.contains(key) }) ?? secs[si].cards.last else { return secs }
+        let turns = [card.turn] + card.followUps
+        var sec = MapSection(id: secs[si].id, topic: card.turn.prompt, reason: secs[si].reason,
+                             start: card.turn.start, end: turns.map(\.end).max() ?? card.turn.end)
+        sec.cards = [card]
+        sec.turnCount = turns.count
+        sec.tokens = turns.reduce(0) { $0 + $1.tokens.value(mode) }
+        sec.steps = turns.reduce(0) { $0 + $1.steps }
+        sec.errors = turns.reduce(0) { $0 + $1.errors }
+        sec.active = turns.contains(where: \.active)
+        return [sec]
+    }
 }
 
 private struct MapNode: Identifiable {
@@ -554,14 +570,17 @@ struct SessionMapView: View {
     /// Robot: patrul qadami va oxirgi bosilgan payt
     @State private var patrolTick = 0
     @State private var poke: Date?
+    /// Faqat tanlangan (sukut bo'yicha — hozirgi) so'rovni ko'rsatish, qolganlarini yashirish
+    @AppStorage("map.focusOne") private var focusOne = false
     private let patrolTimer = Timer.publish(every: 5, on: .main, in: .common).autoconnect()
     @StateObject private var wheel = WheelMonitor()
     @StateObject private var cache = LayoutCache()
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        let secs = MapSection.build(chain, mode: mode)
         let expandedId = selectedTurn ?? lastTurnId
+        let all = MapSection.build(chain, mode: mode)
+        let secs = focusOne ? MapSection.focused(all, on: expandedId, mode: mode) : all
         GeometryReader { geo in
             let vs = geo.size
             // Satr kengligi: odatdagi masshtabda oynaga to'liq sig'adi (kamida 3 karta)
@@ -793,6 +812,25 @@ struct SessionMapView: View {
             }
             .buttonStyle(.plain)
             .help("Oxirgi so'rovga o'tish va yangi so'rovlarga ergashish")
+
+            Button {
+                withAnimation(Motion.spring) { focusOne.toggle() }
+                follow = true
+                // Joylashuv yangilangach — kartaga markazlashadi
+                DispatchQueue.main.async { if let l = cache.layout { focusLast(l, vs, animated: true, rescale: true) } }
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: focusOne ? "rectangle.on.rectangle" : "scope")
+                    Text(focusOne ? "Hammasini ko'rsatish" : "Faqat shu so'rov")
+                }
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(focusOne ? Brand.accent : Color.primary)
+                .padding(.horizontal, 10).frame(height: 28)
+                .surface(radius: 10, interactive: true)
+            }
+            .buttonStyle(.plain)
+            .help(focusOne ? "Barcha so'rovlarni qaytarish"
+                           : "Faqat hozirgi (yoki tepada tanlangan) so'rovni ko'rsatish, qolganlarini yashirish")
         }
     }
 
@@ -844,7 +882,9 @@ struct SessionMapView: View {
         let end = layout.nodes.first { $0.id == "end" }?.rect
         let rightEdge = max(card.maxX, end?.maxX ?? 0)
         let bottom = max(card.maxY, layout.stepsBottom ?? 0)
-        let x = min(0, vs.width - (rightEdge + M.pad) * scale)
+        // «Faqat shu so'rov»da xarita oynaga sig'sa — gorizontal markazda
+        let cw = layout.size.width * scale
+        let x = focusOne && cw <= vs.width ? (vs.width - cw) / 2 : min(0, vs.width - (rightEdge + M.pad) * scale)
         // Bitta qator: tepasi (bo'lim sarlavhalari va yuqori shoxlar) ko'rinadi; zanjir uzun bo'lsa — uning oxiri
         let a = 16 - (M.pad - 16) * scale
         let b = vs.height - (bottom + 40) * scale

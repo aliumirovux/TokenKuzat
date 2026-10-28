@@ -1,5 +1,9 @@
 # O'zgarishlar
 
+## 6.2.0 — 2026-10-28
+
+- Xaritada «Faqat shu so'rov» tugmasi: hozir ishlayotgan (yoki tepada tanlangan) so'rov kartasi, uning qadamlari, asboblari va robot qoladi — qolgan so'rovlar yashiriladi. Karta oyna markazida; yangi so'rov kelsa, xarita unga o'tadi. Tanlov eslab qolinadi; «Hammasini ko'rsatish» — qaytarish.
+
 ## 6.1.0 — 2026-10-28
 
 - «Yangi sessiyada davom ettirish»: bitta tugma — xulosa saqlanadi va keyingi 2 soat ichida ochilgan yangi Claude Code sessiyasi uni avtomatik oladi (SessionStart hook, additionalContext). Hech narsa nusxalab qo'yish shart emas; zaxira uchun nusxaga ham olinadi. Xulosa bir marta beriladi; `resume`, `/compact`, boshqa loyiha papkasi va eski sessiyaning o'ziga berilmaydi. Hook xulosa yo'q paytda hech narsa ishga tushirmaydi. Sozlamalarda uzish mumkin.
