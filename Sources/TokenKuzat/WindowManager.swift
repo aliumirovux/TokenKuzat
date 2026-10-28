@@ -42,6 +42,8 @@ final class WindowManager: NSObject, NSWindowDelegate {
                              backing: .buffered, defer: false)
             w.title = "Token Kuzatuv"
             w.titlebarAppearsTransparent = true
+            // Sarlavha matni ko'rinmaydi (Dock va Mission Control uchun nomi saqlanadi)
+            w.titleVisibility = .hidden
             w.toolbarStyle = .unified
             w.contentView = NSHostingView(rootView: root)
             w.isReleasedWhenClosed = false
