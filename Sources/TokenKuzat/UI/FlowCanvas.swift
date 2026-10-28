@@ -436,18 +436,6 @@ private struct DotGridBackground: View {
 // MARK: - Tugunlar
 
 
-private struct PulseStroke<S: Shape>: View {
-    let shape: S
-    let color: Color
-    var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 20)) { ctx in
-            let t = ctx.date.timeIntervalSinceReferenceDate
-            shape.stroke(color.opacity(0.5 + 0.5 * sin(t * 3)), lineWidth: 2.5)
-                .shadow(color: color.opacity(0.5), radius: 8)
-        }
-        .allowsHitTesting(false)
-    }
-}
 
 /// n8n trigger tuguni kabi: chap tomoni yumaloq
 private struct TriggerShapeNode: View {
@@ -522,7 +510,7 @@ private struct FlowAgentNode: View {
         .frame(width: w, height: h)
         .modifier(Surface(shape: shape, tint: agent.state == .running ? .green : nil, interactive: true,
                                stroke: selected ? .accentColor : nil))
-        .overlay { if agent.state == .running { PulseStroke(shape: shape, color: .green) } }
+        .overlay { if agent.state == .running { LiveBorder(shape: shape, color: Brand.ok, lineWidth: 2) } }
         .scaleEffect(selected ? 1.02 : 1)
         .animation(Motion.spring, value: selected)
         .overlay(alignment: .topLeading) {
@@ -568,7 +556,7 @@ private struct ToolBubbleNode: View {
                             .font(.system(size: diameter * 0.36, weight: .medium))
                             .foregroundStyle(bubble.recent || bubble.busy ? color : color.opacity(0.75))
                     }
-                    .overlay { if bubble.busy { PulseStroke(shape: Circle(), color: color) } }
+                    .overlay { if bubble.busy { LiveBorder(shape: Circle(), color: color, lineWidth: 2, period: 2.4) } }
                     .frame(width: diameter, height: diameter)
                 if bubble.category != nil {
                     Text(bubble.errors > 0 ? "\(bubble.calls) · \(bubble.errors)!" : "\(bubble.calls)")
@@ -611,7 +599,7 @@ private struct ResultNode: View {
             }
             .frame(width: F.resultW, height: F.resultW)
             .modifier(Surface(shape: shape, tint: result.active ? .green : color))
-            .overlay { if result.active { PulseStroke(shape: shape, color: .green) } }
+            .overlay { if result.active { LiveBorder(shape: shape, color: Brand.ok, lineWidth: 2) } }
             VStack(spacing: 2) {
                 Text(result.active ? "Ishlayapti…" : "Natija").font(.caption.weight(.semibold))
                 Text("\(Alerts.duration(result.duration)) · \(Fmt.tokens(result.tokens.value(mode)))")

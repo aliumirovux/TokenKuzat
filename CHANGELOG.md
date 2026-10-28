@@ -1,5 +1,11 @@
 # O'zgarishlar
 
+## 4.3.0 — 2026-10-28
+
+- Ishlayotgan kartalar chegarasi bo'ylab yorug'lik aylanib yuradi (`LiveBorder`): oq bosh, rangli so'nuvchi dum, yengil nur. Qo'llangan joylar: agent tuguni, ishlayotgan asbob doirasi, «Ishlayapti…» natija tuguni, Jarayondagi bajarilayotgan bosqich, «Bugun»dagi «Hozir» kartasi.
+- «Harakatni kamaytirish» yoqilgan bo'lsa — tinch rangli chegara.
+- Eski yonib-o'chuvchi (PulseStroke) chegara olib tashlandi.
+
 ## 4.2.0 — 2026-10-28
 
 - Jonli chiziqlar — ma'lumot almashinuvi: chiziq bo'ylab yorug'likli «kometa» paketlar yuradi; so'rov oldinga (asosiy rangda), javob orqaga (ochroq), ease-in-out harakat, chiziq chetlarida yumshoq kirib-chiqadi.

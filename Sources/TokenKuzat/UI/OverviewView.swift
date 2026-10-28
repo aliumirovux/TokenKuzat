@@ -294,6 +294,7 @@ struct NowRow: View {
         }
         .padding(.horizontal, 18).padding(.vertical, 16)
         .card(padding: 0)
+        .overlay { if active != nil { LiveBorder(shape: RoundedRectangle(cornerRadius: 20, style: .continuous), color: Brand.ok, period: 4) } }
         .animation(Motion.spring, value: active?.id)
     }
 

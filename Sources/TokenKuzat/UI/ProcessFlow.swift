@@ -271,8 +271,9 @@ struct ProcessFlowView: View {
         .frame(width: nodeW, height: nodeH, alignment: .topLeading)
         .background(shape.fill(Brand.surface))
         .background(shape.fill((p.status == .failed ? Brand.err : (p.status == .running ? Brand.ok : .clear)).opacity(0.06)))
-        .overlay(shape.stroke(selected ? Brand.accent : (p.status == .running ? Brand.ok : (p.status == .failed ? Brand.err.opacity(0.5) : Brand.line)),
-                              lineWidth: selected || p.status == .running ? 1.8 : 1))
+        .overlay(shape.stroke(selected ? Brand.accent : (p.status == .failed ? Brand.err.opacity(0.5) : (p.status == .running ? .clear : Brand.line)),
+                              lineWidth: selected ? 1.8 : 1))
+        .overlay { if p.status == .running { LiveBorder(shape: shape, color: Brand.ok) } }
         .shadow(color: .black.opacity(selected ? 0.12 : 0.04), radius: selected ? 10 : 4, y: 2)
         .scaleEffect(selected ? 1.02 : 1)
         .animation(Motion.spring, value: selected)

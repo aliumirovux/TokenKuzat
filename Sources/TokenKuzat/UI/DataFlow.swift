@@ -73,3 +73,42 @@ extension Color {
                      opacity: Double(a.alphaComponent))
     }
 }
+
+/// Ishlayotgan karta chegarasi: chegara bo'ylab yorug'lik aylanib yuradi (oq bosh, rangli so'nuvchi dum)
+/// va atrofida yengil nur. «Harakatni kamaytirish» yoqilgan bo'lsa — tinch rangli chegara.
+struct LiveBorder<S: InsettableShape>: View {
+    let shape: S
+    var color: Color = Brand.ok
+    var lineWidth: CGFloat = 1.8
+    /// Bir aylanish, soniya
+    var period: Double = 3.2
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        Group {
+            if reduceMotion {
+                shape.strokeBorder(color.opacity(0.8), lineWidth: lineWidth)
+            } else {
+                TimelineView(.animation(minimumInterval: 1.0 / 60)) { ctx in
+                    // Burchak bitta aylanish ichida: katta vaqt qiymatida gradient aniqligini yo'qotmasin
+                    let angle = ctx.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: period) / period * 360
+                    let grad = AngularGradient(gradient: Gradient(stops: [
+                        .init(color: color.opacity(0.12), location: 0),
+                        .init(color: color.opacity(0.12), location: 0.50),
+                        .init(color: color.opacity(0.55), location: 0.72),
+                        .init(color: color, location: 0.86),
+                        .init(color: .white.opacity(0.95), location: 0.93),
+                        .init(color: color.opacity(0.4), location: 0.97),
+                        .init(color: color.opacity(0.12), location: 1),
+                    ]), center: .center, angle: .degrees(angle))
+                    ZStack {
+                        // Nur: qalinroq, xiralashtirilgan nusxa
+                        shape.strokeBorder(grad, lineWidth: lineWidth + 5).blur(radius: 7).opacity(0.55)
+                        shape.strokeBorder(grad, lineWidth: lineWidth)
+                    }
+                }
+            }
+        }
+        .allowsHitTesting(false)
+    }
+}
