@@ -416,3 +416,52 @@ final class RateLimitsTests: XCTestCase {
         XCTAssertNotNil(r.active(at: now).sevenDay)
     }
 }
+
+final class ReplayTests: XCTestCase {
+    func testReplayAtMoments() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("tk-replay-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: root.appendingPathComponent("p/s/subagents"), withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let t0 = Date().addingTimeInterval(-1000)
+        func ts(_ s: Double) -> String { f.string(from: t0.addingTimeInterval(s)) }
+        let main = [
+            #"{"type":"user","timestamp":"\#(ts(0))","message":{"content":"Boshla"}}"#,
+            #"{"type":"assistant","timestamp":"\#(ts(10))","message":{"id":"a","content":[{"type":"tool_use","id":"t1","name":"Edit","input":{"file_path":"/x/A.swift"}}],"usage":{"input_tokens":0,"output_tokens":100}}}"#,
+            #"{"type":"user","timestamp":"\#(ts(40))","message":{"content":[{"type":"tool_result","tool_use_id":"t1"}]}}"#,
+            #"{"type":"assistant","timestamp":"\#(ts(60))","message":{"id":"b","content":[{"type":"text","text":"tayyor"}],"usage":{"input_tokens":0,"output_tokens":50}}}"#,
+        ]
+        try (main.joined(separator: "\n") + "\n").write(to: root.appendingPathComponent("p/s.jsonl"), atomically: true, encoding: .utf8)
+        let helper = [
+            #"{"type":"user","isSidechain":true,"agentId":"h","timestamp":"\#(ts(20))","message":{"content":"Qidir"}}"#,
+            #"{"type":"assistant","isSidechain":true,"agentId":"h","timestamp":"\#(ts(25))","message":{"id":"c","content":[{"type":"text","text":"ok"}],"usage":{"input_tokens":0,"output_tokens":7}}}"#,
+        ]
+        try (helper.joined(separator: "\n") + "\n").write(to: root.appendingPathComponent("p/s/subagents/agent-h.jsonl"), atomically: true, encoding: .utf8)
+
+        let s = try XCTUnwrap(Engine(config: Engine.Config(roots: [root])).tick().sessions.first)
+        XCTAssertEqual(s.tokens.total, 157)
+
+        // 15-soniya: tahrir boshlangan, tugamagan; yordamchi hali yo'q
+        let a = s.replay(at: t0.addingTimeInterval(15))
+        XCTAssertEqual(a.agents.count, 1)
+        XCTAssertEqual(a.main?.steps.last?.status, .running)
+        XCTAssertEqual(a.main?.steps.last?.duration ?? 0, 5, accuracy: 0.01)
+        XCTAssertEqual(a.tokens.total, 100)
+        XCTAssertEqual(a.state, .running)
+        XCTAssertEqual(a.main?.resources.first?.busy, true)
+
+        // 30-soniya: yordamchi ishga tushgan
+        let b = s.replay(at: t0.addingTimeInterval(30))
+        XCTAssertEqual(b.agents.count, 2)
+        XCTAssertEqual(b.tokens.total, 107)
+
+        // Oxirida — hammasi tugagan, tokenlar to'liq
+        let c = s.replay(at: t0.addingTimeInterval(500))
+        XCTAssertEqual(c.tokens.total, 157)
+        XCTAssertEqual(c.main?.steps.last?.status, .done)
+        XCTAssertEqual(c.turns.first?.tokens.total, 157)
+        XCTAssertEqual(c.state, .idle)
+        XCTAssertNotNil(s.timeRange)
+    }
+}

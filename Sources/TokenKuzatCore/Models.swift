@@ -32,10 +32,17 @@ public struct AgentSnap: Identifiable, Sendable {
     public let steps: [StepSnap]
     /// Agent nimalarga kirdi — tur bo'yicha guruhlangan, eng so'nggi faol guruh birinchi
     public let resources: [ResourceGroup]
+    /// Har bir sanalgan javob: vaqti va tokenlari (replay uchun), eskidan yangiga
+    public let usage: [UsagePoint]
 
     public var toolsLine: String {
         topTools.prefix(3).map { "\($0.name) \($0.count)" }.joined(separator: " · ")
     }
+}
+
+public struct UsagePoint: Sendable {
+    public let date: Date
+    public let tokens: TokenCounts
 }
 
 public enum StepStatus: Sendable {

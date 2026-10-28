@@ -271,7 +271,11 @@ public final class Engine {
         }
         agent.calls += 1
         agent.tokens.add(c)
-        if let ts = ev.timestamp { session.usageLog.append((ts, c)) }
+        if let ts = ev.timestamp {
+            session.usageLog.append((ts, c))
+            agent.usage.append(UsagePoint(date: ts, tokens: c))
+            if agent.usage.count > 3000 { agent.usage.removeFirst(agent.usage.count - 2000) }
+        }
         sourceUsage[fs.rootIndex, default: 0] += 1
         if agent.isMain { session.context = c.input + c.cacheRead + c.cacheWrite }
 
@@ -370,7 +374,8 @@ public final class Engine {
                     lastAction: a.lastAction.isEmpty ? "—" : a.lastAction,
                     state: st, lastActivity: a.lastActivity, firstActivity: a.firstActivity,
                     steps: a.steps.suffix(150).map { $0.snap(now: now, turn: Engine.turnIndex(starts, $0.start)) },
-                    resources: a.resourceGroups(now: now)))
+                    resources: a.resourceGroups(now: now),
+                    usage: a.usage))
             }
             if best != .idle { snap.activeSessions += 1 }
             // Ishlayotgan sessiya eski bo'lsa ham ko'rinadi
@@ -527,6 +532,7 @@ private final class AgentAcc {
     var metaFound = false
     var metaAttempts = 0
     var steps: [StepAcc] = []
+    var usage: [UsagePoint] = []
     var resources: [String: ResourceAcc] = [:]
 
     func resource(_ t: ToolTarget) -> ResourceAcc {

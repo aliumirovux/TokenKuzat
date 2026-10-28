@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import Combine
 import TokenKuzatCore
 
 // Agentlar sxemasi: chapda n8n uslubidagi jarayon oqimi (FlowCanvas), o'ngda tanlangan tugun tafsiloti —
@@ -43,24 +44,44 @@ struct GraphScreen: View {
     @State private var selection: Selection?
     /// nil — eng so'nggi so'rov (yangisi kelsa o'zi o'tadi), 0 — butun sessiya
     @State private var turnId: Int?
+    /// Replay: nil — jonli holat
+    @State private var replayTime: Date?
+    @State private var replayOn = false
+    @State private var playing = false
+    @State private var speed = 20.0
+    private let ticker = Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()
 
     var body: some View {
         let s = store.snap
-        let session = s.sessions.first(where: { $0.id == sessionId }) ?? s.sessions.first
+        let live = s.sessions.first(where: { $0.id == sessionId }) ?? s.sessions.first
+        let range = live.flatMap { replayRange($0) }
+        // Replay paytida hamma ko'rinish sessiyaning o'sha paytdagi holatini oladi
+        let session = live.map { l in replayOn ? l.replay(at: replayTime ?? range?.upperBound ?? s.updatedAt) : l }
+        let now = replayOn ? (replayTime ?? range?.upperBound ?? s.updatedAt) : s.updatedAt
         VStack(spacing: 0) {
-            topBar(s, session)
+            topBar(s, live)
             Divider()
+            if replayOn, let range, let live {
+                ReplayBar(range: range,
+                          steps: live.agents.flatMap(\.steps).filter { range.contains($0.date) },
+                          time: Binding(get: { replayTime }, set: { t in
+                              if t == nil { replayOn = false }
+                              replayTime = t
+                          }),
+                          playing: $playing, speed: $speed)
+                Divider()
+            }
             if let session {
                 HStack(spacing: 0) {
                     let turn = effectiveTurn(session)
-                    let flow = FlowModel(session: session, turnId: turn, now: s.updatedAt)
+                    let flow = FlowModel(session: session, turnId: turn, now: now)
                     if graphMode == "files" {
-                        let tl = TimelineModel(flow: flow, session: session, turnId: turn, now: s.updatedAt)
+                        let tl = TimelineModel(flow: flow, session: session, turnId: turn, now: now)
                         FileHeatmapScreen(model: HeatmapModel(timeline: tl)) { f in
                             if let owner = f.ownerId { select(.resource(agentId: owner, category: .files)) }
                         }
                     } else if graphMode == "timeline" {
-                        TimelineScreen(model: TimelineModel(flow: flow, session: session, turnId: turn, now: s.updatedAt),
+                        TimelineScreen(model: TimelineModel(flow: flow, session: session, turnId: turn, now: now),
                                        selectedAgent: currentSelection(session)?.agentId,
                                        onSelectAgent: { select(.agent($0)) },
                                        onSelectStep: { a, st in select(.resource(agentId: a.id, category: st.category)) })
@@ -77,7 +98,7 @@ struct GraphScreen: View {
                     }
                     if showInspector {
                         Divider()
-                        inspector(session, now: s.updatedAt).frame(width: 340)
+                        inspector(session, now: now).frame(width: 340)
                     }
                 }
             } else {
@@ -92,7 +113,18 @@ struct GraphScreen: View {
                 }
             }
         }
-        .onChange(of: sessionId) { _ in selection = nil; turnId = nil }
+        .onChange(of: sessionId) { _ in selection = nil; turnId = nil; stopReplay() }
+        .onChange(of: turnId) { _ in if replayOn { replayTime = live.flatMap { replayRange($0) }?.lowerBound } }
+        .onReceive(ticker) { _ in
+            guard replayOn, playing, let range else { return }
+            let next = (replayTime ?? range.lowerBound).addingTimeInterval(0.1 * speed)
+            if next >= range.upperBound {
+                replayTime = range.upperBound
+                playing = false
+            } else {
+                replayTime = next
+            }
+        }
     }
 
     // MARK: Yuqori panel
@@ -123,6 +155,21 @@ struct GraphScreen: View {
                 Text("\(session.turns.count) so'rov · \(steps) qadam · \(Fmt.tokens(session.tokens.value(mode)))")
                     .font(.caption).foregroundStyle(.secondary).monospacedDigit()
                     .lineLimit(1).truncationMode(.head).layoutPriority(-1)
+            }
+            if let session {
+                Button {
+                    if replayOn { stopReplay() } else {
+                        replayOn = true
+                        replayTime = replayRange(session)?.lowerBound
+                        playing = true
+                    }
+                } label: {
+                    Label("Replay", systemImage: replayOn ? "clock.arrow.circlepath" : "play.circle")
+                }
+                .buttonStyle(.bordered)
+                .tint(replayOn ? .accentColor : nil)
+                .disabled(replayRange(session) == nil)
+                .help("Tanlangan so'rovni (yoki butun sessiyani) boshidan qayta ijro etish")
             }
             Button { withAnimation(.easeInOut(duration: 0.2)) { showInspector.toggle() } } label: {
                 Image(systemName: "sidebar.right")
@@ -160,6 +207,22 @@ struct GraphScreen: View {
                 .help("Keyingi so'rov")
         }
         .layoutPriority(1)
+    }
+
+    /// Replay oralig'i: tanlangan so'rov (keyingisigacha) yoki butun sessiya
+    private func replayRange(_ session: SessionSnap) -> ClosedRange<Date>? {
+        guard let id = effectiveTurn(session), let t = session.turns.first(where: { $0.id == id }) else {
+            return session.timeRange
+        }
+        let next = session.turns.first { $0.id == id + 1 }?.start
+        let end = max(t.end, t.start.addingTimeInterval(5))
+        return t.start...min(end, next ?? end)
+    }
+
+    private func stopReplay() {
+        replayOn = false
+        playing = false
+        replayTime = nil
     }
 
     /// Tanlangan so'rov raqami; nil — butun sessiya
