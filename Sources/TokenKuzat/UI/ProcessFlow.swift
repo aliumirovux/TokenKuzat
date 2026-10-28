@@ -72,6 +72,8 @@ struct ProcessFlowView: View {
     let origin: Date
     @State private var selected: String?
     @State private var width: CGFloat = 900
+    @State private var entered = false
+    @State private var appearedAt = Date.distantPast
 
     private let nodeW: CGFloat = 210
     private let nodeH: CGFloat = 104
@@ -104,6 +106,7 @@ struct ProcessFlowView: View {
                 ForEach(Array(items.enumerated()), id: \.element.id) { i, item in
                     node(item, selected: current.map { $0.id == item.id } ?? false)
                         .position(positions[i])
+                        .modifier(Enter(on: entered, delay: min(1.2, Double(i) * 0.045)))
                         .transition(.scale(scale: 0.85).combined(with: .opacity))
                 }
             }
@@ -116,6 +119,8 @@ struct ProcessFlowView: View {
             })
             .animation(Motion.spring, value: items.map(\.id))
             .animation(Motion.spring, value: cols)
+            .onAppear { entered = false; appearedAt = Date(); DispatchQueue.main.async { entered = true } }
+            .onChange(of: prompt) { _ in entered = false; appearedAt = Date(); DispatchQueue.main.async { entered = true } }
             Divider()
             PhaseDetail(phase: current, origin: origin)
                 .frame(width: 300)
@@ -139,8 +144,16 @@ struct ProcessFlowView: View {
     // MARK: Chiziqlar
 
     private func edges(_ items: [Item], _ pos: [CGPoint], cols: Int) -> some View {
+        let anyLive = phases.contains { $0.status == .running }
+        let entering = Date().timeIntervalSince(appearedAt) < 2
+        return TimelineView(.animation(minimumInterval: 1.0 / 60, paused: !anyLive && !entering)) { ctx in
+        let t = ctx.date.timeIntervalSinceReferenceDate
+        // Chiziqlar tugunlar bilan birga, ketma-ket chiziladi
+        let elapsed = ctx.date.timeIntervalSince(appearedAt)
         Canvas { g, _ in
             for i in 0..<max(0, items.count - 1) {
+                let pr = min(1, max(0, (elapsed - Double(i) * 0.045) / 0.35))
+                guard pr > 0 else { continue }
                 let a = pos[i], b = pos[i + 1]
                 let sameRow = abs(a.y - b.y) < 1
                 var path = Path()
@@ -161,8 +174,11 @@ struct ProcessFlowView: View {
                     if case .phase(let p) = items[i + 1] { return p.status == .running }
                     return false
                 }()
+                path = path.trimmedPath(from: 0, to: pr)
                 g.stroke(path, with: .color(live ? Brand.ok : Color.secondary.opacity(0.45)),
-                         style: StrokeStyle(lineWidth: live ? 2.2 : 1.6, lineCap: .round, dash: live ? [5, 4] : []))
+                         style: StrokeStyle(lineWidth: live ? 2.2 : 1.6, lineCap: .round, dash: live ? [5, 5] : [],
+                                            dashPhase: live ? CGFloat(-t * 24) : 0))
+                guard pr >= 1 else { continue }
                 // Strelka uchi
                 let ang = sameRow ? (to.x > from.x ? 0 : CGFloat.pi) : CGFloat.pi / 2
                 var head = Path()
@@ -183,6 +199,7 @@ struct ProcessFlowView: View {
                     g.draw(r, at: mid)
                 }
             }
+        }
         }
     }
 

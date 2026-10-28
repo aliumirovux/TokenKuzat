@@ -227,7 +227,7 @@ private struct FlowLayout {
             let p = CGPoint(x: startX + CGFloat(i) * gap, y: y)
             bubbles[b.id] = p
             let portX = b.category == nil ? (modelPortX ?? toolPortX) : toolPortX
-            edges.append(FlowEdge(id: "s" + b.id, from: CGPoint(x: portX, y: topY), to: CGPoint(x: p.x, y: y - d / 2),
+            edges.append(FlowEdge(id: "s" + b.id, from: CGPoint(x: portX, y: topY + (modelPortX == nil ? 0 : 26)), to: CGPoint(x: p.x, y: y - d / 2),
                                   kind: .sub, live: b.busy, color: b.category?.color ?? Palette.main, vertical: true))
         }
     }
@@ -244,6 +244,8 @@ struct FlowCanvas: View {
     let onSelectAgent: (String) -> Void
     let onSelectBubble: (FlowBubble) -> Void
     @State private var zoom: CGFloat = 1
+    @State private var appearedAt = Date.distantPast
+    @State private var entered = false
 
     var body: some View {
         let layout = FlowLayout(model)
@@ -272,15 +274,17 @@ struct FlowCanvas: View {
 
     private func canvas(_ l: FlowLayout) -> some View {
         ZStack(alignment: .topLeading) {
-            FlowEdges(edges: l.edges).allowsHitTesting(false)
+            FlowEdges(edges: l.edges, appearedAt: appearedAt).allowsHitTesting(false)
 
             TriggerShapeNode(prompt: model.prompt).position(l.trigger)
+                .modifier(Enter(on: entered, delay: 0))
                 .onTapGesture { if let m = model.main { onSelectAgent(m.agent.id) } }
 
             if let lane = model.main {
                 FlowAgentNode(agent: lane.agent, steps: lane.steps.count, big: true,
                               selected: selectedAgent == lane.agent.id && selectedBubble == nil)
                     .position(l.main)
+                    .modifier(Enter(on: entered, delay: 0.08))
                     .onTapGesture { onSelectAgent(lane.agent.id) }
                 bubbles(lane, l, d: F.bubble)
             }
@@ -297,10 +301,20 @@ struct FlowCanvas: View {
             }
 
             ResultNode(result: model.result, mode: mode).position(l.result)
+                .modifier(Enter(on: entered, delay: 0.5))
                 .onTapGesture { if let m = model.main { onSelectAgent(m.agent.id) } }
         }
         .frame(width: l.size.width, height: l.size.height, alignment: .topLeading)
         .animation(Motion.spring, value: signature)
+        .onAppear { replayEntrance() }
+        .onChange(of: model.prompt) { _ in replayEntrance() }
+    }
+
+    /// Sxema ochilganda yoki so'rov almashganda: tugunlar birin-ketin paydo bo'ladi, chiziqlar chiziladi
+    private func replayEntrance() {
+        entered = false
+        appearedAt = Date()
+        DispatchQueue.main.async { entered = true }
     }
 
     /// Tugunlar to'plami o'zgarganda (yangi asbob, yangi yordamchi) — yumshoq qayta joylashuv
@@ -315,6 +329,7 @@ struct FlowCanvas: View {
                 ToolBubbleNode(bubble: b, diameter: d, selected: selectedBubble == b.id)
                     .position(x: p.x, y: p.y + 22)   // yozuv bilan birga: markaz doira markaziga to'g'ri keladi
                     .transition(.scale(scale: 0.6).combined(with: .opacity))
+                    .modifier(Enter(on: entered, delay: 0.25 + Double(lane.bubbles.firstIndex { $0.id == b.id } ?? 0) * 0.06))
                     .onTapGesture { onSelectBubble(b) }
             }
         }
@@ -344,14 +359,23 @@ struct FlowCanvas: View {
 
 private struct FlowEdges: View {
     let edges: [FlowEdge]
+    /// Kirish animatsiyasi: shu paytdan boshlab chiziqlar 0,9 s ichida «chiziladi»
+    var appearedAt = Date.distantPast
 
     var body: some View {
         let animated = edges.contains(where: \.live)
-        TimelineView(.animation(minimumInterval: 1.0 / 30, paused: !animated)) { ctx in
+        let entering = Date().timeIntervalSince(appearedAt) < 1.4
+        TimelineView(.animation(minimumInterval: 1.0 / 60, paused: !animated && !entering)) { ctx in
             let t = ctx.date.timeIntervalSinceReferenceDate
+            let k = min(1, max(0, ctx.date.timeIntervalSince(appearedAt) / 0.9))
+            let progress = 1 - pow(1 - k, 3)   // ease-out
             Canvas { g, _ in
-                for e in edges {
-                    let path = e.vertical ? vCurve(e.from, e.to) : hCurve(e.from, e.to)
+                for (i, e) in edges.enumerated() {
+                    // Asosiy chiziqlar birinchi, asbob chiziqlari biroz kechroq
+                    let delay = e.kind == .main ? 0 : 0.15 + Double(i % 6) * 0.04
+                    let pr = min(1, max(0, (progress - delay) / (1 - delay)))
+                    guard pr > 0 else { continue }
+                    let path = (e.vertical ? vCurve(e.from, e.to) : hCurve(e.from, e.to)).trimmedPath(from: 0, to: pr)
                     switch e.kind {
                     case .main:
                         g.stroke(path, with: .color(Color.primary.opacity(0.35)), lineWidth: 2)
@@ -366,7 +390,7 @@ private struct FlowEdges: View {
                                                     dashPhase: e.live ? CGFloat(-t * 30) : 0))
                     }
                     let r: CGFloat = 4.5
-                    for p in [e.from, e.to] {
+                    for p in (pr >= 1 ? [e.from, e.to] : [e.from]) {
                         g.fill(Path(ellipseIn: CGRect(x: p.x - r, y: p.y - r, width: r * 2, height: r * 2)),
                                with: .color(Color(nsColor: .tertiaryLabelColor)))
                     }
@@ -502,21 +526,30 @@ private struct FlowAgentNode: View {
         .overlay { if agent.state == .running { PulseStroke(shape: shape, color: .green) } }
         .scaleEffect(selected ? 1.02 : 1)
         .animation(Motion.spring, value: selected)
-        .overlay(alignment: .bottom) {
+        .overlay(alignment: .topLeading) {
             if big {
-                HStack {
-                    Text("Model").padding(.leading, w * 0.2 - 10)
-                    Spacer()
-                    Text("Asboblar").padding(.trailing, w * 0.4 - 30)
-                }
-                .font(.caption2).foregroundStyle(.secondary)
-                .offset(y: 18)
+                // Port yorliqlari — chiziq boshlanadigan nuqta ustida, fonli: chiziq yorliq tagidan chiqadi
+                portPill("Model", Brand.accent).position(x: w * 0.2, y: h + 14)
+                portPill("Asboblar", .secondary).position(x: w * 0.6, y: h + 14)
             }
         }
         .shadow(color: .black.opacity(0.18), radius: 4, y: 2)
         .contentShape(shape)
         .help("Bosing — jarayon va tokenlar")
     }
+}
+
+private func portPill(_ text: String, _ color: Color) -> some View {
+    HStack(spacing: 4) {
+        Circle().fill(color).frame(width: 5, height: 5)
+        Text(text)
+    }
+    .font(.system(size: 10.5, weight: .semibold))
+    .foregroundStyle(.secondary)
+    .padding(.horizontal, 8).padding(.vertical, 3)
+    .background(Capsule().fill(Brand.canvas))
+    .overlay(Capsule().stroke(Brand.line))
+    .fixedSize()
 }
 
 private struct ToolBubbleNode: View {
@@ -630,5 +663,19 @@ private struct FlowLegend: View {
             p.addLine(to: CGPoint(x: r.maxX, y: r.midY))
             return p
         }
+    }
+}
+
+/// Kirish animatsiyasi: tugun pastdan, kichikroq va xira holatdan o'z joyiga keladi
+struct Enter: ViewModifier {
+    let on: Bool
+    let delay: Double
+
+    func body(content: Content) -> some View {
+        content
+            .opacity(on ? 1 : 0)
+            .scaleEffect(on ? 1 : 0.9)
+            .offset(y: on ? 0 : 8)
+            .animation(Motion.spring.delay(delay), value: on)
     }
 }

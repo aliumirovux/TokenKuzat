@@ -1,5 +1,11 @@
 # O'zgarishlar
 
+## 4.1.1 — 2026-10-28
+
+- Oqim (Xulosa): «Model» va «Asboblar» yorliqlari port ustida fonli pill — chiziqlar endi ularni kesib o'tmaydi.
+- Kirish animatsiyasi: sxema ochilganda yoki so'rov almashganda tugunlar birin-ketin paydo bo'ladi, chiziqlar boshidan oxirigacha chiziladi (Xulosa va Jarayon).
+- Jarayon: bajarilayotgan bosqichga boradigan chiziq jonli harakatlanadi.
+
 ## 4.1.0 — 2026-10-28
 
 **Oqim — haqiqiy jarayon**
