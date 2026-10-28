@@ -53,7 +53,8 @@ extension SessionSnap {
                 tokens: tokens, calls: usage.count, topTools: SessionSnap.topTools(steps),
                 lastAction: steps.last?.text ?? (a.isMain ? "So'rov oldi" : "Boshlandi"),
                 state: state, lastActivity: lastSeen, firstActivity: a.firstActivity,
-                steps: steps, resources: SessionSnap.resourceGroups(steps, now: t), usage: usage))
+                steps: steps, resources: SessionSnap.resourceGroups(steps, now: t), usage: usage,
+                bigResults: a.bigResults.filter { $0.date <= t }))
         }
 
         let main = replayed.filter(\.isMain).reduce(TokenCounts()) { $0 + $1.tokens }
@@ -80,7 +81,7 @@ extension SessionSnap {
         return SessionSnap(id: id, project: project, title: title, model: model, contextTokens: context,
                            tokens: main + sub, mainTokens: main, agentTokens: sub, agents: replayed,
                            lastActivity: replayed.compactMap(\.lastActivity).max(), state: best, turns: turnsAtT,
-                           contextWindow: contextWindow, notes: notes.filter { $0.date <= t })
+                           contextWindow: contextWindow, notes: notes.filter { $0.date <= t }, cwd: cwd)
     }
 
     /// Replay oralig'i: birinchi harakatdan oxirgisigacha

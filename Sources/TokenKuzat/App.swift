@@ -11,6 +11,7 @@ struct TokenKuzatApp: App {
         // Claude Code status line chaqirig'i — oynasiz, darhol chiqadi
         if CommandLine.arguments.contains(StatusLine.flag) { StatusLine.runAndExit() }
         if CommandLine.arguments.contains(Hooks.flag) { Hooks.runAndExit() }
+        if CommandLine.arguments.contains(SessionStartHook.flag) { SessionStartHook.runAndExit() }
         Pref.register()
     }
 

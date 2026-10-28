@@ -1,5 +1,14 @@
 # O'zgarishlar
 
+## 6.1.0 — 2026-10-28
+
+- «Yangi sessiyada davom ettirish»: bitta tugma — xulosa saqlanadi va keyingi 2 soat ichida ochilgan yangi Claude Code sessiyasi uni avtomatik oladi (SessionStart hook, additionalContext). Hech narsa nusxalab qo'yish shart emas; zaxira uchun nusxaga ham olinadi. Xulosa bir marta beriladi; `resume`, `/compact`, boshqa loyiha papkasi va eski sessiyaning o'ziga berilmaydi. Hook xulosa yo'q paytda hech narsa ishga tushirmaydi. Sozlamalarda uzish mumkin.
+- Kesh muddati endi aniqlanadi: Claude ilovasi sessiyalari 1 soatlik keshda ishlaydi (avval hamma joyda 5 daqiqa deb hisoblanardi — «kesh o'chdi» ogohlantirishi va taymer noto'g'ri edi).
+- Yangi maslahat «Katta natijalar»: 5K tokendan katta har bir asbob natijasi keyingi nechta chaqiruvda qayta o'qilgani (/compact gacha) — eng qimmatlari bir xil asbob bo'yicha guruhlab ko'rsatiladi.
+- Yangi maslahat «Og'ir boshlanish»: sessiya ish boshlanmasdan 80K+ kontekst bilan ochilgan bo'lsa (konnektorlar, pluginlar, skill'lar) — qancha ekanini va bu sessiyada qaysi tashqi xizmatlar ishlatilganini ko'rsatadi.
+- «Katta kontekst» tejash hisobi endi sessiyaning haqiqiy boshlang'ich kontekstidan olinadi (taxminiy 40K o'rniga).
+- Testlar: 42 ta.
+
 ## 6.0.0 — 2026-10-28
 
 - Tokenni tejash (model va sifat o'zgarmaydi — Opus to'liq quvvatda): har sessiya uchun tahlil — katta kontekst (har javobda qancha tejalishi), 5 daqiqalik tanaffusdan keyin kesh qayta yozilishi, o'zgarmagan faylni takroriy o'qish, ko'p skrinshot, ketma-ket xatolar; har birida aniq maslahat va taxminiy token.

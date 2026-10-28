@@ -202,7 +202,7 @@ public final class Engine {
 
         let session = sessionAcc(fs.sessionId)
         // Sessiya boshqa papkaga ko'chsa — oxirgi papka nomi olinadi
-        if let cwd = ev.cwd { session.project = URL(fileURLWithPath: cwd).lastPathComponent }
+        if let cwd = ev.cwd { session.project = URL(fileURLWithPath: cwd).lastPathComponent; session.cwd = cwd }
         if case .title(let t) = ev.kind {
             session.customTitle = t
             return
@@ -279,7 +279,7 @@ public final class Engine {
         agent.tokens.add(c)
         if let ts = ev.timestamp {
             session.usageLog.append((ts, c))
-            agent.usage.append(UsagePoint(date: ts, tokens: c))
+            agent.usage.append(UsagePoint(date: ts, tokens: c, longCache: a.longCache))
             if agent.usage.count > 3000 { agent.usage.removeFirst(agent.usage.count - 2000) }
         }
         sourceUsage[fs.rootIndex, default: 0] += 1
@@ -316,6 +316,10 @@ public final class Engine {
         for r in u.results {
             guard let step = pendingSteps.removeValue(forKey: r.id) else { continue }
             step.end = ev.timestamp ?? now
+            if r.tokens >= BigResult.threshold {
+                agent.bigResults.append(BigResult(date: step.end ?? now, tokens: r.tokens, label: step.text))
+                if agent.bigResults.count > 300 { agent.bigResults.removeFirst(agent.bigResults.count - 200) }
+            }
             if r.isError {
                 step.failed = true
                 step.resource.errors += 1
@@ -395,7 +399,7 @@ public final class Engine {
                     state: st, lastActivity: a.lastActivity, firstActivity: a.firstActivity,
                     steps: a.steps.suffix(150).map { $0.snap(now: now, turn: Engine.turnIndex(starts, $0.start)) },
                     resources: a.resourceGroups(now: now),
-                    usage: a.usage))
+                    usage: a.usage, bigResults: a.bigResults))
             }
             if best != .idle { snap.activeSessions += 1 }
             // Ishlayotgan sessiya eski bo'lsa ham ko'rinadi
@@ -415,7 +419,7 @@ public final class Engine {
                 notes: s.notes.suffix(400).map {
                     NoteSnap(id: $0.id, date: $0.date, kind: $0.kind, text: $0.text, duration: $0.duration,
                              turn: Engine.turnIndex(starts, $0.date).map { $0 + 1 }, agent: $0.agent)
-                }))
+                }, cwd: s.cwd))
         }
         sessSnaps.sort { ($0.lastActivity ?? .distantPast) > ($1.lastActivity ?? .distantPast) }
         snap.sessions = sessSnaps
@@ -587,6 +591,7 @@ private final class AgentAcc {
     var metaAttempts = 0
     var steps: [StepAcc] = []
     var usage: [UsagePoint] = []
+    var bigResults: [BigResult] = []
     var resources: [String: ResourceAcc] = [:]
 
     func resource(_ t: ToolTarget) -> ResourceAcc {
@@ -680,6 +685,7 @@ private struct NoteAcc {
 private final class SessionAcc {
     let id: String
     var project = ""
+    var cwd: String?
     var customTitle = ""
     var firstPrompt = ""
     var model = ""

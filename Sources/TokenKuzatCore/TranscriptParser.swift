@@ -27,14 +27,16 @@ public struct TranscriptEvent {
         public var usage: TokenCounts?
         /// Bitta javob bir necha qatorga bo'linadi va har birida usage takrorlanadi — shu kalit bilan bir marta sanaladi
         public var usageKey: String?
+        /// Kesh qaysi muddatga yozilgan: true — 1 soat, false — 5 daqiqa, nil — bu javobda yozilmagan
+        public var longCache: Bool?
     }
 
     public struct User {
         /// Foydalanuvchining haqiqiy so'rovlari (tizim eslatmalari va meta qatorlarsiz)
         public var prompts: [String] = []
         public var hasToolResult = false
-        /// Tugagan asbob chaqiruvlari: tool_use id → xato bo'ldimi
-        public var results: [(id: String, isError: Bool)] = []
+        /// Tugagan asbob chaqiruvlari: tool_use id → xato bo'ldimi, natija hajmi (taxminiy token)
+        public var results: [(id: String, isError: Bool, tokens: Int)] = []
     }
 
     public var kind: Kind
@@ -118,12 +120,27 @@ public enum TranscriptParser {
                                        write5m: int(cc?["ephemeral_5m_input_tokens"]))
             if c.total > 0 {
                 a.usage = c
+                let w1h = int(cc?["ephemeral_1h_input_tokens"]), w5m = int(cc?["ephemeral_5m_input_tokens"])
+                if w1h + w5m > 0 { a.longCache = w1h > 0 }
                 let mid = msg["id"] as? String ?? ""
                 let rid = obj["requestId"] as? String ?? ""
                 a.usageKey = mid.isEmpty ? obj["uuid"] as? String : mid + "|" + rid
             }
         }
         return a
+    }
+
+    /// Asbob natijasining kontekstdagi taxminiy hajmi: matn ≈ 4 belgi/token, rasm ≈ 1600 token
+    static func resultTokens(_ content: Any?) -> Int {
+        if let s = content as? String { return s.utf8.count / 4 }
+        guard let arr = content as? [[String: Any]] else { return 0 }
+        return arr.reduce(0) { sum, b in
+            switch b["type"] as? String {
+            case "text": return sum + (b["text"] as? String ?? "").utf8.count / 4
+            case "image": return sum + 1_600
+            default: return sum
+            }
+        }
     }
 
     private static func user(_ obj: [String: Any]) -> TranscriptEvent.User {
@@ -138,7 +155,7 @@ public enum TranscriptParser {
                 case "tool_result":
                     u.hasToolResult = true
                     if let id = b["tool_use_id"] as? String {
-                        u.results.append((id: id, isError: (b["is_error"] as? Bool) == true))
+                        u.results.append((id: id, isError: (b["is_error"] as? Bool) == true, tokens: resultTokens(b["content"])))
                     }
                 case "text":
                     if !isMeta, let s = b["text"] as? String, let p = prompt(s) { u.prompts.append(p) }

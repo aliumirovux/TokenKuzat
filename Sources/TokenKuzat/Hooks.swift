@@ -87,3 +87,80 @@ enum Hooks {
         exit(0)
     }
 }
+
+/// Claude Code «SessionStart» hook'i: «Yangi sessiyada davom ettirish» bosilgan bo'lsa, xulosani yangi sessiyaga beradi.
+///
+/// Skript avval xulosa fayli borligini tekshiradi — yo'q bo'lsa darhol chiqadi (har sessiya ochilishiga ta'sir qilmaydi).
+/// Bor bo'lsa, ilovaning `--session-start` rejimi xulosani additionalContext sifatida qaytaradi va faylni o'chiradi.
+enum SessionStartHook {
+    static let flag = "--session-start"
+    private static let event = "SessionStart"
+    private static let marker = "TokenKuzat/session-start.sh"
+
+    private static var scriptURL: URL {
+        RateLimitsReader.defaultDirectory.deletingLastPathComponent().appendingPathComponent("session-start.sh")
+    }
+
+    private static func writeScript() throws {
+        let exe = Bundle.main.executablePath ?? CommandLine.arguments[0]
+        let script = """
+        #!/bin/sh
+        # Token Kuzatuv — Claude Code SessionStart hook (ilova yaratgan): faqat «Yangi sessiyada davom ettirish» bosilganda ishlaydi
+        [ -f "\(HandoffStore.defaultURL.path)" ] || exit 0
+        [ -x "\(exe)" ] || exit 0
+        "\(exe)" \(flag) 2>/dev/null
+        exit 0
+
+        """
+        try FileManager.default.createDirectory(at: scriptURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try script.write(to: scriptURL, atomically: true, encoding: .utf8)
+        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: scriptURL.path)
+    }
+
+    static var isInstalled: Bool {
+        guard let s = try? StatusLine.readSettings() else { return false }
+        return entries(s).contains { isOurs($0) } && FileManager.default.isExecutableFile(atPath: scriptURL.path)
+    }
+
+    private static func entries(_ s: [String: Any]) -> [[String: Any]] {
+        ((s["hooks"] as? [String: Any])?[event] as? [[String: Any]]) ?? []
+    }
+
+    private static func isOurs(_ entry: [String: Any]) -> Bool {
+        ((entry["hooks"] as? [[String: Any]]) ?? []).contains { ($0["command"] as? String)?.contains(marker) == true }
+    }
+
+    /// Skript har safar yangilanadi (ilova boshqa joyga ko'chirilgan bo'lishi mumkin); settings.json — faqat kerak bo'lsa
+    static func install() throws {
+        try writeScript()
+        var s = try StatusLine.readSettings()
+        guard !entries(s).contains(where: { isOurs($0) }) else { return }
+        var hooks = s["hooks"] as? [String: Any] ?? [:]
+        var list = entries(s)
+        list.append(["hooks": [["type": "command", "command": "\"\(scriptURL.path)\""]]])
+        hooks[event] = list
+        s["hooks"] = hooks
+        try StatusLine.backupOnce()
+        try StatusLine.writeSettings(s)
+    }
+
+    static func uninstall() throws {
+        var s = try StatusLine.readSettings()
+        var hooks = s["hooks"] as? [String: Any] ?? [:]
+        let list = entries(s).filter { !isOurs($0) }
+        if list.isEmpty { hooks.removeValue(forKey: event) } else { hooks[event] = list }
+        if hooks.isEmpty { s.removeValue(forKey: "hooks") } else { s["hooks"] = hooks }
+        try StatusLine.writeSettings(s)
+        try? FileManager.default.removeItem(at: scriptURL)
+        HandoffStore.cancel()
+    }
+
+    /// `--session-start` rejimi (Claude Code chaqiradi): xulosa bo'lsa — JSON chiqaradi, aks holda hech narsa
+    static func runAndExit() -> Never {
+        let data = FileHandle.standardInput.readDataToEndOfFile()
+        if let out = HandoffStore.handleSessionStart(input: data) {
+            FileHandle.standardOutput.write(Data(out.utf8))
+        }
+        exit(0)
+    }
+}

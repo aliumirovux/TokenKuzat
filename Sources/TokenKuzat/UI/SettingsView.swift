@@ -21,6 +21,7 @@ struct SettingsView: View {
     @AppStorage(Pref.notifyContext) private var notifyContext = true
     @AppStorage(Pref.notifySavings) private var notifySavings = true
     @State private var hookInstalled = Hooks.isInstalled
+    @State private var handoffHookInstalled = SessionStartHook.isInstalled
     @State private var hookError: String?
     @State private var statusLineInstalled = StatusLine.isInstalled
     @AppStorage(Pref.accountUsage) private var accountUsage = false
@@ -62,6 +63,17 @@ struct SettingsView: View {
                 Toggle("Agent ketma-ket 3 marta xato olsa", isOn: $notifyErrors)
                 Toggle("Kontekst 85% to'lganda (tez orada avtomatik xulosa)", isOn: $notifyContext)
                 Toggle("Katta kontekstda yangi mavzu boshlansa — yangi sessiya taklifi (token tejash)", isOn: $notifySavings)
+                if handoffHookInstalled {
+                    HStack {
+                        Text("Yangi sessiyada davom ettirish (xulosa avtomatik beriladi)")
+                        Spacer()
+                        Label("Ulangan", systemImage: "checkmark.circle.fill").font(.caption).foregroundStyle(.green)
+                        Button("Uzish") {
+                            try? SessionStartHook.uninstall()
+                            handoffHookInstalled = SessionStartHook.isInstalled
+                        }.buttonStyle(.link)
+                    }
+                }
                 HStack {
                     Toggle("Claude ruxsat so'raganda", isOn: $notifyPermission)
                     Spacer()
@@ -295,6 +307,7 @@ struct SettingsView: View {
 
     private func refreshStatus() {
         hookInstalled = Hooks.isInstalled
+        handoffHookInstalled = SessionStartHook.isInstalled
         statusLineInstalled = StatusLine.isInstalled
         launchAtLogin = LaunchAtLogin.isEnabled
         guard AppInfo.isBundled else { return }

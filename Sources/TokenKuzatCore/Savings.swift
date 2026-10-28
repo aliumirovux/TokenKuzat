@@ -16,6 +16,10 @@ public struct SavingsTip: Identifiable, Equatable, Sendable {
         case screenshots
         /// Ketma-ket xatolar — bir joyda aylanib qolgan
         case errorLoop
+        /// Katta asbob natijalari kontekstda qolib, har chaqiruvda qayta o'qilyapti
+        case bigResults
+        /// Sessiya ish boshlanmasdan katta kontekst bilan ochilgan (konnektorlar, pluginlar, skill'lar)
+        case heavyStart
     }
 
     public enum Level: Int, Comparable, Sendable {
@@ -39,16 +43,55 @@ public enum SavingsAdvisor {
     public static let baseline = 40_000
     /// Shundan katta kontekst haqida maslahat beriladi
     public static let bigContext = 150_000
-    /// Kesh shuncha vaqt saqlanadi (Anthropic: 5 daqiqa)
+    /// Kesh saqlanish muddati: odatda 5 daqiqa, Claude ilovasi va ba'zi sozlamalarda — 1 soat
     public static let cacheTTL: TimeInterval = 5 * 60
+    public static let longCacheTTL: TimeInterval = 60 * 60
+    /// Terminal (CLI)dagi odatiy boshlang'ich kontekst — shundan kattasi «og'ir boshlanish»
+    public static let heavyStart = 80_000
+
+    /// Sessiya qaysi kesh muddatida ishlayapti — oxirgi kesh yozuvidan aniqlanadi
+    public static func cacheTTL(for s: SessionSnap) -> TimeInterval {
+        s.main?.usage.last(where: { $0.longCache != nil })?.longCache == true ? longCacheTTL : cacheTTL
+    }
+
+    /// Birinchi chaqiruvdagi kontekst: tizim ko'rsatmalari, asboblar, CLAUDE.md, ulangan xizmatlar
+    public static func startContext(for s: SessionSnap) -> Int? {
+        s.main?.usage.first.map(\.context).flatMap { $0 > 0 ? $0 : nil }
+    }
+
+    /// Natija keyingi nechta chaqiruvda qayta o'qilgani × hajmi. /compact (kontekst keskin kamaygan) da to'xtaydi.
+    public static func carried(_ r: BigResult, usage: [UsagePoint]) -> Int {
+        var n = 0, prev: Int?
+        for u in usage where u.date > r.date {
+            if let p = prev, u.context < p * 6 / 10 { break }
+            prev = u.context
+            n += 1
+        }
+        return r.tokens * n
+    }
+
+    /// MCP server identifikatori (UUID) olib tashlanadi: «c0f5…83: search_screens» → «search_screens»
+    static func cleanLabel(_ label: String) -> String {
+        label.replacingOccurrences(of: #"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}:\s*"#,
+                                   with: "", options: .regularExpression)
+    }
+
+    /// Oxirgi /compact dan keyingi katta natijalar — hozir kontekstda turganlari
+    static func liveResults(_ results: [BigResult], usage: [UsagePoint]) -> [BigResult] {
+        var lastCompact: Date?
+        for (a, b) in zip(usage, usage.dropFirst()) where b.context < a.context * 6 / 10 { lastCompact = b.date }
+        guard let c = lastCompact else { return results }
+        return results.filter { $0.date > c }
+    }
 
     public static func tips(for s: SessionSnap, now: Date = Date()) -> [SavingsTip] {
         var out: [SavingsTip] = []
         let main = s.main
 
         // 1) Katta kontekst: har keyingi chaqiruv shuncha ko'p kesh o'qiydi
+        let start = startContext(for: s)
         if s.contextTokens >= bigContext {
-            let extra = s.contextTokens - baseline
+            let extra = s.contextTokens - (start ?? baseline)
             let calls = Double(main?.calls ?? 0), turns = Double(max(1, s.turns.count))
             let perTurn = calls > 0 ? calls / turns : 6
             let pct = Int((s.contextFraction * 100).rounded())
@@ -61,17 +104,19 @@ public enum SavingsAdvisor {
                 tokens: extra, perCall: true))
         }
 
-        // 2) Kesh qayta yozilishi: 5 daqiqadan uzoq tanaffusdan keyin kontekst qaytadan keshlanadi
+        // 2) Kesh qayta yozilishi: kesh muddatidan uzoq tanaffusdan keyin kontekst qaytadan keshlanadi
+        let ttl = cacheTTL(for: s)
+        let ttlText = ttl >= longCacheTTL ? "1 soat" : "5 daqiqa"
         if let usage = main?.usage, usage.count > 1 {
             var rebuilt = 0, count = 0
-            for (a, b) in zip(usage, usage.dropFirst()) where b.date.timeIntervalSince(a.date) > cacheTTL {
+            for (a, b) in zip(usage, usage.dropFirst()) where b.date.timeIntervalSince(a.date) > ttl {
                 if b.tokens.cacheWrite > 50_000 { rebuilt += b.tokens.cacheWrite; count += 1 }
             }
             if count > 0 {
                 out.append(SavingsTip(
                     kind: .cacheRebuilds, level: rebuilt > 500_000 ? .notable : .info,
                     title: "Tanaffusdan keyin kesh \(count) marta qayta yozildi",
-                    detail: "5 daqiqadan uzoq jim tursangiz, kesh o'chadi va keyingi so'rovda butun kontekst qimmatroq narxda qayta yoziladi. "
+                    detail: "\(ttlText)dan uzoq jim tursangiz, kesh o'chadi va keyingi so'rovda butun kontekst qimmatroq narxda qayta yoziladi. "
                         + "Uzoq tanaffusdan oldin ishni yakunlang yoki qaytgach yangi sessiya oching.",
                     tokens: rebuilt, perCall: false))
             }
@@ -120,13 +165,53 @@ public enum SavingsAdvisor {
                 tokens: 0, perCall: false))
         }
 
+        // 6) Katta natijalar: har biri keyingi har chaqiruvda qayta o'qiladi
+        if let main, !main.bigResults.isEmpty {
+            let live = liveResults(main.bigResults, usage: main.usage)
+            let inContext = live.reduce(0) { $0 + $1.tokens }
+            let costs = main.bigResults.map { ($0, carried($0, usage: main.usage)) }
+            let total = costs.reduce(0) { $0 + $1.1 }
+            if inContext >= 20_000 || total >= 2_000_000 {
+                // Bir xil asbob natijalari birlashtiriladi: «search_screens ×4 — 54,7K»
+                var groups: [String: (count: Int, tokens: Int, cost: Int)] = [:]
+                for (r, c) in costs {
+                    let g = groups[cleanLabel(r.label)] ?? (0, 0, 0)
+                    groups[cleanLabel(r.label)] = (g.count + 1, g.tokens + r.tokens, g.cost + c)
+                }
+                let top = groups.sorted { $0.value.cost > $1.value.cost }.prefix(3)
+                    .map { "\($0.key)\($0.value.count > 1 ? " ×\($0.value.count)" : "") — \(Fmt.tokens($0.value.tokens))" }
+                    .joined(separator: "; ")
+                out.append(SavingsTip(
+                    kind: .bigResults, level: total >= 10_000_000 ? .notable : .info,
+                    title: "\(live.count) ta katta natija kontekstda (~\(Fmt.tokens(inContext)))",
+                    detail: "Eng qimmatlari: \(top). Har biri keyingi har javobda qayta o'qiladi. Kerakli qismini so'rang "
+                        + "(«oxirgi 30 qator», faylning kerakli joyi) yoki keng qidiruvni yordamchi agentga bering — "
+                        + "u ko'p o'qisa ham asosiy suhbatga faqat xulosa qaytadi.",
+                    tokens: total, perCall: false))
+            }
+        }
+
+        // 7) Og'ir boshlanish: ish boshlanmasdan kontekst katta — har chaqiruvda takrorlanadi
+        if let start, start >= heavyStart, let main, main.calls >= 10 {
+            let extra = start - baseline
+            let used = main.resources.first { $0.category == .mcp }?.items.prefix(6).map(\.name) ?? []
+            out.append(SavingsTip(
+                kind: .heavyStart, level: main.calls >= 150 ? .notable : .info,
+                title: "Sessiya \(Fmt.tokens(start)) bilan boshlangan",
+                detail: "Bu — ish boshlanmasdan oldingi qism: tizim ko'rsatmalari, ulangan konnektorlar, pluginlar va skill'lar ro'yxati. "
+                    + "Terminalda sessiyalar ~40–65K dan boshlanadi. Claude ilovasida shu ishga kerakmas konnektorlarni o'chirsangiz, "
+                    + "har chaqiruv yengillashadi"
+                    + (used.isEmpty ? " — bu sessiyada birorta ham tashqi xizmat ishlatilmagan." : ". Bu sessiyada ishlatilganlari: \(used.joined(separator: ", ")).") ,
+                tokens: extra, perCall: true))
+        }
+
         return out.sorted { $0.level > $1.level }
     }
 
     /// Kesh hozir saqlanib turibdimi va qancha vaqti qoldi (tinch sessiyada)
     public static func cacheTimeLeft(for s: SessionSnap, now: Date = Date()) -> TimeInterval? {
         guard s.state == .idle, s.contextTokens >= bigContext, let la = s.lastActivity else { return nil }
-        let left = cacheTTL - now.timeIntervalSince(la)
+        let left = cacheTTL(for: s) - now.timeIntervalSince(la)
         return left > 0 ? left : nil
     }
 

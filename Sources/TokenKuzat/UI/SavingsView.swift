@@ -12,6 +12,8 @@ extension SavingsTip {
         case .repeatedReads: return "doc.on.doc"
         case .screenshots: return "camera.viewfinder"
         case .errorLoop: return "arrow.triangle.2.circlepath"
+        case .bigResults: return "shippingbox"
+        case .heavyStart: return "powerplug"
         }
     }
 
@@ -30,30 +32,57 @@ extension SavingsTip {
     }
 }
 
-/// Davom etish xulosasini nusxalash tugmasi — bosilgach qisqa «Nusxalandi» belgisi
+/// «Yangi sessiyada davom ettirish»: xulosa saqlanadi, keyingi yangi Claude Code sessiyasi uni o'zi oladi
+/// (SessionStart hook). Zaxira uchun nusxaga ham olinadi.
 struct HandoffButton: View {
     let session: SessionSnap
     var prominent = true
-    @State private var copied = false
+    @State private var armed = false
+    @State private var delivered = false
+    @State private var failed = false
 
     var body: some View {
-        Button {
-            let pb = NSPasteboard.general
-            pb.clearContents()
-            pb.setString(SavingsAdvisor.handoff(for: session), forType: .string)
-            withAnimation(Motion.snappy) { copied = true }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2) { withAnimation(Motion.snappy) { copied = false } }
-        } label: {
-            Label(copied ? "Nusxalandi — yangi sessiyaga qo'ying" : "Davom etish xulosasini nusxalash",
-                  systemImage: copied ? "checkmark.circle.fill" : "doc.on.clipboard")
-                .font(.callout.weight(.semibold))
-                .padding(.horizontal, 12).padding(.vertical, 7)
-                .foregroundStyle(prominent ? Color.white : Brand.accent)
-                .background(Capsule().fill(prominent ? (copied ? Brand.ok : Brand.accent) : Brand.accentSoft))
+        TimelineView(.periodic(from: .now, by: 2)) { _ in
+            HStack(spacing: 8) {
+                if armed && HandoffStore.pending() != nil {
+                    Label("Tayyor — yangi sessiya oching, Claude xulosani o'zi oladi", systemImage: "arrow.right.circle.fill")
+                        .font(.callout.weight(.semibold)).foregroundStyle(Brand.ok)
+                    Button("Bekor qilish") { HandoffStore.cancel(); withAnimation(Motion.snappy) { armed = false } }
+                        .buttonStyle(.link).font(.caption)
+                } else if delivered || (armed && !FileManager.default.fileExists(atPath: HandoffStore.defaultURL.path)) {
+                    Label("Yangi sessiyaga berildi", systemImage: "checkmark.circle.fill")
+                        .font(.callout.weight(.semibold)).foregroundStyle(Brand.ok)
+                        .onAppear { armed = false; delivered = true }
+                } else {
+                    Button(action: arm) {
+                        Label(failed ? "Ulab bo'lmadi — xulosa nusxalandi" : "Yangi sessiyada davom ettirish",
+                              systemImage: failed ? "exclamationmark.triangle.fill" : "arrow.triangle.branch")
+                            .font(.callout.weight(.semibold))
+                            .padding(.horizontal, 12).padding(.vertical, 7)
+                            .foregroundStyle(prominent ? Color.white : Brand.accent)
+                            .background(Capsule().fill(prominent ? (failed ? Brand.warn : Brand.accent) : Brand.accentSoft))
+                    }
+                    .buttonStyle(.plain)
+                    .help("Nima qilingani, o'zgargan fayllar va oxirgi holat saqlanadi. Keyingi 2 soat ichida ochilgan yangi "
+                          + "Claude Code sessiyasi uni avtomatik oladi — hech narsa qo'yish shart emas. Zaxira uchun nusxaga ham olinadi.")
+                }
+            }
         }
-        .buttonStyle(.plain)
-        .help("Nima qilingani, o'zgargan fayllar va oxirgi holat nusxaga olinadi. Yangi Claude Code sessiyasiga qo'ying — "
-              + "Claude kontekstni yo'qotmay, kichik kontekst bilan davom etadi.")
+        .onAppear { armed = HandoffStore.pending()?.sourceSession == session.id }
+    }
+
+    private func arm() {
+        let text = SavingsAdvisor.handoff(for: session)
+        let pb = NSPasteboard.general
+        pb.clearContents()
+        pb.setString(text, forType: .string)
+        do {
+            try SessionStartHook.install()
+            try HandoffStore.arm(PendingHandoff(text: text, sourceSession: session.id, cwd: session.cwd, created: Date()))
+            withAnimation(Motion.snappy) { armed = true; delivered = false; failed = false }
+        } catch {
+            withAnimation(Motion.snappy) { failed = true }
+        }
     }
 }
 
@@ -83,8 +112,9 @@ struct SavingsList: View {
                 HandoffButton(session: session)
                 Spacer()
             }
-            Text("Yangi mavzuda yangi sessiya oching va shu xulosani birinchi xabar qilib qo'ying: Claude ishni qayerda "
-                 + "to'xtaganini biladi, kontekst esa ~\(Fmt.tokens(SavingsAdvisor.baseline)) dan boshlanadi.")
+            Text("Tugmani bosing va yangi sessiya oching — Claude ishni qayerda to'xtaganini o'zi biladi, kontekst esa "
+                 + "\(Fmt.tokens(session.contextTokens)) emas, ~\(Fmt.tokens(SavingsAdvisor.startContext(for: session) ?? SavingsAdvisor.baseline)) "
+                 + "dan boshlanadi. Model va sifat o'zgarmaydi.")
                 .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
         }
         .padding(18)

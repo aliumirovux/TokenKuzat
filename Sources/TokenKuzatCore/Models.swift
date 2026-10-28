@@ -34,6 +34,8 @@ public struct AgentSnap: Identifiable, Sendable {
     public let resources: [ResourceGroup]
     /// Har bir sanalgan javob: vaqti va tokenlari (replay uchun), eskidan yangiga
     public let usage: [UsagePoint]
+    /// Kontekstga tushgan katta asbob natijalari (≥ `BigResult.threshold`), eskidan yangiga
+    public var bigResults: [BigResult] = []
 
     public var toolsLine: String {
         topTools.prefix(3).map { "\($0.name) \($0.count)" }.joined(separator: " · ")
@@ -43,6 +45,20 @@ public struct AgentSnap: Identifiable, Sendable {
 public struct UsagePoint: Sendable {
     public let date: Date
     public let tokens: TokenCounts
+    /// Kesh muddati: true — 1 soat, false — 5 daqiqa, nil — bu javobda kesh yozilmagan
+    public var longCache: Bool? = nil
+
+    /// Shu chaqiruvda o'qilgan butun kontekst
+    public var context: Int { tokens.input + tokens.cacheRead + tokens.cacheWrite }
+}
+
+/// Katta asbob natijasi: sessiya oxirigacha (yoki /compact gacha) kontekstda qoladi va har chaqiruvda qayta o'qiladi
+public struct BigResult: Sendable {
+    public static let threshold = 5_000
+    public let date: Date
+    public let tokens: Int
+    /// Qadam matni («O'qiyapti · GraphScreen.swift»)
+    public let label: String
 }
 
 public enum StepStatus: Sendable {
@@ -195,6 +211,8 @@ public struct SessionSnap: Identifiable, Sendable {
     public var contextWindow: Int = 200_000
     /// O'ylash va javob matnlari, eskidan yangiga (oxirgi 400 tasi)
     public var notes: [NoteSnap] = []
+    /// Ish papkasi (oxirgi ko'ringani)
+    public var cwd: String? = nil
 
     public var main: AgentSnap? { agents.first(where: \.isMain) }
     /// Kontekst qanchalik to'lgan (0…1)
