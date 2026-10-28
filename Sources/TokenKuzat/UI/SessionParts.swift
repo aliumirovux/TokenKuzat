@@ -98,47 +98,6 @@ struct StatusChip: View {
     }
 }
 
-// MARK: - So'rov chiplari
-
-struct TurnChips: View {
-    let turns: [TurnSnap]
-    let selected: Int?
-    let onSelect: (Int?) -> Void
-
-    var body: some View {
-        ScrollViewReader { proxy in
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 6) {
-                    chip(nil, "Butun sessiya", active: false)
-                    ForEach(turns) { t in
-                        chip(t.id, "#\(t.id) · \(t.isContinuation ? "↻ davom etdi" : (t.prompt.count > 26 ? String(t.prompt.prefix(26)) + "…" : t.prompt))", active: t.active)
-                            .id(t.id)
-                    }
-                }
-                .padding(.horizontal, 24)
-            }
-            .onAppear { proxy.scrollTo(selected ?? turns.last?.id, anchor: .trailing) }
-        }
-    }
-
-    private func chip(_ id: Int?, _ text: String, active: Bool) -> some View {
-        let on = selected == id
-        return Button { withAnimation(Motion.spring) { onSelect(id) } } label: {
-            HStack(spacing: 5) {
-                if active { StateDot(state: .running, size: 5) }
-                Text(text).lineLimit(1)
-            }
-            .font(.caption.weight(on ? .semibold : .regular))
-            .foregroundStyle(on ? Color.white : .secondary)
-            .padding(.horizontal, 11).padding(.vertical, 6)
-            .background(Capsule().fill(on ? Brand.ink : Brand.surface))
-            .overlay(Capsule().stroke(on ? .clear : Brand.line))
-            .contentShape(Capsule())
-        }
-        .buttonStyle(.plain)
-    }
-}
-
 // MARK: - Qatorli vaqt chizig'i
 
 /// Model va har bir asbob turi — alohida tor qator. Model qatori — asbob ishlamagan vaqt (o'ylash, javob yozish).
