@@ -32,6 +32,8 @@ enum Section: String, CaseIterable, Identifiable {
 final class WindowManager: NSObject, NSWindowDelegate {
     static let shared = WindowManager()
     private var window: NSWindow?
+    /// Oyna ko'rinmay qolganda (orqada, Dock'da) shu yerda saqlanadi — holat yo'qolmaydi, chizish to'xtaydi
+    private var parked: NSView?
 
     func show(_ section: Section? = nil) {
         if let section { UserDefaults.standard.set(section.rawValue, forKey: Pref.section) }
@@ -46,6 +48,7 @@ final class WindowManager: NSObject, NSWindowDelegate {
             w.titleVisibility = .hidden
             w.toolbarStyle = .unified
             w.contentView = NSHostingView(rootView: root)
+            parked = nil
             w.isReleasedWhenClosed = false
             w.setFrameAutosaveName("TokenKuzatMain")
             if !w.setFrameUsingName("TokenKuzatMain") { w.center() }
@@ -57,7 +60,30 @@ final class WindowManager: NSObject, NSWindowDelegate {
         window?.makeKeyAndOrderFront(nil)
     }
 
+    /// Oyna butunlay boshqa oynalar ortida yoki Dock'da: ko'rinish ajratib qo'yiladi (animatsiyalar to'xtaydi),
+    /// yana ko'rinsa — qaytariladi
+    func windowDidChangeOcclusionState(_ notification: Notification) {
+        guard let w = window else { return }
+        let visible = w.occlusionState.contains(.visible)
+        if !visible, parked == nil, let v = w.contentView {
+            parked = v
+            w.contentView = NSView(frame: v.frame)
+        } else if visible, let v = parked {
+            parked = nil
+            w.contentView = v
+        }
+    }
+
     func windowWillClose(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
+        // Yopilgan oyna ko'rinishlari yo'q qilinadi: aks holda xarita, robot va oqim animatsiyalari ko'rinmasa ham
+        // chizilishda davom etib, protsessorni band qiladi. Keyingi ochilishda oyna qaytadan yaratiladi.
+        DispatchQueue.main.async { [weak self] in
+            guard let self, let w = self.window, !w.isVisible else { return }
+            w.delegate = nil
+            w.contentView = nil
+            self.parked = nil
+            self.window = nil
+        }
     }
 }

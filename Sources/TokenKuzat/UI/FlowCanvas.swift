@@ -410,7 +410,7 @@ private struct FlowEdges: View {
     var body: some View {
         let animated = edges.contains(where: \.live)
         let entering = Date().timeIntervalSince(appearedAt) < 1.4
-        TimelineView(.animation(minimumInterval: 1.0 / 60, paused: !animated && !entering)) { ctx in
+        TimelineView(.animation(minimumInterval: 1.0 / 30, paused: !animated && !entering)) { ctx in
             let t = ctx.date.timeIntervalSinceReferenceDate
             let k = min(1, max(0, ctx.date.timeIntervalSince(appearedAt) / 0.9))
             let progress = 1 - pow(1 - k, 3)   // ease-out

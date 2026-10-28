@@ -1002,7 +1002,7 @@ private struct MapEdges: View {
 
     var body: some View {
         let animated = edges.contains(where: \.live) && !reduceMotion
-        TimelineView(.animation(minimumInterval: 1.0 / 60, paused: !animated)) { ctx in
+        TimelineView(.animation(minimumInterval: 1.0 / 30, paused: !animated)) { ctx in
             let t = ctx.date.timeIntervalSinceReferenceDate
             Canvas { g, size in
                 let bounds = CGRect(origin: .zero, size: size).insetBy(dx: -40, dy: -40)

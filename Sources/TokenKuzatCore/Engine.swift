@@ -128,6 +128,13 @@ public final class Engine {
         dayTotals = dayTotals.filter { $0.key >= minKey }
         feed.removeAll { $0.date < dayStart }
         feedIds = Set(feed.map(\.id))
+        // Tarix oynasidan chiqqan sessiyalar xotiradan olib tashlanadi — ilova haftalab ochiq tursa ham xotira o'smaydi
+        // (kunlik yig'indilar dayTotals'da qoladi)
+        let old = Set(sessions.filter { ($0.value.lastActivity ?? .distantPast) < historyStart }.map(\.key))
+        if !old.isEmpty {
+            sessions = sessions.filter { !old.contains($0.key) }
+            pendingSteps = pendingSteps.filter { $0.value.start >= historyStart }
+        }
         flushHistory()
         lastDiscovery = .distantPast
         revision += 1

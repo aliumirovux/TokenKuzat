@@ -89,7 +89,8 @@ struct LiveBorder<S: InsettableShape>: View {
             if reduceMotion {
                 shape.strokeBorder(color.opacity(0.8), lineWidth: lineWidth)
             } else {
-                TimelineView(.animation(minimumInterval: 1.0 / 60)) { ctx in
+                // 30 kadr/s yetarli; konus gradient va xiralashtirish GPU'da (drawingGroup) — protsessor yuklanmaydi
+                TimelineView(.animation(minimumInterval: 1.0 / 30)) { ctx in
                     // Burchak bitta aylanish ichida: katta vaqt qiymatida gradient aniqligini yo'qotmasin
                     let angle = ctx.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: period) / period * 360
                     let grad = AngularGradient(gradient: Gradient(stops: [
@@ -106,6 +107,10 @@ struct LiveBorder<S: InsettableShape>: View {
                         shape.strokeBorder(grad, lineWidth: lineWidth + 5).blur(radius: 7).opacity(0.55)
                         shape.strokeBorder(grad, lineWidth: lineWidth)
                     }
+                    // Nur chegaradan chiqadi — GPU qatlami har tomondan 12 pt kengroq
+                    .padding(12)
+                    .drawingGroup()
+                    .padding(-12)
                 }
             }
         }

@@ -1,5 +1,11 @@
 # O'zgarishlar
 
+## 6.6.0 — 2026-10-28
+
+- Unumdorlik: katta oyna yopilganda uning ko'rinishlari to'liq yo'q qilinadi — avval xarita, robot va oqim animatsiyalari yashirin oynada ham chizilib, protsessorni ~50% band qilardi; endi menyu satrida turganda ~0–1%. Oyna butunlay boshqa oynalar ortida yoki Dock'da bo'lsa — ko'rinish ajratib qo'yiladi (chizish to'xtaydi, holat saqlanadi).
+- Jonli kartalar atrofidagi aylanuvchi chegara GPU'da (drawingGroup) va 30 kadr/s da chiziladi — konus gradient protsessorda hisoblanmaydi.
+- Xotira: 30 kunlik tarix oynasidan chiqqan sessiyalar har kuni xotiradan tozalanadi — ilova haftalab ochiq tursa ham o'smaydi (kunlik yig'indilar saqlanadi).
+
 ## 6.5.0 — 2026-10-28
 
 - Xaritada «Natijalar» shoxi: so'rovda yaratilgan yoki ko'rilgan rasm, HTML, PDF, video bo'lsa — kartaning yuqori shoxlari qatorida (Terminal, Fayllar yonida) eng so'nggisining kichik rasmi va soni. Bosilsa — oynacha: tepada shu so'rov natijalari qatori, ostida katta ko'rinish (Quick Look), «Brauzerda ochish» va «Finder». Fayl qaysi so'rovga tegishli — oxirgi marta qaysi so'rov ichida yaratilgani yoki ochilgani bo'yicha.
