@@ -1,5 +1,10 @@
 # O'zgarishlar
 
+## 5.8.0 — 2026-10-28
+
+- «Bugun» sahifasidagi limit bloki menyu paneli uslubida: chapda «Joriy sessiya» va «Bu hafta» halqalari (ikkalasi ham «ishlatildi», tiklanish vaqti va qancha qolgani), ostida bitta rangli xulosa. «53% qoldi» va «47% ishlatildi» aralashmasi yo'qoldi.
+- O'ngdagi chizma aniq nomlandi: «Joriy sessiya oynasi: har soatda limitdan qancha ketdi» — har ustunda «+15%» va shu soatdagi token, hozirgi soatda «HOZIR», kelajakdagilari «hali kelmagan».
+
 ## 5.7.0 — 2026-10-28
 
 - Menyu paneli qayta chizildi, ortiqcha va qarama-qarshi raqamlarsiz:

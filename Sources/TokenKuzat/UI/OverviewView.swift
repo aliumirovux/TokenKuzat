@@ -77,33 +77,17 @@ struct LimitHero: View {
     /// Ma'lumot eskirgan bo'lsa — ogohlantirish matni
     var stale: String? = nil
 
-    private var remaining: Int { max(0, 100 - Int(window.usedPercentage.rounded())) }
 
     var body: some View {
         HStack(alignment: .top, spacing: 32) {
-            VStack(alignment: .leading, spacing: 0) {
-                Text("CLAUDE LIMITI · 5 SOATLIK OYNA" + (plan.map { " · " + $0.uppercased() } ?? "")).eyebrow(Brand.inkDim)
-                DisplayNumber(value: remaining, size: 82, color: .white).padding(.top, 10)
-                (Text("qoldi · ").foregroundColor(Brand.inkDim)
-                 + Text(Fmt.hourMinute.string(from: window.resetsAt)).foregroundColor(.white).bold()
-                 + Text(" da to'liq tiklanadi").foregroundColor(Brand.inkDim))
-                    .font(.system(size: 14))
-                forecastPill.padding(.top, 14)
-                VStack(alignment: .leading, spacing: 10) {
-                    LimitBarRow(title: "Joriy sessiya", window: window, dark: true)
-                    if let week {
-                        LimitBarRow(title: "Bu hafta", window: week, dark: true)
-                        if let warn = LimitText.weekWarning(weekForecast, week: week) {
-                            Label(warn, systemImage: "exclamationmark.triangle.fill")
-                                .font(.caption.weight(.medium)).foregroundStyle(Color(light: 0xFFC46B, dark: 0xFFC46B))
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                    }
-                    if let stale { Label(stale, systemImage: "clock.arrow.circlepath").font(.caption2).foregroundStyle(Brand.inkDim) }
-                }
-                .padding(.top, 16)
+            VStack(alignment: .leading, spacing: 16) {
+                Text("CLAUDE LIMITI" + (plan.map { " · " + $0.uppercased() } ?? "")).eyebrow(Brand.inkDim)
+                // Ikkalasi ham «ishlatildi» — Claude sahifasidagidek
+                LimitRing(title: "Joriy sessiya", window: window, caption: "5 soatlik oyna", size: 86)
+                if let week { LimitRing(title: "Bu hafta", window: week, caption: "7 kunlik oyna", size: 86) }
+                paceLine
             }
-            .frame(width: 280, alignment: .leading)
+            .frame(width: 300, alignment: .leading)
 
             HourColumns(window: window, minutes: minutes)
         }
@@ -111,23 +95,28 @@ struct LimitHero: View {
         .background(RoundedRectangle(cornerRadius: 24, style: .continuous).fill(Brand.ink))
     }
 
-    @ViewBuilder
-    private var forecastPill: some View {
-        let (text, color): (String, Color) = {
-            switch forecast {
-            case .runsOut(let at): return ("Shu sur'atda ~\(Fmt.hourMinute.string(from: at)) da tugaydi", Color(light: 0xFFC46B, dark: 0xFFC46B))
-            case .lasts: return ("Shu sur'atda bemalol yetadi", Color(light: 0x7CF0B6, dark: 0x7CF0B6))
-            case .unknown: return ("Tiklanishiga \(Alerts.duration(max(0, window.resetsAt.timeIntervalSinceNow)))", Brand.inkDim)
+    /// Bitta xulosa jumlasi: sessiya yoki hafta shu sur'atda tugaydimi
+    private var paceLine: some View {
+        let warn = Color(light: 0xFFC46B, dark: 0xFFC46B), ok = Color(light: 0x7CF0B6, dark: 0x7CF0B6)
+        let (symbol, text, color): (String, String, Color) = {
+            if case .runsOut(let at) = forecast {
+                return ("exclamationmark.triangle.fill", "Sessiya ~\(Fmt.hourMinute.string(from: at)) da tugaydi — tiklanishidan oldin", warn)
             }
+            if let week, let w = LimitText.weekWarning(weekForecast, week: week) { return ("exclamationmark.triangle.fill", w, warn) }
+            if let stale { return ("clock.arrow.circlepath", stale, Brand.inkDim) }
+            return ("checkmark.circle.fill", "Sur'at me'yorida — limit tiklanguncha yetadi", ok)
         }()
-        HStack(spacing: 6) {
-            Circle().fill(color).frame(width: 7, height: 7)
-            Text(text).font(.caption.weight(.semibold))
+        return HStack(alignment: .top, spacing: 8) {
+            Image(systemName: symbol)
+            Text(text).fixedSize(horizontal: false, vertical: true)
         }
-        .foregroundStyle(color)
-        .padding(.horizontal, 11).padding(.vertical, 6)
-        .background(Capsule().fill(color.opacity(0.14)))
+        .font(.caption.weight(.medium)).foregroundStyle(color)
+        .padding(.horizontal, 10).padding(.vertical, 8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(color.opacity(0.12)))
     }
+
+
 }
 
 /// 5 soatlik oyna: har soat — ustun. O'tganlari sarf ulushi bilan to'lgan, hozirgisi ramkada, kelajak — shtrix.
@@ -141,6 +130,7 @@ private struct HourColumns: View {
         let start: Date
         let pct: Double
         let state: Int   // 0 o'tgan, 1 hozir, 2 kelajak
+        let tokens: Double
     }
 
     private var slots: [Slot] {
@@ -151,11 +141,15 @@ private struct HourColumns: View {
             let i = min(4, Int(m.date.timeIntervalSince(start) / 3600))
             w[i] += m.main.weighted + m.agents.weighted
         }
+        var raw = Array(repeating: 0.0, count: 5)
+        for m in minutes where m.date >= start && m.date < window.resetsAt {
+            raw[min(4, Int(m.date.timeIntervalSince(start) / 3600))] += Double(m.main.total + m.agents.total)
+        }
         let total = w.reduce(0, +)
         return (0..<5).map { i in
             let a = start.addingTimeInterval(Double(i) * 3600)
             let state = now >= a.addingTimeInterval(3600) ? 0 : (now >= a ? 1 : 2)
-            return Slot(id: i, start: a, pct: total > 0 ? w[i] / total * window.usedPercentage : 0, state: state)
+            return Slot(id: i, start: a, pct: total > 0 ? w[i] / total * window.usedPercentage : 0, state: state, tokens: raw[i])
         }
     }
 
@@ -164,7 +158,7 @@ private struct HourColumns: View {
         let maxPct = max(10, ss.map(\.pct).max() ?? 10)
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Text("Oyna ichida soatma-soat sarf")
+                Text("Joriy sessiya oynasi: har soatda limitdan qancha ketdi")
                 Spacer()
                 Text("\(Alerts.duration(max(0, window.resetsAt.timeIntervalSinceNow))) qoldi").monospacedDigit()
             }
@@ -190,11 +184,27 @@ private struct HourColumns: View {
                             .animation(Motion.spring, value: s.pct)
                         }
                         if s.state != 2 {
-                            Text(s.pct < 0.5 && s.pct > 0 ? "<1%" : "\(Int(s.pct.rounded()))%")
-                                .font(.system(size: 11, weight: .semibold, design: .monospaced))
-                                .foregroundStyle(Brand.inkDim)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(s.pct < 0.5 && s.pct > 0 ? "<1%" : "+\(Int(s.pct.rounded()))%")
+                                    .font(.system(size: 15, weight: .bold, design: .rounded)).monospacedDigit()
+                                    .foregroundStyle(.white)
+                                Text(Fmt.tokens(s.tokens) + " token").font(.system(size: 10.5, weight: .medium))
+                                    .foregroundStyle(Brand.inkDim)
+                            }
+                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                            .padding(10)
+                        } else {
+                            Text("hali kelmagan").font(.system(size: 10.5, weight: .medium)).foregroundStyle(Brand.inkDim.opacity(0.7))
                                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                                .padding(9)
+                                .padding(10)
+                        }
+                        if s.state == 1 {
+                            Text("HOZIR").font(.system(size: 9.5, weight: .bold)).tracking(0.6)
+                                .foregroundStyle(Brand.ink)
+                                .padding(.horizontal, 6).padding(.vertical, 2)
+                                .background(Capsule().fill(.white.opacity(0.85)))
+                                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+                                .padding(8)
                         }
                     }
                     .overlay {

@@ -371,10 +371,11 @@ private struct MiniTrace: View {
 }
 
 /// Limit halqasi: markazda «46%» va «ishlatildi», ostida nomi va qachon tiklanishi
-private struct LimitRing: View {
+struct LimitRing: View {
     let title: String
     let window: LimitWindow
     let caption: String
+    var size: CGFloat = 64
 
     /// «31 daq», «4 soat 10 daq», «6 kun 3 soat»
     static func left(_ t: TimeInterval) -> String {
@@ -389,20 +390,20 @@ private struct LimitRing: View {
         let color: Color = pct >= 90 ? Brand.err : (pct >= 75 ? Color(light: 0xFFC46B, dark: 0xFFC46B) : Brand.inkFill)
         HStack(spacing: 12) {
             ZStack {
-                Circle().stroke(.white.opacity(0.1), lineWidth: 8)
+                Circle().stroke(.white.opacity(0.1), lineWidth: size * 0.125)
                 Circle().trim(from: 0, to: pct / 100)
-                    .stroke(color, style: StrokeStyle(lineWidth: 8, lineCap: .round))
+                    .stroke(color, style: StrokeStyle(lineWidth: size * 0.125, lineCap: .round))
                     .rotationEffect(.degrees(-90))
                 VStack(spacing: -2) {
-                    Text("\(Int(pct.rounded()))%").font(.system(size: 17, weight: .bold, design: .rounded)).monospacedDigit()
+                    Text("\(Int(pct.rounded()))%").font(.system(size: size * 0.27, weight: .bold, design: .rounded)).monospacedDigit()
                         .foregroundStyle(.white)
-                    Text("ishlatildi").font(.system(size: 8.5, weight: .medium)).foregroundStyle(Brand.inkDim)
+                    Text("ishlatildi").font(.system(size: max(8.5, size * 0.13), weight: .medium)).foregroundStyle(Brand.inkDim)
                 }
             }
-            .frame(width: 64, height: 64)
+            .frame(width: size, height: size)
             .animation(Motion.smooth, value: pct)
             VStack(alignment: .leading, spacing: 3) {
-                Text(title).font(.callout.weight(.semibold)).foregroundStyle(.white)
+                Text(title).font(size > 70 ? .title3.weight(.semibold) : .callout.weight(.semibold)).foregroundStyle(.white)
                 Text("↻ " + LimitText.dayTime(window.resetsAt)).font(.caption).foregroundStyle(Brand.inkDim)
                     .lineLimit(1).minimumScaleFactor(0.8)
                 Text(Self.left(window.resetsAt.timeIntervalSinceNow) + " qoldi").font(.caption2)
