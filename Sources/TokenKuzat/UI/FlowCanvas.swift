@@ -161,7 +161,8 @@ private struct FlowLayout {
     init() {}
 
     init(_ m: FlowModel) {
-        let rowY = F.pad + F.mainH / 2 + 10
+        // Tepada robot-yordamchi uchun joy
+        let rowY = F.pad + F.mainH / 2 + 40
         trigger = CGPoint(x: F.pad + F.trig / 2, y: rowY)
         let mainLeft = trigger.x + F.trig / 2 + F.colGap * 0.8
         main = CGPoint(x: mainLeft + F.mainW / 2, y: rowY)
@@ -303,11 +304,31 @@ struct FlowCanvas: View {
             ResultNode(result: model.result, mode: mode).position(l.result)
                 .modifier(Enter(on: entered, delay: 0.5))
                 .onTapGesture { if let m = model.main { onSelectAgent(m.agent.id) } }
+
+            // Robot: ishlayotgan asbob ustiga uchib boradi, o'ylayotganda — agent ustida, tugaganda — uxlaydi
+            let robot = robotPlacement(l)
+            RobotView(mood: robot.1, size: 58)
+                .position(robot.0)
+                .animation(.spring(response: 0.75, dampingFraction: 0.72), value: robot.0)
+                .modifier(Enter(on: entered, delay: 0.6))
         }
         .frame(width: l.size.width, height: l.size.height, alignment: .topLeading)
         .animation(Motion.spring, value: signature)
         .onAppear { replayEntrance() }
         .onChange(of: model.prompt) { _ in replayEntrance() }
+    }
+
+    /// Robot qayerda va qanday: band asbob bo'lsa — o'sha doira ustida, aks holda agent kartasi ustida
+    private func robotPlacement(_ l: FlowLayout) -> (CGPoint, RobotView.Mood) {
+        let lanes = [model.main].compactMap { $0 } + model.helpers
+        for lane in lanes {
+            if let b = lane.bubbles.first(where: { $0.busy && $0.category != nil }), let p = l.bubbles[b.id] {
+                let d = lane.agent.isMain ? F.bubble : F.bubbleSmall
+                return (CGPoint(x: p.x, y: p.y - d / 2 - 48), .working(b.title))
+            }
+        }
+        let top = CGPoint(x: l.main.x + F.mainW / 2 - 52, y: l.main.y - F.mainH / 2 - 44)
+        return (top, model.result.active ? .thinking : .sleeping)
     }
 
     /// Sxema ochilganda yoki so'rov almashganda: tugunlar birin-ketin paydo bo'ladi, chiziqlar chiziladi

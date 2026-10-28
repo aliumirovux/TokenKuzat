@@ -1,5 +1,11 @@
 # O'zgarishlar
 
+## 5.10.0 — 2026-10-28
+
+- Xulosa oqimida robot-yordamchi: asbob ishlayotganda o'sha tugun ustiga uchib boradi va «ishlaydi» (qo'llar harakatda, antenna yonadi, «Terminal…»), model o'ylayotganda agent kartasi ustida ko'zlari u yoq-bu yoqqa yuradi («o'ylayapti…»), tugaganda uxlaydi («z z»). Ko'z qisish, yengil tebranish, tugundan tugunga silliq uchish; «Harakatni kamaytirish»da animatsiyasiz.
+- Hisob kaliti xotirada saqlanadi — Keychain faqat birinchi marta yoki kalit muddati tugaganda o'qiladi.
+- build.sh: «Apple Development» sertifikati bo'lsa — u bilan imzolaydi (yangi build'larda Keychain ruxsati qayta so'ralmaydi); `TK_SIGN_IDENTITY` bilan boshqasini tanlash mumkin.
+
 ## 5.9.0 — 2026-10-28
 
 - «Bugun» sahifasida limit — asosiy narsa: ikki katta karta «Joriy sessiya» va «Bu hafta» — katta halqa va foiz («ishlatildi»), tiklanish vaqti, qancha qolgani; kartaning ichida ixcham ustunlar (sessiyada soatlar, haftada 7 kun bo'yicha). Katta soatlik chizma va past kontrastli yozuvlar olib tashlandi; bashorat sarlavha qatorida.

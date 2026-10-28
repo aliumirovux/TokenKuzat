@@ -27,6 +27,9 @@ final class AccountUsage {
     private var history: [(Date, Double)] = []
     private var timer: DispatchSourceTimer?
     private var inFlight = false
+    /// Kalit xotirada saqlanadi: Keychain faqat birinchi marta, muddati tugaganda yoki rad etilganda qayta o'qiladi —
+    /// macOS ruxsat oynasi har daqiqada chiqmasin
+    private var cached: Credentials?
 
     /// Shundan eski hisob ma'lumoti ishlatilmaydi (status line'ga qaytiladi)
     static let maxAge: TimeInterval = 15 * 60
@@ -55,6 +58,7 @@ final class AccountUsage {
             timer = nil
             _latest = nil
             _status = .off
+            cached = nil
             history.removeAll()
         }
     }
@@ -65,11 +69,14 @@ final class AccountUsage {
 
     private func fetch() {
         guard !inFlight else { return }
-        guard let cred = Self.readCredentials() else {
+        if let c = cached, let exp = c.expiresAt, exp < Date() { cached = nil }
+        if cached == nil { cached = Self.readCredentials() }
+        guard let cred = cached else {
             _status = .noCredentials
             return
         }
         if let exp = cred.expiresAt, exp < Date() {
+            cached = nil
             _status = .expired
             return
         }
@@ -89,6 +96,8 @@ final class AccountUsage {
                 if let err {
                     self._status = .failed(err.localizedDescription)
                 } else if code == 401 || code == 403 {
+                    // Kalit yangilangan bo'lishi mumkin — keyingi safar Keychain'dan qayta o'qiladi
+                    self.cached = nil
                     self._status = .expired
                 } else if code != 200 {
                     self._status = .failed("HTTP \(code)")

@@ -44,7 +44,15 @@ cp "$BIN" "$APP/Contents/MacOS/TokenKuzat"
 cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 sed -e "s/__VERSION__/$VERSION/" -e "s/__BUILD__/$BUILD/" Resources/Info.plist > "$APP/Contents/Info.plist"
 
-codesign --force --sign - "$APP" >/dev/null 2>&1 || echo "! Imzolab bo'lmadi (ilova baribir ishlaydi)"
+# Doimiy sertifikat bo'lsa (Xcode → Settings → Accounts'da Apple ID bilan kirilgan) — o'sha bilan imzolanadi:
+# macOS yangi build'larni ham tanib, Keychain ruxsatini qayta so'ramaydi. Bo'lmasa — vaqtinchalik (ad-hoc) imzo.
+IDENTITY="${TK_SIGN_IDENTITY:-$(security find-identity -v -p codesigning 2>/dev/null | sed -n 's/.*"\(Apple Development[^"]*\)".*/\1/p' | head -1)}"
+if [ -n "$IDENTITY" ]; then
+  codesign --force --sign "$IDENTITY" "$APP" >/dev/null 2>&1 && echo "✓ Imzolandi: $IDENTITY" \
+    || { echo "! '$IDENTITY' bilan imzolab bo'lmadi — vaqtinchalik imzo"; codesign --force --sign - "$APP" >/dev/null 2>&1; }
+else
+  codesign --force --sign - "$APP" >/dev/null 2>&1 || echo "! Imzolab bo'lmadi (ilova baribir ishlaydi)"
+fi
 
 echo "✓ O'rnatildi: $APP"
 if [ "$OPEN" = 1 ]; then
