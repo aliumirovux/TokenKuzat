@@ -8,13 +8,15 @@ struct MainWindow: View {
     @AppStorage("flowStyle") private var flowStyle = "map"
     @AppStorage("graphMode") private var graphMode = "flow"
     @State private var columns = NavigationSplitViewVisibility.all
+    /// Foydalanuvchi yon menyuni yopgan (eslab qolinadi)
+    @AppStorage("sidebarCollapsed") private var collapsed = false
 
     /// «Faqat xarita» faqat sessiya sahifasining Xarita tabida amal qiladi
     private var mapFocus: Bool { mapOnly && section == .graph && graphMode == "flow" && flowStyle != "summary" }
 
     var body: some View {
         NavigationSplitView(columnVisibility: $columns) {
-            Sidebar(section: $section)
+            Sidebar(section: $section, onCollapse: { setCollapsed(true) })
                 .navigationSplitViewColumnWidth(min: 200, ideal: 220, max: 260)
         } detail: {
             VStack(spacing: 0) {
@@ -26,10 +28,30 @@ struct MainWindow: View {
             }
             .animation(Motion.spring, value: section)
             .background(Brand.canvas)
+            .overlay(alignment: .topLeading) {
+                // Yon menyu yopiq — oyna tugmalari yonida ochish tugmasi
+                if columns == .detailOnly && !mapFocus {
+                    SidebarToggle(open: false) { setCollapsed(false) }
+                        .padding(.leading, 78).padding(.top, 5)
+                        .transition(.opacity)
+                }
+            }
             .frame(minWidth: 520, minHeight: 520)
         }
-        .onAppear { if mapFocus { columns = .detailOnly } }
-        .onChange(of: mapFocus) { on in withAnimation(Motion.spring) { columns = on ? .detailOnly : .all } }
+        .onAppear { columns = (mapFocus || collapsed) ? .detailOnly : .all }
+        .onChange(of: mapFocus) { on in withAnimation(Motion.spring) { columns = (on || collapsed) ? .detailOnly : .all } }
+        // Yon menyu tortib yopilsa/ochilsa ham eslab qolinadi
+        .onChange(of: columns) { c in if !mapFocus { collapsed = c == .detailOnly } }
+        .background {
+            Button("") { setCollapsed(columns != .detailOnly) }
+                .keyboardShortcut("s", modifiers: [.control, .command])
+                .hidden()
+        }
+    }
+
+    private func setCollapsed(_ on: Bool) {
+        collapsed = on
+        withAnimation(Motion.spring) { columns = (on || mapFocus) ? .detailOnly : .all }
     }
 
     private func row(_ item: Section) -> some View {
@@ -73,6 +95,7 @@ struct MainWindow: View {
 private struct Sidebar: View {
     @EnvironmentObject var store: Store
     @Binding var section: Section
+    var onCollapse: () -> Void = {}
     @AppStorage(GraphScreen.selectedSessionKey) private var sessionId = ""
 
     var body: some View {
@@ -103,6 +126,10 @@ private struct Sidebar: View {
         }
         .padding(.horizontal, 10).padding(.top, 40).padding(.bottom, 10)
         .frame(maxHeight: .infinity, alignment: .top)
+        // Oyna tugmalari qatorida, o'ng burchakda — yon menyuni yopish
+        .overlay(alignment: .topTrailing) {
+            SidebarToggle(open: true, action: onCollapse).padding(.top, 5).padding(.trailing, 10)
+        }
     }
 
     // MARK: Brend
@@ -247,3 +274,25 @@ private struct Sidebar: View {
     }
 }
 
+
+/// Yon menyuni ochish/yopish tugmasi (⌃⌘S)
+private struct SidebarToggle: View {
+    let open: Bool
+    let action: () -> Void
+    @State private var hover = false
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: "sidebar.left")
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(hover ? Color.primary : Color.secondary)
+                .frame(width: 28, height: 24)
+                .background(RoundedRectangle(cornerRadius: 6, style: .continuous).fill(Color.primary.opacity(hover ? 0.08 : 0)))
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .noFocusRing()
+        .onHover { hover = $0 }
+        .help(open ? "Yon menyuni yopish (⌃⌘S)" : "Yon menyuni ochish (⌃⌘S)")
+    }
+}

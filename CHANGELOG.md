@@ -1,5 +1,9 @@
 # O'zgarishlar
 
+## 6.11.0 — 2026-10-28
+
+- Yon menyuni ochib-yopish: menyuning yuqori o'ng burchagidagi tugma (yoki ⌃⌘S) yopadi; yopiq paytda oyna tugmalari yonida ochish tugmasi chiqadi. Holat eslab qolinadi; menyu chetidan tortib yopilsa ham.
+
 ## 6.10.0 — 2026-10-28
 
 - Yangi yon menyu: ixcham brend qatori (ishlayotgan bo'lsa — jonli nuqta), bo'limlar yumshoq fon bilan tanlanadi (tanlanganda to'ldirilgan belgi), ⌘1/⌘2/⌘3 va ⌘, tugmalari; loyihalar — avatar burchagida jonli nuqta, o'ngda «hozir»/«5 daq»/«2 kun»; pastda ixcham 5 soatlik va haftalik limit chiziqlari (ustiga borsa — tiklanish vaqti).
