@@ -14,10 +14,10 @@ struct MenuPanel: View {
             if !s.initialScanDone {
                 ProgressView("Yozuvlar o'qilmoqda…").controlSize(.small).padding(40)
             } else {
-                hero(s)
-                VStack(spacing: 12) {
-                    process(s)
-                    stats(s)
+                limits(s)
+                VStack(spacing: 10) {
+                    now(s)
+                    today(s)
                 }
                 .padding(12)
                 Divider()
@@ -26,78 +26,79 @@ struct MenuPanel: View {
             footer
         }
         .frame(width: 372)
-        // Butun panel bir xil qattiq fonda — tagidagi oyna/rasm ko'rinmaydi
-        .background(Brand.canvas)
+        // Butun panel bir xil qattiq fonda, oyna chetlarigacha — tagidagi rasm ko'rinmaydi
+        .background(Brand.canvas.ignoresSafeArea())
     }
 
-    // MARK: Qismlar
+    // MARK: Limit
 
+    /// Asosiy qism: ikki halqa (sessiya va hafta) — ikkalasi ham «ishlatildi», Claude sahifasidagidek; ostida bitta xulosa
     @ViewBuilder
-    private func hero(_ s: Snapshot) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            if let w = s.limits?.fiveHour {
-                HStack {
-                    Text("5 SOATLIK LIMIT" + (s.limits?.plan.map { " · " + $0.uppercased() } ?? "")).eyebrow(Brand.inkDim)
-                    Spacer()
-                    forecast(s.fiveHourForecast)
-                }
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    DisplayNumber(value: max(0, 100 - Int(w.usedPercentage.rounded())), size: 50, color: .white)
-                    Text("qoldi").foregroundStyle(Brand.inkDim)
-                }
-                (Text("↻ \(Fmt.hourMinute.string(from: w.resetsAt)) · ").foregroundColor(Brand.inkDim)
-                 + Text(Alerts.duration(max(0, w.resetsAt.timeIntervalSinceNow))).foregroundColor(.white).bold()
-                 + Text(s.limits?.sevenDay.map { " · hafta \(max(0, 100 - Int($0.usedPercentage.rounded())))%" } ?? "").foregroundColor(Brand.inkDim))
-                    .font(.caption)
-                MiniWindow(window: w, minutes: s.recentMinutes).frame(height: 34).padding(.top, 6)
-                VStack(alignment: .leading, spacing: 10) {
-                    LimitBarRow(title: "Joriy sessiya", window: w, dark: true)
-                    if let wk = s.limits?.sevenDay {
-                        LimitBarRow(title: "Bu hafta", window: wk, dark: true)
-                        if let warn = LimitText.weekWarning(s.weekForecast, week: wk) {
-                            Label(warn, systemImage: "exclamationmark.triangle.fill")
-                                .font(.caption.weight(.medium)).foregroundStyle(Color(light: 0xFFC46B, dark: 0xFFC46B))
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
+    private func limits(_ s: Snapshot) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 8) {
+                Image(systemName: "gauge.with.dots.needle.67percent").foregroundStyle(Brand.inkFill)
+                Text("Claude" + (s.limits?.plan.map { " · " + $0 } ?? "")).font(.callout.weight(.semibold)).foregroundStyle(.white)
+                Spacer()
+                if s.rate(mode) > 0 && s.runningAgents > 0 {
+                    HStack(spacing: 5) {
+                        Image(systemName: "bolt.fill")
+                        Text("\(Fmt.tokens(s.rate(mode)))/daq").monospacedDigit()
                     }
-                    if let l = s.limits, let stale = LimitText.staleNote(l, now: s.updatedAt) {
-                        Label(stale, systemImage: "clock.arrow.circlepath")
-                            .font(.caption2).foregroundStyle(Brand.inkDim)
-                            .fixedSize(horizontal: false, vertical: true)
+                    .font(.caption.weight(.semibold)).foregroundStyle(Color(light: 0x7CF0B6, dark: 0x7CF0B6))
+                }
+            }
+            if let l = s.limits, let w = l.fiveHour {
+                HStack(spacing: 12) {
+                    LimitRing(title: "Sessiya", window: w, caption: "5 soatlik oyna")
+                    if let wk = l.sevenDay {
+                        LimitRing(title: "Hafta", window: wk, caption: "7 kunlik oyna")
                     }
                 }
-                .padding(.top, 12)
+                paceLine(s, l)
             } else {
-                Text("BUGUN").eyebrow(Brand.inkDim)
-                Text(Fmt.tokens(s.today.value(mode)))
-                    .font(.system(size: 44, weight: .bold, design: .rounded)).foregroundStyle(.white)
-                Button("Claude limitini ulash…") { WindowManager.shared.show(.settings) }
-                    .buttonStyle(.link).tint(Brand.inkFill).font(.caption.weight(.semibold))
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Bugun \(Fmt.tokens(s.today.value(mode))) token").font(.title3.weight(.semibold)).foregroundStyle(.white)
+                    Text("Haqiqiy limitni ko'rish uchun Claude hisobini ulang.").font(.caption).foregroundStyle(Brand.inkDim)
+                    Button("Sozlamalarni ochish…") { WindowManager.shared.show(.settings) }
+                        .buttonStyle(.link).tint(Brand.inkFill).font(.caption.weight(.semibold))
+                }
             }
         }
-        .padding(18)
+        .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Brand.ink)
     }
 
-    private func forecast(_ f: LimitForecast.Outcome) -> some View {
-        let (t, c): (String, Color) = {
-            switch f {
-            case .runsOut(let at): return ("~\(Fmt.hourMinute.string(from: at)) da tugaydi", Color(light: 0xFFC46B, dark: 0xFFC46B))
-            case .lasts: return ("Yetadi", Color(light: 0x7CF0B6, dark: 0x7CF0B6))
-            case .unknown: return ("", .clear)
+    /// Bitta jumla: shu sur'at bilan nima bo'ladi
+    private func paceLine(_ s: Snapshot, _ l: RateLimits) -> some View {
+        let warnColor = Color(light: 0xFFC46B, dark: 0xFFC46B)
+        let okColor = Color(light: 0x7CF0B6, dark: 0x7CF0B6)
+        let (symbol, text, color): (String, String, Color) = {
+            if case .runsOut(let at) = s.fiveHourForecast {
+                return ("exclamationmark.triangle.fill", "Sessiya ~\(Fmt.hourMinute.string(from: at)) da tugaydi — tiklanishidan oldin", warnColor)
             }
+            if let wk = l.sevenDay, let w = LimitText.weekWarning(s.weekForecast, week: wk) {
+                return ("exclamationmark.triangle.fill", w, warnColor)
+            }
+            if let stale = LimitText.staleNote(l, now: s.updatedAt) { return ("clock.arrow.circlepath", stale, Brand.inkDim) }
+            return ("checkmark.circle.fill", "Sur'at me'yorida — limit tiklanguncha yetadi", okColor)
         }()
-        return HStack(spacing: 5) {
-            if !t.isEmpty { Circle().fill(c).frame(width: 6, height: 6) }
-            Text(t)
+        return HStack(alignment: .top, spacing: 8) {
+            Image(systemName: symbol).font(.caption)
+            Text(text).font(.caption.weight(.medium)).fixedSize(horizontal: false, vertical: true)
         }
-        .font(.caption.weight(.semibold)).foregroundStyle(c)
+        .foregroundStyle(color)
+        .padding(.horizontal, 10).padding(.vertical, 8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(color.opacity(0.12)))
     }
 
-    /// Jarayon: hozir ishlayotgan (yoki eng so'nggi) sessiyaning joriy so'rovi — holat, matn, qadamlar izi va hozirgi qadam
+    // MARK: Hozir
+
+    /// Hozir nima bo'lyapti: loyiha va so'rov, katta harfda joriy harakat (taymer bilan), nomli jarayon izi
     @ViewBuilder
-    private func process(_ s: Snapshot) -> some View {
+    private func now(_ s: Snapshot) -> some View {
         let active = s.sessions.first { $0.state != .idle }
         if let sess = active ?? s.sessions.first, let turn = sess.turns.last {
             let waiting = s.permissionWaits[sess.id]
@@ -111,44 +112,40 @@ struct MenuPanel: View {
                 UserDefaults.standard.set(sess.id, forKey: GraphScreen.selectedSessionKey)
                 WindowManager.shared.show(.graph)
             } label: {
-                VStack(alignment: .leading, spacing: 10) {
-                    HStack(spacing: 8) {
-                        ProjectAvatar(name: sess.project, size: 20)
-                        Text(sess.project).font(.caption.weight(.semibold))
-                        Text("#\(turn.id)").font(.caption.weight(.bold)).monospacedDigit().foregroundStyle(Brand.accent)
+                VStack(alignment: .leading, spacing: 12) {
+                    // Sarlavha: holat — eng birinchi ko'rinadigan narsa
+                    HStack(spacing: 6) {
+                        if waiting != nil { Image(systemName: "hand.raised.fill") }
+                        else if live { StateDot(state: .running, size: 7) }
+                        else { Image(systemName: "checkmark.circle.fill") }
+                        Text(waiting != nil ? "RUXSATINGIZNI KUTYAPTI" : (live ? "HOZIR ISHLAYAPTI" : "OXIRGI ISH · " + Fmt.ago(sess.lastActivity).uppercased()))
+                            .eyebrow(color)
                         Spacer()
-                        HStack(spacing: 5) {
-                            if waiting != nil { Image(systemName: "hand.raised.fill") }
-                            else if live { StateDot(state: .running, size: 6) }
-                            else { Image(systemName: "checkmark.circle.fill") }
-                            Text(waiting != nil ? "Ruxsat kutyapti" : (live ? "Ishlayapti" : "Tugadi · " + Fmt.ago(sess.lastActivity)))
-                        }
-                        .font(.caption.weight(.semibold)).foregroundStyle(color)
-                        .padding(.horizontal, 8).padding(.vertical, 3)
-                        .background(Capsule().fill(color.opacity(0.12)))
+                        ProjectAvatar(name: sess.project, size: 16)
+                        Text("\(sess.project) #\(turn.id)").font(.caption).foregroundStyle(.secondary).lineLimit(1)
                     }
-                    Text(turn.shownPrompt).font(.callout.weight(.semibold)).lineLimit(2)
-                        .fixedSize(horizontal: false, vertical: true)
-                    MiniTrace(steps: Array(steps.suffix(14)), notes: notes, live: live)
-                        .frame(height: 46)
-                    // Hozirgi qadam (yoki oxirgi harakat) — taymer bilan
-                    HStack(spacing: 8) {
+                    // Joriy harakat — katta
+                    HStack(spacing: 12) {
                         let cat = running?.category
-                        Image(systemName: waiting != nil ? "hand.raised.fill" : (running?.symbol ?? (live ? "brain" : "text.bubble.fill")))
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(waiting != nil ? Brand.warn : (cat?.iconColor ?? Brand.inkFill))
-                            .frame(width: 24, height: 24)
-                            .background(Circle().fill((cat?.color ?? Brand.inkFill).opacity(0.15)))
-                        Text(waiting.map { Alerts.uz($0.message) } ?? running?.text ?? (live ? "O'ylayapti…" : (sess.main?.lastAction ?? "")))
-                            .font(.caption).lineLimit(1)
+                        ToolTile(symbol: waiting != nil ? "hand.raised.fill" : (running?.symbol ?? (live ? "brain" : "checkmark")),
+                                 color: waiting != nil ? Brand.warn : (cat?.color ?? Brand.accent), size: 38)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(actionTitle(running: running, waiting: waiting, live: live))
+                                .font(.body.weight(.semibold)).lineLimit(1)
+                            Text(actionDetail(running: running, waiting: waiting, live: live, turn: turn))
+                                .font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                        }
                         Spacer(minLength: 6)
                         if let r = running {
                             TimelineView(.periodic(from: .now, by: 1)) { ctx in
                                 Text(Alerts.duration(ctx.date.timeIntervalSince(r.date)))
-                                    .font(.system(size: 12, weight: .semibold, design: .rounded)).monospacedDigit()
+                                    .font(.system(size: 15, weight: .semibold, design: .rounded)).monospacedDigit()
                             }
                         }
                     }
+                    // Jarayon izi — yo'lak nomlari bilan
+                    MiniTrace(steps: Array(steps.suffix(14)), notes: notes, live: live)
+                        .frame(height: 58)
                     HStack(spacing: 12) {
                         meta("list.bullet", "\(turn.steps) qadam")
                         meta("clock", Alerts.duration(turn.duration))
@@ -156,7 +153,7 @@ struct MenuPanel: View {
                         Spacer()
                         if sess.contextTokens > 0 {
                             let f = sess.contextFraction
-                            meta("gauge.with.dots.needle.50percent", "\(Int((f * 100).rounded()))% kontekst")
+                            meta("text.alignleft", "kontekst \(Int((f * 100).rounded()))%")
                                 .foregroundStyle(f >= 0.8 ? Brand.warn : .secondary)
                         }
                     }
@@ -173,32 +170,53 @@ struct MenuPanel: View {
         }
     }
 
+    /// «Terminal», «Fayllar», «O'ylayapti…» — nima bo'lyapti, bir so'zda
+    private func actionTitle(running: StepSnap?, waiting: HookNotice?, live: Bool) -> String {
+        if waiting != nil { return "Ruxsat kerak" }
+        if let r = running { return r.category.title }
+        return live ? "O'ylayapti…" : "Javob berdi"
+    }
+
+    /// Batafsil: qaysi buyruq/fayl yoki so'rov matni
+    private func actionDetail(running: StepSnap?, waiting: HookNotice?, live: Bool, turn: TurnSnap) -> String {
+        if let w = waiting { return Alerts.uz(w.message) }
+        if let r = running {
+            let t = r.text
+            if let range = t.range(of: " · ") { return String(t[range.upperBound...]) }
+            return t
+        }
+        return turn.shownPrompt
+    }
+
     private func meta(_ symbol: String, _ text: String) -> some View {
         HStack(spacing: 4) { Image(systemName: symbol); Text(text) }
             .font(.caption2.monospacedDigit()).foregroundStyle(.secondary)
     }
 
-    /// Bugungi qisqa xulosa — uchta plitka
-    private func stats(_ s: Snapshot) -> some View {
+    // MARK: Bugun
+
+    /// Bitta ixcham qator: bugungi tokenlar, faol vaqt, sessiyalar
+    private func today(_ s: Snapshot) -> some View {
         let todaySessions = s.sessions.filter { Calendar.current.isDateInToday($0.lastActivity ?? .distantPast) }.count
-        return HStack(spacing: 8) {
-            tile("Bugun", Fmt.tokens(s.today.value(mode)), "token")
-            tile("Faol vaqt", Alerts.duration(Double(s.activeMinutesToday) * 60), "bugun")
-            tile("Sessiyalar", "\(todaySessions)", s.runningAgents > 0 ? "\(s.runningAgents) ishlayapti" : "tinch")
+        return HStack(spacing: 0) {
+            todayItem("Bugun", Fmt.tokens(s.today.value(mode)), "token")
+            Divider().frame(height: 26)
+            todayItem("Faol", Alerts.duration(Double(s.activeMinutesToday) * 60), "vaqt")
+            Divider().frame(height: 26)
+            todayItem("Sessiya", "\(todaySessions)", s.runningAgents > 0 ? "\(s.runningAgents) ishlayapti" : "bugun")
         }
+        .padding(.vertical, 10)
+        .surface(radius: 12)
     }
 
-    private func tile(_ k: String, _ v: String, _ sub: String) -> some View {
-        VStack(alignment: .leading, spacing: 3) {
-            Text(k).font(.caption2).foregroundStyle(.secondary)
-            Text(v).font(.system(size: 16, weight: .semibold, design: .rounded)).monospacedDigit().lineLimit(1)
+    private func todayItem(_ k: String, _ v: String, _ sub: String) -> some View {
+        VStack(spacing: 2) {
+            Text(v).font(.system(size: 15, weight: .semibold, design: .rounded)).monospacedDigit().lineLimit(1)
                 .minimumScaleFactor(0.7)
                 .contentTransition(.numericText()).animation(Motion.smooth, value: v)
-            Text(sub).font(.caption2).foregroundStyle(.tertiary).lineLimit(1)
+            Text("\(k) · \(sub)").font(.caption2).foregroundStyle(.secondary).lineLimit(1)
         }
-        .padding(10)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .surface(radius: 12)
+        .frame(maxWidth: .infinity)
     }
 
     private func projects(_ s: Snapshot) -> some View {
@@ -241,39 +259,6 @@ struct MenuPanel: View {
     }
 }
 
-/// Menyu panelidagi 5 soatlik oyna — 5 ta kichik ustun (o'tgan / hozir / kelajak)
-private struct MiniWindow: View {
-    let window: LimitWindow
-    let minutes: [MinutePoint]
-
-    var body: some View {
-        let start = window.resetsAt.addingTimeInterval(-5 * 3600)
-        let now = Date()
-        var w = Array(repeating: 0.0, count: 5)
-        for m in minutes where m.date >= start && m.date < window.resetsAt {
-            w[min(4, Int(m.date.timeIntervalSince(start) / 3600))] += m.main.weighted + m.agents.weighted
-        }
-        let mx = max(w.max() ?? 1, 1)
-        return HStack(alignment: .bottom, spacing: 5) {
-            ForEach(0..<5, id: \.self) { i in
-                let a = start.addingTimeInterval(Double(i) * 3600)
-                let cur = now >= a && now < a.addingTimeInterval(3600)
-                ZStack(alignment: .bottom) {
-                    RoundedRectangle(cornerRadius: 5, style: .continuous).fill(.white.opacity(now < a ? 0.04 : 0.08))
-                    GeometryReader { g in
-                        VStack {
-                            Spacer(minLength: 0)
-                            RoundedRectangle(cornerRadius: 4, style: .continuous).fill(Brand.inkFill)
-                                .frame(height: w[i] > 0 ? max(3, g.size.height * CGFloat(w[i] / mx)) : 0)
-                        }
-                    }
-                }
-                .overlay { if cur { RoundedRectangle(cornerRadius: 5, style: .continuous).stroke(.white.opacity(0.5), lineWidth: 1) } }
-            }
-        }
-    }
-}
-
 /// Bosilganda va ustiga kelganda yengil fon beradigan qator tugmasi
 struct RowButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
@@ -308,10 +293,20 @@ private struct MiniTrace: View {
     var body: some View {
         let items: [(Date, Item)] = (steps.map { ($0.date, Item.step($0)) } + notes.map { ($0.date, Item.note($0)) })
             .sorted { $0.0 < $1.0 }.suffix(16).map { $0 }
+        HStack(spacing: 6) {
+        // Yo'lak nomlari: chizmaning qaysi qatori nimani bildiradi
+        VStack(alignment: .trailing, spacing: 0) {
+            Text("Mahalliy").frame(maxHeight: .infinity)
+            Text("Model").frame(maxHeight: .infinity)
+            Text("Tashqi").frame(maxHeight: .infinity)
+        }
+        .font(.system(size: 8.5, weight: .medium)).foregroundStyle(.tertiary)
+        .frame(width: 42, alignment: .trailing)
         TimelineView(.animation(minimumInterval: 1.0 / 30, paused: !live || reduceMotion)) { ctx in
             Canvas { g, size in
                 guard !items.isEmpty else { return }
-                let mid = size.height / 2, off = size.height / 2 - 9
+                // Uchta teng yo'lak: tepada mahalliy, o'rtada model, pastda tashqi
+                let mid = size.height / 2, off = size.height / 3
                 let dx = items.count > 1 ? min(26, (size.width - 20) / CGFloat(items.count - 1)) : 0
                 func y(_ it: Item) -> CGFloat {
                     switch it {
@@ -370,6 +365,52 @@ private struct MiniTrace: View {
                 Text("Hali qadam yo'q").font(.caption2).foregroundStyle(.tertiary).padding(.leading, 4)
             }
         }
+        }
         .accessibilityLabel("So'nggi \(items.count) ta hodisa")
+    }
+}
+
+/// Limit halqasi: markazda «46%» va «ishlatildi», ostida nomi va qachon tiklanishi
+private struct LimitRing: View {
+    let title: String
+    let window: LimitWindow
+    let caption: String
+
+    /// «31 daq», «4 soat 10 daq», «6 kun 3 soat»
+    static func left(_ t: TimeInterval) -> String {
+        let t = max(0, t)
+        if t >= 2 * 86400 { return "\(Int(t) / 86400) kun" }
+        if t >= 86400 { return "1 kun \((Int(t) % 86400) / 3600) soat" }
+        return Alerts.duration(t)
+    }
+
+    var body: some View {
+        let pct = min(100, max(0, window.usedPercentage))
+        let color: Color = pct >= 90 ? Brand.err : (pct >= 75 ? Color(light: 0xFFC46B, dark: 0xFFC46B) : Brand.inkFill)
+        HStack(spacing: 12) {
+            ZStack {
+                Circle().stroke(.white.opacity(0.1), lineWidth: 8)
+                Circle().trim(from: 0, to: pct / 100)
+                    .stroke(color, style: StrokeStyle(lineWidth: 8, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+                VStack(spacing: -2) {
+                    Text("\(Int(pct.rounded()))%").font(.system(size: 17, weight: .bold, design: .rounded)).monospacedDigit()
+                        .foregroundStyle(.white)
+                    Text("ishlatildi").font(.system(size: 8.5, weight: .medium)).foregroundStyle(Brand.inkDim)
+                }
+            }
+            .frame(width: 64, height: 64)
+            .animation(Motion.smooth, value: pct)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title).font(.callout.weight(.semibold)).foregroundStyle(.white)
+                Text("↻ " + LimitText.dayTime(window.resetsAt)).font(.caption).foregroundStyle(Brand.inkDim)
+                    .lineLimit(1).minimumScaleFactor(0.8)
+                Text(Self.left(window.resetsAt.timeIntervalSinceNow) + " qoldi").font(.caption2)
+                    .foregroundStyle(Brand.inkDim.opacity(0.8)).lineLimit(1).minimumScaleFactor(0.8)
+            }
+            Spacer(minLength: 0)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .help("\(title) (\(caption)): \(Int(pct.rounded()))% ishlatildi, \(LimitText.dayTime(window.resetsAt)) da tiklanadi")
     }
 }

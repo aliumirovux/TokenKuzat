@@ -1,5 +1,13 @@
 # O'zgarishlar
 
+## 5.7.0 — 2026-10-28
+
+- Menyu paneli qayta chizildi, ortiqcha va qarama-qarshi raqamlarsiz:
+  - Tepada «Claude · Max (5x)» va jonli tezlik; ikki halqa — Sessiya va Hafta, ikkalasi ham «ishlatildi» (Claude sahifasidagidek), yonida tiklanish vaqti va qancha qolgani; ostida bitta rangli xulosa: «Sur'at me'yorida» yoki «Shu sur'atda juma ertalab tugaydi». Nomsiz 5 ustun va «qoldi»/«ishlatildi» aralashmasi olib tashlandi.
+  - «Hozir» kartasi: holat sarlavhada («HOZIR ISHLAYAPTI» / «RUXSATINGIZNI KUTYAPTI»), joriy harakat katta harfda (Terminal + nima qilyapti + taymer), jarayon izi yo'lak nomlari bilan (Mahalliy / Model / Tashqi).
+  - Bugungi xulosa — bitta ixcham qator.
+  - Panel tepasidagi oq chiziq yo'qoldi.
+
 ## 5.6.0 — 2026-10-28
 
 - Limit endi Claude hisobidan (claude.ai «Usage» sahifasi bilan bir xil manba): Claude Code'ning Keychain'dagi kirish kaliti bilan Anthropic'dan joriy sessiya va haftalik foiz, tiklanish vaqti va tarif (Max 5x) har daqiqada olinadi — Code tabi va Claude ilovasida ham. Kalit faqat shu kompyuterda o'qiladi va faqat api.anthropic.com ga yuboriladi; hech qayerga yozilmaydi.
