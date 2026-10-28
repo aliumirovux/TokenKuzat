@@ -128,6 +128,8 @@ struct LanesCard: View {
     let timeline: TimelineModel
     let replayOn: Bool
     let onReplay: () -> Void
+    /// Sukut bo'yicha yig'ilgan: bitta qator (Replay + vaqt ulushi); ochilsa — qatorli vaqt chizig'i
+    @AppStorage("lanesOpen") private var open = false
 
     private struct Lane: Identifiable {
         let id: String
@@ -162,6 +164,7 @@ struct LanesCard: View {
         let ls = lanes
         let total = timeline.duration
         VStack(alignment: .leading, spacing: 8) {
+            if open {
             ForEach(ls) { lane in
                 HStack(spacing: 12) {
                     HStack(spacing: 6) {
@@ -201,6 +204,7 @@ struct LanesCard: View {
                 .font(.system(size: 10, design: .monospaced)).foregroundStyle(.tertiary)
             }
             Divider().padding(.vertical, 4)
+            }
             HStack(spacing: 10) {
                 Button(action: onReplay) {
                     Image(systemName: replayOn ? "stop.fill" : "play.fill")
@@ -211,12 +215,26 @@ struct LanesCard: View {
                 }
                 .buttonStyle(.plain)
                 .help(replayOn ? "Replay'ni to'xtatish" : "Bu so'rovni boshidan qayta ijro etish")
-                Text(replayOn ? "Replay" : "Replay").font(.callout).foregroundStyle(.secondary)
-                Spacer()
+                Text("Replay").font(.callout).foregroundStyle(.secondary)
+                Divider().frame(height: 16)
                 shares
+                Spacer(minLength: 8)
+                Button { withAnimation(Motion.spring) { open.toggle() } } label: {
+                    HStack(spacing: 5) {
+                        Text(open ? "Yig'ish" : "Vaqt chizig'i")
+                        Image(systemName: "chevron.down").rotationEffect(.degrees(open ? 180 : 0))
+                    }
+                    .font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                    .padding(.horizontal, 10).padding(.vertical, 5)
+                    .background(Capsule().fill(Brand.sunken))
+                    .contentShape(Capsule())
+                }
+                .buttonStyle(.plain)
+                .help(open ? "Vaqt chizig'ini yashirish" : "Qaysi asbob qachon va qancha ishlaganini qatorlarda ko'rsatish")
             }
         }
-        .card(padding: 16)
+        .padding(open ? 16 : 10)
+        .card(padding: 0)
         .padding(.horizontal, 24)
     }
 
@@ -227,12 +245,18 @@ struct LanesCard: View {
             Text("Vaqtning").foregroundStyle(.secondary)
             ForEach(Array(timeline.shares.prefix(3).enumerated()), id: \.offset) { i, s in
                 if i > 0 { Text("·").foregroundStyle(.tertiary) }
+                if let c = shareColor(s.title) { Circle().fill(c).frame(width: 7, height: 7) }
                 Text(Fmt.percent(s.seconds, of: sum)).fontWeight(.semibold)
                 Text("— \(i == 0 && s.title.hasPrefix("Model") ? "model o'ylashi" : s.title.lowercased())").foregroundStyle(.secondary)
             }
         }
         .font(.callout)
         .lineLimit(1)
+    }
+
+    private func shareColor(_ title: String) -> Color? {
+        if title.hasPrefix("Model") { return Brand.accent }
+        return ToolCategory.allCases.first { $0.title == title }?.color
     }
 }
 
