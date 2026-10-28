@@ -11,6 +11,11 @@ struct SettingsView: View {
     @AppStorage(Pref.budgetPeriod) private var budgetPeriod = BudgetPeriod.fiveHours
     @AppStorage(Pref.budgetLimitM) private var budgetLimitM = 20.0
     @AppStorage(Pref.budgetNotify) private var budgetNotify = true
+    @AppStorage(Pref.notifyFinished) private var notifyFinished = true
+    @AppStorage(Pref.notifyFinishedMin) private var notifyFinishedMin = 60.0
+    @AppStorage(Pref.notifyStuck) private var notifyStuck = true
+    @AppStorage(Pref.notifyStuckSec) private var notifyStuckSec = 90.0
+    @AppStorage(Pref.notifyErrors) private var notifyErrors = true
     @State private var launchAtLogin = LaunchAtLogin.isEnabled
     @State private var notifyDenied = false
     @State private var confirmClear = false
@@ -25,6 +30,46 @@ struct SettingsView: View {
                     ForEach(MenuBarStyle.allCases) { Text($0.title).tag($0) }
                 }
             }
+
+            SwiftUI.Section {
+                Toggle("Claude ishni tugatganda", isOn: $notifyFinished)
+                Picker("…agar ish shundan uzoq davom etgan bo'lsa", selection: $notifyFinishedMin) {
+                    Text("har doim").tag(0.0)
+                    Text("30 soniya").tag(30.0)
+                    Text("1 daqiqa").tag(60.0)
+                    Text("3 daqiqa").tag(180.0)
+                    Text("10 daqiqa").tag(600.0)
+                }
+                .disabled(!notifyFinished)
+                Toggle("Qadam uzoq tugamasa (ruxsat kutilayotgan bo'lishi mumkin)", isOn: $notifyStuck)
+                Picker("…shundan keyin", selection: $notifyStuckSec) {
+                    Text("30 soniya").tag(30.0)
+                    Text("1,5 daqiqa").tag(90.0)
+                    Text("3 daqiqa").tag(180.0)
+                    Text("5 daqiqa").tag(300.0)
+                }
+                .disabled(!notifyStuck)
+                Toggle("Agent ketma-ket 3 marta xato olsa", isOn: $notifyErrors)
+                if notifyDenied {
+                    HStack {
+                        Label("macOS bildirishnomalarga ruxsat bermagan", systemImage: "exclamationmark.triangle")
+                            .font(.caption).foregroundStyle(.orange)
+                        Spacer()
+                        Button("Ruxsat berish…") {
+                            NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.Notifications-Settings.extension?id=uz.ali.tokenkuzat")!)
+                        }
+                    }
+                }
+            } header: {
+                Text("Bildirishnomalar")
+            } footer: {
+                Text("Bildirishnomani bosing — o'sha sessiya Agentlar sxemasida ochiladi. Ilova ochilganda mavjud holatlar uchun xabar yuborilmaydi.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            .disabled(!AppInfo.isBundled)
+            .onChange(of: notifyFinished) { if $0 { askPermission() } }
+            .onChange(of: notifyStuck) { if $0 { askPermission() } }
+            .onChange(of: notifyErrors) { if $0 { askPermission() } }
 
             SwiftUI.Section {
                 Picker("Hisoblash usuli", selection: $mode) {
@@ -58,14 +103,7 @@ struct SettingsView: View {
                 .disabled(!budgetEnabled)
                 Toggle("80% va 100% da bildirishnoma", isOn: $budgetNotify)
                     .disabled(!budgetEnabled || !AppInfo.isBundled)
-                    .onChange(of: budgetNotify) { on in
-                        if on { Alerts.shared.requestPermission { notifyDenied = !$0 } }
-                    }
-                if notifyDenied {
-                    Label("Bildirishnomalarga ruxsat yo'q — Tizim sozlamalari → Bildirishnomalar → Token Kuzatuv.",
-                          systemImage: "exclamationmark.triangle")
-                        .font(.caption).foregroundStyle(.orange)
-                }
+                    .onChange(of: budgetNotify) { if $0 { askPermission() } }
                 if budgetEnabled, let b = BudgetStatus.current(store.snap) {
                     BudgetBar(status: b)
                 }
@@ -105,10 +143,14 @@ struct SettingsView: View {
             launchAtLogin = LaunchAtLogin.isEnabled
             if AppInfo.isBundled {
                 UNUserNotificationCenter.current().getNotificationSettings { s in
-                    DispatchQueue.main.async { notifyDenied = budgetNotify && s.authorizationStatus == .denied }
+                    DispatchQueue.main.async { notifyDenied = s.authorizationStatus == .denied }
                 }
             }
         }
+    }
+
+    private func askPermission() {
+        Alerts.shared.requestPermission { notifyDenied = !$0 }
     }
 
     private func fmt(_ v: Double) -> String {

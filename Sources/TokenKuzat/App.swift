@@ -25,6 +25,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // Menyu satri belgisi notch ortida yashirinib qolishi mumkin,
     // shuning uchun ilova ochilganda (Spotlight, Finder) katta oyna ham chiqadi.
     func applicationDidFinishLaunching(_ notification: Notification) {
+        Alerts.shared.start()
         DispatchQueue.main.async { WindowManager.shared.show() }
     }
 

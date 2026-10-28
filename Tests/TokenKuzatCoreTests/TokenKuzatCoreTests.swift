@@ -239,3 +239,78 @@ final class ProcessTrackingTests: XCTestCase {
         XCTAssertEqual(main.resources.first?.category, .web)
     }
 }
+
+final class ActivityMonitorTests: XCTestCase {
+    private var root: URL!
+    private let f: ISO8601DateFormatter = {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return f
+    }()
+
+    override func setUpWithError() throws {
+        root = FileManager.default.temporaryDirectory.appendingPathComponent("tk-mon-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: root.appendingPathComponent("p"), withIntermediateDirectories: true)
+    }
+
+    override func tearDownWithError() throws { try? FileManager.default.removeItem(at: root) }
+
+    private func use(_ id: String, _ t: Date, _ cmd: String = "swift build") -> String {
+        #"{"type":"assistant","timestamp":"\#(f.string(from: t))","message":{"id":"m\#(id)","stop_reason":"tool_use","content":[{"type":"tool_use","id":"\#(id)","name":"Bash","input":{"command":"\#(cmd)"}}],"usage":{"input_tokens":0,"output_tokens":10}}}"#
+    }
+    private func result(_ id: String, _ t: Date, error: Bool = false) -> String {
+        #"{"type":"user","timestamp":"\#(f.string(from: t))","message":{"content":[{"type":"tool_result","tool_use_id":"\#(id)","is_error":\#(error)}]}}"#
+    }
+    private func end(_ t: Date) -> String {
+        #"{"type":"assistant","timestamp":"\#(f.string(from: t))","message":{"id":"end\#(t.timeIntervalSince1970)","stop_reason":"end_turn","content":[{"type":"text","text":"Tayyor"}],"usage":{"input_tokens":0,"output_tokens":5}}}"#
+    }
+    private func append(_ lines: [String]) throws {
+        let url = root.appendingPathComponent("p/s.jsonl")
+        if !FileManager.default.fileExists(atPath: url.path) { FileManager.default.createFile(atPath: url.path, contents: nil) }
+        let h = try FileHandle(forWritingTo: url)
+        h.seekToEndOfFile()
+        h.write(Data((lines.joined(separator: "\n") + "\n").utf8))
+        try h.close()
+    }
+
+    func testFinishedStuckAndErrorStreak() throws {
+        let t0 = Date()
+        let engine = Engine(config: Engine.Config(roots: [root]))
+        let mon = ActivityMonitor()
+        let cfg = ActivityMonitor.Config(finishMin: 60, stuckAfter: 90, errorStreak: 3)
+
+        // Ish boshlandi
+        try append([#"{"type":"user","timestamp":"\#(f.string(from: t0))","message":{"content":"Build qil"}}"#, use("a", t0)])
+        XCTAssertTrue(mon.process(engine.tick(now: t0.addingTimeInterval(1)), config: cfg).isEmpty)
+
+        // Qadam 100 s dan beri tugamadi → «osildi» (bir marta)
+        let stuck = mon.process(engine.tick(now: t0.addingTimeInterval(100)), config: cfg)
+        XCTAssertEqual(stuck.count, 1)
+        if case .stuck(_, let d) = stuck.first?.kind { XCTAssertEqual(d, 100, accuracy: 1) } else { XCTFail() }
+        XCTAssertTrue(mon.process(engine.tick(now: t0.addingTimeInterval(101)), config: cfg).isEmpty)
+
+        // Uch marta ketma-ket xato
+        try append([result("a", t0.addingTimeInterval(102), error: true),
+                    use("b", t0.addingTimeInterval(103)), result("b", t0.addingTimeInterval(104), error: true),
+                    use("c", t0.addingTimeInterval(105)), result("c", t0.addingTimeInterval(106), error: true)])
+        let errs = mon.process(engine.tick(now: t0.addingTimeInterval(107)), config: cfg)
+        XCTAssertEqual(errs.map(\.kind), [.errorStreak(count: 3, lastStep: "Terminal · swift build")])
+
+        // Javob yozib tugatdi → 15 s dan keyin tinch → «tugadi»
+        try append([end(t0.addingTimeInterval(110))])
+        XCTAssertTrue(mon.process(engine.tick(now: t0.addingTimeInterval(111)), config: cfg).isEmpty)
+        let done = mon.process(engine.tick(now: t0.addingTimeInterval(130)), config: cfg)
+        guard case .finished(let d, let tokens, let steps)? = done.first?.kind else { return XCTFail("tugadi kutilgan edi") }
+        XCTAssertEqual(d, 109, accuracy: 1)
+        XCTAssertEqual(tokens, 25)
+        XCTAssertEqual(steps, 2)
+    }
+
+    func testNoAlertsForStateFoundAtLaunch() throws {
+        let t0 = Date()
+        try append([use("x", t0.addingTimeInterval(-500))])
+        let engine = Engine(config: Engine.Config(roots: [root]))
+        let mon = ActivityMonitor()
+        XCTAssertTrue(mon.process(engine.tick(now: t0)).isEmpty)
+    }
+}

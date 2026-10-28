@@ -12,6 +12,12 @@ enum Pref {
     static let budgetLimitM = "budgetLimitM"
     static let budgetNotify = "budgetNotify"
     static let section = "windowSection"
+    static let notifyFinished = "notifyFinished"
+    /// Soniya: shundan qisqa ish uchun «tugadi» yuborilmaydi
+    static let notifyFinishedMin = "notifyFinishedMin"
+    static let notifyStuck = "notifyStuck"
+    static let notifyStuckSec = "notifyStuckSec"
+    static let notifyErrors = "notifyErrors"
 
     static func register() {
         UserDefaults.standard.register(defaults: [
@@ -22,6 +28,11 @@ enum Pref {
             budgetLimitM: 20.0,
             budgetNotify: true,
             section: Section.overview.rawValue,
+            notifyFinished: true,
+            notifyFinishedMin: 60.0,
+            notifyStuck: true,
+            notifyStuckSec: 90.0,
+            notifyErrors: true,
         ])
     }
 }

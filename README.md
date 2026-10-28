@@ -7,7 +7,7 @@ Faqat o'zingiz uchun: internetga hech narsa yubormaydi, faqat diskdagi `~/.claud
 ## O'rnatish
 
 ```bash
-bash ~/Downloads/TokenKuzat/build.sh
+bash ~/Developer/TokenKuzat/build.sh
 ```
 
 Ilova `~/Applications/Token Kuzatuv.app` ga o'rnatiladi va o'zi ochiladi. Yoki Finder'da `O'rnatish.command` ni ikki marta bosing.
