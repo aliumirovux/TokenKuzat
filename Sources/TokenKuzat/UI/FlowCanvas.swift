@@ -328,7 +328,7 @@ struct FlowCanvas: View {
             Divider().frame(height: 16)
             zoomButton("plus", "Kattalashtirish") { zoom = min(3, zoom * 1.25) }
         }
-        .glass(radius: 10, interactive: true)
+        .surface(radius: 10, interactive: true)
     }
 
     private func zoomButton(_ symbol: String, _ help: String, _ action: @escaping () -> Void) -> some View {
@@ -435,7 +435,7 @@ private struct TriggerShapeNode: View {
             Image(systemName: "person.wave.2.fill").font(.system(size: 32, weight: .medium))
                 .foregroundStyle(Palette.cacheRead)
                 .frame(width: F.trig, height: F.trig)
-                .modifier(GlassSurface(shape: UnevenRoundedShape(left: F.trig / 2, right: 18), tint: Palette.cacheRead))
+                .modifier(Surface(shape: UnevenRoundedShape(left: F.trig / 2, right: 18), tint: Palette.cacheRead))
             VStack(spacing: 2) {
                 Text("Sizning so'rovingiz").font(.caption.weight(.semibold))
                 Text(prompt).font(.caption2).foregroundStyle(.secondary).lineLimit(2).multilineTextAlignment(.center)
@@ -497,7 +497,7 @@ private struct FlowAgentNode: View {
         }
         .padding(.horizontal, 16)
         .frame(width: w, height: h)
-        .modifier(GlassSurface(shape: shape, tint: agent.state == .running ? .green : nil, interactive: true,
+        .modifier(Surface(shape: shape, tint: agent.state == .running ? .green : nil, interactive: true,
                                stroke: selected ? .accentColor : nil))
         .overlay { if agent.state == .running { PulseStroke(shape: shape, color: .green) } }
         .scaleEffect(selected ? 1.02 : 1)
@@ -529,7 +529,7 @@ private struct ToolBubbleNode: View {
         VStack(spacing: 7) {
             ZStack(alignment: .topTrailing) {
                 Color.clear
-                    .modifier(GlassSurface(shape: Circle(), tint: bubble.busy || bubble.recent ? color : nil, interactive: true,
+                    .modifier(Surface(shape: Circle(), tint: bubble.busy || bubble.recent ? color : nil, interactive: true,
                                            stroke: selected ? .accentColor : nil))
                     .overlay {
                         Image(systemName: bubble.category?.symbol ?? "sparkles")
@@ -578,7 +578,7 @@ private struct ResultNode: View {
                 }
             }
             .frame(width: F.resultW, height: F.resultW)
-            .modifier(GlassSurface(shape: shape, tint: result.active ? .green : color))
+            .modifier(Surface(shape: shape, tint: result.active ? .green : color))
             .overlay { if result.active { PulseStroke(shape: shape, color: .green) } }
             VStack(spacing: 2) {
                 Text(result.active ? "Ishlayapti…" : "Natija").font(.caption.weight(.semibold))
@@ -620,7 +620,7 @@ private struct FlowLegend: View {
         }
         .font(.caption2)
         .padding(.horizontal, 10).padding(.vertical, 6)
-        .glassCapsule()
+        .surfaceCapsule()
     }
 
     private struct DashLine: Shape {

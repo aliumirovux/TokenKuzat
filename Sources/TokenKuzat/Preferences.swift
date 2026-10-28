@@ -45,7 +45,7 @@ enum MenuBarStyle: String, CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .tokens: return "Tokenlar va tezlik"
-        case .budget: return "5 soatlik limit foizi"
+        case .budget: return "5 soatlik limit — qancha qoldi"
         case .icon: return "Faqat belgi"
         }
     }

@@ -9,12 +9,12 @@ import TokenKuzatCore
 extension ToolCategory {
     var color: Color {
         switch self {
-        case .files: return .blue
-        case .shell: return .mint
-        case .web: return .cyan
-        case .mcp: return .pink
-        case .agent: return .indigo
-        case .other: return .gray
+        case .files: return Color(light: 0x0E9F8E, dark: 0x16B3A0)
+        case .shell: return Color(light: 0x18181B, dark: 0x4A4A52)
+        case .web: return Color(light: 0x2F7BE5, dark: 0x4A8FF0)
+        case .mcp: return Color(light: 0xE0731C, dark: 0xEC8432)
+        case .agent: return Brand.accent
+        case .other: return Color(light: 0x8A8A93, dark: 0x6E6E76)
         }
     }
 }
@@ -40,7 +40,7 @@ struct GraphScreen: View {
     @AppStorage(GraphScreen.selectedSessionKey) private var sessionId = ""
     @AppStorage("graphInspector") private var showInspector = true
     /// «flow» — n8n oqimi, «timeline» — vaqt chizig'i
-    @AppStorage("graphMode") private var graphMode = "flow"
+    @AppStorage("graphMode") private var graphMode = "steps"
     @State private var selection: Selection?
     /// nil — eng so'nggi so'rov (yangisi kelsa o'zi o'tadi), 0 — butun sessiya
     @State private var turnId: Int?
@@ -59,55 +59,66 @@ struct GraphScreen: View {
         let session = live.map { l in replayOn ? l.replay(at: replayTime ?? range?.upperBound ?? s.updatedAt) : l }
         let now = replayOn ? (replayTime ?? range?.upperBound ?? s.updatedAt) : s.updatedAt
         VStack(spacing: 0) {
-            topBar(s, live)
-            if replayOn, let range, let live {
-                ReplayBar(range: range,
-                          steps: live.agents.flatMap(\.steps).filter { range.contains($0.date) },
-                          time: Binding(get: { replayTime }, set: { t in
-                              if t == nil { replayOn = false }
-                              replayTime = t
-                          }),
-                          playing: $playing, speed: $speed)
-            }
-            if let session {
-                HStack(spacing: 0) {
-                    let turn = effectiveTurn(session)
-                    let flow = FlowModel(session: session, turnId: turn, now: now)
-                    if graphMode == "files" {
-                        let tl = TimelineModel(flow: flow, session: session, turnId: turn, now: now)
-                        FileHeatmapScreen(model: HeatmapModel(timeline: tl)) { f in
-                            if let owner = f.ownerId { select(.resource(agentId: owner, category: .files)) }
+            if let session, let live {
+                let turnNo = effectiveTurn(session)
+                let turn = turnNo.flatMap { n in session.turns.first { $0.id == n } }
+                let flow = FlowModel(session: session, turnId: turnNo, now: now)
+                let tl = TimelineModel(flow: flow, session: session, turnId: turnNo, now: now)
+                SessionHeader(session: session, turn: turn, mode: mode, costUSD: s.limits?.costBySession[session.id])
+                TurnChips(turns: live.turns, selected: turnNo) { turnId = $0 ?? 0 }
+                    .padding(.top, 14)
+                LanesCard(timeline: tl, replayOn: replayOn) { toggleReplay(live) }
+                    .padding(.top, 14)
+                if replayOn, let range {
+                    ReplayBar(range: range,
+                              steps: live.agents.flatMap(\.steps).filter { range.contains($0.date) },
+                              time: Binding(get: { replayTime }, set: { t in
+                                  if t == nil { replayOn = false }
+                                  replayTime = t
+                              }),
+                              playing: $playing, speed: $speed)
+                        .padding(.horizontal, 14)
+                }
+                tabs.padding(.horizontal, 24).padding(.top, 16).padding(.bottom, 10)
+                switch graphMode {
+                case "flow":
+                    HStack(spacing: 0) {
+                        FlowCanvas(session: session, model: flow, mode: mode,
+                                   selectedAgent: currentSelection(session)?.agentId,
+                                   selectedBubble: selectedBubbleId(session),
+                                   onSelectAgent: { select(.agent($0)) },
+                                   onSelectBubble: { b in
+                                       if let c = b.category { select(.resource(agentId: b.ownerId, category: c)) }
+                                       else { select(.agent(b.ownerId)) }
+                                   })
+                        if showInspector {
+                            Divider()
+                            inspector(session, now: now).frame(width: 320)
                         }
-                    } else if graphMode == "timeline" {
-                        TimelineScreen(model: TimelineModel(flow: flow, session: session, turnId: turn, now: now),
-                                       selectedAgent: currentSelection(session)?.agentId,
-                                       onSelectAgent: { select(.agent($0)) },
-                                       onSelectStep: { a, st in select(.resource(agentId: a.id, category: st.category)) })
-                    } else {
-                    FlowCanvas(session: session, model: flow,
-                               mode: mode,
-                               selectedAgent: currentSelection(session)?.agentId,
-                               selectedBubble: selectedBubbleId(session),
-                               onSelectAgent: { select(.agent($0)) },
-                               onSelectBubble: { b in
-                                   if let c = b.category { select(.resource(agentId: b.ownerId, category: c)) }
-                                   else { select(.agent(b.ownerId)) }
-                               })
                     }
-                    if showInspector {
-                        Divider()
-                        inspector(session, now: now).frame(width: 340)
+                    .card(padding: 0)
+                    .padding(.horizontal, 24).padding(.bottom, 20)
+                case "files":
+                    FileHeatmapScreen(model: HeatmapModel(timeline: tl)) { f in
+                        if let owner = f.ownerId { select(.resource(agentId: owner, category: .files)) }
                     }
+                    .card(padding: 0)
+                    .padding(.horizontal, 24).padding(.bottom, 20)
+                default:
+                    StepsPane(steps: tl.rows.flatMap { r in r.bars.map { (agent: r.agent, step: $0.step) } }
+                                .sorted { $0.step.date < $1.step.date },
+                              origin: tl.start)
+                        .id(turnNo ?? 0)
                 }
             } else {
                 ScrollView {
                     VStack(spacing: 16) {
-                        EmptyStateView(symbol: "point.3.connected.trianglepath.dotted",
-                                       title: "Sxema uchun sessiya yo'q",
-                                       text: "Mac'da Claude Code yoki Cowork'da ish boshlansa, jarayon shu yerda n8n kabi oqim bo'lib chiqadi: so'rov → agent → asboblar → natija.")
+                        EmptyStateView(symbol: "rectangle.stack",
+                                       title: "Sessiya yo'q",
+                                       text: "Mac'da Claude Code yoki Cowork'da ish boshlansa, jarayon shu yerda qadamma-qadam chiqadi.")
                         SourcesList(sources: s.sources).card()
                     }
-                    .padding(20)
+                    .padding(24)
                 }
             }
         }
@@ -127,86 +138,42 @@ struct GraphScreen: View {
         }
     }
 
-    // MARK: Yuqori panel
+    // MARK: Tablar
 
-    private func topBar(_ s: Snapshot, _ session: SessionSnap?) -> some View {
-        HStack(spacing: 12) {
-            if !s.sessions.isEmpty {
-                Picker("Sessiya", selection: Binding(get: { session?.id ?? "" }, set: { sessionId = $0 })) {
-                    ForEach(s.sessions) { Text(sessionLabel($0)).tag($0.id) }
-                }
-                .labelsHidden()
-                .frame(minWidth: 140, maxWidth: 260)
-            }
-            if let session, !session.turns.isEmpty { turnPicker(session) }
+    private var tabs: some View {
+        HStack(spacing: 4) {
+            tab("steps", "Qadamlar", "list.bullet")
+            tab("flow", "Oqim", "point.3.connected.trianglepath.dotted")
+            tab("files", "Fayllar", "square.grid.3x3")
             Spacer()
-            Picker("Ko'rinish", selection: $graphMode) {
-                Label("Oqim", systemImage: "point.3.connected.trianglepath.dotted").tag("flow")
-                Label("Vaqt", systemImage: "chart.bar.doc.horizontal").tag("timeline")
-                Label("Fayllar", systemImage: "square.grid.3x3.fill").tag("files")
+            if graphMode == "flow" {
+                Button { withAnimation(Motion.spring) { showInspector.toggle() } } label: { Image(systemName: "sidebar.right") }
+                    .buttonStyle(.borderless)
+                    .help(showInspector ? "Tafsilotlarni yashirish" : "Tafsilotlarni ko'rsatish")
             }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            .fixedSize()
-            .help("Oqim — jarayon sxemasi, Vaqt — qadamlar vaqt chizig'ida, Fayllar — issiqlik xaritasi")
-            if let session {
-                let steps = session.agents.reduce(0) { $0 + $1.steps.count }
-                // Joy tor bo'lsa birinchi bo'lib shu yozuv qisqaradi
-                Text("\(session.turns.count) so'rov · \(steps) qadam · \(Fmt.tokens(session.tokens.value(mode)))")
-                    .font(.caption).foregroundStyle(.secondary).monospacedDigit()
-                    .lineLimit(1).truncationMode(.head).layoutPriority(-1)
-            }
-            if let session {
-                Button {
-                    if replayOn { stopReplay() } else {
-                        replayOn = true
-                        replayTime = replayRange(session)?.lowerBound
-                        playing = true
-                    }
-                } label: {
-                    Label("Replay", systemImage: replayOn ? "clock.arrow.circlepath" : "play.circle")
-                }
-                .buttonStyle(.bordered)
-                .tint(replayOn ? .accentColor : nil)
-                .disabled(replayRange(session) == nil)
-                .help("Tanlangan so'rovni (yoki butun sessiyani) boshidan qayta ijro etish")
-            }
-            Button { withAnimation(.easeInOut(duration: 0.2)) { showInspector.toggle() } } label: {
-                Image(systemName: "sidebar.right")
-            }
-            .buttonStyle(.borderless)
-            .help(showInspector ? "Tafsilotlarni yashirish" : "Tafsilotlarni ko'rsatish")
         }
-        .padding(.horizontal, 14).padding(.vertical, 10)
     }
 
-    /// ‹ #9 so'rov › — oldingi/keyingi so'rov va ro'yxat
-    private func turnPicker(_ session: SessionSnap) -> some View {
-        let current = effectiveTurn(session)
-        let last = session.turns.count
-        return HStack(spacing: 4) {
-            Button { turnId = max(1, (current ?? last) - 1) } label: { Image(systemName: "chevron.left") }
-                .buttonStyle(.borderless)
-                .disabled(current == 1)
-                .help("Oldingi so'rov")
-            // Picker o'z uslubida (bordered menu) — borderless'da matn chegaradan chiqib, strelkalarni yopib qo'yadi
-            Picker("So'rov", selection: Binding(get: { current ?? 0 }, set: { turnId = $0 == last ? nil : $0 })) {
-                ForEach(session.turns.reversed()) { t in
-                    Text("#\(t.id) · \(t.prompt.count > 32 ? String(t.prompt.prefix(32)) + "…" : t.prompt)").tag(t.id)
-                }
-                Divider()
-                Text("Butun sessiya").tag(0)
-            }
-            .pickerStyle(.menu)
-            .labelsHidden()
-            .frame(width: 210)
-            .clipped()
-            Button { if let c = current { turnId = c + 1 >= last ? nil : c + 1 } } label: { Image(systemName: "chevron.right") }
-                .buttonStyle(.borderless)
-                .disabled(current == nil || current == last)
-                .help("Keyingi so'rov")
+    private func tab(_ id: String, _ title: String, _ symbol: String) -> some View {
+        let on = graphMode == id || (id == "steps" && !["flow", "files"].contains(graphMode))
+        return Button { withAnimation(Motion.spring) { graphMode = id } } label: {
+            Label(title, systemImage: symbol)
+                .font(.callout.weight(on ? .semibold : .regular))
+                .foregroundStyle(on ? .primary : .secondary)
+                .padding(.horizontal, 12).padding(.vertical, 6)
+                .background(RoundedRectangle(cornerRadius: 9, style: .continuous).fill(on ? Brand.surface : .clear))
+                .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous).stroke(on ? Brand.line : .clear))
+                .contentShape(Rectangle())
         }
-        .layoutPriority(1)
+        .buttonStyle(.plain)
+    }
+
+    private func toggleReplay(_ session: SessionSnap) {
+        if replayOn { stopReplay() } else {
+            replayOn = true
+            replayTime = replayRange(session)?.lowerBound
+            playing = true
+        }
     }
 
     /// Replay oralig'i: tanlangan so'rov (keyingisigacha) yoki butun sessiya
@@ -232,15 +199,6 @@ struct GraphScreen: View {
         case let id? where session.turns.contains(where: { $0.id == id }): return id
         default: return session.turns.last?.id
         }
-    }
-
-    private func sessionLabel(_ ss: SessionSnap) -> String {
-        var mark = ss.state == .running ? "● " : (ss.state == .waiting ? "◐ " : "")
-        if let la = ss.lastActivity, !Calendar.current.isDateInToday(la) {
-            mark += Fmt.dayTime.string(from: la) + " · "
-        }
-        let t = ss.title.count > 36 ? String(ss.title.prefix(36)) + "…" : ss.title
-        return "\(mark)\(ss.project) — \(t)"
     }
 
     private func select(_ s: Selection) {

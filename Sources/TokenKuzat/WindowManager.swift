@@ -7,8 +7,8 @@ enum Section: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .overview: return "Umumiy"
-        case .graph: return "Agentlar sxemasi"
+        case .overview: return "Bugun"
+        case .graph: return "Sessiya"
         case .sessions: return "Sessiyalar"
         case .history: return "Tarix"
         case .activity: return "Jonli lenta"

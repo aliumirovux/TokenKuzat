@@ -465,3 +465,23 @@ final class ReplayTests: XCTestCase {
         XCTAssertNotNil(s.timeRange)
     }
 }
+
+final class TodayHoursTests: XCTestCase {
+    func testHourlyBucketsAndActiveMinutes() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("tk-hours-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: root.appendingPathComponent("p"), withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let now = Date()
+        let lines = [-120.0, -60, -59].enumerated().map { i, t in
+            #"{"type":"assistant","timestamp":"\#(f.string(from: now.addingTimeInterval(t)))","message":{"id":"h\#(i)","content":[],"usage":{"input_tokens":0,"output_tokens":10}}}"#
+        }
+        try (lines.joined(separator: "\n") + "\n").write(to: root.appendingPathComponent("p/s.jsonl"), atomically: true, encoding: .utf8)
+        let snap = Engine(config: Engine.Config(roots: [root])).tick(now: now)
+        XCTAssertEqual(snap.todayHours.reduce(0) { $0 + $1.total }, snap.today.total)
+        XCTAssertEqual(snap.todayHours.count, 24)
+        XCTAssertGreaterThanOrEqual(snap.activeMinutesToday, 2)
+        XCTAssertNotNil(snap.firstActivityToday)
+    }
+}

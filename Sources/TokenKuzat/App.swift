@@ -79,9 +79,9 @@ struct MenuBarLabel: View {
             Image(systemName: active ? "bolt.fill" : "chart.bar.xaxis")
         case .budget:
             if let w = s.limits?.fiveHour {
-                HStack(spacing: 3) {
-                    Image(systemName: w.usedPercentage >= 80 ? "exclamationmark.triangle.fill" : "gauge.with.dots.needle.33percent")
-                    Text("\(Int(w.usedPercentage.rounded()))%").monospacedDigit()
+                HStack(spacing: 4) {
+                    Image(systemName: w.usedPercentage >= 80 ? "exclamationmark.triangle.fill" : (active ? "bolt.fill" : "circle.dashed"))
+                    Text("\(max(0, 100 - Int(w.usedPercentage.rounded())))%").monospacedDigit()
                 }
             } else if let b = BudgetStatus.current(s) {
                 HStack(spacing: 3) {

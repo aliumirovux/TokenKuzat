@@ -169,6 +169,14 @@ public struct Snapshot: Sendable {
     /// Oxirgi 5 soat — Claude obunasi limiti shu oyna bo'yicha hisoblanadi
     public var lastFiveHours = TokenCounts()
     public var minutes: [MinutePoint] = []
+    /// Oxirgi 6 soat daqiqama-daqiqa (360 ta, eskidan yangiga) — limit oynasini soatma-soat ko'rsatish uchun
+    public var recentMinutes: [MinutePoint] = []
+    /// Bugun soat bo'yicha (24 ta, 00:00 dan)
+    public var todayHours: [TokenCounts] = Array(repeating: TokenCounts(), count: 24)
+    /// Bugun token sarflangan daqiqalar soni (faol vaqt)
+    public var activeMinutesToday = 0
+    /// Bugun birinchi faollik vaqti
+    public var firstActivityToday: Date?
     /// Eskidan yangiga, bugun — oxirgisi
     public var days: [DayPoint] = []
     public var feed: [FeedEvent] = []

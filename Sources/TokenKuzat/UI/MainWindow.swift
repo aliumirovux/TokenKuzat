@@ -7,29 +7,18 @@ struct MainWindow: View {
 
     var body: some View {
         NavigationSplitView {
-            List(selection: Binding(get: { section }, set: { if let s = $0 { section = s } })) {
-                SwiftUI.Section {
-                    ForEach([Section.overview, .graph, .sessions, .history, .activity]) { item in
-                        row(item)
-                    }
-                }
-                SwiftUI.Section {
-                    row(.settings)
-                }
-            }
-            .listStyle(.sidebar)
-            .navigationSplitViewColumnWidth(min: 190, ideal: 210, max: 260)
-            .safeAreaInset(edge: .bottom) { sidebarFooter }
+            Sidebar(section: $section)
+                .navigationSplitViewColumnWidth(min: 200, ideal: 220, max: 260)
         } detail: {
             VStack(spacing: 0) {
-                header
+                if section != .graph { header }
                 detail
                     .id(section)
                     .transition(.opacity.combined(with: .offset(y: 8)))
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
             .animation(Motion.spring, value: section)
-            .background(AmbientBackground())
+            .background(Brand.canvas)
             .frame(minWidth: 640, minHeight: 520)
         }
     }
@@ -52,33 +41,111 @@ struct MainWindow: View {
         }
     }
 
-    /// Har bir sahifa tepasidagi sarlavha: nom, jonli holat va hisoblash usuli
+    /// Sahifa sarlavhasi: nom (yumaloq displey shrift), sana, jonli holat va hisoblash usuli
     private var header: some View {
-        HStack(spacing: 12) {
-            Image(systemName: section.symbol)
-                .font(.title3.weight(.semibold))
-                .foregroundStyle(.tint)
-                .frame(width: 34, height: 34)
-                .glassCircle(tint: .accentColor)
-            Text(section.title).font(.system(.title2, design: .rounded).weight(.semibold))
+        HStack(alignment: .firstTextBaseline, spacing: 10) {
+            Text(section == .overview ? "Bugun" : section.title)
+                .font(.system(size: 24, weight: .semibold, design: .rounded))
+            if section == .overview {
+                Text(Fmt.longDay.string(from: store.snap.updatedAt)).foregroundStyle(.secondary)
+            }
             Spacer()
             StatusPill(running: store.snap.runningAgents, active: store.snap.activeSessions)
-            if section != .settings { CountModePicker() }
+            if section == .history || section == .sessions { CountModePicker() }
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 34)
-        .padding(.bottom, 12)
+        .padding(.horizontal, 24)
+        .padding(.top, 30)
+        .padding(.bottom, 14)
     }
 
-    private var sidebarFooter: some View {
-        let s = store.snap
-        return VStack(alignment: .leading, spacing: 2) {
-            Text("\(s.filesWatched) ta fayl kuzatilyapti")
-            Text("Yangilandi: \(Fmt.ago(s.updatedAt))")
+}
+
+/// Yon menyu: brend, 3 ta bo'lim, loyihalar (jonli nuqta bilan) va pastda Sozlamalar
+private struct Sidebar: View {
+    @EnvironmentObject var store: Store
+    @Binding var section: Section
+    @AppStorage(GraphScreen.selectedSessionKey) private var sessionId = ""
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            HStack(spacing: 10) {
+                Image(nsImage: NSApp.applicationIconImage).resizable().frame(width: 26, height: 26)
+                Text("Token Kuzatuv").font(.system(size: 14, weight: .semibold, design: .rounded))
+            }
+            .padding(.horizontal, 10).padding(.bottom, 14)
+
+            item(.overview, "Bugun", "sun.max")
+            item(.sessions, "Sessiyalar", "rectangle.stack", badge: store.snap.runningAgents > 0 ? store.snap.activeSessions : 0)
+            item(.history, "Tarix", "chart.bar.xaxis")
+
+            Text("LOYIHALAR").eyebrow().padding(.horizontal, 10).padding(.top, 18).padding(.bottom, 4)
+            ScrollView {
+                VStack(spacing: 1) {
+                    ForEach(projects, id: \.id) { sess in
+                        projectRow(sess)
+                    }
+                }
+            }
+
+            Spacer(minLength: 8)
+            item(.settings, "Sozlamalar", "gearshape")
+            Text("Yangilandi: \(Fmt.ago(store.snap.updatedAt)) · \(store.snap.filesWatched) fayl")
+                .font(.caption2).foregroundStyle(.tertiary).padding(.horizontal, 10).padding(.top, 4)
         }
-        .font(.caption2)
-        .foregroundStyle(.tertiary)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(12)
+        .padding(.horizontal, 8).padding(.top, 38).padding(.bottom, 12)
+        .frame(maxHeight: .infinity, alignment: .top)
+    }
+
+    /// Har loyihadan eng so'nggi sessiya, ishlayotgani tepada
+    private var projects: [SessionSnap] {
+        var seen = Set<String>()
+        return store.snap.sessions
+            .sorted { ($0.state != .idle ? 1 : 0, $0.lastActivity ?? .distantPast) > ($1.state != .idle ? 1 : 0, $1.lastActivity ?? .distantPast) }
+            .filter { seen.insert($0.project).inserted }
+            .prefix(8).map { $0 }
+    }
+
+    private func item(_ s: Section, _ title: String, _ symbol: String, badge: Int = 0) -> some View {
+        let on = section == s
+        return Button { withAnimation(Motion.spring) { section = s } } label: {
+            HStack(spacing: 10) {
+                Image(systemName: symbol).font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(on ? Brand.accent : .secondary).frame(width: 18)
+                Text(title).fontWeight(on ? .semibold : .regular)
+                Spacer()
+                if badge > 0 {
+                    HStack(spacing: 4) { StateDot(state: .running, size: 6); Text("\(badge)") }
+                        .font(.caption.weight(.semibold)).foregroundStyle(Brand.ok)
+                }
+            }
+            .padding(.horizontal, 10).padding(.vertical, 7)
+            .background(RoundedRectangle(cornerRadius: 9, style: .continuous).fill(on ? Brand.surface : .clear)
+                .shadow(color: .black.opacity(on ? 0.06 : 0), radius: 2, y: 1))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .noFocusRing()
+    }
+
+    private func projectRow(_ sess: SessionSnap) -> some View {
+        let on = section == .graph && sessionId == sess.id
+        return Button {
+            sessionId = sess.id
+            withAnimation(Motion.spring) { section = .graph }
+        } label: {
+            HStack(spacing: 9) {
+                ProjectAvatar(name: sess.project, size: 20)
+                Text(sess.project).lineLimit(1).fontWeight(on ? .semibold : .regular)
+                Spacer()
+                if sess.state != .idle { StateDot(state: sess.state, size: 6) }
+            }
+            .font(.system(size: 12.5))
+            .padding(.horizontal, 10).padding(.vertical, 5)
+            .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(on ? Brand.surface : .clear))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(RowButtonStyle())
+        .noFocusRing()
+        .help(sess.title)
     }
 }

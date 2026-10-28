@@ -1,0 +1,490 @@
+<!doctype html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Token Kuzatuv — redesign yo'nalishi</title>
+<style>
+/* ---------- Yo'nalish A: Native calm (tavsiya) ---------- */
+:root{
+  --font: -apple-system, "SF Pro Text", "Inter", system-ui, sans-serif;
+  --mono: "SF Mono", ui-monospace, "JetBrains Mono", Menlo, monospace;
+  --r-sm:8px; --r-md:12px; --r-lg:16px;
+}
+[data-dir="A"][data-theme="light"]{
+  --bg:#F5F5F7; --win:#FFFFFF; --side:#F0F0F2; --surface:#FFFFFF; --sunken:#F5F5F7;
+  --line:#E6E6EA; --text:#1D1D1F; --text2:#6E6E73; --text3:#A1A1A6;
+  --accent:#5E5CE6; --accent-soft:#EEEEFD;
+  --ok:#1F9D55; --ok-soft:#E7F6EE; --warn:#B7791F; --warn-soft:#FDF3E1; --err:#D93025; --err-soft:#FDECEA;
+  --shadow:0 1px 2px rgba(0,0,0,.04), 0 4px 16px rgba(0,0,0,.05);
+}
+[data-dir="A"][data-theme="dark"]{
+  --bg:#0B0B0D; --win:#1C1C1E; --side:#232326; --surface:#26262A; --sunken:#1C1C1E;
+  --line:#34343A; --text:#F5F5F7; --text2:#A1A1A6; --text3:#6E6E73;
+  --accent:#7D7AFF; --accent-soft:#2B2A4A;
+  --ok:#3DD68C; --ok-soft:#173527; --warn:#F5B84B; --warn-soft:#3A2E16; --err:#FF6B5E; --err-soft:#3D1F1C;
+  --shadow:none;
+}
+/* ---------- Yo'nalish B: Pro data (Linear / Vercel tilida) ---------- */
+[data-dir="B"]{ --r-sm:6px; --r-md:8px; --r-lg:10px; }
+[data-dir="B"][data-theme="light"]{
+  --bg:#FAFAFA; --win:#FFFFFF; --side:#FAFAFA; --surface:#FFFFFF; --sunken:#FAFAFA;
+  --line:#EAEAEA; --text:#111111; --text2:#666666; --text3:#A3A3A3;
+  --accent:#111111; --accent-soft:#F2F2F2;
+  --ok:#16A34A; --ok-soft:#EAF7EF; --warn:#CA8A04; --warn-soft:#FEF6E0; --err:#DC2626; --err-soft:#FDECEC;
+  --shadow:none;
+}
+[data-dir="B"][data-theme="dark"]{
+  --bg:#000000; --win:#0A0A0A; --side:#0A0A0A; --surface:#111111; --sunken:#0A0A0A;
+  --line:#222222; --text:#EDEDED; --text2:#A1A1A1; --text3:#5E5E5E;
+  --accent:#EDEDED; --accent-soft:#1F1F1F;
+  --ok:#4ADE80; --ok-soft:#10261A; --warn:#FACC15; --warn-soft:#2A2410; --err:#F87171; --err-soft:#2A1414;
+  --shadow:none;
+}
+[data-dir="B"] .num,[data-dir="B"] .hero-num{ font-family:var(--mono); letter-spacing:-.02em }
+[data-dir="B"] .card{ box-shadow:none }
+
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font);font-size:13px;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit}
+.num{font-variant-numeric:tabular-nums}
+.mono{font-family:var(--mono);font-size:12px}
+.t2{color:var(--text2)} .t3{color:var(--text3)}
+
+/* Boshqaruv paneli (maketga tegishli, ilova emas) */
+.ctrl{position:sticky;top:0;z-index:50;display:flex;gap:16px;align-items:center;flex-wrap:wrap;padding:10px 20px;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+.ctrl b{font-weight:600}
+.seg{display:inline-flex;background:var(--sunken);border:1px solid var(--line);border-radius:999px;padding:2px}
+.seg button{border:0;background:transparent;padding:5px 12px;border-radius:999px;cursor:pointer;color:var(--text2)}
+.seg button.on{background:var(--win);color:var(--text);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.legend{display:none;gap:10px;color:var(--text2);font-size:12px}
+body.changes .legend{display:flex}
+.switch{display:inline-flex;align-items:center;gap:8px;cursor:pointer;color:var(--text2)}
+.switch i{width:30px;height:18px;border-radius:9px;background:var(--line);position:relative;transition:.2s}
+.switch i::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;transition:.2s}
+body.changes .switch i{background:#F97316} body.changes .switch i::after{left:14px}
+
+/* O'zgarishlar belgilari */
+[data-chg]{position:relative}
+body.changes [data-chg]{outline:2px dashed #F97316;outline-offset:3px;border-radius:var(--r-md)}
+body.changes [data-chg]::before{content:attr(data-chg);position:absolute;top:-10px;left:-10px;z-index:5;width:20px;height:20px;border-radius:50%;background:#F97316;color:#fff;font:600 11px/20px var(--font);text-align:center}
+.notes{display:none;max-width:1180px;margin:16px auto 0;padding:0 20px}
+body.changes .notes{display:block}
+.notes ol{margin:0;padding:14px 18px 14px 36px;background:#FFF7ED;color:#7C2D12;border:1px solid #FED7AA;border-radius:12px;line-height:1.6}
+
+/* Oyna */
+.stage{max-width:1180px;margin:20px auto 60px;padding:0 20px}
+.window{display:grid;grid-template-columns:200px 1fr;min-height:760px;background:var(--win);border:1px solid var(--line);border-radius:32px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.12)}
+.side{background:var(--side);border-right:1px solid var(--line);padding:16px 10px;display:flex;flex-direction:column;gap:2px}
+.lights{display:flex;gap:7px;padding:2px 8px 18px}
+.lights i{width:12px;height:12px;border-radius:50%;background:#FF5F57}.lights i:nth-child(2){background:#FEBC2E}.lights i:nth-child(3){background:#28C840}
+.nav{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:8px;color:var(--text);cursor:pointer;border:0;background:none;text-align:left;width:100%}
+.nav svg{width:16px;height:16px;color:var(--text2)}
+.nav.on{background:var(--accent-soft);color:var(--accent);font-weight:600}.nav.on svg{color:var(--accent)}
+.nav .badge{margin-left:auto;font-size:11px;color:var(--ok);font-weight:600}
+.side .foot{margin-top:auto;padding:10px;font-size:11px;color:var(--text3);line-height:1.5}
+.main{overflow:auto;max-height:820px}
+.top{display:flex;align-items:center;gap:12px;padding:18px 28px 6px}
+.top h1{margin:0;font-size:22px;font-weight:650;letter-spacing:-.01em}
+.top .sp{flex:1}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:550}
+.pill.ok{background:var(--ok-soft);color:var(--ok)} .pill.warn{background:var(--warn-soft);color:var(--warn)} .pill.err{background:var(--err-soft);color:var(--err)} .pill.n{background:var(--sunken);color:var(--text2);border:1px solid var(--line)}
+.dot{width:7px;height:7px;border-radius:50%;background:currentColor}
+.dot.live{animation:pulse 1.8s ease-in-out infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,currentColor 45%,transparent)}50%{box-shadow:0 0 0 5px transparent}}
+.content{padding:12px 28px 32px;display:flex;flex-direction:column;gap:20px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--shadow)}
+.sec-t{display:flex;align-items:baseline;gap:8px;margin:0 0 10px}
+.sec-t h2{margin:0;font-size:15px;font-weight:620}
+.sec-t .sp{flex:1}
+.link{color:var(--accent);cursor:pointer;font-weight:550;border:0;background:none;padding:0}
+.btn{border:1px solid var(--line);background:var(--surface);padding:6px 12px;border-radius:8px;cursor:pointer;font-weight:550;transition:transform .12s}
+.btn:active{transform:scale(.97)}
+.btn.primary{background:var(--accent);color:var(--win);border-color:transparent}
+[data-dir="B"] .btn.primary{color:var(--win)}
+
+/* Bugun */
+.hero{display:grid;grid-template-columns:1.25fr 1fr;gap:0}
+.hero .l{padding:22px 24px;border-right:1px solid var(--line)}
+.hero .r{padding:22px 24px;display:flex;flex-direction:column;gap:14px}
+.eyebrow{font-size:11px;font-weight:650;letter-spacing:.06em;text-transform:uppercase;color:var(--text2)}
+.hero-num{font-size:44px;font-weight:650;letter-spacing:-.03em;line-height:1.05;margin:8px 0 4px}
+.hero-num small{font-size:16px;font-weight:550;color:var(--text2);letter-spacing:0}
+.bar{height:8px;border-radius:999px;background:var(--sunken);border:1px solid var(--line);overflow:hidden}
+.bar>i{display:block;height:100%;border-radius:999px;background:var(--ok);transition:width .6s cubic-bezier(.2,.8,.2,1)}
+.meta{display:flex;gap:14px;flex-wrap:wrap;color:var(--text2);margin-top:10px}
+.mini{display:flex;flex-direction:column;gap:6px}
+.mini .row{display:flex;justify-content:space-between;align-items:baseline}
+.mini .bar{height:6px}
+.livecard{display:flex;align-items:center;gap:14px;padding:14px 18px}
+.livecard .what{font-weight:600;font-size:14px}
+.livecard .sp{flex:1}
+.stats{display:grid;grid-template-columns:repeat(3,1fr)}
+.stat{padding:16px 20px;border-right:1px solid var(--line)}.stat:last-child{border-right:0}
+.stat .v{font-size:22px;font-weight:620;letter-spacing:-.02em;margin-top:6px}
+.stat .d{font-size:12px;color:var(--text2);margin-top:2px}
+.chart{display:flex;align-items:flex-end;gap:4px;height:120px;padding:0 20px}
+.chart i{flex:1;background:var(--accent);opacity:.85;border-radius:4px 4px 1px 1px;min-height:2px;transition:height .5s}
+.chart i.now{opacity:1;box-shadow:0 0 0 2px var(--accent-soft)}
+.axis{display:flex;justify-content:space-between;padding:6px 20px 14px;color:var(--text3);font-size:11px}
+.list .it{display:grid;grid-template-columns:28px 1fr 130px 70px;gap:12px;align-items:center;padding:11px 18px;border-top:1px solid var(--line);cursor:pointer;transition:background .15s}
+.list .it:first-child{border-top:0}
+.list .it:hover{background:var(--sunken)}
+.ico{width:28px;height:28px;border-radius:8px;background:var(--sunken);border:1px solid var(--line);display:grid;place-items:center;color:var(--text2)}
+.ico svg{width:15px;height:15px}
+.it .name{font-weight:600}.it .sub{font-size:12px;color:var(--text2);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.it .hbar{height:6px;border-radius:3px;background:var(--sunken);overflow:hidden}.it .hbar i{display:block;height:100%;background:var(--text3);border-radius:3px}
+.it .val{text-align:right;font-weight:600}
+
+/* Sessiya (run) */
+.crumb{color:var(--text2);padding:18px 28px 0;font-size:12px}
+.crumb b{color:var(--text);font-weight:550}
+.run-h{padding:6px 28px 0}
+.run-h h1{margin:4px 0 8px;font-size:20px;font-weight:650;line-height:1.3;letter-spacing:-.01em}
+.run-meta{display:flex;gap:16px;align-items:center;flex-wrap:wrap;color:var(--text2)}
+.turns{display:flex;gap:6px;padding:14px 28px 0;flex-wrap:wrap}
+.turn{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:4px 10px;cursor:pointer;color:var(--text2);font-size:12px}
+.turn.on{border-color:var(--accent);color:var(--accent);background:var(--accent-soft);font-weight:600}
+.strip{margin:14px 28px 0;padding:10px 12px;display:flex;align-items:center;gap:12px}
+.strip .play{width:28px;height:28px;border-radius:50%;border:1px solid var(--line);background:var(--surface);display:grid;place-items:center;cursor:pointer}
+.ticks{flex:1;height:26px;position:relative}
+.ticks i{position:absolute;top:4px;bottom:4px;width:3px;border-radius:2px;background:var(--text3)}
+.ticks i.tool{background:var(--accent)}.ticks i.err{background:var(--err)}.ticks i.run{background:var(--ok);animation:blink 1s infinite}
+@keyframes blink{50%{opacity:.35}}
+.ticks .cursor{position:absolute;top:0;bottom:0;width:2px;background:var(--text);border-radius:1px}
+.tabs{display:flex;gap:2px;padding:16px 28px 0;border-bottom:1px solid var(--line)}
+.tab{border:0;background:none;padding:8px 12px;cursor:pointer;color:var(--text2);border-bottom:2px solid transparent;margin-bottom:-1px;font-weight:550}
+.tab.on{color:var(--text);border-bottom-color:var(--text)}
+.split{display:grid;grid-template-columns:1fr 340px;min-height:430px}
+.steps{border-right:1px solid var(--line)}
+.step{display:grid;grid-template-columns:44px 22px 1fr auto;gap:10px;align-items:center;padding:9px 18px 9px 28px;cursor:pointer;border-left:3px solid transparent;transition:background .12s}
+.step:hover{background:var(--sunken)}
+.step.on{background:var(--accent-soft);border-left-color:var(--accent)}
+.step .tm{font-family:var(--mono);font-size:11px;color:var(--text3)}
+.step .k{font-size:11px;font-weight:600;padding:1px 6px;border-radius:5px;background:var(--sunken);color:var(--text2);border:1px solid var(--line);justify-self:start}
+.step .tt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.step .tt b{font-weight:550}
+.step .du{font-family:var(--mono);font-size:11px;color:var(--text2)}
+.step.err .k{color:var(--err);border-color:color-mix(in srgb,var(--err) 40%,var(--line));background:var(--err-soft)}
+.step.run .k{color:var(--ok);background:var(--ok-soft)}
+.prompt-row{padding:12px 18px 12px 28px;border-bottom:1px solid var(--line);background:var(--sunken);font-size:12px;color:var(--text2)}
+.detail{padding:20px}
+.detail h3{margin:0 0 4px;font-size:15px}
+.kv{display:grid;grid-template-columns:110px 1fr;gap:8px 12px;margin-top:16px;font-size:12px}
+.kv dt{color:var(--text2)}.kv dd{margin:0}
+.code{margin-top:16px;background:var(--sunken);border:1px solid var(--line);border-radius:10px;padding:12px;font-family:var(--mono);font-size:11.5px;line-height:1.6;color:var(--text2);white-space:pre-wrap}
+/* Oqim */
+.flow{position:relative;height:430px;background-image:radial-gradient(var(--line) 1px,transparent 1px);background-size:20px 20px}
+.node{position:absolute;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px;width:200px;box-shadow:var(--shadow)}
+.node .st{position:absolute;top:-22px;left:0;font-size:11px;font-weight:600}
+.node .st.ok{color:var(--ok)}.node .st.run{color:var(--ok)}.node .st.err{color:var(--err)}
+.node .n1{font-weight:600}.node .n2{font-size:12px;color:var(--text2);margin-top:2px}
+.node.running{border-color:var(--ok);box-shadow:0 0 0 3px var(--ok-soft)}
+.flow svg.edges{position:absolute;inset:0;width:100%;height:100%}
+/* Fayllar */
+.files .it{grid-template-columns:28px 1fr 180px 80px}
+.heat{display:flex;gap:2px}.heat i{flex:1;height:14px;border-radius:2px;background:var(--sunken)}
+.heat i.r{background:color-mix(in srgb,var(--accent) 45%,transparent)}.heat i.w{background:var(--warn)}.heat i.e{background:var(--err)}
+
+/* Menyu paneli */
+.mb-stage{display:flex;gap:28px;align-items:flex-start;justify-content:center;padding:10px 0 30px}
+.menubar{width:640px;height:28px;border-radius:10px;background:color-mix(in srgb,var(--win) 70%,transparent);border:1px solid var(--line);display:flex;justify-content:flex-end;align-items:center;gap:16px;padding:0 14px;font-size:12px;color:var(--text2)}
+.menubar .me{color:var(--text);font-weight:600;display:flex;gap:6px;align-items:center}
+.pop{width:360px;margin-top:8px;margin-left:auto;background:var(--win);border:1px solid var(--line);border-radius:16px;box-shadow:0 18px 50px rgba(0,0,0,.18);overflow:hidden}
+.pop .blk{padding:16px 18px;border-bottom:1px solid var(--line)}
+.pop .blk:last-child{border-bottom:0}
+.pop .row{display:flex;justify-content:space-between;align-items:center}
+.pop .big{font-size:30px;font-weight:650;letter-spacing:-.02em}
+.pop .s{display:flex;justify-content:space-between;padding:6px 0}
+.pop .foot{display:flex;justify-content:space-between;padding:10px 14px;background:var(--sunken)}
+
+/* Tarix */
+.hist .chart{height:160px}
+.tbl{width:100%;border-collapse:collapse}
+.tbl th,.tbl td{text-align:right;padding:9px 18px;border-top:1px solid var(--line)}
+.tbl th{font-size:11px;color:var(--text2);font-weight:600;text-transform:uppercase;letter-spacing:.04em;border-top:0}
+.tbl td:first-child,.tbl th:first-child{text-align:left}
+
+.screen{display:none;animation:fade .28s cubic-bezier(.2,.8,.2,1)}
+.screen.on{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--text);color:var(--win);padding:9px 14px;border-radius:10px;opacity:0;transition:.25s;z-index:130}
+.toast.on{opacity:1;transform:translateX(-50%)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body data-dir="A" data-theme="light">
+
+<div class="ctrl">
+  <b>Token Kuzatuv · redesign</b>
+  <div class="seg" id="dirSeg"><button data-v="A" class="on">A · Native calm (Tavsiya)</button><button data-v="B">B · Pro data</button></div>
+  <div class="seg" id="themeSeg"><button data-v="light" class="on">Yorug'</button><button data-v="dark">Qorong'i</button></div>
+  <div class="seg" id="scrSeg"><button data-v="menu">Menyu paneli</button><button data-v="today" class="on">Bugun</button><button data-v="run">Sessiya</button><button data-v="hist">Tarix</button></div>
+  <label class="switch" id="chg"><i></i> Changes</label>
+  <div class="legend"><span>🟧 raqam = o'zgarish (pastdagi ro'yxat)</span></div>
+</div>
+
+<div class="notes"><ol id="notes"></ol></div>
+
+<div class="stage">
+
+<!-- ============ MENYU PANELI ============ -->
+<section class="screen" id="s-menu">
+  <div class="mb-stage">
+    <div>
+      <div class="menubar"><span>Wi‑Fi</span><span>95%</span><span class="me" data-chg="1"><span class="dot live" style="color:var(--ok)"></span>86% · 3s 14d</span><span>Ср, 28 окт. 15:16</span></div>
+      <div class="pop">
+        <div class="blk" data-chg="2">
+          <div class="row"><span class="eyebrow">5 soatlik limit</span><span class="pill ok"><span class="dot"></span>Yetadi</span></div>
+          <div class="big num" style="margin:6px 0 8px">86% <span class="t2" style="font-size:14px;font-weight:550">qoldi</span></div>
+          <div class="bar"><i style="width:14%"></i></div>
+          <div class="row t2" style="margin-top:8px;font-size:12px"><span>18:30 da yangilanadi · 3 soat 14 daq</span><span class="num">Hafta: 71% qoldi</span></div>
+        </div>
+        <div class="blk" data-chg="3">
+          <div class="row"><span class="eyebrow">Hozir</span><span class="mono t3">0:12</span></div>
+          <div style="display:flex;gap:10px;align-items:center;margin-top:8px">
+            <span class="dot live" style="color:var(--ok)"></span>
+            <div style="min-width:0"><div style="font-weight:600">Terminal · swift build</div><div class="t2" style="font-size:12px">Documents · #24 · 21 qadam</div></div>
+          </div>
+        </div>
+        <div class="blk">
+          <div class="s"><span class="t2">Bugun</span><span class="num" style="font-weight:600">102M token</span></div>
+          <div class="s"><span class="t2">Faol vaqt</span><span class="num" style="font-weight:600">3 soat 40 daq</span></div>
+          <div class="s"><span class="t2">Sessiyalar</span><span class="num" style="font-weight:600">4 · 1 ishlayapti</span></div>
+        </div>
+        <div class="foot"><button class="link" onclick="go('today')">Oynani ochish</button><span class="t3">Sozlamalar · Chiqish</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="window" id="win">
+  <aside class="side">
+    <div class="lights"><i></i><i></i><i></i></div>
+    <button class="nav" data-nav="today" data-chg="4"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>Bugun</button>
+    <button class="nav" data-nav="run"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M7 9h10M7 13h6"/></svg>Sessiyalar<span class="badge">● 1</span></button>
+    <button class="nav" data-nav="hist"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Tarix</button>
+    <button class="nav" onclick="toast('Sozlamalar — o\'zgarmaydi, joriy sahifa qoladi')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-2.7-1.1l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0-1.1-2.7H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.1-2.7l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 2.7-1.1V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 2.7 1.1l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0 1.1 2.7H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1.1z"/></svg>Sozlamalar</button>
+    <div class="foot">Claude Code · 5 sessiya<br>Yangilandi: hozir</div>
+  </aside>
+
+  <main class="main">
+
+  <!-- ============ BUGUN ============ -->
+  <section class="screen on" id="s-today">
+    <div class="top"><h1>Bugun</h1><span class="t2">28-oktabr, chorshanba</span><span class="sp"></span><span class="pill ok"><span class="dot live"></span>1 sessiya ishlayapti</span></div>
+    <div class="content">
+
+      <div class="card hero" data-chg="5">
+        <div class="l">
+          <div class="eyebrow">Claude limiti · 5 soatlik oyna</div>
+          <div class="hero-num num">86% <small>qoldi</small></div>
+          <div class="bar" style="margin-top:12px"><i style="width:14%"></i></div>
+          <div class="meta"><span>↻ 18:30 da yangilanadi</span><span class="num">3 soat 14 daq qoldi</span><span style="color:var(--ok)">Shu sur'atda yetadi</span></div>
+        </div>
+        <div class="r">
+          <div class="mini">
+            <div class="row"><span class="t2">Haftalik</span><span class="num" style="font-weight:600">71% qoldi</span></div>
+            <div class="bar"><i style="width:29%;background:var(--text3)"></i></div>
+            <div class="t3" style="font-size:12px">3-noyabr, 21:00 da yangilanadi</div>
+          </div>
+          <div class="mini" style="margin-top:4px">
+            <div class="row"><span class="t2">Bugungi sarf</span><span class="num" style="font-weight:600">$41,20</span></div>
+            <div class="t3" style="font-size:12px">API narxlarida taxminiy · obunaga ta'sir qilmaydi</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card livecard" data-chg="6" onclick="go('run')" style="cursor:pointer">
+        <span class="dot live" style="color:var(--ok);width:9px;height:9px"></span>
+        <div><div class="what">Terminal · swift build</div><div class="t2" style="font-size:12px;margin-top:2px">Documents · #24 «Interfeysni zamonaviy UX tomonlama qayta chizaylik» · 21 qadam · 8,1M</div></div>
+        <span class="sp"></span><span class="mono t2">0:12</span><button class="btn">Ochish</button>
+      </div>
+
+      <div class="card stats" data-chg="7">
+        <div class="stat"><div class="eyebrow">Tokenlar</div><div class="v num">102M</div><div class="d">kecha 18M · <span style="color:var(--warn)">+467%</span></div></div>
+        <div class="stat"><div class="eyebrow">Faol vaqt</div><div class="v num">3 soat 40 daq</div><div class="d">eng uzun sessiya — 2 soat 10 daq</div></div>
+        <div class="stat"><div class="eyebrow">Sessiyalar</div><div class="v num">4</div><div class="d">47 so'rov · 412 qadam · 3 xato</div></div>
+      </div>
+
+      <div>
+        <div class="sec-t"><h2>Soat bo'yicha</h2><span class="t2">token / soat</span></div>
+        <div class="card" style="padding-top:18px">
+          <div class="chart" id="hourly"></div>
+          <div class="axis"><span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>23:00</span></div>
+        </div>
+      </div>
+
+      <div data-chg="8">
+        <div class="sec-t"><h2>Eng ko'p sarflagan sessiyalar</h2><span class="sp"></span><button class="link" onclick="go('run')">Hammasi</button></div>
+        <div class="card list">
+          <div class="it" onclick="go('run')"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h18v13H3zM3 7l2-3h6l2 3"/></svg></div><div style="min-width:0"><div class="name">Documents <span class="pill ok" style="padding:1px 7px;font-size:11px"><span class="dot live"></span>Ishlayapti</span></div><div class="sub">Interfeysni zamonaviy UX tomonlama qayta chizaylik</div></div><div class="hbar"><i style="width:100%;background:var(--accent)"></i></div><div class="val num">84M</div></div>
+          <div class="it"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h18v13H3zM3 7l2-3h6l2 3"/></svg></div><div style="min-width:0"><div class="name">TokenKuzat</div><div class="sub">Loyihani o'rganib chiq · 1 soat oldin</div></div><div class="hbar"><i style="width:21%"></i></div><div class="val num">17M</div></div>
+          <div class="it"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h18v13H3zM3 7l2-3h6l2 3"/></svg></div><div style="min-width:0"><div class="name">sayr</div><div class="sub">Open google.com using your claude in chrome skill · 4 kun oldin</div></div><div class="hbar"><i style="width:2%"></i></div><div class="val num">338K</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SESSIYA (RUN) ============ -->
+  <section class="screen" id="s-run">
+    <div class="crumb">Sessiyalar / <b>Documents</b></div>
+    <div class="run-h" data-chg="9">
+      <h1 id="runTitle">Interfeysni zamonaviy UX tomonlama qayta chizaylik</h1>
+      <div class="run-meta"><span class="pill ok"><span class="dot live"></span>Ishlayapti</span><span class="num">4 daq 12 s</span><span class="num">21 qadam</span><span class="num">8,1M token</span><span>Opus 5.5</span><span class="t3">15:10 da boshlangan</span></div>
+    </div>
+    <div class="turns" data-chg="10" id="turns"></div>
+    <div class="card strip" data-chg="11">
+      <button class="play" onclick="replay()" title="Replay"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M7 4l13 8-13 8z"/></svg></button>
+      <div class="ticks" id="ticks"><div class="cursor" id="cursor" style="left:100%"></div></div>
+      <span class="mono t2" id="clock">4:12</span>
+    </div>
+    <div class="tabs" data-chg="12"><button class="tab on" data-tab="steps">Qadamlar</button><button class="tab" data-tab="flow">Oqim</button><button class="tab" data-tab="files">Fayllar</button></div>
+
+    <div class="split tabp" id="t-steps">
+      <div class="steps" id="steps"><div class="prompt-row">Siz · 15:10 — «Real ilova product dizayner UI ziga'ndik chiqmadi… qayta chizaylik»</div></div>
+      <div class="detail" id="detail"></div>
+    </div>
+
+    <div class="tabp" id="t-flow" style="display:none">
+      <div class="flow" id="flow">
+        <svg class="edges"><path d="M190 215 C 230 215, 230 215, 260 215" stroke="var(--text3)" stroke-width="2" fill="none"/>
+          <path d="M470 215 C 520 215, 520 110, 560 110" stroke="var(--text3)" stroke-width="2" fill="none"/>
+          <path d="M470 215 C 520 215, 520 215, 560 215" stroke="var(--ok)" stroke-width="2.5" fill="none" stroke-dasharray="2 8"><animate attributeName="stroke-dashoffset" from="20" to="0" dur=".8s" repeatCount="indefinite"/></path>
+          <path d="M470 215 C 520 215, 520 320, 560 320" stroke="var(--text3)" stroke-width="2" fill="none"/></svg>
+        <div class="node" style="left:28px;top:185px;width:162px"><div class="st ok">✓ So'rov</div><div class="n1">Siz</div><div class="n2">15:10 · #24</div></div>
+        <div class="node running" style="left:260px;top:180px;width:210px"><div class="st run">● Ishlayapti · 4:12</div><div class="n1">Asosiy agent</div><div class="n2">Opus 5.5 · 21 qadam · 8,1M</div></div>
+        <div class="node" style="left:560px;top:80px"><div class="st ok">✓ 9 chaqiruv</div><div class="n1">Mobbin</div><div class="n2 mono">search_screens · 3 deep</div></div>
+        <div class="node running" style="left:560px;top:186px"><div class="st run">● Bajarilmoqda · 0:12</div><div class="n1">Terminal</div><div class="n2 mono">swift build</div></div>
+        <div class="node" style="left:560px;top:290px"><div class="st err">✕ 1 xato · 6 chaqiruv</div><div class="n1">Fayllar</div><div class="n2 mono">redesign-v4.html +4</div></div>
+      </div>
+    </div>
+
+    <div class="tabp" id="t-files" style="display:none;padding:16px 28px">
+      <div class="card list files" id="files"></div>
+    </div>
+  </section>
+
+  <!-- ============ TARIX ============ -->
+  <section class="screen hist" id="s-hist">
+    <div class="top"><h1>Tarix</h1><span class="sp"></span><div class="seg"><button>7 kun</button><button class="on">30 kun</button></div><button class="btn" onclick="toast('CSV eksport — o\'zgarishsiz qoladi')">CSV</button></div>
+    <div class="content">
+      <div class="card stats"><div class="stat"><div class="eyebrow">30 kunda</div><div class="v num">132M</div><div class="d">3 faol kun</div></div><div class="stat"><div class="eyebrow">Faol kunda o'rtacha</div><div class="v num">44M</div><div class="d">bo'sh kunlarsiz</div></div><div class="stat"><div class="eyebrow">Eng ko'p</div><div class="v num">102M</div><div class="d">bugun</div></div></div>
+      <div class="card" style="padding-top:18px"><div class="chart" id="daily"></div><div class="axis"><span>29-sen</span><span>9-okt</span><span>19-okt</span><span>28-okt</span></div></div>
+      <div class="card"><table class="tbl"><tr><th>Sana</th><th>Jami</th><th>Kesh o'qish</th><th>Javob</th><th>Narx</th></tr>
+        <tr><td>28-oktabr</td><td class="num">102M</td><td class="num">99M</td><td class="num">322K</td><td class="num">$41,20</td></tr>
+        <tr><td>27-oktabr</td><td class="num">18M</td><td class="num">17M</td><td class="num">61K</td><td class="num">$7,90</td></tr>
+        <tr><td>23-oktabr</td><td class="num">12M</td><td class="num">11M</td><td class="num">44K</td><td class="num">$5,10</td></tr></table></div>
+    </div>
+  </section>
+
+  </main>
+</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const CHANGES = {
+  1:"Menyu satri: endi tokenlar emas, eng muhim narsa — 5 soatlik limitdan qancha qolgani va qachon yangilanishi («86% · 3s 14d»). Jonli nuqta — agent ishlayotganda.",
+  2:"Menyu panelining qahramoni — limit: «86% qoldi» (ishlatilgan emas, qolgan — Ahead, Revolut, Vivid kabi). Uchta bir xil plita olib tashlandi.",
+  3:"«Hozir» — bitta qator: nima bajarilyapti, qaysi sessiya, necha soniyadan beri.",
+  4:"Navigatsiya 6 → 4: «Agentlar sxemasi» sessiya sahifasining «Oqim» tabiga, «Jonli lenta» — «Qadamlar»ga ko'chdi (Browserbase run sahifasi kabi).",
+  5:"Bitta qahramon: Claude limiti (katta raqam + chiziq + yangilanish vaqti + bashorat). Taxminiy «o'z limitim» bloki va halqalar olib tashlandi — haqiqiy limit bor.",
+  6:"«Hozir» kartasi bosiladigan qator bo'ldi: kerakli joyga bir bosishda o'tish.",
+  7:"4 ta karta → bitta ajratilgan qator (3 ko'rsatkich). «Bugun» = «5 soat» takrori olib tashlandi; har ko'rsatkich tagida solishtirish.",
+  8:"«So'nggi sessiyalar» → «Eng ko'p sarflaganlar»: tartiblangan ro'yxat + ulush chizig'i (Jomo, Vercel usage).",
+  9:"Sessiya sahifasi sarlavhasi — so'rovning o'zi; ostida holat · davomiylik · qadamlar · token · model (Browserbase).",
+  10:"So'rovlar — chiplar qatori (dropdown o'rniga): hammasi ko'rinadi, bir bosishda.",
+  11:"Replay endi alohida rejim emas: vaqt chizig'idagi belgilar + ▶. Qizil — xato, yashil — bajarilmoqda.",
+  12:"Uchta rejim → uchta tab: Qadamlar (ro'yxat + tafsilot), Oqim (holat yorlig'i tugun ustida — Attio, n8n), Fayllar."
+};
+const notes=document.getElementById('notes');
+Object.entries(CHANGES).forEach(([k,v])=>{const li=document.createElement('li');li.textContent=v;notes.appendChild(li)});
+
+function seg(id,fn){document.querySelectorAll('#'+id+' button').forEach(b=>b.onclick=()=>{document.querySelectorAll('#'+id+' button').forEach(x=>x.classList.remove('on'));b.classList.add('on');fn(b.dataset.v)})}
+seg('dirSeg',v=>document.body.dataset.dir=v);
+seg('themeSeg',v=>document.body.dataset.theme=v);
+seg('scrSeg',v=>go(v,true));
+document.getElementById('chg').onclick=()=>document.body.classList.toggle('changes');
+
+function go(v,fromSeg){
+  const isMenu=v==='menu';
+  document.getElementById('win').style.display=isMenu?'none':'grid';
+  document.getElementById('s-menu').classList.toggle('on',isMenu);
+  ['today','run','hist'].forEach(s=>document.getElementById('s-'+s).classList.toggle('on',s===v));
+  document.querySelectorAll('.nav[data-nav]').forEach(n=>n.classList.toggle('on',n.dataset.nav===v));
+  if(!fromSeg){document.querySelectorAll('#scrSeg button').forEach(b=>b.classList.toggle('on',b.dataset.v===v))}
+}
+document.querySelectorAll('.nav[data-nav]').forEach(n=>n.onclick=()=>go(n.dataset.nav));
+go('today');
+
+function toast(t){const e=document.getElementById('toast');e.textContent=t;e.classList.add('on');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('on'),1800)}
+
+// Soat bo'yicha (bugun) va kunlar
+const hourly=[0,0,0,0,0,0,0,0,0,0,0,0,0,2,8,30,41,21,0,0,0,0,0,0];
+const H=document.getElementById('hourly');const mh=Math.max(...hourly);
+hourly.forEach((v,i)=>{const b=document.createElement('i');b.style.height=(v/mh*100)+'%';if(i===15)b.className='now';b.title=`${String(i).padStart(2,'0')}:00 — ${v}M`;H.appendChild(b)});
+const daily=Array(30).fill(0);daily[24]=12;daily[28]=18;daily[29]=102;
+const D=document.getElementById('daily');const md=Math.max(...daily);
+daily.forEach((v,i)=>{const b=document.createElement('i');b.style.height=(v/md*100)+'%';if(i===29)b.className='now';D.appendChild(b)});
+
+// So'rovlar
+const turns=[[20,"Ha, xaritani qil"],[21,"Ha, replay'ni qil"],[22,"Interfeysni redesign qilaylik"],[23,"Real ilovalarni ko'rib qayta chizaylik"],[24,"Interfeysni zamonaviy UX…"]];
+const T=document.getElementById('turns');
+turns.forEach(([id,t],i)=>{const b=document.createElement('button');b.className='turn'+(i===turns.length-1?' on':'');b.textContent=`#${id} · ${t}`;b.onclick=()=>{T.querySelectorAll('.turn').forEach(x=>x.classList.remove('on'));b.classList.add('on');document.getElementById('runTitle').textContent=t;toast('So\'rov almashtirildi (maketda ma\'lumot bir xil)')};T.appendChild(b)});
+
+// Qadamlar
+const steps=[
+ ["0:03","Skill","distinguished-product-designer","","1 s",""],
+ ["0:21","Terminal","redesign.md o'qildi","cat workflows/redesign.md","<1 s",""],
+ ["0:48","MCP","Mobbin · usage and limits dashboard","search_screens · standard","3 s",""],
+ ["0:52","MCP","Mobbin · trace waterfall view","search_screens · standard","2 s",""],
+ ["1:20","Brauzer","dribbble.com","ai agent dashboard · this month","4 s",""],
+ ["1:58","MCP","Mobbin · AI agent live status","search_screens · deep","12 s",""],
+ ["2:31","MCP","Mobbin · usage limit meter","search_screens · deep","10 s",""],
+ ["3:02","Yozish","redesign-v4.html","~/Developer/TokenKuzat/design","1 s",""],
+ ["3:40","Yozish","GraphScreen.swift","Sources/TokenKuzat/UI","1 s","err"],
+ ["4:00","Terminal","swift build","Build the app","0:12","run"],
+];
+const S=document.getElementById('steps'),Dt=document.getElementById('detail'),K=document.getElementById('ticks');
+function sec(s){const [m,x]=s.split(':').map(Number);return m*60+x}
+steps.forEach((s,i)=>{
+  const r=document.createElement('div');r.className='step'+(s[5]?' '+s[5]:'');
+  r.innerHTML=`<span class="tm">${s[0]}</span><span class="k">${s[5]==='err'?'✕':s[5]==='run'?'●':'✓'}</span><span class="tt"><b>${s[1]}</b> · ${s[2]}</span><span class="du">${s[4]}</span>`;
+  r.onclick=()=>sel(i);S.appendChild(r);
+  const t=document.createElement('i');t.className=s[5]==='err'?'err':s[5]==='run'?'run':'tool';t.style.left=(sec(s[0])/252*100)+'%';t.title=s[1]+' · '+s[2];t.onclick=()=>sel(i);K.appendChild(t);
+});
+function sel(i){
+  [...S.querySelectorAll('.step')].forEach((x,j)=>x.classList.toggle('on',j===i));
+  const s=steps[i];
+  const st=s[5]==='err'?'<span class="pill err">✕ Xato</span>':s[5]==='run'?'<span class="pill ok"><span class="dot live"></span>Bajarilmoqda</span>':'<span class="pill n">✓ Tugadi</span>';
+  Dt.innerHTML=`<div class="eyebrow">${s[1]}</div><h3>${s[2]}</h3>${st}
+  <dl class="kv"><dt>Boshlandi</dt><dd class="mono">15:1${Math.floor(sec(s[0])/60)}:${s[0].split(':')[1]} (+${s[0]})</dd><dt>Davomiyligi</dt><dd class="mono">${s[4]}</dd><dt>Nishon</dt><dd class="mono">${s[3]||'—'}</dd><dt>Agent</dt><dd>Asosiy agent</dd></dl>
+  ${s[5]==='err'?'<div class="code">File has been modified since read, either by the user or by a linter. Read it again before attempting to write it.</div>':''}`;
+  document.getElementById('cursor').style.left=(sec(s[0])/252*100)+'%';document.getElementById('clock').textContent=s[0];
+}
+sel(9);
+
+// Tablar
+document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));t.classList.add('on');
+  ['steps','flow','files'].forEach(k=>document.getElementById('t-'+k).style.display=k===t.dataset.tab?(k==='steps'?'grid':'block'):'none')});
+
+// Fayllar
+const files=[["redesign-v4.html","~/Developer/TokenKuzat/design",0,1,0,"......................w....."],["GraphScreen.swift","Sources/TokenKuzat/UI",1,2,1,"....r......e...w.....w......"],["FlowCanvas.swift","Sources/TokenKuzat/UI",1,1,0,"..r..............w.........."],["redesign.md","skills/…/workflows",1,0,0,"r..........................."]];
+const F=document.getElementById('files');
+files.forEach(f=>{const d=document.createElement('div');d.className='it';const cells=[...f[5]].map(c=>`<i class="${c==='.'?'':c}"></i>`).join('');
+  d.innerHTML=`<div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3H6v18h12V7z"/></svg></div><div style="min-width:0"><div class="name">${f[0]}</div><div class="sub mono">${f[1]}</div></div><div class="heat">${cells}</div><div class="val num" style="font-size:12px">${f[2]} o'q · <span style="color:var(--warn)">${f[3]} yoz</span>${f[4]?` · <span style="color:var(--err)">${f[4]} ✕</span>`:''}</div>`;F.appendChild(d)});
+
+// Replay: kursor boshidan oxirigacha yuradi
+function replay(){let t=0;const c=document.getElementById('cursor'),k=document.getElementById('clock');clearInterval(window._rp);
+  window._rp=setInterval(()=>{t+=4;if(t>252){clearInterval(window._rp);t=252}c.style.left=(t/252*100)+'%';k.textContent=Math.floor(t/60)+':'+String(t%60).padStart(2,'0');
+    const idx=steps.map(s=>sec(s[0])).filter(x=>x<=t).length-1;if(idx>=0)[...S.querySelectorAll('.step')].forEach((x,j)=>{x.style.opacity=j<=idx?1:.35;x.classList.toggle('on',j===idx)})},60)}
+// URL'dan holat: #A,dark,run,changes
+(function(){const h=location.hash.slice(1).split(',');if(!h[0])return;
+  const pick=(id,v)=>{const b=document.querySelector(`#${id} button[data-v="${v}"]`);if(b)b.click()};
+  if(h[0])pick('dirSeg',h[0]);if(h[1])pick('themeSeg',h[1]);if(h[2])pick('scrSeg',h[2]);
+  if(h[3]==='changes')document.body.classList.add('changes');if(h[4])document.querySelector(`.tab[data-tab="${h[4]}"]`)?.click()})();
+</script>
+</body>
+</html>

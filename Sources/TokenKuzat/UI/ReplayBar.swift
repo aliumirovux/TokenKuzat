@@ -64,7 +64,7 @@ struct ReplayBar: View {
             .help("Replay'dan chiqib, hozirgi holatga qaytish")
         }
         .padding(.horizontal, 14).padding(.vertical, 8)
-        .glass(radius: 14, tint: .accentColor)
+        .surface(radius: 14, tint: .accentColor)
         .padding(.horizontal, 10).padding(.vertical, 6)
         .transition(.move(edge: .top).combined(with: .opacity))
     }

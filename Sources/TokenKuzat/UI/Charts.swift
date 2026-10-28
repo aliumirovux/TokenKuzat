@@ -2,43 +2,6 @@ import SwiftUI
 import Charts
 import TokenKuzatCore
 
-// MARK: - 60 daqiqalik grafik
-
-struct MinuteChart: View {
-    let points: [MinutePoint]
-    let mode: CountMode
-    var height: CGFloat = 140
-    var showLegend = true
-
-    var body: some View {
-        Chart {
-            ForEach(points) { p in
-                BarMark(x: .value("Daqiqa", p.date, unit: .minute),
-                        y: .value("Token", p.main.value(mode)))
-                    .foregroundStyle(by: .value("Kim", "Asosiy agent"))
-                BarMark(x: .value("Daqiqa", p.date, unit: .minute),
-                        y: .value("Token", p.agents.value(mode)))
-                    .foregroundStyle(by: .value("Kim", "Yordamchi agentlar"))
-            }
-        }
-        .chartForegroundStyleScale(["Asosiy agent": Palette.main, "Yordamchi agentlar": Palette.agents.opacity(0.6)])
-        .chartLegend(showLegend ? .visible : .hidden)
-        .chartLegend(position: .top, alignment: .trailing)
-        .chartYAxis {
-            AxisMarks(position: .trailing, values: .automatic(desiredCount: 3)) { v in
-                AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5, dash: [2, 3]))
-                AxisValueLabel { if let d = v.as(Double.self) { Text(Fmt.tokens(d)) } }
-            }
-        }
-        .chartXAxis {
-            AxisMarks(values: .stride(by: .minute, count: 15)) { _ in
-                AxisValueLabel(format: .dateTime.hour().minute())
-            }
-        }
-        .frame(height: height)
-    }
-}
-
 // MARK: - Kunlik grafik
 
 struct DailyChart: View {

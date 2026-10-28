@@ -401,9 +401,24 @@ public final class Engine {
             let b = minutes[m] ?? MinuteBucket()
             return MinutePoint(id: m, date: Date(timeIntervalSince1970: TimeInterval(m * 60)), main: b.main, agents: b.agents)
         }
+        snap.recentMinutes = ((nowMin - 359)...nowMin).map { m in
+            let b = minutes[m] ?? MinuteBucket()
+            return MinutePoint(id: m, date: Date(timeIntervalSince1970: TimeInterval(m * 60)), main: b.main, agents: b.agents)
+        }
         let last5 = snap.minutes.suffix(5)
         snap.rateRaw = last5.reduce(0) { $0 + Double($1.main.total + $1.agents.total) } / 5
         snap.rateWeighted = last5.reduce(0) { $0 + $1.main.weighted + $1.agents.weighted } / 5
+        let dayStartMin = Int(dayStart.timeIntervalSince1970 / 60)
+        for (m, b) in minutes where m >= dayStartMin {
+            let h = min(23, (m - dayStartMin) / 60)
+            snap.todayHours[h].add(b.main)
+            snap.todayHours[h].add(b.agents)
+            if b.main.total + b.agents.total > 0 {
+                snap.activeMinutesToday += 1
+                let d = Date(timeIntervalSince1970: TimeInterval(m * 60))
+                if snap.firstActivityToday.map({ d < $0 }) ?? true { snap.firstActivityToday = d }
+            }
+        }
         let fiveHoursAgo = nowMin - 5 * 60
         for (m, b) in minutes where m > fiveHoursAgo {
             snap.lastFiveHours.add(b.main)

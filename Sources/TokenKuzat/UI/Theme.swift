@@ -5,20 +5,20 @@ import TokenKuzatCore
 // MARK: - Ranglar (tizim semantik ranglari — yorug' va qorong'i rejimda to'g'ri)
 
 enum Palette {
-    static let main = Color.accentColor
-    static let agents = Color.indigo
+    static let main = Brand.accent
+    static let agents = Color(light: 0x2F7BE5, dark: 0x4A8FF0)
     static let cacheRead = Color.purple
     static let fresh = Color.teal
     static let output = Color.orange
     static let input = Color.mint
-    static let surface = Color(nsColor: .controlBackgroundColor)
-    static let canvas = Color(nsColor: .windowBackgroundColor)
-    static let stroke = Color.primary.opacity(0.08)
+    static let surface = Brand.surface
+    static let canvas = Brand.canvas
+    static let stroke = Brand.line
 
     static func state(_ s: AgentState) -> Color {
         switch s {
-        case .running: return .green
-        case .waiting: return .orange
+        case .running: return Brand.ok
+        case .waiting: return Brand.warn
         case .idle: return Color.secondary.opacity(0.5)
         }
     }
@@ -42,7 +42,7 @@ struct CardModifier: ViewModifier {
         content
             .padding(padding)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .glass(radius: 18, tint: highlight, stroke: highlight?.opacity(0.45))
+            .surface(radius: 20, tint: highlight, stroke: highlight?.opacity(0.45))
     }
 }
 
@@ -117,7 +117,7 @@ struct StatusPill: View {
         .lineLimit(1)
         .fixedSize()
         .padding(.horizontal, 10).padding(.vertical, 5)
-        .glassCapsule(tint: state == .idle ? nil : Palette.state(state))
+        .surfaceCapsule(tint: state == .idle ? nil : Palette.state(state))
         .animation(Motion.spring, value: running)
         .help(running > 0 ? "\(running) ta agent hozir ishlayapti"
               : (active > 0 ? "Agent asbob natijasini kutyapti (masalan, terminal buyrug'i)" : "Hech qanday agent ishlamayapti"))
@@ -333,18 +333,3 @@ struct RealLimitsView: View {
     }
 }
 
-/// Ulanmagan bo'lsa — taklif
-struct ConnectLimitsHint: View {
-    var body: some View {
-        HStack(spacing: 12) {
-            IconTile(symbol: "gauge.with.needle", tint: .blue, size: 32)
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Claude'ning haqiqiy limitini ko'rsatish").font(.callout.weight(.medium))
-                Text("5 soatlik va haftalik limit foizi, tiklanish vaqti va «qachon tugaydi» bashorati — Claude Code'ning o'zidan.")
-                    .font(.caption).foregroundStyle(.secondary)
-            }
-            Spacer()
-            Button("Ulash…") { WindowManager.shared.show(.settings) }
-        }
-    }
-}
