@@ -1,5 +1,9 @@
 # O'zgarishlar
 
+## 6.5.0 — 2026-10-28
+
+- Xaritada «Natijalar» shoxi: so'rovda yaratilgan yoki ko'rilgan rasm, HTML, PDF, video bo'lsa — kartaning yuqori shoxlari qatorida (Terminal, Fayllar yonida) eng so'nggisining kichik rasmi va soni. Bosilsa — oynacha: tepada shu so'rov natijalari qatori, ostida katta ko'rinish (Quick Look), «Brauzerda ochish» va «Finder». Fayl qaysi so'rovga tegishli — oxirgi marta qaysi so'rov ichida yaratilgani yoki ochilgani bo'yicha.
+
 ## 6.4.0 — 2026-10-28
 
 - «Natijalar» tabi: sessiyada Claude yaratgan yoki ko'rgan rasm, HTML (SVG), PDF va videolar — chapda kichik rasmli ro'yxat (turi, «Yaratildi»/«Ko'rildi», vaqti, tur bo'yicha filtr), o'ngda katta ko'rinish (Quick Look: HTML sahifa sifatida, PDF varaqlab). Fayl qayta yozilsa — ko'rinish o'zi yangilanadi. «Brauzerda ochish»/«Ochish» va «Finder» tugmalari.

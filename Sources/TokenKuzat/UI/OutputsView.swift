@@ -98,7 +98,7 @@ private struct OutputTile: View {
 }
 
 /// Katta ko'rinish: Quick Look (rasm, HTML, PDF, video) va ochish tugmalari
-private struct OutputDetail: View {
+struct OutputDetail: View {
     let file: OutputFile
 
     var body: some View {
@@ -126,7 +126,7 @@ private struct OutputDetail: View {
 }
 
 /// Quick Look ko'rinishi: fayl o'zgarsa (Claude qayta yozsa) — yangilanadi
-private struct QuickLookView: NSViewRepresentable {
+struct QuickLookView: NSViewRepresentable {
     let url: URL
 
     func makeNSView(context: Context) -> QLPreviewView {
@@ -172,7 +172,7 @@ private struct QuickLookView: NSViewRepresentable {
 }
 
 /// Kichik rasm: Quick Look thumbnail (rasm, HTML, PDF, video uchun bir xil); fayl o'zgarsa qayta olinadi
-private struct Thumbnail: View {
+struct Thumbnail: View {
     let path: String
     @State private var image: NSImage?
 

@@ -256,6 +256,8 @@ private struct MapNode: Identifiable {
         case header(MapSection, open: Bool)
         case turn(TurnSnap, sessionId: String, previousPrompt: String?, expanded: Int?, followUps: [TurnSnap])
         case tool(TurnTool, sessionId: String, turnId: Int, up: Bool)
+        /// So'rovda yaratilgan/ko'rilgan rasm, HTML, PDF — yuqori shoxlar qatorining oxirida
+        case outputs([OutputFile])
         case more(Int)
         case step(MapStep, sessionId: String, turnId: Int)
         case earlier(Int)
@@ -322,7 +324,8 @@ private struct MapLayout {
     ///   - rowWidth: satr kengligi; kartalar shunga sig'guncha teriladi, keyin keyingi satrga o'tadi
     /// - compact: uzoqdan ko'rinish — asboblar va zanjirga joy qoldirilmaydi, satrlar zich
     init(sections: [MapSection], expanded: String?, steps: [MapStep], rowWidth: CGFloat,
-         isOpen: (MapSection) -> Bool, active: Bool, lastAt: Date?, compact: Bool = false) {
+         isOpen: (MapSection) -> Bool, active: Bool, lastAt: Date?, compact: Bool = false,
+         outputs: (MapCard) -> [OutputFile] = { _ in [] }) {
         let rowGap = compact ? M.rowGap * 0.55 : M.rowGap
         let left = M.pad, right = M.pad + rowWidth
         var y = M.pad
@@ -344,7 +347,7 @@ private struct MapLayout {
         // Tepaga shox (mahalliy ishlar) bor bo'lsa — qator ustida joy qoldiriladi
         let anyUp = !compact && sections.contains { sec in
             isOpen(sec) && sec.cards.contains { c in
-                MapLayout.mergedTools([c.turn] + c.followUps).contains { MapLayout.goesUp($0.category) }
+                MapLayout.mergedTools([c.turn] + c.followUps).contains { MapLayout.goesUp($0.category) } || !outputs(c).isEmpty
             }
         }
         let headTop = y
@@ -388,7 +391,8 @@ private struct MapLayout {
                         let upTools = tools.filter { MapLayout.goesUp($0.category) }
                         let downTools = tools.filter { !MapLayout.goesUp($0.category) }
                         _ = placeTools(upTools, port: CGPoint(x: n.center.x, y: n.rect.minY), centerY: n.rect.minY - M.toolDrop + 10,
-                                       up: true, idPrefix: card.id + "/u", sessionId: card.sessionId, turnId: card.turn.id)
+                                       up: true, idPrefix: card.id + "/u", sessionId: card.sessionId, turnId: card.turn.id,
+                                       outputs: outputs(card))
                         let port = CGPoint(x: n.center.x, y: n.rect.maxY)
                         if card.contains(expanded) && !steps.isEmpty {
                             let tid = Int(expanded?.split(separator: "#").last ?? "") ?? card.turn.id
@@ -480,10 +484,10 @@ private struct MapLayout {
 
     /// Asbob doiralari karta ostida (yoki `up` — ustida) bir qatorda. Pastki chegarani qaytaradi (asbob bo'lmasa — nil)
     private mutating func placeTools(_ tools: [TurnTool], port: CGPoint, centerY: CGFloat, up: Bool, idPrefix: String,
-                                     sessionId: String, turnId: Int) -> CGFloat? {
+                                     sessionId: String, turnId: Int, outputs: [OutputFile] = []) -> CGFloat? {
         let shown = Array(tools.prefix(M.maxTools))
         let extra = tools.count - shown.count
-        let n = shown.count + (extra > 0 ? 1 : 0)
+        let n = shown.count + (extra > 0 ? 1 : 0) + (outputs.isEmpty ? 0 : 1)
         guard n > 0 else { return nil }
         let x0 = port.x - CGFloat(n - 1) * M.toolStep / 2
         for (i, tool) in shown.enumerated() {
@@ -503,6 +507,16 @@ private struct MapLayout {
             edges.append(MapEdge(id: idPrefix + "/more", from: port,
                                  to: up ? CGPoint(x: c.x, y: more.rect.maxY - 6) : CGPoint(x: c.x, y: c.y - M.toolD / 2),
                                  route: .v, live: false, color: .secondary))
+        }
+        if !outputs.isEmpty {
+            // Natijalar — qatorning oxirgi o'rni, alohida shox
+            let c = CGPoint(x: x0 + CGFloat(n - 1) * M.toolStep, y: centerY)
+            let node = MapNode(id: idPrefix + "/outputs", kind: .outputs(outputs), center: c,
+                               size: CGSize(width: M.toolStep, height: M.toolD + 30))
+            nodes.append(node)
+            edges.append(MapEdge(id: node.id, from: port,
+                                 to: up ? CGPoint(x: c.x, y: node.rect.maxY - 6) : CGPoint(x: c.x, y: c.y - M.toolD / 2),
+                                 route: .v, live: false, color: Brand.accent))
         }
         return centerY + M.toolD / 2 + 30
     }
@@ -587,11 +601,15 @@ struct SessionMapView: View {
             let vs = geo.size
             // Satr kengligi: odatdagi masshtabda oynaga to'liq sig'adi (kamida 3 karta)
             let rowWidth = max(3 * M.cardW + 2 * M.gap, vs.width / M.fitScale - 2 * M.pad)
+            let byTurn = outputsByTurn
             let layout = MapLayout(sections: secs, expanded: expandedId, steps: steps, rowWidth: rowWidth,
                                    isOpen: { isOpen($0, last: secs.last?.id, expanded: expandedId) },
                                    active: chain.last.map { $0.state != .idle } ?? false,
                                    lastAt: chain.last?.turns.last?.end ?? chain.last?.lastActivity,
-                                   compact: scale < M.lod)
+                                   compact: scale < M.lod,
+                                   outputs: { card in
+                                       ([card.turn] + card.followUps).flatMap { byTurn["\(card.sessionId)#\($0.id)"] ?? [] }
+                                   })
             let _ = cache.layout = layout
             let visible = CGRect(x: -pan.width / scale, y: -pan.height / scale,
                                  width: vs.width / scale, height: vs.height / scale).insetBy(dx: -80, dy: -80)
@@ -742,6 +760,19 @@ struct SessionMapView: View {
         return def != toggled.contains(s.id)
     }
 
+    /// Natijalar so'rovlar bo'yicha («sessiya#so'rov»): fayl oxirgi marta tegilgan payt qaysi so'rov ichida bo'lsa
+    private var outputsByTurn: [String: [OutputFile]] {
+        var out: [String: [OutputFile]] = [:]
+        for s in chain {
+            let starts = s.turns.map(\.start)
+            for f in SessionOutputs.collect(s) {
+                guard let d = f.lastActivity, let i = starts.lastIndex(where: { $0 <= d }) else { continue }
+                out["\(s.id)#\(s.turns[i].id)", default: []].append(f)
+            }
+        }
+        return out
+    }
+
     /// Hech narsa tanlanmagan bo'lsa — eng so'nggi so'rov ochiladi
     private var lastTurnId: String? {
         guard let s = chain.last, let t = s.turns.last else { return nil }
@@ -786,6 +817,8 @@ struct SessionMapView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .surfaceCapsule()
                 .help("Eski qadamlar — o'ng paneldagi «Jarayon»da to'liq ro'yxat")
+        case .outputs(let files):
+            MapOutputsNode(files: files)
         case .more(let k):
             VStack(spacing: 6) {
                 Text("+\(k)").font(.callout.weight(.semibold)).foregroundStyle(.secondary)
@@ -1273,6 +1306,68 @@ private struct MapSectionHeader: View {
             .padding(.horizontal, 8).padding(.vertical, 3)
             .background(Capsule().fill(Brand.warn.opacity(0.12)))
             .fixedSize()
+    }
+}
+
+/// «Natijalar» shoxi: eng so'nggi rasm/HTML kichik ko'rinishda; bosilsa — katta ko'rinish (Quick Look) oynachasi
+private struct MapOutputsNode: View {
+    let files: [OutputFile]
+    @State private var open = false
+
+    var body: some View {
+        VStack(spacing: 6) {
+            Text("Natijalar").font(.caption2.weight(.medium)).lineLimit(1).minimumScaleFactor(0.8)
+            ZStack(alignment: .topTrailing) {
+                Thumbnail(path: files[0].path)
+                    .frame(width: M.toolD + 8, height: M.toolD)
+                    .background(Color.black.opacity(0.35))
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).stroke(Brand.accent.opacity(0.8), lineWidth: 1.5))
+                Text("\(files.count)")
+                    .font(.system(size: 9, weight: .bold)).monospacedDigit()
+                    .padding(.horizontal, 5).padding(.vertical, 2)
+                    .background(Capsule().fill(Brand.accent))
+                    .foregroundStyle(.white)
+                    .offset(x: 8, y: -3)
+            }
+        }
+        .frame(maxHeight: .infinity, alignment: .bottom)
+        .contentShape(Rectangle())
+        .onTapGesture { open = true }
+        .help("Natijalar: " + files.prefix(3).map(\.name).joined(separator: ", ") + (files.count > 3 ? "…" : "") + " — bosing")
+        .popover(isPresented: $open, arrowEdge: .top) { OutputsPopover(files: files) }
+    }
+}
+
+/// Xaritadan ochiladigan katta ko'rinish: tepada natijalar qatori, ostida tanlangani
+private struct OutputsPopover: View {
+    let files: [OutputFile]
+    @State private var selected: String?
+
+    var body: some View {
+        let current = files.first { $0.path == selected } ?? files[0]
+        VStack(spacing: 0) {
+            if files.count > 1 {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(files) { f in
+                            Thumbnail(path: f.path)
+                                .frame(width: 96, height: 60)
+                                .background(Color.black.opacity(0.3))
+                                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                                .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                    .stroke(f.path == current.path ? Brand.accent : Brand.line, lineWidth: f.path == current.path ? 2 : 1))
+                                .onTapGesture { selected = f.path }
+                                .help(f.name)
+                        }
+                    }
+                    .padding(10)
+                }
+                Divider()
+            }
+            OutputDetail(file: current)
+        }
+        .frame(width: 640, height: 480)
     }
 }
 
