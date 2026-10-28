@@ -54,7 +54,7 @@ extension SessionSnap {
                 lastAction: steps.last?.text ?? (a.isMain ? "So'rov oldi" : "Boshlandi"),
                 state: state, lastActivity: lastSeen, firstActivity: a.firstActivity,
                 steps: steps, resources: SessionSnap.resourceGroups(steps, now: t), usage: usage,
-                bigResults: a.bigResults.filter { $0.date <= t }))
+                bigResults: a.bigResults.filter { $0.date <= t }, outputs: a.outputs.filter { $0.value <= t }))
         }
 
         let main = replayed.filter(\.isMain).reduce(TokenCounts()) { $0 + $1.tokens }

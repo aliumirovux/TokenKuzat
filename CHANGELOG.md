@@ -1,5 +1,11 @@
 # O'zgarishlar
 
+## 6.4.0 — 2026-10-28
+
+- «Natijalar» tabi: sessiyada Claude yaratgan yoki ko'rgan rasm, HTML (SVG), PDF va videolar — chapda kichik rasmli ro'yxat (turi, «Yaratildi»/«Ko'rildi», vaqti, tur bo'yicha filtr), o'ngda katta ko'rinish (Quick Look: HTML sahifa sifatida, PDF varaqlab). Fayl qayta yozilsa — ko'rinish o'zi yangilanadi. «Brauzerda ochish»/«Ochish» va «Finder» tugmalari.
+- Manbalar: Write/Edit/Read qilingan fayllar va terminal buyruqlarida tilga olingan to'liq yo'llar (qo'shtirnoqdagi bo'shliqli yo'llar va buyruq ichidagi `SP=/yo'l … $SP/x.png` kabi o'zgaruvchilar ham). Diskda yo'q fayllar ko'rsatilmaydi.
+- Testlar: 46 ta.
+
 ## 6.3.0 — 2026-10-28
 
 - Xaritadan chat: pastdagi maydonga yozib Enter bosing — xabar shu sessiyaga ketadi (`claude -p --resume`, avto ruxsat rejimi, sessiyadagi model oilasi). Javob, qadamlar va robot xaritada jonli paydo bo'ladi. Ish ketayotganda «To'xtatish» (Ctrl-C kabi, sessiya saqlanadi). Claude boshqa joyda ishlayotganda maydon yopiq; sessiya Claude ilovasi yoki terminalda ochiq bo'lsa — ogohlantirish (u yerda xabarlar qayta ochilgandagina ko'rinadi). ⌥Enter — yangi qator. Replay'da o'chiq.

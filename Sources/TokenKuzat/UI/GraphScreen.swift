@@ -87,7 +87,7 @@ struct GraphScreen: View {
                 }
                 tabs.padding(.horizontal, 24).padding(.top, 16).padding(.bottom, 10)
                 // «Qadamlar» tabi olib tashlandi — eski saqlangan qiymat ham Oqim'ni ochadi
-                switch graphMode == "files" ? "files" : "flow" {
+                switch ["files", "outputs"].contains(graphMode) ? graphMode : "flow" {
                 // «Jarayon» ko'rinishi olib tashlandi — eski saqlangan qiymat xaritani ochadi
                 case "flow" where flowStyle != "summary":
                     let chain = SessionChain.chain(for: session, in: replayOn ? [session] : s.sessions)
@@ -154,6 +154,11 @@ struct GraphScreen: View {
                     .frame(minHeight: 320, maxHeight: .infinity)
                     .card(padding: 0)
                     .padding(.horizontal, 24).padding(.bottom, 20)
+                case "outputs":
+                    OutputsScreen(session: session)
+                        .frame(minHeight: 320, maxHeight: .infinity)
+                        .card(padding: 0)
+                        .padding(.horizontal, 24).padding(.bottom, 20)
                 default:
                     EmptyView()
                 }
@@ -189,7 +194,7 @@ struct GraphScreen: View {
 
     // MARK: Tablar
 
-    /// Uchta teng tab: Xarita, Xulosa (ikkalasi Oqim'ning ko'rinishlari) va Fayllar
+    /// Teng tablar: Xarita, Xulosa (ikkalasi Oqim'ning ko'rinishlari), Fayllar va Natijalar
     private var tabs: some View {
         HStack(spacing: 4) {
             tab("map", "Xarita", "point.3.connected.trianglepath.dotted",
@@ -197,8 +202,10 @@ struct GraphScreen: View {
             tab("summary", "Xulosa", "circle.hexagongrid",
                 help: "Tanlangan so'rovda qaysi agent va asboblar ishlatilgani")
             tab("files", "Fayllar", "square.grid.3x3", help: "Qaysi fayllar o'qildi va o'zgartirildi")
+            tab("outputs", "Natijalar", "photo.on.rectangle.angled",
+                help: "Jarayonda yaratilgan yoki ko'rilgan rasm, HTML, PDF va videolar")
             Spacer()
-            if graphMode != "files" {
+            if !["files", "outputs"].contains(graphMode) {
                 Button { withAnimation(Motion.spring) { showInspector.toggle() } } label: { Image(systemName: "sidebar.right") }
                     .buttonStyle(.borderless)
                     .help(showInspector ? "Tafsilotlarni yashirish" : "Tafsilotlarni ko'rsatish")
@@ -207,14 +214,14 @@ struct GraphScreen: View {
     }
 
     private var currentTab: String {
-        graphMode == "files" ? "files" : (flowStyle == "summary" ? "summary" : "map")
+        ["files", "outputs"].contains(graphMode) ? graphMode : (flowStyle == "summary" ? "summary" : "map")
     }
 
     private func tab(_ id: String, _ title: String, _ symbol: String, help: String) -> some View {
         let on = currentTab == id
         return Button {
             withAnimation(Motion.spring) {
-                if id == "files" { graphMode = "files" } else { graphMode = "flow"; flowStyle = id }
+                if ["files", "outputs"].contains(id) { graphMode = id } else { graphMode = "flow"; flowStyle = id }
             }
         } label: {
             Label(title, systemImage: symbol)

@@ -36,6 +36,8 @@ public struct AgentSnap: Identifiable, Sendable {
     public let usage: [UsagePoint]
     /// Kontekstga tushgan katta asbob natijalari (≥ `BigResult.threshold`), eskidan yangiga
     public var bigResults: [BigResult] = []
+    /// Terminal buyruqlarida tilga olingan rasm/HTML/PDF yo'llari → oxirgi marta («Natijalar»)
+    public var outputs: [String: Date] = [:]
 
     public var toolsLine: String {
         topTools.prefix(3).map { "\($0.name) \($0.count)" }.joined(separator: " · ")

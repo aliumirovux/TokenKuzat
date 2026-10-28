@@ -5,6 +5,8 @@ public enum ToolDescriber {
     public struct Description: Equatable, Sendable {
         public let symbol: String
         public let text: String
+        /// Terminal buyrug'ida tilga olingan rasm/HTML/PDF yo'llari («Natijalar» uchun)
+        public var paths: [String] = []
     }
 
     /// «mcp__github__create_issue» → «github: create_issue»
@@ -37,7 +39,10 @@ public enum ToolDescriber {
         case "Read": return d("doc.text", "O'qiyapti · \(file())")
         case "Write": return d("square.and.pencil", "Yozyapti · \(file())")
         case "Edit", "MultiEdit", "NotebookEdit": return d("pencil", "Tahrirlayapti · \(file())")
-        case "Bash": return d("terminal", "Terminal · \(clip(str("description") ?? str("command") ?? ""))")
+        case "Bash":
+            var x = d("terminal", "Terminal · \(clip(str("description") ?? str("command") ?? ""))")
+            x.paths = SessionOutputs.paths(in: str("command") ?? "")
+            return x
         case "Grep": return d("magnifyingglass", "Matn qidiryapti · \(clip(str("pattern") ?? "", 50))")
         case "Glob": return d("folder", "Fayl qidiryapti · \(clip(str("pattern") ?? "", 50))")
         case "WebSearch": return d("globe", "Internetda qidiryapti · \(clip(str("query") ?? ""))")

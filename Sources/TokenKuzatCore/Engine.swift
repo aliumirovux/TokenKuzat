@@ -253,6 +253,7 @@ public final class Engine {
                 res.calls += 1
                 if target.access == .write { res.writes += 1 } else if target.access == .read { res.reads += 1 }
                 if res.lastActivity.map({ ts > $0 }) ?? true { res.lastActivity = ts }
+                for p in d.paths where agent.outputs[p].map({ ts > $0 }) ?? true { agent.outputs[p] = ts }
                 let step = StepAcc(id: id, start: ts, symbol: d.symbol, text: d.text, target: target, resource: res)
                 agent.addStep(step)
                 session.allSteps.append((step, agent.isMain ? nil : agent.title))
@@ -399,7 +400,7 @@ public final class Engine {
                     state: st, lastActivity: a.lastActivity, firstActivity: a.firstActivity,
                     steps: a.steps.suffix(150).map { $0.snap(now: now, turn: Engine.turnIndex(starts, $0.start)) },
                     resources: a.resourceGroups(now: now),
-                    usage: a.usage, bigResults: a.bigResults))
+                    usage: a.usage, bigResults: a.bigResults, outputs: a.outputs))
             }
             if best != .idle { snap.activeSessions += 1 }
             // Ishlayotgan sessiya eski bo'lsa ham ko'rinadi
@@ -592,6 +593,8 @@ private final class AgentAcc {
     var steps: [StepAcc] = []
     var usage: [UsagePoint] = []
     var bigResults: [BigResult] = []
+    /// Terminal buyruqlarida tilga olingan rasm/HTML/PDF yo'llari → oxirgi marta
+    var outputs: [String: Date] = [:]
     var resources: [String: ResourceAcc] = [:]
 
     func resource(_ t: ToolTarget) -> ResourceAcc {
