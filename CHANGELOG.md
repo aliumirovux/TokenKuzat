@@ -1,5 +1,11 @@
 # O'zgarishlar
 
+## 6.17.0 — 2026-10-28
+
+- Qadam bajarilishi (n8n'dagi node kabi): xaritada qadamni bosing — o'ng panelda uch tab. **Chiqish** — asbob nima qaytardi (xato bo'lsa — qizil), natija kontekstga qancha token qo'shgani; **Kirish** — asbobga berilgan parametrlar (o'qiladigan JSON); **Tafsilot** — asbob, nishon, boshlanish vaqti, davomiylik, agent va kontekstga qo'shilgan token. Matnni tanlab yoki «Nusxa olish» bilan olish mumkin. Ishlayotgan qadamda sukut bo'yicha Kirish ochiladi.
+- Asbob ro'yxati va «Jarayon» lentasidagi qadamlar ham bosiladi — o'sha tafsilot ochiladi.
+- Saqlanadi: kirish 1 200, chiqish 1 500 belgigacha, sessiyaning oxirgi 200 ta qadami uchun (xotira o'smasin); undan eskilarida faqat vaqt va holat.
+
 ## 6.16.0 — 2026-10-28
 
 - Limitning chat va bulutga ketgan qismi: claude.ai va desktop chatlar, bulutdagi sessiyalar Mac diskiga yozilmaydi, lekin hisobdagi haqiqiy 5 soatlik foizga kiradi. Har limit o'lchovida foiz o'sishi shu oraliqdagi Mac sarfi bilan solishtiriladi: Mac ishlamagan paytdagi o'sish — chat va bulut; aralash paytda Mac ulushi o'rganilgan «1% ≈ N vaznli token» koeffitsiyenti bilan ayriladi (Mac ishlagan oraliqlardan, 75-persentil). Koeffitsiyent 3 ta o'lchovdan keyin chiqadi, ungacha aralash qism «Aniqlanmoqda».

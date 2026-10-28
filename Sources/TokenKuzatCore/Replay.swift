@@ -19,7 +19,7 @@ extension StepSnap {
         // Hali tugamagan: davomiyligi — shu paytgacha, xato ham hali ma'lum emas
         return StepSnap(id: id, date: date, symbol: symbol, text: text, category: category, targetName: targetName,
                         targetKey: targetKey, targetDetail: targetDetail, access: access,
-                        duration: t.timeIntervalSince(date), status: .running, turn: turn)
+                        duration: t.timeIntervalSince(date), status: .running, turn: turn, input: input)
     }
 }
 

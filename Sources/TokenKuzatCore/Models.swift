@@ -84,6 +84,11 @@ public struct StepSnap: Identifiable, Sendable {
     public let status: StepStatus
     /// Qaysi so'rov ichida bajarilgan (`TurnSnap.id`); birinchi so'rovdan oldingi qadamlar — nil
     public let turn: Int?
+    /// Asbobga berilgan parametrlar (JSON) va natija matnining boshi — sessiyaning oxirgi qadamlari uchun saqlanadi
+    public var input: String? = nil
+    public var output: String? = nil
+    /// Natija kontekstga qo'shgan taxminiy token (keyingi har chaqiruvda qayta o'qiladi)
+    public var resultTokens: Int? = nil
 }
 
 /// Claude'ning o'ylashi yoki yozgan javobi — xaritadagi qadamlar zanjirida ko'rsatiladi

@@ -57,6 +57,9 @@ public final class Engine {
         self.history = history
     }
 
+    /// Sessiyada kirish/chiqish matni saqlanadigan oxirgi qadamlar soni
+    public static let keepStepIO = 200
+
     public static func defaultRoots() -> [URL] {
         var r: [URL] = []
         if let env = ProcessInfo.processInfo.environment["CLAUDE_CONFIG_DIR"] {
@@ -252,7 +255,7 @@ public final class Engine {
 
         for item in a.items {
             switch item {
-            case .tool(let id, let name, let d, let target):
+            case .tool(let id, let name, let d, let target, let input):
                 guard seenTools.insert(id).inserted else { continue }
                 agent.tools[ToolDescriber.shortName(name), default: 0] += 1
                 let ts = ev.timestamp ?? fs.mtime ?? now
@@ -262,8 +265,13 @@ public final class Engine {
                 if res.lastActivity.map({ ts > $0 }) ?? true { res.lastActivity = ts }
                 for p in d.paths where agent.outputs[p].map({ ts > $0 }) ?? true { agent.outputs[p] = ts }
                 let step = StepAcc(id: id, start: ts, symbol: d.symbol, text: d.text, target: target, resource: res)
+                step.input = input.isEmpty ? nil : input
                 agent.addStep(step)
                 session.allSteps.append((step, agent.isMain ? nil : agent.title))
+                // Kirish/chiqish matni faqat oxirgi qadamlar uchun — uzun sessiyalarda xotira o'smasin
+                if session.allSteps.count > Engine.keepStepIO {
+                    session.allSteps[session.allSteps.count - Engine.keepStepIO - 1].0.dropIO()
+                }
                 pendingSteps[id] = step
                 agent.lastAction = d.text
                 agent.lastStop = "tool_use"
@@ -324,6 +332,8 @@ public final class Engine {
         for r in u.results {
             guard let step = pendingSteps.removeValue(forKey: r.id) else { continue }
             step.end = ev.timestamp ?? now
+            step.resultTokens = r.tokens
+            if step.keepsIO, !r.text.isEmpty { step.output = r.text }
             if r.tokens >= BigResult.threshold {
                 agent.bigResults.append(BigResult(date: step.end ?? now, tokens: r.tokens, label: step.text))
                 if agent.bigResults.count > 300 { agent.bigResults.removeFirst(agent.bigResults.count - 200) }
@@ -664,6 +674,17 @@ private final class StepAcc {
     let resource: ResourceAcc
     var end: Date?
     var failed = false
+    var input: String?
+    var output: String?
+    var resultTokens: Int?
+    /// Eski qadamning matnlari tashlangan — natija kelsa ham saqlanmaydi
+    private(set) var keepsIO = true
+
+    func dropIO() {
+        keepsIO = false
+        input = nil
+        output = nil
+    }
 
     init(id: String, start: Date, symbol: String, text: String, target: ToolTarget, resource: ResourceAcc) {
         self.id = id
@@ -679,7 +700,8 @@ private final class StepAcc {
         let status: StepStatus = failed ? .failed : (end == nil && now.timeIntervalSince(start) < 600 ? .running : .done)
         let duration = end.map { $0.timeIntervalSince(start) } ?? (status == .running ? now.timeIntervalSince(start) : nil)
         return StepSnap(id: id, date: start, symbol: symbol, text: text, category: target.category,
-                        targetName: target.name, targetKey: target.key, targetDetail: target.detail, access: target.access, duration: duration, status: status, turn: turn.map { $0 + 1 })
+                        targetName: target.name, targetKey: target.key, targetDetail: target.detail, access: target.access, duration: duration, status: status, turn: turn.map { $0 + 1 },
+                        input: input, output: output, resultTokens: resultTokens)
     }
 }
 

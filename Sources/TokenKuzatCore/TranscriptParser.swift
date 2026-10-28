@@ -10,7 +10,8 @@ public struct TranscriptEvent {
     }
 
     public enum Item: Equatable {
-        case tool(id: String, name: String, description: ToolDescriber.Description, target: ToolTarget)
+        /// `input` — asbobga berilgan parametrlar (JSON, ko'pi bilan `ioLimit` belgi)
+        case tool(id: String, name: String, description: ToolDescriber.Description, target: ToolTarget, input: String)
         /// Javob matni (boshi, ko'pi bilan `noteLimit` belgi)
         case text(String)
         /// O'ylash matni; shifrlangan bo'lsa — bo'sh
@@ -19,6 +20,9 @@ public struct TranscriptEvent {
 
     /// Saqlanadigan matn uzunligi — uzun sessiyalarda xotira o'smasin
     public static let noteLimit = 2000
+    /// Qadam kirishi va chiqishidan saqlanadigan qism (xaritadagi tafsilot uchun)
+    public static let inputLimit = 1200
+    public static let outputLimit = 1500
 
     public struct Assistant {
         public var model: String?
@@ -35,8 +39,8 @@ public struct TranscriptEvent {
         /// Foydalanuvchining haqiqiy so'rovlari (tizim eslatmalari va meta qatorlarsiz)
         public var prompts: [String] = []
         public var hasToolResult = false
-        /// Tugagan asbob chaqiruvlari: tool_use id → xato bo'ldimi, natija hajmi (taxminiy token)
-        public var results: [(id: String, isError: Bool, tokens: Int)] = []
+        /// Tugagan asbob chaqiruvlari: tool_use id → xato bo'ldimi, natija hajmi (taxminiy token), natija matni boshi
+        public var results: [(id: String, isError: Bool, tokens: Int, text: String)] = []
     }
 
     public var kind: Kind
@@ -92,7 +96,7 @@ public enum TranscriptParser {
                 let name = b["name"] as? String ?? "?"
                 let input = b["input"] as? [String: Any] ?? [:]
                 a.items.append(.tool(id: id, name: name, description: ToolDescriber.describe(name, input),
-                                     target: ToolDescriber.target(name, input)))
+                                     target: ToolDescriber.target(name, input), input: inputText(input)))
             case "text":
                 if let t = b["text"] as? String {
                     let s = t.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -143,6 +147,40 @@ public enum TranscriptParser {
         }
     }
 
+    /// Asbob parametrlari — o'qiladigan JSON (kalitlar tartiblangan), uzun bo'lsa qisqartiriladi
+    static func inputText(_ input: [String: Any]) -> String {
+        guard !input.isEmpty else { return "" }
+        guard let d = try? JSONSerialization.data(withJSONObject: input, options: [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]) else {
+            return ""
+        }
+        return clip(String(decoding: d, as: UTF8.self), TranscriptEvent.inputLimit)
+    }
+
+    /// Asbob natijasi matni: matn bloklari birlashtiriladi, rasm — «[rasm]»
+    static func resultText(_ content: Any?) -> String {
+        if let s = content as? String { return clip(s, TranscriptEvent.outputLimit) }
+        guard let arr = content as? [[String: Any]] else { return "" }
+        var parts: [String] = []
+        var len = 0
+        for b in arr where len < TranscriptEvent.outputLimit {
+            switch b["type"] as? String {
+            case "text":
+                let t = b["text"] as? String ?? ""
+                parts.append(t)
+                len += t.count
+            case "image": parts.append("[rasm]")
+            default: break
+            }
+        }
+        return clip(parts.joined(separator: "\n"), TranscriptEvent.outputLimit)
+    }
+
+    /// Belgilar bo'yicha qisqartirish; kesilgan bo'lsa oxirida «…»
+    static func clip(_ s: String, _ limit: Int) -> String {
+        let t = s.trimmingCharacters(in: .whitespacesAndNewlines)
+        return t.count > limit ? String(t.prefix(limit)) + "…" : t
+    }
+
     private static func user(_ obj: [String: Any]) -> TranscriptEvent.User {
         var u = TranscriptEvent.User()
         let isMeta = (obj["isMeta"] as? Bool) == true
@@ -155,7 +193,8 @@ public enum TranscriptParser {
                 case "tool_result":
                     u.hasToolResult = true
                     if let id = b["tool_use_id"] as? String {
-                        u.results.append((id: id, isError: (b["is_error"] as? Bool) == true, tokens: resultTokens(b["content"])))
+                        u.results.append((id: id, isError: (b["is_error"] as? Bool) == true, tokens: resultTokens(b["content"]),
+                                          text: resultText(b["content"])))
                     }
                 case "text":
                     if !isMeta, let s = b["text"] as? String, let p = prompt(s) { u.prompts.append(p) }

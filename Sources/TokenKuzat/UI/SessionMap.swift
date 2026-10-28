@@ -570,6 +570,8 @@ struct SessionMapView: View {
     var waiting: HookNotice? = nil
     let onSelectTurn: (_ sessionId: String, _ turnId: Int) -> Void
     let onSelectTool: (_ sessionId: String, _ turnId: Int, _ category: ToolCategory) -> Void
+    /// Bitta qadam bosildi — kirish / chiqish tafsiloti
+    var onSelectStep: (_ sessionId: String, _ step: StepSnap) -> Void = { _, _ in }
     /// O'ylash yoki javob kartasi bosildi — to'liq matn o'ng panelda
     var onSelectNote: (_ sessionId: String, _ note: NoteSnap) -> Void = { _, _ in }
     /// Ishlab chiquvchi uchun (`--snapshot-map`): boshlang'ich masshtab
@@ -870,7 +872,7 @@ struct SessionMapView: View {
             MapStepNode(item: st)
                 .onTapGesture {
                     switch st.item {
-                    case .step(let s): onSelectTool(sid, tid, s.category)
+                    case .step(let s): onSelectStep(sid, s)
                     case .group(let g): if let c = g.first?.category { onSelectTool(sid, tid, c) }
                     case .note(let n, _): onSelectNote(sid, n)
                     case .live: break

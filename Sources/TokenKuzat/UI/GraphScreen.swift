@@ -25,10 +25,12 @@ private enum Selection: Equatable {
     case resource(agentId: String, category: ToolCategory)
     /// O'ylash yoki javob matni
     case note(agentId: String, noteId: String)
+    /// Bitta qadam: kirish, chiqish va tafsilot (n8n'dagi node bajarilishi kabi)
+    case step(agentId: String, stepId: String)
 
     var agentId: String {
         switch self {
-        case .agent(let id), .resource(let id, _), .note(let id, _): return id
+        case .agent(let id), .resource(let id, _), .note(let id, _), .step(let id, _): return id
         }
     }
 }
@@ -119,6 +121,17 @@ struct GraphScreen: View {
                                                turnId = tid
                                                if let m = s.sessions.first(where: { $0.id == sid })?.main {
                                                    select(.resource(agentId: m.id, category: cat))
+                                               }
+                                           }
+                                       },
+                                       onSelectStep: { sid, step in
+                                           if sid != sessionId { sessionId = sid }
+                                           DispatchQueue.main.async {
+                                               if let tid = step.turn { turnId = tid }
+                                               if let a = s.sessions.first(where: { $0.id == sid })?.agents
+                                                   .first(where: { $0.steps.contains { $0.id == step.id } }) {
+                                                   selection = .step(agentId: a.id, stepId: step.id)
+                                                   revealInspector()
                                                }
                                            }
                                        },
@@ -385,13 +398,15 @@ struct GraphScreen: View {
         switch currentSelection(session) {
         case .agent(let id)?:
             if let a = session.agents.first(where: { $0.id == id }) {
-                AgentInspector(agent: a, turns: session.turns, sessionTotal: session.tokens.value(mode), mode: mode) { cat in
+                AgentInspector(agent: a, turns: session.turns, sessionTotal: session.tokens.value(mode), mode: mode,
+                               openStep: { selection = .step(agentId: a.id, stepId: $0.id) }) { cat in
                     select(.resource(agentId: a.id, category: cat))
                 }
             }
         case .resource(let id, let cat)?:
             if let a = session.agents.first(where: { $0.id == id }), let g = a.resources.first(where: { $0.category == cat }) {
-                ResourceInspector(owner: a, group: g, now: now) { select(.agent(a.id)) }
+                ResourceInspector(owner: a, group: g, now: now,
+                                  openStep: { selection = .step(agentId: a.id, stepId: $0.id) }) { select(.agent(a.id)) }
             } else {
                 EmptyStateView(symbol: "questionmark", title: "Topilmadi", text: "")
             }
@@ -403,6 +418,14 @@ struct GraphScreen: View {
                 }
             } else {
                 EmptyStateView(symbol: "questionmark", title: "Topilmadi", text: "")
+            }
+        case .step(let aid, let sid)?:
+            if let a = session.agents.first(where: { $0.id == aid }), let st = a.steps.first(where: { $0.id == sid }) {
+                StepInspector(step: st, agent: a) { select(.agent(aid)) }
+                    .id(sid)
+            } else {
+                EmptyStateView(symbol: "questionmark", title: "Qadam topilmadi",
+                               text: "Juda eski qadamlar xotirada saqlanmaydi.")
             }
         case nil:
             EmptyStateView(symbol: "cursorarrow.click", title: "Tugunni tanlang",
@@ -495,6 +518,7 @@ private struct AgentInspector: View {
     let turns: [TurnSnap]
     let sessionTotal: Double
     let mode: CountMode
+    var openStep: (StepSnap) -> Void = { _ in }
     let openResource: (ToolCategory) -> Void
 
     private var trailing: String? {
@@ -520,7 +544,7 @@ private struct AgentInspector: View {
                     if agent.steps.isEmpty && (!agent.isMain || turns.isEmpty) {
                         Text("Hali asbob chaqirilmagan.").font(.callout).foregroundStyle(.secondary)
                     } else {
-                        TurnTimeline(steps: agent.steps, turns: turns, showEmptyTurns: agent.isMain, mode: mode)
+                        TurnTimeline(steps: agent.steps, turns: turns, showEmptyTurns: agent.isMain, mode: mode, onStep: openStep)
                     }
                 }
             }
@@ -700,6 +724,7 @@ private struct ResourceInspector: View {
     let owner: AgentSnap
     let group: ResourceGroup
     let now: Date
+    var openStep: (StepSnap) -> Void = { _ in }
     let back: () -> Void
 
     var body: some View {
@@ -750,7 +775,7 @@ private struct ResourceInspector: View {
                 }
 
                 InspectorBlock(title: "Qadamlar", trailing: "\(steps.count) ta") {
-                    StepTimeline(steps: steps)
+                    StepTimeline(steps: steps, onSelect: openStep)
                 }
             }
             .padding(18)
@@ -812,6 +837,8 @@ private struct NoteInspector: View {
 /// Qadamlar lentasi: vaqt, holat, nima qilindi, qancha davom etdi
 private struct StepTimeline: View {
     let steps: [StepSnap]
+    /// Bosilganda qadam tafsiloti (kirish / chiqish) ochiladi
+    var onSelect: ((StepSnap) -> Void)? = nil
 
     var body: some View {
         let shown = Array(steps.prefix(80))
@@ -837,7 +864,14 @@ private struct StepTimeline: View {
                     }
                     .padding(.top, 2).padding(.bottom, 12)
                     Spacer(minLength: 0)
+                    if onSelect != nil {
+                        Image(systemName: "chevron.right").font(.system(size: 10, weight: .semibold))
+                            .foregroundStyle(.tertiary).padding(.top, 6)
+                    }
                 }
+                .contentShape(Rectangle())
+                .onTapGesture { onSelect?(s) }
+                .help(onSelect == nil ? "" : "Kirish va chiqishni ko'rish")
             }
         }
     }
@@ -865,6 +899,7 @@ private struct TurnTimeline: View {
     /// Asosiy agentda — qadamsiz (faqat javob yozilgan) so'rovlar ham ko'rinadi
     let showEmptyTurns: Bool
     let mode: CountMode
+    var onStep: ((StepSnap) -> Void)? = nil
     @State private var toggled: Set<Int> = []
 
     private struct Group: Identifiable {
@@ -904,7 +939,7 @@ private struct TurnTimeline: View {
                             Text("Asbob chaqirilmadi — faqat javob yozildi.")
                                 .font(.callout).foregroundStyle(.secondary)
                         } else {
-                            StepTimeline(steps: g.steps)
+                            StepTimeline(steps: g.steps, onSelect: onStep)
                         }
                     }
                 }
@@ -1023,4 +1058,189 @@ struct SidebarMaterial: NSViewRepresentable {
         return v
     }
     func updateNSView(_ v: NSVisualEffectView, context: Context) {}
+}
+
+// MARK: - Qadam tafsiloti
+
+/// Bitta qadamning bajarilishi (n8n'dagi node bajarilishi kabi): Chiqish — asbob nima qaytardi,
+/// Kirish — asbobga nima berildi, Tafsilot — vaqtlar, holat va kontekstga qo'shilgan tokenlar.
+private struct StepInspector: View {
+    let step: StepSnap
+    let agent: AgentSnap
+    let back: () -> Void
+
+    private enum Tab: Hashable { case output, input, details }
+    @State private var tab: Tab?
+    @State private var copied = false
+
+    private var current: Tab { tab ?? (step.status == .running ? .input : .output) }
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                Button(action: back) {
+                    Label(agent.isMain ? "Asosiy agent" : agent.title, systemImage: "chevron.left")
+                        .font(.callout.weight(.medium)).lineLimit(1)
+                        .padding(.horizontal, 10).padding(.vertical, 5)
+                        .surfaceCapsule()
+                }
+                .buttonStyle(.plain)
+
+                header
+
+                PillSegments(selection: Binding(get: { current }, set: { tab = $0; copied = false }), items: [
+                    .init(id: .output, title: "Chiqish", symbol: "arrow.down.doc"),
+                    .init(id: .input, title: "Kirish", symbol: "arrow.up.doc"),
+                    .init(id: .details, title: "Tafsilot", symbol: "info.circle"),
+                ], compact: true)
+
+                switch current {
+                case .output: outputBlock
+                case .input: inputBlock
+                case .details: detailsBlock
+                }
+            }
+            .padding(18)
+        }
+        .scrollIndicators(.never)
+    }
+
+    private var header: some View {
+        HStack(alignment: .top, spacing: 12) {
+            ToolTile(symbol: step.symbol, color: step.status == .failed ? Brand.err : step.category.color, size: 46)
+            VStack(alignment: .leading, spacing: 5) {
+                Text(step.text).font(.title3.weight(.semibold)).lineLimit(3)
+                    .fixedSize(horizontal: false, vertical: true)
+                HStack(spacing: 6) {
+                    statusChip
+                    Text(Fmt.clock.string(from: step.date))
+                    if let d = step.duration { Text("· " + Dur.text(d)) }
+                    if let t = step.turn { Text("· #\(t)") }
+                }
+                .font(.callout.monospacedDigit()).foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private var statusChip: some View {
+        let (text, color): (String, Color) = {
+            switch step.status {
+            case .running: return ("Bajarilmoqda", Brand.accent)
+            case .failed: return ("Xato", Brand.err)
+            case .done: return ("Bajarildi", Brand.ok)
+            }
+        }()
+        return Text(text).font(.caption.weight(.semibold)).foregroundStyle(color)
+            .padding(.horizontal, 7).padding(.vertical, 2)
+            .background(Capsule().fill(color.opacity(0.13)))
+    }
+
+    @ViewBuilder
+    private var outputBlock: some View {
+        let trailing = step.resultTokens.map { "~\(Fmt.tokens($0)) token" }
+        InspectorBlock(title: step.status == .failed ? "Xato matni" : "Asbob qaytardi", trailing: trailing, card: false) {
+            if let out = step.output {
+                if out.isEmpty {
+                    empty("Asbob bo'sh natija qaytardi.")
+                } else {
+                    code(out, limit: TranscriptEvent.outputLimit, error: step.status == .failed)
+                }
+            } else if step.status == .running {
+                empty("Natija hali kelmadi — asbob ishlayapti.")
+            } else if step.input == nil {
+                empty("Matn saqlanmagan: sessiyaning oxirgi \(Engine.keepStepIO) ta qadami uchungina saqlanadi.")
+            } else {
+                empty("Asbob matnli natija qaytarmadi.")
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var inputBlock: some View {
+        InspectorBlock(title: "Asbobga berildi", card: false) {
+            if let inp = step.input, !inp.isEmpty {
+                code(inp, limit: TranscriptEvent.inputLimit, error: false)
+            } else if step.output == nil && step.status != .running {
+                empty("Matn saqlanmagan: sessiyaning oxirgi \(Engine.keepStepIO) ta qadami uchungina saqlanadi.")
+            } else {
+                empty("Parametrsiz chaqirilgan.")
+            }
+        }
+    }
+
+    private var detailsBlock: some View {
+        InspectorBlock(title: "Bajarilish") {
+            VStack(spacing: 0) {
+                row("Asbob", step.category.title)
+                row("Nishon", step.targetName, step.targetDetail)
+                row("Boshlandi", Fmt.clock.string(from: step.date))
+                if let d = step.duration {
+                    row(step.status == .running ? "Ketmoqda" : "Davomiyligi", Dur.text(d))
+                }
+                row("Agent", agent.isMain ? "Asosiy agent" : agent.title)
+                if let t = step.resultTokens {
+                    row("Kontekstga qo'shdi", "~\(Fmt.tokens(t)) token",
+                        "Natija kontekstda qoladi va keyingi har chaqiruvda qayta o'qiladi", last: true)
+                }
+            }
+            .padding(.vertical, -6)
+        }
+    }
+
+    private func row(_ k: String, _ v: String, _ note: String? = nil, last: Bool = false) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: .firstTextBaseline, spacing: 12) {
+                Text(k).foregroundStyle(.secondary)
+                Spacer(minLength: 8)
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text(v).fontWeight(.medium).multilineTextAlignment(.trailing).lineLimit(2).truncationMode(.middle)
+                    if let note, !note.isEmpty {
+                        Text(note).font(.caption).foregroundStyle(.secondary).multilineTextAlignment(.trailing)
+                            .lineLimit(2).truncationMode(.middle)
+                    }
+                }
+                .textSelection(.enabled)
+            }
+            .font(.callout)
+            .padding(.vertical, 8)
+            if !last { Divider() }
+        }
+    }
+
+    /// Mono matn, tanlab nusxa olish mumkin; uzun bo'lsa — boshi saqlangani aytiladi
+    private func code(_ s: String, limit: Int, error: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(s)
+                .font(.system(size: 11.5, design: .monospaced))
+                .foregroundStyle(error ? Brand.err : Color.primary)
+                .textSelection(.enabled)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(12)
+                .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Brand.sunken))
+                .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(Brand.line))
+            HStack {
+                if s.hasSuffix("…") {
+                    Text("Faqat boshi saqlangan · \(limit) belgi").font(.caption).foregroundStyle(.secondary)
+                }
+                Spacer()
+                Button {
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(s, forType: .string)
+                    withAnimation(Motion.snappy) { copied = true }
+                } label: {
+                    Label(copied ? "Nusxalandi" : "Nusxa olish", systemImage: copied ? "checkmark" : "doc.on.doc")
+                        .font(.caption.weight(.medium))
+                }
+                .buttonStyle(.borderless)
+            }
+        }
+    }
+
+    private func empty(_ text: String) -> some View {
+        Text(text).font(.callout).foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(14)
+            .surface(radius: 14)
+    }
 }
