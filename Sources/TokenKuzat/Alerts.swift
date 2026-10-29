@@ -181,12 +181,12 @@ final class Alerts: NSObject, UNUserNotificationCenterDelegate {
         let cutoff = Date().timeIntervalSince1970 - 7 * 86400
         return all.filter { $0.value >= cutoff }
     }()
-    /// Ko'chirish paytidagi kontekst — eski sessiyada davom etilsa, +100K dan keyin qayta ko'chirish uchun
+    /// Ko'chirish paytidagi kontekst — eski sessiyada davom etilsa, +30K dan keyin qayta ko'chirish uchun
     private let autoDoneContextKey = "autoHandoffDoneContext"
     private lazy var autoDoneContext: [String: Int] = UserDefaults.standard.dictionary(forKey: autoDoneContextKey) as? [String: Int] ?? [:]
 
     /// Kontekst chegaradan oshgan sessiya javobini tugatdi — xulosa saqlanadi va yangi sessiya ochiladi.
-    /// Eski sessiyada davom etilsa — kontekst yana +100K o'sganda qayta
+    /// Eski sessiyada davom etilsa — kontekst yana +30K o'sganda qayta
     private func evaluateAutoHandoff(_ s: Snapshot) {
         defer { autoPrevious = Dictionary(s.sessions.map { ($0.id, $0.state) }, uniquingKeysWith: { a, _ in a }) }
         let d = UserDefaults.standard

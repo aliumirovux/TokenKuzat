@@ -8,7 +8,7 @@ public enum AutoHandoffRule {
     public static let thresholdOptionsK: [Double] = [150, 200, 300, 500]
 
     /// Ko'chirilgandan keyin ham eski sessiyada davom etilsa — kontekst yana shuncha o'sganda qayta ko'chiriladi
-    public static let repeatStep = 100_000
+    public static let repeatStep = 30_000
 
     /// Sessiya «allaqachon ko'chirilgan» hisoblanadimi: oxirgi ko'chirishdan beri kontekst `repeatStep` dan kam o'sgan.
     /// Ko'chirish paytidagi kontekst noma'lum bo'lsa (eski yozuvlar) — chegara asos qilinadi

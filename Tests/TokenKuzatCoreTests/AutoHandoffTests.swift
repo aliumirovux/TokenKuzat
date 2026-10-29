@@ -49,13 +49,13 @@ final class AutoHandoffTests: XCTestCase {
         XCTAssertLessThan(long.count, 1_000)
     }
 
-    func testRepeatsAfterContextGrowsAnother100K() {
+    func testRepeatsAfterContextGrowsAnother30K() {
         XCTAssertFalse(AutoHandoffRule.alreadyDone(doneAt: nil, known: false, context: 400_000, thresholdK: 200))
-        XCTAssertTrue(AutoHandoffRule.alreadyDone(doneAt: 334_000, known: true, context: 420_000, thresholdK: 200))
-        XCTAssertFalse(AutoHandoffRule.alreadyDone(doneAt: 334_000, known: true, context: 434_000, thresholdK: 200))
-        // Eski yozuv (kontekst noma'lum) — chegara + 100K
-        XCTAssertTrue(AutoHandoffRule.alreadyDone(doneAt: nil, known: true, context: 290_000, thresholdK: 200))
-        XCTAssertFalse(AutoHandoffRule.alreadyDone(doneAt: nil, known: true, context: 395_000, thresholdK: 200))
+        XCTAssertTrue(AutoHandoffRule.alreadyDone(doneAt: 214_000, known: true, context: 240_000, thresholdK: 200))
+        XCTAssertFalse(AutoHandoffRule.alreadyDone(doneAt: 214_000, known: true, context: 244_000, thresholdK: 200))
+        // Eski yozuv (kontekst noma'lum) — chegara + 30K
+        XCTAssertTrue(AutoHandoffRule.alreadyDone(doneAt: nil, known: true, context: 225_000, thresholdK: 200))
+        XCTAssertFalse(AutoHandoffRule.alreadyDone(doneAt: nil, known: true, context: 230_000, thresholdK: 200))
     }
 
     func testContinuationTitlePicksLastMeaningfulTask() {

@@ -1,5 +1,9 @@
 # O'zgarishlar
 
+## 6.58.4 — 2026-10-30
+
+- Ish yangi sessiyaga ko'chirilgandan keyin eski sessiyada davom etilsa, kontekst yana 30K o'sishi bilan qayta ko'chiriladi (avval 100K kutilardi). Keyingi xabar yana yangi sessiyaga yo'naltiriladi — katta suhbat uzoq vaqt limitni yemaydi.
+
 ## 6.58.3 — 2026-10-30
 
 - Menyu panelidagi loyihalar ro'yxati ham vaqtinchalik papkalarni (/tmp, ilovaning papkasiz sessiyalari) ko'rsatmaydi — chap paneldagi «So'nggi» bilan bir xil.
