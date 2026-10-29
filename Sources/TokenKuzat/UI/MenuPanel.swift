@@ -18,6 +18,7 @@ struct MenuPanel: View {
                 VStack(spacing: 10) {
                     now(s)
                     today(s)
+                    savings
                 }
                 .padding(12)
                 Divider()
@@ -210,6 +211,43 @@ struct MenuPanel: View {
         }
         .padding(.vertical, 10)
         .surface(radius: 12)
+    }
+
+    /// Bugungi isrof: qancha va qaysi loyihada eng ko'p — bosilsa «Tejash» ochiladi.
+    /// Store har 5 daqiqada yozadigan kunlik yakundan olinadi (panel ochilganda qayta hisoblanmaydi)
+    @ViewBuilder
+    private var savings: some View {
+        let day = store.savingsHistory.days[HistoryStore.key(Date())] ?? [:]
+        let total = day.values.reduce(0.0) { $0 + (mode == .weighted ? $1.weighted : Double($1.tokens)) }
+        let waste = day.values.reduce(0.0) { $0 + (mode == .weighted ? $1.wasteWeighted : Double($1.waste)) }
+        let top = day.max { a, b in
+            (mode == .weighted ? a.value.wasteWeighted : Double(a.value.waste)) < (mode == .weighted ? b.value.wasteWeighted : Double(b.value.waste))
+        }
+        if total > 0, waste > 0, let top {
+            let share = min(1, waste / total)
+            let color = share >= 0.4 ? Brand.warn : Brand.ok
+            Button { WindowManager.shared.show(.savings) } label: {
+                HStack(spacing: 10) {
+                    ToolTile(symbol: "leaf.fill", color: color, size: 30)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(tr("Bugun isrof ~\(Fmt.tokens(waste)) · \(Int((share * 100).rounded()))%",
+                                "Wasted today ~\(Fmt.tokens(waste)) · \(Int((share * 100).rounded()))%"))
+                            .font(.callout.weight(.semibold)).monospacedDigit().lineLimit(1)
+                        Text(tr("Eng ko'pi — \(top.key) · qanday tejashni ko'rish", "Most in \(top.key) · see how to save"))
+                            .font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                    }
+                    Spacer(minLength: 6)
+                    Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundStyle(.tertiary)
+                }
+                .padding(.horizontal, 12).padding(.vertical, 9)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .surface(radius: 12)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(RowButtonStyle())
+            .help(tr("Taxminiy isrof — oldini olsa bo'ladigan tokenlar. Bosing — «Tejash» sahifasi ochiladi",
+                     "Estimated waste — tokens that could be avoided. Click to open Savings"))
+        }
     }
 
     private func todayItem(_ k: String, _ v: String, _ sub: String) -> some View {

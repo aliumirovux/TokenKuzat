@@ -1,5 +1,9 @@
 # O'zgarishlar
 
+## 6.24.0 — 2026-10-29
+
+- Menyu satri paneli: bugungi isrof qatori — «Bugun isrof ~9.6M · 45%», eng ko'p isrof qilgan loyiha; bosilsa «Tejash» sahifasi ochiladi. Ma'lumot har 5 daqiqada yoziladigan kunlik yakundan olinadi (panel ochilganda qayta hisoblanmaydi); isrof bo'lmasa qator ko'rinmaydi.
+
 ## 6.23.1 — 2026-10-29
 
 - «Tejash»: tuzatish hali bo'lmagan loyihada ustunlar yonida bugungi isrof foizi va «avval → keyin» qayerda chiqishi haqida izoh.
