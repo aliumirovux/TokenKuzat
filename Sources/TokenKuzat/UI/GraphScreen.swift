@@ -252,7 +252,11 @@ struct GraphScreen: View {
             tab("files", tr("Fayllar", "Files"), "square.grid.3x3", help: tr("Qaysi fayllar o'qildi va o'zgartirildi", "Which files were read and changed"))
             tab("outputs", tr("Natijalar", "Outputs"), "photo.on.rectangle.angled",
                 help: tr("Jarayonda yaratilgan yoki ko'rilgan rasm, HTML, PDF va videolar", "Images, HTML, PDFs and videos created or viewed during the process"))
-            Spacer()
+            Spacer(minLength: 16)
+            ActiveSessionsBar(snap: store.snap, current: store.snap.sessions.first(where: { $0.id == sessionId })?.id
+                                ?? store.snap.sessions.first?.id) { id in
+                withAnimation(Motion.snappy) { sessionId = id }
+            }
         }
     }
 
@@ -1244,3 +1248,129 @@ private struct StepInspector: View {
             .surface(radius: 14)
     }
 }
+
+// MARK: - Ishlayotgan sessiyalar
+
+/// Tablar qatorining o'ng tomonida: hozir ishlayotgan (yoki ruxsat kutayotgan) boshqa sessiyalar — bir bosishda o'tiladi.
+/// Ko'p bo'lsa, birinchi to'rttasi ko'rinadi, qolgani «+N» menyusida. ⌘[ va ⌘] — oldingi/keyingisiga o'tish.
+private struct ActiveSessionsBar: View {
+    let snap: Snapshot
+    let current: String?
+    let onSelect: (String) -> Void
+    private let visible = 4
+
+    /// Ishlayotganlar va ruxsat kutayotganlar; tanlangan sessiya ham ro'yxatda qoladi.
+    /// Tartib boshlangan vaqt bo'yicha va o'zgarmaydi — kartochkalar bosish paytida o'rin almashmaydi
+    private var items: [SessionSnap] {
+        snap.sessions
+            .filter { $0.state != .idle || snap.permissionWaits[$0.id] != nil || $0.id == current }
+            .sorted { a, b in
+                let sa = a.turns.first?.start ?? .distantFuture, sb = b.turns.first?.start ?? .distantFuture
+                return sa != sb ? sa < sb : a.id < b.id
+            }
+    }
+
+    var body: some View {
+        let all = items
+        // Faqat tanlangan sessiyaning o'zi bo'lsa — almashtiradigan narsa yo'q
+        if all.count >= 2 {
+            // Keng oynada — nomli kartochkalar, torroqda — faqat belgilar, juda torda — bitta menyu
+            ViewThatFits(in: .horizontal) {
+                row(all, density: 2)
+                row(all, density: 1)
+                row(all, density: 0)
+                more(all, title: tr("Ishlayapti: \(all.count)", "Working: \(all.count)"))
+            }
+            .background {
+                // Klaviatura: ⌘[ — oldingi, ⌘] — keyingi ishlayotgan sessiya
+                HStack {
+                    Button("") { step(all, -1) }.keyboardShortcut("[", modifiers: .command)
+                    Button("") { step(all, 1) }.keyboardShortcut("]", modifiers: .command)
+                }
+                .hidden()
+            }
+        }
+    }
+
+    /// density: 2 — loyiha va holat, 1 — faqat holat (qisqa), 0 — faqat belgi
+    private func row(_ all: [SessionSnap], density: Int) -> some View {
+        let shown = Array(all.prefix(visible))
+        let rest = Array(all.dropFirst(visible))
+        return HStack(spacing: 6) {
+            if density == 2 {
+                Text(tr("Ishlayapti", "Working"))
+                    .font(.system(size: 11, weight: .semibold)).foregroundStyle(.tertiary)
+            }
+            ForEach(shown, id: \.id) { chip($0, density: density) }
+            if !rest.isEmpty { more(rest, title: "+\(rest.count)") }
+        }
+        .fixedSize()
+    }
+
+    /// Qolgan sessiyalar ro'yxati — menyu
+    private func more(_ list: [SessionSnap], title: String) -> some View {
+        Menu {
+            ForEach(list, id: \.id) { sess in
+                Button((sess.id == current ? "✓ " : "") + sess.project + " — " + label(sess)) { onSelect(sess.id) }
+            }
+        } label: {
+            Text(title).font(.system(size: 12, weight: .semibold)).monospacedDigit()
+        }
+        .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
+        .padding(.horizontal, 9).frame(height: 28)
+        .background(RoundedRectangle(cornerRadius: 8, style: .continuous).stroke(Brand.line))
+        .help(tr("Ishlayotgan sessiyalar (⌘[ / ⌘])", "Working sessions (⌘[ / ⌘])"))
+    }
+
+    private func chip(_ sess: SessionSnap, density: Int) -> some View {
+        let on = sess.id == current
+        let waiting = snap.permissionWaits[sess.id] != nil
+        let running = sess.state != .idle
+        return Button { onSelect(sess.id) } label: {
+            HStack(spacing: 7) {
+                ProjectAvatar(name: sess.project, size: 16)
+                    .overlay(alignment: .bottomTrailing) {
+                        if running || waiting {
+                            Circle().fill(waiting ? Brand.warn : Brand.ok)
+                                .frame(width: 7, height: 7)
+                                .overlay(Circle().stroke(Brand.canvas, lineWidth: 1.5))
+                                .offset(x: 2.5, y: 2.5)
+                        }
+                    }
+                if density == 2 {
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text(sess.project).font(.system(size: 11.5, weight: on ? .semibold : .medium)).lineLimit(1)
+                        Text(label(sess)).font(.system(size: 10)).foregroundStyle(waiting ? Brand.warn : .secondary).lineLimit(1)
+                    }
+                    .frame(maxWidth: 150, alignment: .leading)
+                } else if density == 1 {
+                    // Bir loyihadagi bir nechta sessiya ham farqlansin — holat matni qisqa ko'rinishda
+                    Text(label(sess)).font(.system(size: 11, weight: on ? .semibold : .regular))
+                        .foregroundStyle(waiting ? Brand.warn : (on ? .primary : .secondary)).lineLimit(1)
+                        .frame(maxWidth: 84, alignment: .leading)
+                }
+            }
+            .padding(.leading, 7).padding(.trailing, density == 0 ? 7 : 10).frame(height: 32)
+            .background(RoundedRectangle(cornerRadius: 9, style: .continuous).fill(on ? Brand.surface : .clear))
+            .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous).stroke(on ? Brand.accent.opacity(0.6) : Brand.line))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help(sess.project + " — " + sess.title + (running ? "\n" + (sess.main?.lastAction ?? "") : ""))
+        .accessibilityLabel(sess.project + " — " + label(sess))
+    }
+
+    /// Ikkinchi qator: ruxsat kutayotgani, ishlayotgan bo'lsa — asosiy agent hozir nima qilyapti, aks holda sessiya nomi
+    private func label(_ sess: SessionSnap) -> String {
+        if snap.permissionWaits[sess.id] != nil { return tr("Ruxsat kutyapti", "Waiting for permission") }
+        if sess.state != .idle, let a = sess.main?.lastAction, !a.isEmpty { return a }
+        return sess.title.isEmpty ? Fmt.model(sess.model) : sess.title
+    }
+
+    private func step(_ all: [SessionSnap], _ d: Int) {
+        guard !all.isEmpty else { return }
+        let i = all.firstIndex { $0.id == current } ?? 0
+        onSelect(all[(i + d + all.count) % all.count].id)
+    }
+}
+

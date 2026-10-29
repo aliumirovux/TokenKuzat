@@ -1,5 +1,10 @@
 # O'zgarishlar
 
+## 6.21.0 — 2026-10-29
+
+- Sessiya sahifasida, tablar qatorining o'ng tomonida — «Ishlayapti»: hozir ishlayotgan va ruxsat kutayotgan boshqa sessiyalar (boshqa loyihalar va bir loyihadagi parallel sessiyalar). Har kartochkada loyiha va asosiy agent hozir nima qilayotgani; bosing — o'sha sessiyaga o'tadi. ⌘[ / ⌘] — oldingi/keyingisi.
+- Tartib sessiya boshlangan vaqti bo'yicha va o'zgarmaydi — bosish paytida kartochkalar o'rin almashmaydi. Tor oynada faqat holat matni, undan ham torda faqat belgilar, so'ng bitta menyu; 4 tadan ko'pi «+N» menyusida.
+
 ## 6.20.2 — 2026-10-29
 
 - Sessiya → Xulosa: yuqori o'ng burchakda xaritadagidek «Faqat sxema» tugmasi (⇧⌘F, chiqish — Esc): sarlavha, tablar, yon menyu va panel yashirinadi, sxema oynaga qayta sig'diriladi.
