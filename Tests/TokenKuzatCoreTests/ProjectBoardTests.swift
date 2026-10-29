@@ -26,7 +26,22 @@ final class ProjectBoardTests: XCTestCase {
     }
 
     private func cards(_ list: [SessionSnap]) -> [ProjectCard] {
-        ProjectBoard.cards(list, folder: { $0.cwd })
+        ProjectBoard.cards(list, folder: { $0.cwd }, root: { $0 })
+    }
+
+    func testSubfolderJoinsGitProjectCard() {
+        let git: Set<String> = ["/u/dev/app/.git", "/u/.git"]
+        let root = { ProjectBoard.projectRoot($0, home: "/u", exists: git.contains) }
+        XCTAssertEqual(root("/u/dev/app/design/icons"), "/u/dev/app")
+        XCTAssertEqual(root("/u/dev/app"), "/u/dev/app")
+        // Uy papkasi git bo'lsa ham — loyiha emas; git'siz papka o'zi qoladi
+        XCTAssertEqual(root("/u/notes/x"), "/u/notes/x")
+        let c = ProjectBoard.cards([session("a", cwd: "/u/dev/app", ago: 600), session("d", cwd: "/u/dev/app/design", ago: 60)],
+                                   folder: { $0.cwd }, root: root)
+        XCTAssertEqual(c.count, 1)
+        XCTAssertEqual(c[0].name, "app")
+        XCTAssertEqual(c[0].sessionId, "d")
+        XCTAssertEqual(c[0].sessions, 2)
     }
 
     func testOneCardPerFolderNewestFirst() {

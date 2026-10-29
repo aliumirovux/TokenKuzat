@@ -55,14 +55,16 @@ public enum ProjectBoard {
         !(s.origin ?? "").hasPrefix("sdk") && !s.turns.isEmpty
     }
 
-    /// Kartalar, eng oxirgi ishlangan loyiha tepada. `folder` — sessiyaning loyiha papkasi (nil — tashlab ketiladi)
+    /// Kartalar, eng oxirgi ishlangan loyiha tepada. `folder` — sessiyaning loyiha papkasi (nil — tashlab ketiladi),
+    /// `root` — papka qaysi loyihaga tegishli (ichki papka — ota loyiha kartasiga)
     public static func cards(_ sessions: [SessionSnap],
-                             folder: (SessionSnap) -> String? = { SavingsAdvisor.projectFolder(for: $0) }) -> [ProjectCard] {
+                             folder: (SessionSnap) -> String? = { SavingsAdvisor.projectFolder(for: $0) },
+                             root: (String) -> String = { ProjectBoard.projectRoot($0) }) -> [ProjectCard] {
         var groups: [String: [SessionSnap]] = [:]
         for s in sessions where isUserSession(s) && s.lastActivity != nil {
             // Vaqtinchalik papkalar (/tmp, scratchpad) — loyiha emas
             guard let f = folder(s), !SavingsAdvisor.isTemporary(f + "/") else { continue }
-            groups[URL(fileURLWithPath: f).standardizedFileURL.path, default: []].append(s)
+            groups[root(URL(fileURLWithPath: f).standardizedFileURL.path), default: []].append(s)
         }
         return groups.compactMap { dir, list -> ProjectCard? in
             guard let s = list.max(by: { ($0.lastActivity ?? .distantPast) < ($1.lastActivity ?? .distantPast) }),
@@ -75,6 +77,19 @@ public enum ProjectBoard {
                                sessions: list.count, git: nil)
         }
         .sorted { $0.lastActivity > $1.lastActivity }
+    }
+
+    /// Papkani o'z ichiga olgan git loyihasining papkasi (`.git` bor eng yaqin ota papka; uy papkasining o'zi hisoblanmaydi).
+    /// Git loyihasi bo'lmasa — papkaning o'zi. Faqat fayl tizimi tekshiriladi, git chaqirilmaydi
+    public static func projectRoot(_ folder: String, home: String = NSHomeDirectory(),
+                                   exists: (String) -> Bool = { FileManager.default.fileExists(atPath: $0) }) -> String {
+        var url = URL(fileURLWithPath: folder).standardizedFileURL
+        let stop = URL(fileURLWithPath: home).standardizedFileURL.path
+        while url.path != "/" && url.path != stop {
+            if exists(url.appendingPathComponent(".git").path) { return url.path }
+            url.deleteLastPathComponent()
+        }
+        return URL(fileURLWithPath: folder).standardizedFileURL.path
     }
 
     /// Vaqtinchalik papka (/tmp, scratchpad, Claude ilovasining papkasiz sessiyasi) — loyiha emas

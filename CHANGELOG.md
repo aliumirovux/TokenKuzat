@@ -1,5 +1,9 @@
 # O'zgarishlar
 
+## 6.58.2 — 2026-10-30
+
+- «Loyihalar» sahifasida loyihaning ichki papkasi (masalan, `ytbot/design`) alohida karta bo'lib chiqmaydi: undagi sessiyalar ota loyiha kartasiga qo'shiladi. Faqat bitta git loyihasi ichida; git'siz papkalar avvalgidek alohida.
+
 ## 6.58.1 — 2026-10-30
 
 - Loyiha kartasidagi ish nomi eskirib qolmaydi: sessiya yangisiga ko'chgach unda yangi mavzu boshlansa, eski nom o'rniga shu mavzu ko'rsatiladi.
