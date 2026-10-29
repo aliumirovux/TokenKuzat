@@ -113,9 +113,11 @@ enum FreeFallback {
     }
 
     /// Limit tiklandi: bepul modelda ishlagan eng so'nggi sessiya xulosasi bilan Claude'da yangi sessiya
-    /// (avtomatik ko'chirish sozlamasidagi joyda — ilova yoki terminal). Bunday sessiya bo'lmasa — false
-    static func returnToClaude(in s: Snapshot, _ done: @escaping (Bool) -> Void) {
-        guard let sess = s.sessions.first(where: { !$0.isClaude }) else { done(false); return }
+    /// (avtomatik ko'chirish sozlamasidagi joyda — ilova yoki terminal). `since` — limit tugagan vaqt: undan oldingi
+    /// bepul sessiya bu limit davriga tegishli emas. Bunday sessiya bo'lmasa — false
+    static func returnToClaude(in s: Snapshot, since: Date?, _ done: @escaping (Bool) -> Void) {
+        guard let sess = s.sessions.first(where: { !$0.isClaude && ($0.lastActivity ?? .distantPast) >= (since ?? .distantPast) })
+        else { done(false); return }
         let target = AutoHandoffTarget(rawValue: UserDefaults.standard.string(forKey: Pref.autoHandoffTarget) ?? "") ?? .app
         AutoHandoff.summary(for: sess) { summary in
             let message = FreeModels.returnMessage(summary: summary, english: SavingsAdvisor.conversationEnglish(sess))

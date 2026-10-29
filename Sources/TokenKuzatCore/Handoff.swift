@@ -9,12 +9,15 @@ public struct PendingHandoff: Codable, Equatable, Sendable {
     public let sourceSession: String
     public let cwd: String?
     public let created: Date
+    /// Suhbat tili (eski yozuvlarda yo'q — ilova tili ishlatiladi)
+    public var english: Bool?
 
-    public init(text: String, sourceSession: String, cwd: String?, created: Date) {
+    public init(text: String, sourceSession: String, cwd: String?, created: Date, english: Bool? = nil) {
         self.text = text
         self.sourceSession = sourceSession
         self.cwd = cwd
         self.created = created
+        self.english = english
     }
 }
 
@@ -63,9 +66,14 @@ public enum HandoffStore {
     }
 
     public static func context(for h: PendingHandoff) -> String {
-        "Token Kuzatuv: foydalanuvchi oldingi sessiyani shu yangi sessiyada davom ettirishni tanladi. "
-            + "Quyidagi xulosa — o'sha sessiyadan. Foydalanuvchining birinchi xabari shu ishga tegishli bo'lsa, unga tayan; "
-            + "boshqa mavzu bo'lsa, e'tiborsiz qoldir.\n\n" + h.text
+        Lang.with(english: h.english ?? Lang.isEnglish) {
+            tr("Token Kuzatuv: foydalanuvchi oldingi sessiyani shu yangi sessiyada davom ettirishni tanladi. "
+               + "Quyidagi xulosa — o'sha sessiyadan. Foydalanuvchining birinchi xabari shu ishga tegishli bo'lsa, unga tayan; "
+               + "boshqa mavzu bo'lsa, e'tiborsiz qoldir.",
+               "Token Kuzatuv: the user chose to continue the previous session in this new one. "
+               + "The summary below is from that session. If the user's first message is about this work, rely on it; "
+               + "if it's a different topic, ignore it.")
+        } + "\n\n" + h.text
     }
 
     /// SessionStart hook kiritmasi → Claude Code'ga qaytariladigan JSON (yoki nil). Berilgan xulosa o'chiriladi.

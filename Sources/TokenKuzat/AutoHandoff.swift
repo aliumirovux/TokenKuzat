@@ -21,7 +21,8 @@ enum AutoHandoff {
         do {
             try SessionStartHook.install()
             try HandoffStore.arm(PendingHandoff(text: summary, sourceSession: sess.id,
-                                                cwd: SavingsAdvisor.projectFolder(for: sess) ?? sess.cwd, created: Date()))
+                                                cwd: SavingsAdvisor.projectFolder(for: sess) ?? sess.cwd, created: Date(),
+                                                english: SavingsAdvisor.conversationEnglish(sess)))
             return true
         } catch {
             return false

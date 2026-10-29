@@ -294,6 +294,16 @@ public struct SourceInfo: Identifiable, Sendable {
     public var latest: Date?
 }
 
+extension Snapshot {
+    /// Status line bergan haqiqiy kontekst oynasi — transkriptdagi eng katta kontekstdan qilingan taxmin o'rniga
+    /// (1M modelda kontekst hali 200K dan oshmagan bo'lsa ham to'g'ri foiz chiqadi)
+    public mutating func applyContextWindows(_ windows: [String: Int]) {
+        for i in sessions.indices {
+            if let w = windows[sessions[i].id], w > 0 { sessions[i].contextWindow = w }
+        }
+    }
+}
+
 public struct Snapshot: Sendable {
     public var sessions: [SessionSnap] = []
     public var today = TokenCounts()

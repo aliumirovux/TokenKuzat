@@ -76,9 +76,14 @@ final class Alerts: NSObject, UNUserNotificationCenterDelegate {
     }
 
     /// Bildirishnomadagi tugma: bepul modeldagi ish Claude'ga qaytadi
-    private func backToClaude() {
-        FreeFallback.returnToClaude(in: Store.shared.snap) { ok in
-            if !ok { WindowManager.shared.show(.overview) }
+    private func backToClaude(since: Date?) {
+        FreeFallback.returnToClaude(in: Store.shared.snap, since: since) { ok in
+            if !ok {
+                self.post(tr("Claude'ga qaytaradigan ish topilmadi", "No work to move back to Claude"),
+                          tr("Limit tugaganidan keyin bepul modelda ishlangan sessiya yo'q. Claude'ni odatdagidek oching.",
+                             "No session ran on a free model after the limit ran out. Open Claude as usual."),
+                          section: .overview)
+            }
         }
     }
 
@@ -320,9 +325,9 @@ final class Alerts: NSObject, UNUserNotificationCenterDelegate {
             let save = sess.contextTokens - SavingsAdvisor.baseline
             post(tr("\(sess.project): yangi mavzu — yangi sessiya arzonroq", "\(sess.project): new topic — a new session is cheaper"),
                  tr("Kontekst \(Fmt.tokens(Double(sess.contextTokens))). Yangi sessiyada har javobda ~\(Fmt.tokens(Double(save))) token tejaladi. "
-                 + "Bosing — «Davom etish xulosasi»ni nusxalab, yangi sessiyaga qo'ying.",
+                 + "Bosing — sessiya ochiladi, tejash belgisidagi «Yangi sessiyada davom ettirish» tugmasini bosing.",
                     "Context \(Fmt.tokens(Double(sess.contextTokens))). A new session saves ~\(Fmt.tokens(Double(save))) tokens on every reply. "
-                 + "Click to copy the «Handoff summary» and paste it into a new session."),
+                 + "Click to open the session, then press «Continue in a new session» under the savings badge."),
                  session: sess.id)
         }
     }
@@ -381,7 +386,9 @@ final class Alerts: NSObject, UNUserNotificationCenterDelegate {
         for (id, n) in s.failures where failureNotified[id] != n.date {
             failureNotified[id] = n.date
             // Ilova qayta ishga tushganda eski xato qayta aytilmaydi; limit 100% bo'lsa — «limit tugadi» xabari allaqachon chiqqan
-            let exhausted = [s.limits?.fiveHour, s.limits?.sevenDay].contains { ($0?.usedPercentage ?? 0) >= 99.5 }
+            // (u o'chirilgan bo'lsa — shu xabar aytadi, bepul model taklifi bilan)
+            let exhausted = UserDefaults.standard.bool(forKey: Pref.notifyRealLimit)
+                && [s.limits?.fiveHour, s.limits?.sevenDay].contains { ($0?.usedPercentage ?? 0) >= 99.5 }
             guard Date().timeIntervalSince(n.date) < 600, !(n.error == "rate_limit" && exhausted),
                   let sess = s.sessions.first(where: { $0.id == id }) else { continue }
             var (title, body) = Self.failureText(n, limits: s.limits)
@@ -465,7 +472,8 @@ final class Alerts: NSObject, UNUserNotificationCenterDelegate {
                      free ? tr("Claude'da yana ishlashingiz mumkin. Bepul modelda ishlagan bo'lsangiz — «Claude'da davom etish» o'sha ishni xulosa bilan Claude'ga qaytaradi.",
                                "You can use Claude again. If you worked on a free model — «Continue in Claude» moves that work back to Claude with a summary.")
                          : tr("Claude'da yana ishlashingiz mumkin.", "You can use Claude again."),
-                     id: "limit-reset-\(name)", after: w.resetsAt.timeIntervalSinceNow, category: free ? Self.backCategory : nil)
+                     id: "limit-reset-\(name)", after: w.resetsAt.timeIntervalSinceNow, category: free ? Self.backCategory : nil,
+                     extra: ["limitOut": Date().timeIntervalSince1970])
                 continue
             }
             for t in [80.0, 95.0] where w.usedPercentage >= t {
@@ -601,7 +609,7 @@ final class Alerts: NSObject, UNUserNotificationCenterDelegate {
             if response.actionIdentifier == Self.freeAction {
                 self.startFree(session: session, resetsAt: (info["resetsAt"] as? Double).map(Date.init(timeIntervalSince1970:)))
             } else if response.actionIdentifier == Self.backAction {
-                self.backToClaude()
+                self.backToClaude(since: (info["limitOut"] as? Double).map(Date.init(timeIntervalSince1970:)))
             } else if let session {
                 UserDefaults.standard.set(session, forKey: GraphScreen.selectedSessionKey)
                 WindowManager.shared.show(.graph)

@@ -58,7 +58,7 @@ struct SessionHeader: View {
         HStack(spacing: 20) {
             kpi(Alerts.duration(duration), tr("davomiylik", "duration"))
             kpi("\(steps)", tr("qadam", steps == 1 ? "step" : "steps"))
-            kpi(Fmt.tokens(tokens.value(mode)), costUSD.map { "token · " + String(format: "$%.2f", $0).replacingOccurrences(of: ".", with: ",") } ?? "token")
+            kpi(Fmt.tokens(tokens.value(mode)), costUSD.map { "token · " + Fmt.usd($0) } ?? "token")
         }
         .fixedSize()
     }

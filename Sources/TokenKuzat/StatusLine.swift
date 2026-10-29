@@ -166,7 +166,7 @@ enum StatusLine {
             parts.append(tr("5 soat", "5h") + " \(Int(w.usedPercentage.rounded()))% ↻\(Fmt.hourMinute.string(from: w.resetsAt))")
         }
         if let w = p.sevenDay { parts.append(tr("hafta", "week") + " \(Int(w.usedPercentage.rounded()))%") }
-        if let c = p.costUSD { parts.append(String(format: "$%.2f", c).replacingOccurrences(of: ".", with: ",")) }
+        if let c = p.costUSD { parts.append(Fmt.usd(c)) }
         return parts.isEmpty ? "Token Kuzatuv" : parts.joined(separator: " · ")
     }
 }

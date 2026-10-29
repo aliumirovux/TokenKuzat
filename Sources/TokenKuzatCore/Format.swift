@@ -17,6 +17,12 @@ public enum Fmt {
 
     public static func tokens(_ v: Int) -> String { tokens(Double(v)) }
 
+    /// 1.234 → «$1,23» (inglizchada «$1.23»)
+    public static func usd(_ v: Double) -> String {
+        let s = String(format: "$%.2f", v)
+        return Lang.isEnglish ? s : s.replacingOccurrences(of: ".", with: ",")
+    }
+
     /// To'liq raqam, minglar bo'sh joy bilan: 1 234 567 (inglizchada 1,234,567)
     public static func full(_ v: Double) -> String {
         (Lang.isEnglish ? groupedEN : grouped).string(from: NSNumber(value: v.rounded())) ?? "\(Int(v))"

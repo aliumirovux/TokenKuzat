@@ -25,6 +25,11 @@ struct SettingsView: View {
     @AppStorage(Pref.autoHandoff) private var autoHandoff = true
     @AppStorage(Pref.autoHandoffK) private var autoHandoffK = AutoHandoffRule.defaultThresholdK
     /// Claude Code'ning o'z qisqartirish oynasi (~/.claude/settings.json yoki muhit o'zgaruvchisi)
+    /// Tanlovda qisqartirish oynasidan past chegara bormi
+    private func canPickLower(_ w: AutoCompactWindow.Found) -> Bool {
+        AutoHandoffRule.thresholdOptionsK.contains { $0 * 1000 < Double(w.tokens) }
+    }
+
     private var compactWindow: AutoCompactWindow.Found? {
         (try? StatusLine.readSettings()).flatMap { AutoCompactWindow.smallest(settings: $0) }
     }
@@ -146,10 +151,14 @@ struct SettingsView: View {
                     if let w = compactWindow, Double(w.tokens) <= autoHandoffK * 1000 {
                         Label(tr("Claude Code suhbatni \(Fmt.tokens(w.tokens)) da o'zi qisqartiradi (\(w.source)) — bu ko'chirish chegarasidan "
                                  + "(\(Fmt.tokens(Int(autoHandoffK * 1000)))) kichik. Ilova qisqartirishni bir marta to'xtatib, ishni yangi sessiyaga ko'chiradi. "
-                                 + "Har doim ishonchli bo'lishi uchun chegarani \(Fmt.tokens(w.tokens)) dan pastroq tanlang.",
+                                 + (canPickLower(w)
+                                    ? "Har doim ishonchli bo'lishi uchun chegarani \(Fmt.tokens(w.tokens)) dan pastroq tanlang."
+                                    : "Tanlovda \(Fmt.tokens(w.tokens)) dan past chegara yo'q — ishonchli bo'lishi uchun ~/.claude/settings.json dagi autoCompactWindow ni oshiring yoki olib tashlang."),
                                  "Claude Code compacts the conversation by itself at \(Fmt.tokens(w.tokens)) (\(w.source)) — below the handoff threshold "
                                  + "(\(Fmt.tokens(Int(autoHandoffK * 1000)))). The app stops compaction once and moves the work to a new session. "
-                                 + "To be safe every time, pick a threshold below \(Fmt.tokens(w.tokens))."),
+                                 + (canPickLower(w)
+                                    ? "To be safe every time, pick a threshold below \(Fmt.tokens(w.tokens))."
+                                    : "No threshold below \(Fmt.tokens(w.tokens)) is available — to be safe, raise or remove autoCompactWindow in ~/.claude/settings.json.")),
                               systemImage: "exclamationmark.triangle.fill")
                             .font(.caption).foregroundStyle(.orange)
                     }
@@ -244,7 +253,7 @@ struct SettingsView: View {
             } header: {
                 Text(tr("Claude limiti — hisobdan", "Claude limit — from account"))
             } footer: {
-                Text(tr("Claude Code'ning Keychain'dagi kirish kaliti bilan Anthropic'dan 5 soatlik va haftalik limit har daqiqada olinadi — Code tabi va Claude ilovasida ham ishlaydi. Kalit faqat shu kompyuterda o'qiladi va faqat api.anthropic.com ga yuboriladi. Birinchi marta macOS Keychain ruxsatini so'raydi («Har doim ruxsat»). Ishlamasa — pastdagi status line zaxira manba bo'ladi. Yoqilgan bo'lsa, limitning chat va bulutga (Mac'ga yozilmaydigan ishlarga) ketgan qismi ham hisoblanadi.", "Using Claude Code's sign-in key from Keychain, the current session and weekly limits are fetched from Anthropic every minute — works for the Code tab and the Claude app too. The key is read only on this computer and sent only to api.anthropic.com. The first time, macOS asks for Keychain access («Always Allow»). If it doesn't work, the status line below is the fallback source. When on, the part of the limit spent in chat & cloud (work not written to this Mac) is calculated too."))
+                Text(tr("Claude Code'ning Keychain'dagi kirish kaliti bilan Anthropic'dan 5 soatlik va haftalik limit har 1,5 daqiqada olinadi — Code tabi va Claude ilovasida ham ishlaydi. Kalit faqat shu kompyuterda o'qiladi va faqat api.anthropic.com ga yuboriladi. Birinchi marta macOS Keychain ruxsatini so'raydi («Har doim ruxsat»). Ishlamasa — pastdagi status line zaxira manba bo'ladi. Yoqilgan bo'lsa, limitning chat va bulutga (Mac'ga yozilmaydigan ishlarga) ketgan qismi ham hisoblanadi.", "Using Claude Code's sign-in key from Keychain, the current session and weekly limits are fetched from Anthropic every 90 seconds — works for the Code tab and the Claude app too. The key is read only on this computer and sent only to api.anthropic.com. The first time, macOS asks for Keychain access («Always Allow»). If it doesn't work, the status line below is the fallback source. When on, the part of the limit spent in chat & cloud (work not written to this Mac) is calculated too."))
                     .font(.caption).foregroundStyle(.secondary)
             }
             .onAppear(perform: refreshAccount)
@@ -299,6 +308,11 @@ struct SettingsView: View {
                             .textFieldStyle(.roundedBorder)
                             .multilineTextAlignment(.trailing)
                             .frame(width: 80)
+                            // 0 yoki manfiy limit foizni buzadi — Stepper chegarasiga keltiriladi
+                            .onChange(of: budgetLimitM) { v in
+                                let c = min(max(v, 1), 2000)
+                                if c != v { budgetLimitM = c }
+                            }
                         Stepper("", value: $budgetLimitM, in: 1...2000, step: 5).labelsHidden()
                         Text(tr("mln token (narx bo'yicha)", "M tokens (by price)")).foregroundStyle(.secondary)
                     }
@@ -449,6 +463,6 @@ struct SettingsView: View {
         var s = String(format: "%.2f", v)
         while s.hasSuffix("0") { s.removeLast() }
         if s.hasSuffix(".") { s.removeLast() }
-        return s.replacingOccurrences(of: ".", with: ",")
+        return Lang.isEnglish ? s : s.replacingOccurrences(of: ".", with: ",")
     }
 }

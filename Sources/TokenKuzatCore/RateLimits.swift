@@ -22,6 +22,8 @@ public struct RateLimits: Equatable, Sendable {
     public var updatedAt: Date
     /// Sessiya bo'yicha taxminiy narx ($), Claude Code hisoblagani
     public var costBySession: [String: Double] = [:]
+    /// Sessiya bo'yicha kontekst oynasi (200K yoki 1M), Claude Code bergani
+    public var windowBySession: [String: Int] = [:]
     /// Tarif: «Max (5x)», «Pro» — hisobdan olinganda
     public var plan: String?
     /// Ma'lumot qayerdan: hisob (claude.ai bilan bir xil) yoki status line
@@ -50,6 +52,8 @@ public enum StatusLinePayload {
     public struct Parsed: Equatable {
         public var sessionId: String?
         public var costUSD: Double?
+        /// Kontekst oynasi hajmi (context_window.context_window_size)
+        public var contextWindow: Int?
         public var fiveHour: LimitWindow?
         public var sevenDay: LimitWindow?
     }
@@ -64,6 +68,7 @@ public enum StatusLinePayload {
         }
         return Parsed(sessionId: o["session_id"] as? String,
                       costUSD: ((o["cost"] as? [String: Any])?["total_cost_usd"] as? NSNumber)?.doubleValue,
+                      contextWindow: ((o["context_window"] as? [String: Any])?["context_window_size"] as? NSNumber)?.intValue,
                       fiveHour: window("five_hour"), sevenDay: window("seven_day"))
     }
 }
@@ -95,13 +100,16 @@ public final class RateLimitsReader {
         guard let d = try? Data(contentsOf: latest), let p = StatusLinePayload.parse(d) else { return cached }
 
         var costs: [String: Double] = [:]
+        var windows: [String: Int] = [:]
         let sessionsDir = directory.appendingPathComponent("sessions")
         for url in (try? FileManager.default.contentsOfDirectory(at: sessionsDir, includingPropertiesForKeys: nil)) ?? [] {
             guard url.pathExtension == "json", let sd = try? Data(contentsOf: url),
-                  let sp = StatusLinePayload.parse(sd), let id = sp.sessionId, let c = sp.costUSD else { continue }
-            costs[id] = c
+                  let sp = StatusLinePayload.parse(sd), let id = sp.sessionId else { continue }
+            if let c = sp.costUSD { costs[id] = c }
+            if let w = sp.contextWindow, w > 0 { windows[id] = w }
         }
         var r = RateLimits(fiveHour: p.fiveHour, sevenDay: p.sevenDay, updatedAt: mtime, costBySession: costs)
+        r.windowBySession = windows
         // Limit kelmagan javob (masalan, sessiyaning birinchi qatori) oldingi qiymatni o'chirmasin
         if r.fiveHour == nil { r.fiveHour = cached?.fiveHour }
         if r.sevenDay == nil { r.sevenDay = cached?.sevenDay }

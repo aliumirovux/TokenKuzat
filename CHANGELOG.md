@@ -1,5 +1,15 @@
 # O'zgarishlar
 
+## 6.55.0 — 2026-10-30
+
+- Eski sessiyadan yo'naltirishda yangi sessiya Claude ilovasida ochilsa, «xabaringiz yozib qo'yildi — u yerda Enter bosing» deyiladi (Terminal'da — «yuborildi», chunki u yerda xabar o'zi ketadi).
+- Kontekst oynasi (200K yoki 1M) endi taxmin qilinmaydi — Claude Code status line'idan olinadi. 1M modelda 170K da «kontekst 85% to'ldi» degan noto'g'ri ogohlantirish chiqmaydi.
+- «Claude'da davom etish» faqat limit tugaganidan keyin bepul modelda ishlangan sessiyani oladi. Bunday sessiya bo'lmasa, sababi bildirishnomada aytiladi.
+- «Limit tugadi» bildirishnomasi o'chiq bo'lsa ham, limit xatosi haqida xabar va bepul model taklifi chiqadi.
+- Sozlamalar: tanlovda qisqartirish oynasidan past chegara bo'lmasa, `autoCompactWindow` ni oshirish yoki olib tashlash maslahat qilinadi. Limit «har 1,5 daqiqada» olinadi deb to'g'ri yozildi. Limit maydoniga 0 yoki manfiy son kiritib bo'lmaydi.
+- «Yangi mavzu» bildirishnomasi va maslahat endi mavjud «Yangi sessiyada davom ettirish» tugmasini ko'rsatadi.
+- Inglizcha rejimda narx «$1.23» ko'rinishida chiqadi. Yangi sessiyaga beriladigan xulosa ko'rsatmasi suhbat tilida, MCP tavsifi inglizcha.
+
 ## 6.54.0 — 2026-10-30
 
 - Avtomatik ko'chirish endi faqat Claude javobini haqiqatan tugatganda yangi sessiya ochadi. Uzoq buyruq, uzoq o'ylash yoki javob kutilayotgan savol paytida ochilmaydi.

@@ -445,6 +445,7 @@ final class RateLimitsTests: XCTestCase {
         let r = try XCTUnwrap(reader.read())
         XCTAssertEqual(r.fiveHour?.usedPercentage, 30)
         XCTAssertEqual(r.costBySession["s1"], 2)
+        XCTAssertNil(r.windowBySession["s1"])
 
         // Yangi sessiyaning birinchi yangilanishida limit yo'q — eski qiymat saqlanadi
         Thread.sleep(forTimeInterval: 1.1)
@@ -544,5 +545,23 @@ final class TodayHoursTests: XCTestCase {
         XCTAssertEqual(snap.todayHours.count, 24)
         XCTAssertGreaterThanOrEqual(snap.activeMinutesToday, 2)
         XCTAssertNotNil(snap.firstActivityToday)
+    }
+
+    func testContextWindowFromStatusLine() throws {
+        let json = #"{"session_id":"s1","context_window":{"context_window_size":1000000,"used_percentage":17}}"#
+        XCTAssertEqual(StatusLinePayload.parse(Data(json.utf8))?.contextWindow, 1_000_000)
+        // Taxmin (200K) status line bergan haqiqiy oyna bilan almashtiriladi: 170K — 85% emas, 17%
+        var snap = Snapshot()
+        snap.sessions = [SessionSnap(id: "s1", project: "Demo", title: "t", model: "Opus", contextTokens: 170_000,
+                                     tokens: TokenCounts(), mainTokens: TokenCounts(), agentTokens: TokenCounts(), agents: [],
+                                     lastActivity: Date(), state: .idle, turns: [])]
+        XCTAssertEqual(snap.sessions[0].contextFraction, 0.85, accuracy: 0.001)
+        snap.applyContextWindows(["s1": 1_000_000, "other": 200_000])
+        XCTAssertEqual(snap.sessions[0].contextFraction, 0.17, accuracy: 0.001)
+    }
+
+    func testUSDFollowsLanguage() {
+        XCTAssertEqual(Lang.with(english: true) { Fmt.usd(1.234) }, "$1.23")
+        XCTAssertEqual(Lang.with(english: false) { Fmt.usd(1.234) }, "$1,23")
     }
 }

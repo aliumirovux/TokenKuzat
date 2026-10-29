@@ -45,4 +45,12 @@ final class HandoffTests: XCTestCase {
                                                  cwd: "/Users/a/Library/Application Support/Claude/scratch-workspaces/1/2/s-b",
                                                  source: "startup", now: t0 + 10))
     }
+
+    func testContextFollowsConversationLanguage() {
+        let en = PendingHandoff(text: "S", sourceSession: "a", cwd: nil, created: Date(), english: true)
+        let uz = PendingHandoff(text: "S", sourceSession: "a", cwd: nil, created: Date(), english: false)
+        XCTAssertTrue(HandoffStore.context(for: en).hasPrefix("Token Kuzatuv: the user chose"))
+        XCTAssertTrue(HandoffStore.context(for: uz).hasPrefix("Token Kuzatuv: foydalanuvchi"))
+        XCTAssertTrue(HandoffStore.context(for: en).hasSuffix("\n\nS"))
+    }
 }

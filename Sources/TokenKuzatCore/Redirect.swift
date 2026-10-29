@@ -67,7 +67,8 @@ public enum RedirectStore {
     }
 
     /// UserPromptSubmit kiritmasi → yo'naltirish (yoki nil — xabar odatdagidek ketadi)
-    public static func handlePrompt(input: Data, at url: URL = defaultURL, now: Date = Date()) -> Decision? {
+    /// `needsEnter` — yangi sessiya Claude ilovasida ochiladi: xabar u yerda faqat yozib qo'yiladi, Enter foydalanuvchida
+    public static func handlePrompt(input: Data, needsEnter: Bool = false, at url: URL = defaultURL, now: Date = Date()) -> Decision? {
         guard let o = (try? JSONSerialization.jsonObject(with: input)) as? [String: Any],
               let sid = o["session_id"] as? String else { return nil }
         var all = load(at: url)
@@ -81,18 +82,22 @@ public enum RedirectStore {
         r.used = true
         all[sid] = r
         save(all, at: url)
-        return Lang.with(english: r.english ?? Lang.isEnglish) { decision(r, prompt: prompt, cwd: o["cwd"] as? String) }
+        return Lang.with(english: r.english ?? Lang.isEnglish) { decision(r, prompt: prompt, cwd: o["cwd"] as? String, needsEnter: needsEnter) }
     }
 
-    private static func decision(_ r: PendingRedirect, prompt: String, cwd: String?) -> Decision? {
+    private static func decision(_ r: PendingRedirect, prompt: String, cwd: String?, needsEnter: Bool) -> Decision? {
         var message = AutoHandoffRule.firstMessage(summary: r.summary, previousContext: r.previousContext)
         message += "\n\n" + tr("Yangi so'rovim (oldingi sessiyada yozgan edim) — shuni bajar:",
                                "My new request (I typed it in the old session) — do this:") + "\n" + prompt
         let reason = tr("Token Kuzatuv: bu sessiya konteksti katta (\(Fmt.tokens(r.previousContext))) — ish yangi sessiyaga ko'chirilgan. "
-                        + "Xabaringiz xulosa bilan birga yangi sessiyaga yuborildi, u yerda davom eting (kontekst kichik, limit kam ketadi). "
+                        + (needsEnter
+                           ? "Xabaringiz xulosa bilan birga yangi sessiyaga yozib qo'yildi — u yerda Enter bosing va davom eting (kontekst kichik, limit kam ketadi). "
+                           : "Xabaringiz xulosa bilan birga yangi sessiyaga yuborildi, u yerda davom eting (kontekst kichik, limit kam ketadi). ")
                         + "Shu yerda qolmoqchi bo'lsangiz — xabarni qayta yuboring.",
                         "Token Kuzatuv: this session's context is large (\(Fmt.tokens(r.previousContext))) — the work moved to a new session. "
-                        + "Your message was sent there together with the summary; continue there (smaller context, less of your limit). "
+                        + (needsEnter
+                           ? "Your message is filled in there together with the summary — press Enter there and continue (smaller context, less of your limit). "
+                           : "Your message was sent there together with the summary; continue there (smaller context, less of your limit). ")
                         + "To stay here, send the message again.")
         let out: [String: Any] = ["decision": "block", "reason": reason]
         guard let d = try? JSONSerialization.data(withJSONObject: out), let s = String(data: d, encoding: .utf8) else { return nil }

@@ -143,10 +143,10 @@ public enum SavingsAdvisor {
                 kind: .bigContext, level: s.contextTokens >= 300_000 ? .high : .notable,
                 title: tr("Kontekst \(Fmt.tokens(s.contextTokens)) (\(pct)%)", "Context \(Fmt.tokens(s.contextTokens)) (\(pct)%)"),
                 detail: tr("Har javobdan oldin Claude butun suhbatni qayta o'qiydi. Yangi mavzu bo'lsa — yangi sessiya oching "
-                    + "(«Davom etish xulosasi» bilan); shu mavzu bo'lsa — /compact. So'rov boshiga ~\(Int(perTurn.rounded())) chaqiruv "
+                    + "(«Yangi sessiyada davom ettirish» tugmasi bilan); shu mavzu bo'lsa — /compact. So'rov boshiga ~\(Int(perTurn.rounded())) chaqiruv "
                     + "≈ \(Fmt.tokens(Double(extra) * perTurn)) tejaladi.",
                     "Before every reply Claude re-reads the whole conversation. New topic — start a new session "
-                    + "(with the «Handoff summary»); same topic — /compact. ~\(Int(perTurn.rounded())) calls per prompt "
+                    + "(with «Continue in a new session»); same topic — /compact. ~\(Int(perTurn.rounded())) calls per prompt "
                     + "≈ \(Fmt.tokens(Double(extra) * perTurn)) saved."),
                 tokens: extra, perCall: true))
         }

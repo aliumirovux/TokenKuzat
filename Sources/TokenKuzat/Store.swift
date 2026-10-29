@@ -64,7 +64,9 @@ final class Store: ObservableObject {
         lastRevision = engine.revision
         lastPublish = now
         var s = engine.snapshot()
-        if let l = limitsReader.read()?.active(at: now), !l.isEmpty || !l.costBySession.isEmpty {
+        let statusLine = limitsReader.read()
+        s.applyContextWindows(statusLine?.windowBySession ?? [:])
+        if let l = statusLine?.active(at: now), !l.isEmpty || !l.costBySession.isEmpty {
             s.limits = l
             if let w = l.fiveHour {
                 s.fiveHourForecast = LimitForecast.forecast(w, history: limitsReader.fiveHourHistory, now: now)

@@ -76,9 +76,9 @@ enum PromptRedirectHook {
     static func runAndExit() -> Never {
         let data = FileHandle.standardInput.readDataToEndOfFile()
         Pref.register()
+        let target = AutoHandoffTarget(rawValue: UserDefaults.standard.string(forKey: Pref.autoHandoffTarget) ?? "") ?? .app
         if UserDefaults.standard.bool(forKey: Pref.autoHandoffRedirect),
-           let d = RedirectStore.handlePrompt(input: data) {
-            let target = AutoHandoffTarget(rawValue: UserDefaults.standard.string(forKey: Pref.autoHandoffTarget) ?? "") ?? .app
+           let d = RedirectStore.handlePrompt(input: data, needsEnter: target == .app) {
             let opened: Bool
             switch target {
             case .app: opened = AutoHandoff.openInApp(cwd: d.cwd, message: d.message)

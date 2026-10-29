@@ -143,7 +143,7 @@ struct SessionCard: View {
                         Chip(text: tr("\(session.helperCount) yordamchi agent", session.helperCount == 1 ? "1 subagent" : "\(session.helperCount) subagents"), symbol: "person.2")
                     }
                     if let cost = costUSD {
-                        Chip(text: String(format: "$%.2f", cost).replacingOccurrences(of: ".", with: ","), symbol: "dollarsign.circle")
+                        Chip(text: Fmt.usd(cost), symbol: "dollarsign.circle")
                             .help(tr("Claude Code hisoblagan taxminiy narx (API narxlarida)", "Estimated cost calculated by Claude Code (at API prices)"))
                     }
                     Spacer()
@@ -180,7 +180,7 @@ struct SessionCard: View {
             let pct = session.tokens.weighted / per
             return pct < 1 ? tr("5 soatlik limitning <1%", "<1% of 5-h limit") : tr("5 soatlik limitning \(Int(pct.rounded()))%", "\(Int(pct.rounded()))% of 5-h limit")
         }
-        if let c = costUSD { return String(format: "$%.2f", c).replacingOccurrences(of: ".", with: ",") }
+        if let c = costUSD { return Fmt.usd(c) }
         return tr("\(Fmt.tokens(session.tokens.value(mode))) token", "\(Fmt.tokens(session.tokens.value(mode))) tokens")
     }
 

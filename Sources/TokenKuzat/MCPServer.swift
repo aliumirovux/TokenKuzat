@@ -37,7 +37,7 @@ enum MCPServer {
                 "protocolVersion": params["protocolVersion"] as? String ?? "2025-06-18",
                 "capabilities": ["tools": [String: Any]()],
                 "serverInfo": ["name": "tokenkuzat", "version": version],
-                "instructions": "Token Kuzatuv: Claude Code token sarfi, limit va sessiyalar. Javoblarni foydalanuvchi tilida bering.",
+                "instructions": "Token Kuzatuv: Claude Code token usage, limits and sessions. Answer in the user's language.",
             ])
         case "ping":
             return ok(id, [String: Any]())
@@ -180,7 +180,9 @@ enum MCPServer {
         engine = e
         let now = Date()
         var snap = e.tick(now: now)
-        snap.limits = RateLimitsReader().read()?.active(at: now)
+        let statusLine = RateLimitsReader().read()
+        snap.limits = statusLine?.active(at: now)
+        snap.applyContextWindows(statusLine?.windowBySession ?? [:])
         // Ilova yozgan holatdan faqat o'qiladi
         let out = OutsideUsageTracker().summary(now: now)
         if out.hasWindow || out.outsideTodayPct > 0 { snap.outside = out }

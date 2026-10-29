@@ -68,4 +68,14 @@ final class RedirectTests: XCTestCase {
         RedirectStore.add(session: "old", summary: "B", previousContext: 2, replace: true, at: url, now: now)
         XCTAssertNotNil(RedirectStore.handlePrompt(input: input("old", "uch"), at: url, now: now))
     }
+
+    func testReasonSaysEnterWhenOnlyFilledIn() {
+        let now = Date()
+        RedirectStore.add(session: "a", summary: "X", previousContext: 200_000, english: false, at: url, now: now)
+        RedirectStore.add(session: "b", summary: "X", previousContext: 200_000, english: false, at: url, now: now)
+        let app = RedirectStore.handlePrompt(input: input("a", "salom"), needsEnter: true, at: url, now: now)
+        let term = RedirectStore.handlePrompt(input: input("b", "salom"), needsEnter: false, at: url, now: now)
+        XCTAssertTrue(app!.output.contains("Enter bosing") && !app!.output.contains("yuborildi"))
+        XCTAssertTrue(term!.output.contains("yuborildi") && !term!.output.contains("Enter"))
+    }
 }
