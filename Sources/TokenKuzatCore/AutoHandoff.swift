@@ -7,6 +7,17 @@ public enum AutoHandoffRule {
     public static let defaultThresholdK: Double = 200
     public static let thresholdOptionsK: [Double] = [150, 200, 300, 500]
 
+    /// Ko'chirilgandan keyin ham eski sessiyada davom etilsa — kontekst yana shuncha o'sganda qayta ko'chiriladi
+    public static let repeatStep = 100_000
+
+    /// Sessiya «allaqachon ko'chirilgan» hisoblanadimi: oxirgi ko'chirishdan beri kontekst `repeatStep` dan kam o'sgan.
+    /// Ko'chirish paytidagi kontekst noma'lum bo'lsa (eski yozuvlar) — chegara asos qilinadi
+    public static func alreadyDone(doneAt: Int?, known: Bool, context: Int, thresholdK: Double) -> Bool {
+        guard known else { return false }
+        let base = doneAt ?? Int(thresholdK * 1000)
+        return context < base + repeatStep
+    }
+
     /// Shu yangilanishda yangi sessiya ochilsinmi
     public static func shouldTrigger(previous: AgentState?, state: AgentState, context: Int, thresholdK: Double,
                                      waitingPermission: Bool, alreadyDone: Bool) -> Bool {

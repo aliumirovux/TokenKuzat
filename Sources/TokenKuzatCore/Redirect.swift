@@ -44,10 +44,11 @@ public enum RedirectStore {
     }
 
     /// Sessiya yangi sessiyaga ko'chirildi — keyingi xabari yo'naltiriladi (eskirganlari tozalanadi)
-    public static func add(session: String, summary: String, previousContext: Int, english: Bool? = nil,
+    /// `replace` — sessiya qayta ko'chirilganda: avvalgi (ishlatilgan) yo'naltirish yangisi bilan almashtiriladi
+    public static func add(session: String, summary: String, previousContext: Int, english: Bool? = nil, replace: Bool = false,
                            at url: URL = defaultURL, now: Date = Date()) {
         var all = load(at: url).filter { now.timeIntervalSince($0.value.created) < lifetime }
-        guard all[session] == nil else { return }
+        guard replace || all[session] == nil else { return }
         all[session] = PendingRedirect(summary: summary, previousContext: previousContext, created: now, english: english)
         save(all, at: url)
     }

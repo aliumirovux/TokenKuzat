@@ -61,9 +61,9 @@ final class Alerts: NSObject, UNUserNotificationCenterDelegate {
     private var redirectArmed: Set<String> = []
 
     /// Eski sessiyaning keyingi xabari yangi sessiyaga ketsin: xulosa saqlanadi, hook ulanadi
-    private static func armRedirect(_ sess: SessionSnap) {
+    private static func armRedirect(_ sess: SessionSnap, replace: Bool = false) {
         RedirectStore.add(session: sess.id, summary: SavingsAdvisor.handoff(for: sess), previousContext: sess.contextTokens,
-                          english: SavingsAdvisor.conversationEnglish(sess))
+                          english: SavingsAdvisor.conversationEnglish(sess), replace: replace)
         try? PromptRedirectHook.install()
     }
     /// Yangi sessiya ochilgan sessiyalar — diskda (ilova qayta ishga tushsa yoki yangilansa ham qayta ochilmasin), 7 kun
@@ -73,8 +73,12 @@ final class Alerts: NSObject, UNUserNotificationCenterDelegate {
         let cutoff = Date().timeIntervalSince1970 - 7 * 86400
         return all.filter { $0.value >= cutoff }
     }()
+    /// Ko'chirish paytidagi kontekst — eski sessiyada davom etilsa, +100K dan keyin qayta ko'chirish uchun
+    private let autoDoneContextKey = "autoHandoffDoneContext"
+    private lazy var autoDoneContext: [String: Int] = UserDefaults.standard.dictionary(forKey: autoDoneContextKey) as? [String: Int] ?? [:]
 
-    /// Kontekst chegaradan oshgan sessiya javobini tugatdi — xulosa saqlanadi va yangi sessiya ochiladi (har sessiyada bir marta)
+    /// Kontekst chegaradan oshgan sessiya javobini tugatdi — xulosa saqlanadi va yangi sessiya ochiladi.
+    /// Eski sessiyada davom etilsa — kontekst yana +100K o'sganda qayta
     private func evaluateAutoHandoff(_ s: Snapshot) {
         defer { autoPrevious = Dictionary(s.sessions.map { ($0.id, $0.state) }, uniquingKeysWith: { a, _ in a }) }
         let d = UserDefaults.standard
@@ -90,10 +94,14 @@ final class Alerts: NSObject, UNUserNotificationCenterDelegate {
         }
         for sess in s.sessions where AutoHandoffRule.shouldTrigger(
             previous: autoPrevious[sess.id], state: sess.state, context: sess.contextTokens, thresholdK: k,
-            waitingPermission: s.permissionWaits[sess.id] != nil, alreadyDone: autoDone[sess.id] != nil) {
+            waitingPermission: s.permissionWaits[sess.id] != nil,
+            alreadyDone: AutoHandoffRule.alreadyDone(doneAt: autoDoneContext[sess.id], known: autoDone[sess.id] != nil,
+                                                     context: sess.contextTokens, thresholdK: k)) {
             autoDone[sess.id] = Date().timeIntervalSince1970
+            autoDoneContext[sess.id] = sess.contextTokens
             d.set(autoDone, forKey: autoDoneKey)
-            if d.bool(forKey: Pref.autoHandoffRedirect) { redirectArmed.insert(sess.id); Self.armRedirect(sess) }
+            d.set(autoDoneContext.filter { autoDone[$0.key] != nil }, forKey: autoDoneContextKey)
+            if d.bool(forKey: Pref.autoHandoffRedirect) { redirectArmed.insert(sess.id); Self.armRedirect(sess, replace: true) }
             let target = AutoHandoffTarget(rawValue: d.string(forKey: Pref.autoHandoffTarget) ?? "") ?? .app
             let ok = AutoHandoff.start(sess, target: target)
             let start = SavingsAdvisor.startContext(for: sess) ?? SavingsAdvisor.baseline

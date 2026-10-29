@@ -52,4 +52,14 @@ final class RedirectTests: XCTestCase {
         RedirectStore.add(session: "old2", summary: "S", previousContext: 1, at: url, now: now)
         XCTAssertNil(RedirectStore.handlePrompt(input: input("old2", "<system-reminder>x</system-reminder>"), at: url, now: now))
     }
+
+    func testReplaceRearmsUsedRedirect() {
+        let now = Date()
+        RedirectStore.add(session: "old", summary: "A", previousContext: 1, at: url, now: now)
+        XCTAssertNotNil(RedirectStore.handlePrompt(input: input("old", "bir"), at: url, now: now))
+        RedirectStore.add(session: "old", summary: "B", previousContext: 2, at: url, now: now)          // almashtirmaydi
+        XCTAssertNil(RedirectStore.handlePrompt(input: input("old", "ikki"), at: url, now: now))
+        RedirectStore.add(session: "old", summary: "B", previousContext: 2, replace: true, at: url, now: now)
+        XCTAssertNotNil(RedirectStore.handlePrompt(input: input("old", "uch"), at: url, now: now))
+    }
 }
