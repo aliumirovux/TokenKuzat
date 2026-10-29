@@ -131,6 +131,8 @@ struct StateDot: View {
 struct StatusPill: View {
     let running: Int
     let active: Int
+    /// Maslahatga qo'shiladigan izoh (masalan, bosilsa nima bo'lishi)
+    var hint: String? = nil
 
     private var state: AgentState { running > 0 ? .running : (active > 0 ? .waiting : .idle) }
     private var text: String {
@@ -149,8 +151,12 @@ struct StatusPill: View {
         .padding(.horizontal, 10).padding(.vertical, 5)
         .surfaceCapsule(tint: state == .idle ? nil : Palette.state(state))
         .animation(Motion.spring, value: running)
-        .help(running > 0 ? tr("\(running) ta agent hozir ishlayapti", running == 1 ? "1 agent is working now" : "\(running) agents are working now")
-              : (active > 0 ? tr("Agent asbob natijasini kutyapti (masalan, terminal buyrug'i)", "Agent is waiting for a tool result (e.g. a terminal command)") : tr("Hech qanday agent ishlamayapti", "No agents are working")))
+        .help([tooltip, hint].compactMap { $0 }.joined(separator: " · "))
+    }
+
+    private var tooltip: String {
+        running > 0 ? tr("\(running) ta agent hozir ishlayapti", running == 1 ? "1 agent is working now" : "\(running) agents are working now")
+            : (active > 0 ? tr("Agent asbob natijasini kutyapti (masalan, terminal buyrug'i)", "Agent is waiting for a tool result (e.g. a terminal command)") : tr("Hech qanday agent ishlamayapti", "No agents are working"))
     }
 }
 

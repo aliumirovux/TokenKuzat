@@ -88,7 +88,15 @@ struct MainWindow: View {
                 Text(Fmt.longDay.string(from: store.snap.updatedAt)).foregroundStyle(.secondary)
             }
             Spacer()
-            StatusPill(running: store.snap.runningAgents, active: store.snap.activeSessions)
+            // Bosilsa — Jonli sahifasiga (u yerda o'zida bosish kerak emas)
+            Button { withAnimation(Motion.snappy) { section = .live } } label: {
+                StatusPill(running: store.snap.runningAgents, active: store.snap.activeSessions,
+                           hint: section == .live ? nil : tr("Bosing — Jonli sahifasi", "Click to open Live"))
+                    .contentShape(Capsule())
+            }
+            .buttonStyle(.plain)
+            .noFocusRing()
+            .allowsHitTesting(section != .live)
             if section == .history || section == .sessions || section == .savings { CountModePicker() }
         }
         // Sarlavha almashganda eski va yangi matn ustma-ust chiqmasin
