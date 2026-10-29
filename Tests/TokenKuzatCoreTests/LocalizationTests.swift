@@ -14,4 +14,16 @@ final class LocalizationTests: XCTestCase {
         XCTAssertEqual(tr("Bugun", "Today"), "Bugun")
         XCTAssertEqual(Fmt.tokens(1234), "1,2K")
     }
+
+    func testDetectEnglishFromPrompts() {
+        XCTAssertEqual(Lang.detectEnglish(["yana nima qilishimiz mumkin takomlashtrish bo'yicha", "ha maqul"]), false)
+        XCTAssertEqual(Lang.detectEnglish(["can you fix the build and add a test for this"]), true)
+        XCTAssertNil(Lang.detectEnglish(["ok"]))
+    }
+
+    func testWithRestoresLanguage() {
+        let before = Lang.isEnglish
+        XCTAssertEqual(Lang.with(english: !before) { tr("uz", "en") }, before ? "uz" : "en")
+        XCTAssertEqual(Lang.isEnglish, before)
+    }
 }

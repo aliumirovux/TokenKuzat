@@ -9,12 +9,15 @@ public struct PendingRedirect: Codable, Equatable, Sendable {
     public let previousContext: Int
     public let created: Date
     public var used: Bool
+    /// Suhbat tili (eski yozuvlarda yo'q — ilova tili ishlatiladi)
+    public var english: Bool?
 
-    public init(summary: String, previousContext: Int, created: Date, used: Bool = false) {
+    public init(summary: String, previousContext: Int, created: Date, used: Bool = false, english: Bool? = nil) {
         self.summary = summary
         self.previousContext = previousContext
         self.created = created
         self.used = used
+        self.english = english
     }
 }
 
@@ -41,10 +44,11 @@ public enum RedirectStore {
     }
 
     /// Sessiya yangi sessiyaga ko'chirildi — keyingi xabari yo'naltiriladi (eskirganlari tozalanadi)
-    public static func add(session: String, summary: String, previousContext: Int, at url: URL = defaultURL, now: Date = Date()) {
+    public static func add(session: String, summary: String, previousContext: Int, english: Bool? = nil,
+                           at url: URL = defaultURL, now: Date = Date()) {
         var all = load(at: url).filter { now.timeIntervalSince($0.value.created) < lifetime }
         guard all[session] == nil else { return }
-        all[session] = PendingRedirect(summary: summary, previousContext: previousContext, created: now)
+        all[session] = PendingRedirect(summary: summary, previousContext: previousContext, created: now, english: english)
         save(all, at: url)
     }
 
@@ -70,7 +74,10 @@ public enum RedirectStore {
         r.used = true
         all[sid] = r
         save(all, at: url)
+        return Lang.with(english: r.english ?? Lang.isEnglish) { decision(r, prompt: prompt, cwd: o["cwd"] as? String) }
+    }
 
+    private static func decision(_ r: PendingRedirect, prompt: String, cwd: String?) -> Decision? {
         var message = AutoHandoffRule.firstMessage(summary: r.summary, previousContext: r.previousContext)
         message += "\n\n" + tr("Yangi so'rovim (oldingi sessiyada yozgan edim) — shuni bajar:",
                                "My new request (I typed it in the old session) — do this:") + "\n" + prompt
@@ -82,6 +89,6 @@ public enum RedirectStore {
                         + "To stay here, send the message again.")
         let out: [String: Any] = ["decision": "block", "reason": reason]
         guard let d = try? JSONSerialization.data(withJSONObject: out), let s = String(data: d, encoding: .utf8) else { return nil }
-        return Decision(output: s, message: message, cwd: o["cwd"] as? String)
+        return Decision(output: s, message: message, cwd: cwd)
     }
 }

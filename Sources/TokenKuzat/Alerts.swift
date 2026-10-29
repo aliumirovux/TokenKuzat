@@ -62,7 +62,8 @@ final class Alerts: NSObject, UNUserNotificationCenterDelegate {
 
     /// Eski sessiyaning keyingi xabari yangi sessiyaga ketsin: xulosa saqlanadi, hook ulanadi
     private static func armRedirect(_ sess: SessionSnap) {
-        RedirectStore.add(session: sess.id, summary: SavingsAdvisor.handoff(for: sess), previousContext: sess.contextTokens)
+        RedirectStore.add(session: sess.id, summary: SavingsAdvisor.handoff(for: sess), previousContext: sess.contextTokens,
+                          english: SavingsAdvisor.conversationEnglish(sess))
         try? PromptRedirectHook.install()
     }
     /// Yangi sessiya ochilgan sessiyalar — diskda (ilova qayta ishga tushsa yoki yangilansa ham qayta ochilmasin), 7 kun

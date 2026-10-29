@@ -22,7 +22,8 @@ enum AutoHandoff {
     /// Xabar havolada (ilova) yoki buyruq argumentida (Terminal) beriladi, shuning uchun papka mos kelmasa ham yetib boradi
     @discardableResult
     static func start(_ sess: SessionSnap, target: AutoHandoffTarget) -> Bool {
-        let message = AutoHandoffRule.firstMessage(summary: SavingsAdvisor.handoff(for: sess), previousContext: sess.contextTokens)
+        let message = AutoHandoffRule.firstMessage(summary: SavingsAdvisor.handoff(for: sess), previousContext: sess.contextTokens,
+                                                   english: SavingsAdvisor.conversationEnglish(sess))
         switch target {
         case .app: return openInApp(cwd: sess.cwd, message: message)
         case .terminal: return openInTerminal(cwd: sess.cwd, message: message)

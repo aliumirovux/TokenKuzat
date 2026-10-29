@@ -235,7 +235,18 @@ public enum SavingsAdvisor {
     }
 
     /// Yangi sessiyada sifat tushmasligi uchun «davom etish xulosasi»: so'nggi vazifalar, o'zgargan fayllar, oxirgi holat
-    public static func handoff(for s: SessionSnap, lastTurns: Int = 6) -> String {
+    /// Xulosa suhbat tilida yoziladi (ilova tilida emas) — Claude javoblarni ham shu tilda beradi
+    public static func handoff(for s: SessionSnap, lastTurns: Int = 6,
+                               gitLines: ([String]) -> [String] = GitState.lines) -> String {
+        Lang.with(english: conversationEnglish(s)) { handoffText(s, lastTurns: lastTurns, gitLines: gitLines) }
+    }
+
+    /// Foydalanuvchi xabarlarining tili; aniqlanmasa — ilova tili
+    public static func conversationEnglish(_ s: SessionSnap) -> Bool {
+        Lang.detectEnglish(s.turns.suffix(10).map(\.prompt)) ?? Lang.isEnglish
+    }
+
+    private static func handoffText(_ s: SessionSnap, lastTurns: Int, gitLines: ([String]) -> [String]) -> String {
         var lines: [String] = []
         lines.append(tr("Bu — oldingi Claude Code sessiyasining davomi (\(s.project)). Quyidagi xulosaga tayanib ishni davom ettir.", "This continues a previous Claude Code session (\(s.project)). Continue the work based on the summary below."))
         let turns = s.turns.filter { !$0.isContinuation }.suffix(lastTurns)
@@ -254,13 +265,24 @@ public enum SavingsAdvisor {
             lines.append(tr("O'zgartirilgan fayllar:", "Changed files:"))
             for f in changed.prefix(25) { lines.append("- \(f)") }
         }
+        let git = gitLines(changed)
+        if !git.isEmpty {
+            lines.append("")
+            lines.append(tr("Git holati (ko'chirish paytida):", "Git state (at handoff time):"))
+            lines += git
+        }
         if let reply = s.notes.last(where: { $0.kind == .reply && $0.agent == nil }) {
             lines.append("")
             lines.append(tr("Oxirgi holat (oldingi javobdan):", "Last state (from the previous reply):"))
             lines.append(String(reply.text.prefix(1200)))
         }
         lines.append("")
-        lines.append(tr("Avval kerakli fayllarni o'qib chiq, keyin davom et. Allaqachon bajarilganlarni qayta qilma.", "Read the relevant files first, then continue. Don't redo what's already done."))
+        lines.append(tr("Avval kerakli fayllarni o'qib chiq, keyin davom et. Allaqachon bajarilganlarni qayta qilma. "
+                        + "Oxirgi javob rejalashtirilgan, lekin hali bajarilmagan qadamni aytayotgan bo'lishi mumkin — "
+                        + "uni bajarilgan deb hisoblama, avval tekshir (git, fayllar, o'rnatilgan versiya).",
+                        "Read the relevant files first, then continue. Don't redo what's already done. "
+                        + "The last reply may describe a step that was planned but not yet done — don't assume it happened; "
+                        + "check first (git, files, installed version)."))
         return lines.joined(separator: "\n")
     }
 }

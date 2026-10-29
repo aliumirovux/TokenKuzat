@@ -33,4 +33,12 @@ final class RedirectTests: XCTestCase {
         XCTAssertNil(RedirectStore.handlePrompt(input: input("old", "/compact"), at: url, now: now))
         XCTAssertNil(RedirectStore.handlePrompt(input: input("old", "salom"), at: url, now: now.addingTimeInterval(25 * 3600)))
     }
+
+    func testRedirectUsesStoredConversationLanguage() {
+        let now = Date()
+        RedirectStore.add(session: "old", summary: "S", previousContext: 1, english: false, at: url, now: now)
+        let d = Lang.with(english: true) { RedirectStore.handlePrompt(input: input("old", "davom et"), at: url, now: now) }
+        XCTAssertTrue(d!.message.contains("Yangi so'rovim"))
+        XCTAssertTrue(d!.output.contains("yangi sessiyaga"))
+    }
 }

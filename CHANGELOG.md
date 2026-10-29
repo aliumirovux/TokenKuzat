@@ -1,5 +1,10 @@
 # O'zgarishlar
 
+## 6.29.0 — 2026-10-29
+
+- Yangi sessiya xulosasi suhbat tilida: foydalanuvchi xabarlari qaysi tilda bo'lsa (o'zbekcha / English), xulosa, birinchi xabar va eski sessiyadagi yo'naltirish sababi shu tilda — ilova tili boshqa bo'lsa ham. Aniqlab bo'lmasa — ilova tili.
+- Xulosada «Git holati»: o'zgargan fayllar joylashgan repolarning oxirgi commit'i va commit qilinmagan fayllari. Oxirgi javob ish yarmida yozilgan bo'lishi mumkinligi aytiladi — yangi sessiya rejalashtirilgan qadamni bajarilgan deb hisoblamay, avval tekshiradi.
+
 ## 6.28.0 — 2026-10-29
 
 - Eski sessiyadan yo'naltirish: avtomatik yangi sessiya ochilgandan keyin eski sessiyada yozilgan birinchi xabar to'xtatiladi (Claude Code `UserPromptSubmit` hook'i) va xulosa bilan birga yangi sessiyaga yuboriladi — u yerda Claude aynan shu so'rovni bajaradi. Sabab eski sessiyada ko'rsatiladi; xabar qayta yuborilsa — eski sessiyada qoladi. Slash-buyruqlar (`/compact` va h.k.) to'xtatilmaydi; 24 soatdan eski sessiyalar ham. Sozlamalar → «…eski sessiyada yozsam — yangi sessiyaga yo'naltirish» (sukut bo'yicha yoqilgan; o'chirilsa hook olib tashlanadi). Ilova qayta ishga tushsa ham allaqachon ko'chirilgan sessiyalar yo'naltiriladi.

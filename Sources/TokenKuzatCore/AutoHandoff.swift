@@ -17,7 +17,8 @@ public enum AutoHandoffRule {
 
     /// Yangi sessiyaning birinchi xabari — o'zi yuboriladi: nima uchun ko'chirilgani, xulosa va nima qilish kerakligi.
     /// Ish tugagan bo'lsa — yangi ish boshlamaydi, holatni aytib kutadi
-    public static func firstMessage(summary: String, previousContext: Int, limit: Int = 8000) -> String {
+    public static func firstMessage(summary: String, previousContext: Int, english: Bool? = nil, limit: Int = 8000) -> String {
+        if let english { return Lang.with(english: english) { firstMessage(summary: summary, previousContext: previousContext, limit: limit) } }
         let head = tr("Token Kuzatuv: oldingi sessiya konteksti \(Fmt.tokens(previousContext)) ga yetgani uchun ish shu yangi sessiyaga ko'chirildi "
                       + "(har javobda butun suhbat qayta o'qilmasin). Quyidagi xulosaga tayan. Tugallanmagan ish bo'lsa — davom ettir. "
                       + "Ish tugagan yoki keyingi qadam men qaror qilishim kerak bo'lsa — hech narsa boshlamay, 2–3 jumlada holatni ayt va kut.",

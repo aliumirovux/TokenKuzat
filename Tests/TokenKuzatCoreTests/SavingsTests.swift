@@ -56,6 +56,17 @@ final class SavingsTests: XCTestCase {
         XCTAssertTrue(text.contains("#1: Xaritani yangila"))
     }
 
+    func testHandoffAddsGitStateAndFollowsConversationLanguage() {
+        let s = session(context: 400_000, steps: [step(1, "Map.swift", access: .write)])
+        let text = Lang.with(english: true) {
+            SavingsAdvisor.handoff(for: s, gitLines: { paths in ["- /p: last commit abc fix (\(paths.count))"] })
+        }
+        // Bitta qisqa prompt («Xaritani yangila») — tilni aniqlab bo'lmaydi, ilova tili qoladi
+        XCTAssertTrue(text.contains("Git state"))
+        XCTAssertTrue(text.contains("- /p: last commit abc fix (1)"))
+        XCTAssertTrue(text.contains("check first"))
+    }
+
     func testCacheTTLFollowsLastWrite() {
         XCTAssertEqual(SavingsAdvisor.cacheTTL(for: session(context: 60_000, steps: [])), 300)
         let long = session(context: 60_000, steps: [], usage: [point(0, context: 50_000, longCache: true), point(1, context: 51_000)])

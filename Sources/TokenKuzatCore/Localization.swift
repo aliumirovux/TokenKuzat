@@ -41,6 +41,34 @@ public enum Lang {
         }
     }
 
+    /// `body` ichida `tr(...)` berilgan tilda qaytadi (Claude'ga yuboriladigan matnlar uchun — ilova tili emas, suhbat tili)
+    public static func with<T>(english: Bool, _ body: () -> T) -> T {
+        let saved = isEnglish
+        isEnglish = english
+        defer { isEnglish = saved }
+        return body()
+    }
+
+    /// Foydalanuvchi xabarlari qaysi tilda: true — inglizcha, false — o'zbekcha, nil — aniqlab bo'lmadi
+    public static func detectEnglish(_ texts: [String]) -> Bool? {
+        let uzWords: Set<String> = ["va", "bu", "shu", "nima", "uchun", "kerak", "qil", "qilgin", "yana", "ha", "yo'q", "emas",
+                                    "bilan", "qanday", "endi", "hozir", "bor", "edi", "ham", "lekin", "qilib", "bo'yicha", "qani", "nega"]
+        let enWords: Set<String> = ["the", "and", "is", "to", "of", "it", "this", "that", "what", "please", "can", "you",
+                                    "with", "for", "do", "make", "how", "why", "not", "add", "fix"]
+        var uz = 0, en = 0
+        for text in texts {
+            let lower = text.lowercased()
+                .replacingOccurrences(of: "ʻ", with: "'").replacingOccurrences(of: "’", with: "'")
+            // o', g' va kirill o'zbek harflari — deyarli aniq belgi
+            if lower.range(of: #"[ўқғҳ]|[og]'[a-z]"#, options: .regularExpression) != nil { uz += 2 }
+            for w in lower.split(whereSeparator: { !$0.isLetter && $0 != "'" }) {
+                if uzWords.contains(String(w)) { uz += 1 } else if enWords.contains(String(w)) { en += 1 }
+            }
+        }
+        guard uz + en >= 2, uz != en else { return nil }
+        return en > uz
+    }
+
     /// Sanalar uchun locale
     public static var locale: Locale { Locale(identifier: isEnglish ? "en_US" : "uz_Latn_UZ") }
 }
