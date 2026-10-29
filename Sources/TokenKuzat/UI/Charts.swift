@@ -60,6 +60,14 @@ struct Slice: Identifiable {
 }
 
 enum Composition {
+    /// Token turlarining yagona nomlari — texnik «kesh o'qish» o'rniga oddiy so'zlar
+    enum Label {
+        static var read: String { tr("Qayta o'qilgan kontekst", "Re-read context") }
+        static var write: String { tr("Kontekstni eslab qolish", "Saving context") }
+        static var input: String { tr("Yangi kiritilgan matn", "New input") }
+        static var output: String { tr("Claude javobi va fikrlashi", "Claude's replies and thinking") }
+    }
+
     /// Token turlari bo'yicha bo'laklar (vaznli rejimda — narx koeffitsiyentlari bilan)
     static func slices(_ t: TokenCounts, _ mode: CountMode) -> [Slice] {
         func v(_ raw: Int, _ w: Double) -> Double { mode == .weighted ? w : Double(raw) }
@@ -68,14 +76,14 @@ enum Composition {
         let inW = Double(t.input)
         let writeW = max(0, t.weighted - readW - outW - inW)
         return [
-            Slice(id: "read", label: tr("Kesh o'qish", "Cache read"), value: v(t.cacheRead, readW), color: Palette.cacheRead,
-                  hint: tr("Kontekst har javobda qayta o'qiladi — arzon (×0,1), lekin ko'p", "Context is re-read on every response — cheap (×0.1), but a lot of it")),
-            Slice(id: "write", label: tr("Kesh yozish", "Cache write"), value: v(t.cacheWrite, writeW), color: Palette.fresh,
-                  hint: tr("Yangi kontekst keshga yoziladi (×1,25–2)", "New context written to cache (×1.25–2)")),
-            Slice(id: "in", label: tr("Kiritish", "Input"), value: v(t.input, inW), color: Palette.input,
-                  hint: tr("Keshlanmagan kiritish", "Uncached input")),
-            Slice(id: "out", label: tr("Javob va fikrlash", "Output & thinking"), value: v(t.output, outW), color: Palette.output,
-                  hint: t.thinking > 0 ? tr("Shundan fikrlash: \(Fmt.tokens(t.thinking))", "Of which thinking: \(Fmt.tokens(t.thinking))") : tr("Eng qimmat qism (×5)", "Most expensive part (×5)")),
+            Slice(id: "read", label: Label.read, value: v(t.cacheRead, readW), color: Palette.cacheRead,
+                  hint: tr("Har javobda butun suhbat qayta o'qiladi — arzon (narxi ×0,1), lekin ko'p", "The whole conversation is re-read on every reply — cheap (price ×0.1), but a lot of it")),
+            Slice(id: "write", label: Label.write, value: v(t.cacheWrite, writeW), color: Palette.fresh,
+                  hint: tr("Yangi matn va fayllar keyingi javoblar uchun saqlanadi (narxi ×1,25–2)", "New text and files saved for the next replies (price ×1.25–2)")),
+            Slice(id: "in", label: Label.input, value: v(t.input, inW), color: Palette.input,
+                  hint: tr("Saqlanmasdan yuborilgan matn", "Text sent without being saved")),
+            Slice(id: "out", label: Label.output, value: v(t.output, outW), color: Palette.output,
+                  hint: t.thinking > 0 ? tr("Shundan fikrlash: \(Fmt.tokens(t.thinking))", "Of which thinking: \(Fmt.tokens(t.thinking))") : tr("Eng qimmat qism (narxi ×5)", "Most expensive part (price ×5)")),
         ]
     }
 
@@ -88,15 +96,15 @@ enum Composition {
     /// Birinchi marta ko'rgan odam uchun: texnik nomlar o'rniga oddiy so'zlar, izoh qatorning o'zida
     static func plain(_ slices: [Slice]) -> [Slice] {
         slices.map { sl in
-            let (label, hint): (String, String?) = switch sl.id {
-            case "agents": (tr("Yordamchi agentlar", "Subagents"), tr("Claude ishni bo'lib bergan alohida agentlar", "Separate agents Claude handed parts of the work to"))
-            case "read": (tr("Qayta o'qilgan kontekst", "Re-read context"), tr("Har javobda butun suhbat qayta o'qiladi — arzon, lekin suhbat uzaygan sari ko'payadi", "The whole conversation is re-read on every reply — cheap, but it grows with the conversation"))
-            case "write": (tr("Kontekstni eslab qolish", "Saving context"), tr("Yangi matn va fayllar keyingi javoblar uchun saqlanadi", "New text and files are saved for the next replies"))
-            case "in": (tr("Yangi kiritilgan matn", "New input"), tr("Saqlanmasdan yuborilgan matn", "Text sent without being saved"))
-            case "out": (tr("Claude javobi va fikrlashi", "Claude's replies and thinking"), tr("Eng qimmat qism", "The most expensive part"))
-            default: (sl.label, sl.hint)
+            let hint: String? = switch sl.id {
+            case "agents": tr("Claude ishni bo'lib bergan alohida agentlar", "Separate agents Claude handed parts of the work to")
+            case "read": tr("Har javobda butun suhbat qayta o'qiladi — arzon, lekin suhbat uzaygan sari ko'payadi", "The whole conversation is re-read on every reply — cheap, but it grows with the conversation")
+            case "write": tr("Yangi matn va fayllar keyingi javoblar uchun saqlanadi", "New text and files are saved for the next replies")
+            case "in": tr("Saqlanmasdan yuborilgan matn", "Text sent without being saved")
+            case "out": tr("Eng qimmat qism", "The most expensive part")
+            default: sl.hint
             }
-            return Slice(id: sl.id, label: label, value: sl.value, color: sl.color, hint: hint)
+            return Slice(id: sl.id, label: sl.label, value: sl.value, color: sl.color, hint: hint)
         }
     }
 }

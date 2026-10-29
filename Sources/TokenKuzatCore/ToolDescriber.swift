@@ -61,8 +61,58 @@ public enum ToolDescriber {
         case "Skill": return d("sparkles", "Skill · \(str("skill") ?? "")")
         case "ToolSearch": return d("wrench.and.screwdriver", tr("Asbob yuklayapti", "Loading tools"))
         default:
-            if name.hasPrefix("mcp__") { return d("puzzlepiece.extension", shortName(name)) }
+            if name.hasPrefix("mcp__") {
+                let p = name.components(separatedBy: "__")
+                if p.count >= 3, let h = humanMCP(server: p[1], tool: p[2...].joined(separator: "_"), input) { return h }
+                return d("puzzlepiece.extension", shortName(name))
+            }
             return d("gearshape", name)
+        }
+    }
+
+    /// Tez-tez uchraydigan MCP asboblari odam tilida: «computer-use: app_screenshot» → «Ekranni ko'ryapti».
+    /// Notanish asbob — `nil`, ya'ni «server: asbob» ko'rinishida qoladi.
+    static func humanMCP(server: String, tool: String, _ input: [String: Any]) -> Description? {
+        let t = tool.hasPrefix("app_") ? String(tool.dropFirst(4)) : tool
+        func d(_ symbol: String, _ text: String) -> Description { Description(symbol: symbol, text: text) }
+        switch server {
+        case "computer-use":
+            switch t {
+            case "screenshot", "zoom": return d("camera.viewfinder", tr("Ekranni ko'ryapti", "Looking at the screen"))
+            case "request_access", "request_full_control", "request_teach_access":
+                return d("hand.raised", tr("Ilovaga ruxsat so'rayapti", "Asking for app access"))
+            case "list_windows", "list_apps", "list_granted_applications", "ax_find":
+                return d("macwindow", tr("Oynalarni ko'zdan kechiryapti", "Looking through windows"))
+            case "release", "release_full_control": return d("hand.wave", tr("Ilovani qo'yib yubordi", "Released the app"))
+            default: return d("cursorarrow.click", tr("Ilovani boshqaryapti", "Controlling an app"))
+            }
+        case "Claude_Browser", "claude-in-chrome":
+            let b = server == "claude-in-chrome" ? "Chrome" : tr("Brauzer", "Browser")
+            switch t {
+            case "navigate":
+                let host = (input["url"] as? String).flatMap { URL(string: $0)?.host } ?? ""
+                return d("safari", tr("\(b) · sahifa ochyapti", "\(b) · opening a page") + (host.isEmpty ? "" : " · \(host)"))
+            case "read_page", "get_page_text", "find", "read_console_messages", "read_network_requests":
+                return d("doc.text.magnifyingglass", tr("\(b) · sahifani o'qiyapti", "\(b) · reading the page"))
+            default: return d("safari", tr("\(b) · boshqaryapti", "\(b) · controlling"))
+            }
+        default:
+            guard server.hasPrefix("ccd_") else { return nil }
+            switch tool {
+            case "update_plan": return d("checklist", tr("Rejani yangiladi", "Updated the plan"))
+            case "wrap_up": return d("flag.checkered", tr("Javobni yakunlayapti", "Wrapping up the reply"))
+            default: return d("app.badge", tr("Claude ilovasi · ", "Claude app · ") + tool.replacingOccurrences(of: "_", with: " "))
+            }
+        }
+    }
+
+    /// Sxemadagi xizmat nomi: «computer-use» → «Kompyuter»
+    static func serverTitle(_ server: String) -> String {
+        switch server {
+        case "computer-use": return tr("Kompyuter", "Computer")
+        case "Claude_Browser": return tr("Brauzer", "Browser")
+        case "claude-in-chrome": return "Chrome"
+        default: return server.hasPrefix("ccd_") ? tr("Claude ilovasi", "Claude app") : server.replacingOccurrences(of: "_", with: " ")
         }
     }
 }
@@ -156,9 +206,14 @@ extension ToolDescriber {
                 let server = p.count >= 2 ? p[1].replacingOccurrences(of: "_", with: " ") : name
                 let tool = p.count >= 3 ? p[2...].joined(separator: "_") : ""
                 if p.count >= 2, isOpaqueServer(p[1]) { return t(.mcp, p[1], tool, tr("konnektor", "connector"), .run) }
-                return t(.mcp, server, server, tool, .run)
+                return t(.mcp, server, p.count >= 2 ? serverTitle(p[1]) : server, tool, .run)
             }
-            return t(.other, name, name, "", .run)
+            switch name {
+            case "ToolSearch": return t(.other, name, tr("Asbob qidiruvi", "Tool search"), "", .run)
+            case "TodoWrite", "TaskCreate", "TaskUpdate": return t(.other, "tasks", tr("Vazifalar ro'yxati", "Task list"), "", .run)
+            case "Skill": return t(.other, "skill|" + (str("skill") ?? ""), "Skill · " + (str("skill") ?? ""), "", .run)
+            default: return t(.other, name, name, "", .run)
+            }
         }
     }
 }

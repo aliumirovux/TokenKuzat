@@ -187,7 +187,7 @@ struct SessionCard: View {
     private func subline(_ total: Double) -> String {
         let ago = Fmt.ago(session.lastActivity)
         guard tokensPerPct != nil || costUSD != nil else { return ago }
-        let unit = mode == .weighted ? tr("vaznli token", "weighted tokens") : tr("token", "tokens")
+        let unit = mode == .weighted ? tr("token (narx bo'yicha)", "tokens (by price)") : tr("token", "tokens")
         return "\(Fmt.tokens(total)) \(unit) · \(ago)"
     }
 

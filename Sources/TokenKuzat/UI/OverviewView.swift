@@ -100,10 +100,10 @@ struct LimitHero: View {
             }
             // Asosiy: ikki katta karta — ikkalasi ham «ishlatildi», Claude sahifasidagidek
             AdaptiveStack(spacing: 16) {
-                LimitCard(title: tr("Joriy sessiya", "Current session"), subtitle: tr("5 soatlik oyna", "5-hour window"), window: window,
+                LimitCard(title: tr("5 soatlik limit", "5-hour limit"), subtitle: tr("har 5 soatda yangilanadi", "renews every 5 hours"), window: window,
                           columns: hourColumns, columnsTitle: tr("soatlar bo'yicha", "by hour"))
                 if let week {
-                    LimitCard(title: tr("Bu hafta", "This week"), subtitle: tr("7 kunlik oyna", "7-day window"), window: week,
+                    LimitCard(title: tr("Haftalik limit", "Weekly limit"), subtitle: tr("har 7 kunda yangilanadi", "renews every 7 days"), window: week,
                               columns: dayColumns(week), columnsTitle: tr("kunlar bo'yicha", "by day"))
                 }
             }
@@ -121,7 +121,7 @@ struct LimitHero: View {
         let warn = Color(light: 0xFFC46B, dark: 0xFFC46B), ok = Color(light: 0x7CF0B6, dark: 0x7CF0B6)
         let (symbol, text, color): (String, String, Color) = {
             if case .runsOut(let at) = forecast {
-                return ("exclamationmark.triangle.fill", tr("Sessiya ~\(Fmt.hourMinute.string(from: at)) da tugaydi — tiklanishidan oldin", "Session runs out at ~\(Fmt.hourMinute.string(from: at)) — before it resets"), warn)
+                return ("exclamationmark.triangle.fill", LimitText.fiveHourWarning(at, reset: window.resetsAt), warn)
             }
             if let week, let w = LimitText.weekWarning(weekForecast, week: week) { return ("exclamationmark.triangle.fill", w, warn) }
             if let stale { return ("clock.arrow.circlepath", stale, Brand.inkDim) }

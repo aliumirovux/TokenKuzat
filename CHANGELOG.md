@@ -1,5 +1,14 @@
 # O'zgarishlar
 
+## 6.35.0 — 2026-10-29
+
+- «Sessiya» endi faqat suhbat ma'nosida: 5 soatlik oyna hamma joyda «5 soatlik limit» («Joriy sessiya» → «5 soatlik limit · har 5 soatda yangilanadi», «Bu hafta» → «Haftalik limit»).
+- Token turlari bitta nom bilan: Tarix, jadval va grafiklarda ham «Qayta o'qilgan kontekst», «Kontekstni eslab qolish», «Yangi kiritilgan matn», «Claude javobi va fikrlashi» («Kesh o'qish / yozish» o'rniga).
+- «vaznli token» → «token (narx bo'yicha)» — hisoblash usulining yangi nomi bilan bir xil.
+- Tejash: loyiha chizig'idagi ikki rang uchun izoh («isrof» · «foydali sarf»); «model va sifat o'zgarmaydi» → to'liq gap; «Tejash: ~50K/javob» → «Har javobda ~50K tejash mumkin».
+- Tanish MCP asboblari odam tilida: «computer-use: app_screenshot» → «Ekranni ko'ryapti», «ccd turn: wrap_up» → «Javobni yakunlayapti», brauzer asboblari, «ToolSearch» → «Asbob qidiruvi».
+- 5 soatlik limit ogohlantirishi: «Shu sur'atda 5 soatlik limit ~19:40 da tugaydi — tiklanish 20:50 da». Tiklanishdan 10 daqiqadan kam oldin tugasa — ogohlantirish chiqmaydi.
+
 ## 6.34.0 — 2026-10-29
 
 - Tuzatildi: Sozlamalarda «Isrof…» va «Kontekst katta bo'lsa — avtomatik yangi sessiya» qatorlari ustma-ust chizilardi. Uzun izohlar bir satrga qisqardi, to'liq tushuntirish — maslahatda.

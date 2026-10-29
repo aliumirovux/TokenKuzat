@@ -90,7 +90,7 @@ struct HistoryView: View {
         panel.allowedContentTypes = [.commaSeparatedText]
         panel.nameFieldStringValue = "token-tarixi-\(HistoryStore.key(Date())).csv"
         guard panel.runModal() == .OK, let url = panel.url else { return }
-        var csv = "sana,jami,kiritish,javob,fikrlash,kesh_yozish,kesh_oqish,vaznli\n"
+        var csv = "sana,jami,kiritish,javob,fikrlash,kesh_yozish,kesh_oqish,narx_boyicha\n"
         for d in store.allHistory() {
             let t = d.tokens
             csv += "\(HistoryStore.key(d.date)),\(t.total),\(t.input),\(t.output),\(t.thinking),\(t.cacheWrite),\(t.cacheRead),\(Int(t.weighted.rounded()))\n"
@@ -105,7 +105,7 @@ private struct DayTable: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            row([tr("Sana", "Date"), tr("Jami", "Total"), tr("Kesh o'qish", "Cache read"), tr("Kesh yozish", "Cache write"), tr("Kiritish", "Input"), tr("Javob", "Output")], header: true)
+            row([tr("Sana", "Date"), tr("Jami", "Total"), Composition.Label.read, Composition.Label.write, Composition.Label.input, Composition.Label.output], header: true)
             Divider()
             ForEach(days.filter { !$0.tokens.isEmpty }) { d in
                 let t = d.tokens

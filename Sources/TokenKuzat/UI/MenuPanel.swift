@@ -52,9 +52,9 @@ struct MenuPanel: View {
             }
             if let l = s.limits, let w = l.sessionWindow {
                 HStack(spacing: 12) {
-                    LimitRing(title: tr("Sessiya", "Session"), window: w, caption: tr("5 soatlik oyna", "5-hour window"))
+                    LimitRing(title: tr("5 soat", "5 hours"), window: w, caption: tr("5 soatlik limit", "5-hour limit"))
                     if let wk = l.sevenDay {
-                        LimitRing(title: tr("Hafta", "Week"), window: wk, caption: tr("7 kunlik oyna", "7-day window"))
+                        LimitRing(title: tr("Hafta", "Week"), window: wk, caption: tr("haftalik limit", "weekly limit"))
                     }
                 }
                 if let o = s.outside, o.hasWindow, !w.isNotStarted, w.usedPercentage >= 1 {
@@ -81,7 +81,7 @@ struct MenuPanel: View {
         let okColor = Color(light: 0x7CF0B6, dark: 0x7CF0B6)
         let (symbol, text, color): (String, String, Color) = {
             if case .runsOut(let at) = s.fiveHourForecast {
-                return ("exclamationmark.triangle.fill", tr("Sessiya ~\(Fmt.hourMinute.string(from: at)) da tugaydi — tiklanishidan oldin", "Session runs out at ~\(Fmt.hourMinute.string(from: at)) — before it resets"), warnColor)
+                return ("exclamationmark.triangle.fill", LimitText.fiveHourWarning(at, reset: l.fiveHour?.resetsAt ?? at), warnColor)
             }
             if let wk = l.sevenDay, let w = LimitText.weekWarning(s.weekForecast, week: wk) {
                 return ("exclamationmark.triangle.fill", w, warnColor)

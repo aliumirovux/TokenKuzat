@@ -46,7 +46,7 @@ struct OutsideSplitRow: View {
         VStack(alignment: .leading, spacing: compact ? 6 : 9) {
             if !compact {
                 HStack(alignment: .firstTextBaseline) {
-                    Text(tr("SESSIYA LIMITI QAYERGA KETDI", "WHERE THE SESSION LIMIT WENT")).eyebrow(Brand.inkDim)
+                    Text(tr("5 SOATLIK LIMIT QAYERGA KETDI", "WHERE THE 5-HOUR LIMIT WENT")).eyebrow(Brand.inkDim)
                     Spacer(minLength: 8)
                     if let today = todayText {
                         Text(today).font(.caption.weight(.medium)).foregroundStyle(Brand.inkDim).lineLimit(1)
@@ -100,7 +100,7 @@ struct OutsideSplitRow: View {
     private var todayText: String? {
         guard outside.outsideTodayPct >= 0.5 else { return nil }
         if let t = outside.outsideTodayTokens {
-            return tr("Bugun chat va bulutda ~\(Fmt.tokens(t)) vaznli token", "Today in chat & cloud: ~\(Fmt.tokens(t)) weighted tokens")
+            return tr("Bugun chat va bulutda ~\(Fmt.tokens(t)) token (narx bo'yicha)", "Today in chat & cloud: ~\(Fmt.tokens(t)) tokens (by price)")
         }
         return tr("Bugun chat va bulutda limitning \(Int(outside.outsideTodayPct.rounded()))%", "Today in chat & cloud: \(Int(outside.outsideTodayPct.rounded()))% of the limit")
     }

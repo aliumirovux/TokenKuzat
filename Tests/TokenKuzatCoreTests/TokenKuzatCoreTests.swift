@@ -92,6 +92,11 @@ final class FormatTests: XCTestCase {
     func testMcpShortName() {
         XCTAssertEqual(ToolDescriber.shortName("mcp__github__create_issue"), "github: create_issue")
         XCTAssertEqual(ToolDescriber.shortName("Bash"), "Bash")
+        // Tanish MCP asboblari odam tilida, notanishi — «server: asbob»
+        XCTAssertEqual(ToolDescriber.describe("mcp__computer-use__app_screenshot", [:]).text, tr("Ekranni ko'ryapti", "Looking at the screen"))
+        XCTAssertEqual(ToolDescriber.describe("mcp__ccd_turn__wrap_up", [:]).text, tr("Javobni yakunlayapti", "Wrapping up the reply"))
+        XCTAssertEqual(ToolDescriber.describe("mcp__github__create_issue", [:]).text, "github: create_issue")
+        XCTAssertEqual(ToolDescriber.target("mcp__computer-use__app_click", [:]).name, tr("Kompyuter", "Computer"))
         // claude.ai konnektori: server o'rnida UUID — faqat asbob nomi
         XCTAssertEqual(ToolDescriber.shortName("mcp__eca80fe4-5103-4c32-8b76-5d567197412b__get_deployment"), "get_deployment")
     }
@@ -416,6 +421,10 @@ final class RateLimitsTests: XCTestCase {
         let slow = [(now.addingTimeInterval(-600), 59.9), (now, 60.0)]
         XCTAssertEqual(LimitForecast.forecast(w, history: slow, now: now), .lasts)
         XCTAssertEqual(LimitForecast.forecast(w, history: [(now, 60)], now: now), .unknown)
+
+        // Tiklanishdan 5 daqiqa oldin tugaydi — ogohlantirish shart emas
+        let edge = LimitWindow(usedPercentage: 60, resetsAt: now.addingTimeInterval(2400 + 300))
+        XCTAssertEqual(LimitForecast.forecast(edge, history: h, now: now), .lasts)
     }
 
     func testExpiredWindowDropped() {

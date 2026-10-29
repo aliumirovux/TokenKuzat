@@ -133,14 +133,15 @@ public enum LimitForecast {
     }
 
     /// `history` — (vaqt, foiz) juftlari. Oxirgi `window` soniyadagi o'rtacha tezlik olinadi.
+    /// Tiklanishdan `margin` dan kamroq oldin tugashi ogohlantirishga arzimaydi — `.lasts`.
     public static func forecast(_ w: LimitWindow, history: [(Date, Double)], now: Date,
-                                window: TimeInterval = 20 * 60) -> Outcome {
+                                window: TimeInterval = 20 * 60, margin: TimeInterval = 10 * 60) -> Outcome {
         let recent = history.filter { now.timeIntervalSince($0.0) <= window }
         guard let first = recent.first, let last = recent.last, last.0.timeIntervalSince(first.0) >= 120 else { return .unknown }
         let rate = (last.1 - first.1) / last.0.timeIntervalSince(first.0)   // foiz / soniya
         guard rate > 0 else { return .lasts }
         let eta = now.addingTimeInterval((100 - w.usedPercentage) / rate)
-        return eta < w.resetsAt ? .runsOut(at: eta) : .lasts
+        return eta < w.resetsAt.addingTimeInterval(-margin) ? .runsOut(at: eta) : .lasts
     }
 }
 

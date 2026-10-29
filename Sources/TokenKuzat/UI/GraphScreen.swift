@@ -661,7 +661,7 @@ private struct TokenBreakdown: View {
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Text(Fmt.tokens(tokens.value(mode)))
                     .font(.system(size: 24, weight: .bold, design: .rounded)).monospacedDigit()
-                Text(mode == .weighted ? tr("vaznli", "weighted") : tr("token", "tokens")).font(.callout).foregroundStyle(.secondary).lineLimit(1)
+                Text(mode == .weighted ? tr("narx bo'yicha", "by price") : tr("token", "tokens")).font(.callout).foregroundStyle(.secondary).lineLimit(1)
                 Spacer(minLength: 6)
                 Text(Fmt.percent(tokens.value(mode), of: sessionTotal))
                     .font(.caption.weight(.semibold)).foregroundStyle(Brand.accent)

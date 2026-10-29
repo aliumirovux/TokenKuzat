@@ -324,10 +324,10 @@ final class Alerts: NSObject, UNUserNotificationCenterDelegate {
             let period = b.period == .day ? tr("Bugungi", "Today's") : tr("5 soatlik", "5-hour")
             if t >= 1 {
                 post(tr("Token limiti tugadi", "Token limit reached"),
-                     tr("\(period) limit: \(Fmt.tokens(b.used)) / \(Fmt.tokens(b.limit)) vaznli token.", "\(period) limit: \(Fmt.tokens(b.used)) / \(Fmt.tokens(b.limit)) weighted tokens."))
+                     tr("\(period) limit: \(Fmt.tokens(b.used)) / \(Fmt.tokens(b.limit)) token (narx bo'yicha).", "\(period) limit: \(Fmt.tokens(b.used)) / \(Fmt.tokens(b.limit)) tokens (by price)."))
             } else {
                 post(tr("Token limitining \(Int(t * 100))% ishlatildi", "\(Int(t * 100))% of token limit used"),
-                     tr("\(period) sarf: \(Fmt.tokens(b.used)) / \(Fmt.tokens(b.limit)) vaznli token.", "\(period) usage: \(Fmt.tokens(b.used)) / \(Fmt.tokens(b.limit)) weighted tokens."))
+                     tr("\(period) sarf: \(Fmt.tokens(b.used)) / \(Fmt.tokens(b.limit)) token (narx bo'yicha).", "\(period) usage: \(Fmt.tokens(b.used)) / \(Fmt.tokens(b.limit)) tokens (by price)."))
             }
         }
         d.set(fired, forKey: firedKey)

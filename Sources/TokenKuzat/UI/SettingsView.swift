@@ -224,7 +224,7 @@ struct SettingsView: View {
             } header: {
                 Text(tr("Claude limiti — hisobdan", "Claude limit — from account"))
             } footer: {
-                Text(tr("Claude Code'ning Keychain'dagi kirish kaliti bilan Anthropic'dan joriy sessiya va haftalik limit har daqiqada olinadi — Code tabi va Claude ilovasida ham ishlaydi. Kalit faqat shu kompyuterda o'qiladi va faqat api.anthropic.com ga yuboriladi. Birinchi marta macOS Keychain ruxsatini so'raydi («Har doim ruxsat»). Ishlamasa — pastdagi status line zaxira manba bo'ladi. Yoqilgan bo'lsa, limitning chat va bulutga (Mac'ga yozilmaydigan ishlarga) ketgan qismi ham hisoblanadi.", "Using Claude Code's sign-in key from Keychain, the current session and weekly limits are fetched from Anthropic every minute — works for the Code tab and the Claude app too. The key is read only on this computer and sent only to api.anthropic.com. The first time, macOS asks for Keychain access («Always Allow»). If it doesn't work, the status line below is the fallback source. When on, the part of the limit spent in chat & cloud (work not written to this Mac) is calculated too."))
+                Text(tr("Claude Code'ning Keychain'dagi kirish kaliti bilan Anthropic'dan 5 soatlik va haftalik limit har daqiqada olinadi — Code tabi va Claude ilovasida ham ishlaydi. Kalit faqat shu kompyuterda o'qiladi va faqat api.anthropic.com ga yuboriladi. Birinchi marta macOS Keychain ruxsatini so'raydi («Har doim ruxsat»). Ishlamasa — pastdagi status line zaxira manba bo'ladi. Yoqilgan bo'lsa, limitning chat va bulutga (Mac'ga yozilmaydigan ishlarga) ketgan qismi ham hisoblanadi.", "Using Claude Code's sign-in key from Keychain, the current session and weekly limits are fetched from Anthropic every minute — works for the Code tab and the Claude app too. The key is read only on this computer and sent only to api.anthropic.com. The first time, macOS asks for Keychain access («Always Allow»). If it doesn't work, the status line below is the fallback source. When on, the part of the limit spent in chat & cloud (work not written to this Mac) is calculated too."))
                     .font(.caption).foregroundStyle(.secondary)
             }
             .onAppear(perform: refreshAccount)
@@ -278,7 +278,7 @@ struct SettingsView: View {
                             .multilineTextAlignment(.trailing)
                             .frame(width: 80)
                         Stepper("", value: $budgetLimitM, in: 1...2000, step: 5).labelsHidden()
-                        Text(tr("mln vaznli token", "M weighted tokens")).foregroundStyle(.secondary)
+                        Text(tr("mln token (narx bo'yicha)", "M tokens (by price)")).foregroundStyle(.secondary)
                     }
                 }
                 .disabled(!budgetEnabled)

@@ -21,7 +21,7 @@ struct ProjectSavingsView: View {
                 HStack {
                     PillSegments(selection: $period, items: SavingsPeriod.allCases.map { .init(id: $0, title: $0.title) })
                     Spacer()
-                    Text(tr("model va sifat o'zgarmaydi", "model and quality stay the same")).font(.caption).foregroundStyle(.secondary)
+                    Text(tr("Tejash uchun modelni yoki javob sifatini pasaytirish shart emas", "Saving doesn't mean a weaker model or worse answers")).font(.caption).foregroundStyle(.secondary)
                 }
 
                 if reports.isEmpty {
@@ -48,7 +48,8 @@ struct ProjectSavingsView: View {
 
                     VStack(alignment: .leading, spacing: 4) {
                         SectionHeader(title: tr("Loyihalar", "Projects"),
-                                      subtitle: tr("sarf bo'yicha · bosing — sabablar va tuzatish", "by usage · click for causes and fixes"))
+                                      subtitle: tr("sarf bo'yicha · bosing — sabablar va tuzatish", "by usage · click for causes and fixes"),
+                                      trailing: AnyView(barLegend))
                             .padding(.bottom, 6)
                         ForEach(reports) { r in
                             ProjectSavingsRow(report: r, period: period, mode: mode,
@@ -74,6 +75,19 @@ struct ProjectSavingsView: View {
         }
         // Eng ko'p isrofli loyiha sahifa ochilganda yoyiq turadi
         .onAppear { if expanded.isEmpty, let w = worst, w.waste > 0 { expanded = [w.id] } }
+    }
+
+    /// Chiziqdagi ikki rang nimani bildiradi
+    private var barLegend: some View {
+        HStack(spacing: 12) {
+            ForEach([(Brand.warn, tr("isrof", "waste")), (Brand.accent.opacity(0.75), tr("foydali sarf", "useful usage"))], id: \.1) { c, t in
+                HStack(spacing: 5) {
+                    Capsule().fill(c).frame(width: 12, height: 6)
+                    Text(t)
+                }
+            }
+        }
+        .font(.caption).foregroundStyle(.secondary)
     }
 }
 
@@ -118,7 +132,7 @@ private struct ProjectSavingsRow: View {
                             ZStack(alignment: .leading) {
                                 Capsule().fill(Brand.line.opacity(0.5))
                                 Capsule().fill(Brand.accent.opacity(0.75)).frame(width: max(4, g.size.width * share))
-                                Capsule().fill(wasteColor.opacity(0.9))
+                                Capsule().fill(Brand.warn.opacity(0.9))
                                     .frame(width: report.waste > 0 ? max(3, g.size.width * share * report.wasteShare(mode)) : 0)
                             }
                         }

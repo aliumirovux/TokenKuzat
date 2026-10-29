@@ -100,7 +100,7 @@ struct SavingsList: View {
                 Image(systemName: "leaf.fill").foregroundStyle(Brand.ok)
                 Text(tr("Tokenni tejash", "Save tokens")).font(.headline)
                 Spacer()
-                Text(tr("model va sifat o'zgarmaydi", "model and quality stay the same")).font(.caption).foregroundStyle(.secondary)
+                Text(tr("Tejash uchun modelni yoki javob sifatini pasaytirish shart emas", "Saving doesn't mean a weaker model or worse answers")).font(.caption).foregroundStyle(.secondary)
             }
             if let left = SavingsAdvisor.cacheTimeLeft(for: session) {
                 CacheBanner(until: Date().addingTimeInterval(left), context: session.contextTokens)
@@ -184,7 +184,7 @@ struct SavingsChip: View {
         Button { open.toggle() } label: {
             HStack(spacing: 5) {
                 Image(systemName: "leaf.fill")
-                Text(top.flatMap { $0.perCall ? tr("Tejash: ~\(Fmt.tokens($0.tokens))/javob", "Save: ~\(Fmt.tokens($0.tokens))/response") : nil } ?? tr("Tejash · \(tips.count)", "Savings · \(tips.count)"))
+                Text(top.flatMap { $0.perCall ? tr("Har javobda ~\(Fmt.tokens($0.tokens)) tejash mumkin", "Save ~\(Fmt.tokens($0.tokens)) per reply") : nil } ?? tr("Tejash · \(tips.count)", "Savings · \(tips.count)"))
             }
             .font(.caption.weight(.semibold))
             .foregroundStyle(top?.level == .high ? Brand.warn : Brand.ok)
@@ -211,7 +211,7 @@ struct SavingsCard: View {
                     Image(systemName: "leaf.fill").foregroundStyle(Brand.ok)
                     Text(tr("TOKENNI TEJASH · \(session.project.uppercased())", "SAVE TOKENS · \(session.project.uppercased())")).eyebrow(Brand.ok)
                     Spacer()
-                    Text(tr("model va sifat o'zgarmaydi", "model and quality stay the same")).font(.caption).foregroundStyle(.secondary)
+                    Text(tr("Tejash uchun modelni yoki javob sifatini pasaytirish shart emas", "Saving doesn't mean a weaker model or worse answers")).font(.caption).foregroundStyle(.secondary)
                 }
                 ForEach(tips.prefix(2)) { TipRow(tip: $0) }
                 HStack {

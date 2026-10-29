@@ -405,6 +405,12 @@ enum LimitText {
     }
 
     /// Haftalik bashorat jumlasi; tugamaydigan bo'lsa — nil
+    /// «Shu sur'atda 5 soatlik limit ~19:40 da tugaydi — tiklanish 20:50 da»
+    static func fiveHourWarning(_ at: Date, reset: Date) -> String {
+        tr("Shu sur'atda 5 soatlik limit ~\(Fmt.hourMinute.string(from: at)) da tugaydi — tiklanish \(Fmt.hourMinute.string(from: reset)) da",
+           "At this pace the 5-hour limit runs out at ~\(Fmt.hourMinute.string(from: at)) — it resets at \(Fmt.hourMinute.string(from: reset))")
+    }
+
     static func weekWarning(_ f: LimitForecast.Outcome, week: LimitWindow) -> String? {
         guard case .runsOut(let at) = f else { return nil }
         return tr("Shu sur'atda \(dayPart(at)) tugaydi — \(date(week.resetsAt)) tiklanishidan oldin.", "At this pace, runs out \(dayPart(at)) — before the \(date(week.resetsAt)) reset.")
