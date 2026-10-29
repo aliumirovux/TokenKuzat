@@ -77,6 +77,7 @@ struct MainWindow: View {
         switch shown {
         case .overview: OverviewView()
         case .live: LiveView()
+        case .office: OfficeView()
         case .graph: GraphScreen()
         case .sessions: SessionsView()
         case .history: HistoryView()
@@ -132,6 +133,8 @@ private struct Sidebar: View {
                 // Bir vaqtda ishlayotgan sessiyalar — yonma-yon kartalarda
                 navItem(.live, tr("Jonli", "Live"), "rectangle.grid.2x2", key: "2",
                         live: snap.runningSessions)
+                // Loyihalar — xona, agentlar — robot: kim ishlayapti, kim kutyapti
+                navItem(.office, tr("Ofis", "Office"), "building.2", key: "6")
                 navItem(.sessions, tr("Sessiyalar", "Sessions"), "rectangle.stack", key: "3")
                 navItem(.history, tr("Tarix", "History"), "chart.bar", key: "4")
                 // Loyihalar bo'yicha sarf va isrof — tuzatishni Claude'ga topshirish

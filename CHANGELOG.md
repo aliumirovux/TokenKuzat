@@ -1,5 +1,13 @@
 # O'zgarishlar
 
+## 6.42.0 — 2026-10-29
+
+- Yangi «Ofis» sahifasi (⌘6): loyihalar — xona, agentlar — robot bo'lib ishlaydigan 3D bino. Har bir harakat haqiqiy holatdan keladi: asbob ishlatayotgan robot stolda yozadi (monitorda terminal, fayl, veb belgisi), o'ylayotgani qo'lini iyagiga qo'yib yuqoriga qaraydi («…»), ruxsat kutayotgani turib sizga qo'l silkitadi (sariq «!», xona chegarasi sariq), xatoda stoldan o'girilib boshini qashiydi, bo'sh robot divanda qahva ichadi, uzoq tinch turgani uxlaydi («z z»).
+- Robotning yuz-ekranidagi ko'zlar holatga qarab o'zgaradi va ko'z qisadi. Holat o'zgarsa robot joydan joyga sakramaydi — turib, stolcha atrofidan aylanib, o'z stoli yoki divandagi o'z joyiga yuradi. Bo'sh robot ba'zan javon, deraza yoki gul oldiga borib keladi.
+- Asosiy agent quloqchin va mikrofon taqadi: yordamchi (Explore, Plan…) ishga tushsa, unga o'girilib qo'li bilan ko'rsatadi, «→ Explore» pufakchasi chiqadi va binafsha karta uchib boradi; yordamchi tugatsa — xursand sakraydi va yashil «✓ Tayyor» kartasini qaytaradi.
+- Kuzatuvchi dron (TokenKuzat'ning o'zi) yo'lak ustida aylanadi; ruxsat yoki xato bo'lsa o'sha robot ustiga uchib, nur tushiradi. Dronni bosing — e'tibor kerak xonalarni aytadi.
+- Robotni bosish — sessiya xaritasi ochiladi; pastdagi xona tugmasi yoki xona yorlig'i — kamera o'sha xonaga uchadi; «Butun ofis» — qaytadi. Sudrab aylantiriladi, chimdib yoki g'ildirak bilan yaqinlashtiriladi. Deraza ortidagi yorug'lik — hozirgi vaqt: kechasi xona chiroqlari va monitorlar yonadi, hech kim ishlamasa xona qorong'i. Reduce Motion yoki yengil rejimda robotlar joyida turadi; oyna ko'rinmasa chizish to'xtaydi.
+
 ## 6.41.0 — 2026-10-29
 
 - Token kartasi (Xarita va Xulosa): asosiy agent uchun pastda kontekst chizig'i qo'shildi — «Kontekst ▬▬▬ 168K / 200K». Oddiy holatda xira, 80% dan sariq, 92% dan qizil bo'ladi; ustiga olib borilsa foizi va nima uchun muhimligi chiqadi. Kontekst — sessiyaning hozirgi holati, eski so'rov tanlansa ham o'zgarmaydi.
