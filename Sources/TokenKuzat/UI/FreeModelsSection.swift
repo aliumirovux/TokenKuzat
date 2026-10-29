@@ -113,6 +113,7 @@ struct FreeModelsSection: View {
         saved = false
         freeFallback = false
         check = nil
+        error = nil
     }
 
     private func runCheck() {
@@ -124,6 +125,7 @@ struct FreeModelsSection: View {
     }
 
     private func openNow() {
+        error = nil
         let sess = FreeFallback.source(in: store.snap)
         let resets = [store.snap.limits?.fiveHour, store.snap.limits?.sevenDay].compactMap { $0 }
             .filter { $0.usedPercentage >= 99.5 }.map(\.resetsAt).max()

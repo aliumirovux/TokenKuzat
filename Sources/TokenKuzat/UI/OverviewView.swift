@@ -100,7 +100,7 @@ struct LimitHero: View {
             }
             // Asosiy: ikki katta karta — ikkalasi ham «ishlatildi», Claude sahifasidagidek
             AdaptiveStack(spacing: 16) {
-                LimitCard(title: tr("5 soatlik limit", "5-hour limit"), subtitle: tr("har 5 soatda yangilanadi", "renews every 5 hours"), window: window,
+                LimitCard(title: tr("5 soatlik limit", "5-hour limit"), subtitle: tr("birinchi xabardan 5 soat o'tib yangilanadi", "renews 5 hours after the first message"), window: window,
                           columns: hourColumns, columnsTitle: tr("soatlar bo'yicha", "by hour"))
                 if let week {
                     LimitCard(title: tr("Haftalik limit", "Weekly limit"), subtitle: tr("har 7 kunda yangilanadi", "renews every 7 days"), window: week,
@@ -322,7 +322,7 @@ private struct ConnectHero: View {
                 Text(tr("Claude'ning haqiqiy limitini ko'ring", "See your real Claude limits")).font(.headline).foregroundStyle(.white)
                 Text(tr("5 soatlik va haftalik limit qancha qolgani, qachon tiklanishi va «shu sur'atda qachon tugaydi».", "How much of the 5-hour and weekly limits is left, when they reset, and when you'll run out at this pace."))
                     .font(.callout).foregroundStyle(Brand.inkDim).frame(maxWidth: 340, alignment: .leading)
-                Button(tr("Claude Code'ga ulash…", "Connect to Claude Code…")) { WindowManager.shared.show(.settings) }
+                Button(tr("Limitlarni ulash…", "Connect limits…")) { WindowManager.shared.show(.settings) }
                     .buttonStyle(.borderedProminent).tint(Brand.inkFill).padding(.top, 4)
             }
         }

@@ -38,6 +38,8 @@ public struct AgentSnap: Identifiable, Sendable {
     public var bigResults: [BigResult] = []
     /// Terminal buyruqlarida tilga olingan rasm/HTML/PDF yo'llari → oxirgi marta («Natijalar»)
     public var outputs: [String: Date] = [:]
+    /// Birinchi chaqiruvdagi kontekst. `usage` uzun sessiyada boshidan kesiladi — bu qiymat saqlanib qoladi
+    public var startContext: Int?
 
     public var toolsLine: String {
         topTools.prefix(3).map { "\($0.name) \($0.count)" }.joined(separator: " · ")

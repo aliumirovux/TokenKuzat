@@ -188,7 +188,7 @@ struct SettingsView: View {
                         Label(tr("Ulangan", "Connected"), systemImage: "checkmark.circle.fill").font(.caption).foregroundStyle(Brand.ok)
                         Button(tr("Uzish", "Disconnect")) { toggleHook(false) }.buttonStyle(.link)
                     } else {
-                        Button(tr("Claude Code'ga ulash", "Connect to Claude Code")) { toggleHook(true) }
+                        Button(tr("Ruxsat xabarini ulash", "Connect permission alerts")) { toggleHook(true) }
                     }
                 }
                 if let hookError {
@@ -270,7 +270,7 @@ struct SettingsView: View {
                     if statusLineInstalled {
                         Button(tr("Uzish", "Disconnect")) { toggleStatusLine(false) }
                     } else {
-                        Button(tr("Claude Code'ga ulash", "Connect to Claude Code")) { toggleStatusLine(true) }.buttonStyle(.borderedProminent)
+                        Button(tr("Limitlarni ulash", "Connect limits")) { toggleStatusLine(true) }.buttonStyle(.borderedProminent)
                     }
                     Spacer()
                     Button(tr("settings.json'ni ko'rsatish", "Show settings.json")) {

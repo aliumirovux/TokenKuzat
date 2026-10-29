@@ -45,7 +45,7 @@ Xato bo'lsa:
 ## 4. Foydalanuvchiga ayting
 
 - Menyu satrining o'ng tomonida Token Kuzatuv belgisi paydo bo'ldi; katta oyna ham ochildi. Birinchi ochilishda macOS bildirishnomalarga ruxsat so'raydi — «Allow».
-- Ixtiyoriy, ilovaning **Sozlamalar** bo'limida: «Claude Code'ga ulash» — haqiqiy 5 soatlik va haftalik limit foizi; ruxsat kutish ogohlantirishlari. Ikkalasi ham `~/.claude/settings.json` ga yozadi (zaxira nusxa bilan) va «Uzish» bilan qaytariladi.
+- Ixtiyoriy, ilovaning **Sozlamalar** bo'limida: «Limitlarni ulash» — haqiqiy 5 soatlik va haftalik limit foizi; «Ruxsat xabarini ulash» — ruxsat kutish ogohlantirishlari. Ikkalasi ham `~/.claude/settings.json` ga yozadi (zaxira nusxa bilan) va «Uzish» bilan qaytariladi.
 - Claude'dan to'g'ridan-to'g'ri so'rash mumkin («bugun qancha token ketdi?», «qaysi sessiya ko'p sarflayapti?», «limitim qancha qoldi?»). Buning uchun MCP asboblari ulanishi kerak: `/mcp` buyrug'ida `tokenkuzat` serverini qayta ulang yoki Claude Code'ni qayta oching.
 - Yangilash: `/plugin marketplace update tokenkuzat`, keyin yana `/tokenkuzat:install`.
 - Ilova internetga hech narsa yubormaydi — faqat shu Mac'dagi Claude Code fayllarini o'qiydi.

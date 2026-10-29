@@ -99,7 +99,7 @@ public enum SavingsAdvisor {
 
     /// Birinchi chaqiruvdagi kontekst: tizim ko'rsatmalari, asboblar, CLAUDE.md, ulangan xizmatlar
     public static func startContext(for s: SessionSnap) -> Int? {
-        s.main?.usage.first.map(\.context).flatMap { $0 > 0 ? $0 : nil }
+        (s.main?.startContext ?? s.main?.usage.first?.context).flatMap { $0 > 0 ? $0 : nil }
     }
 
     /// Natija keyingi nechta chaqiruvda qayta o'qilgani × hajmi. /compact (kontekst keskin kamaygan) da to'xtaydi.

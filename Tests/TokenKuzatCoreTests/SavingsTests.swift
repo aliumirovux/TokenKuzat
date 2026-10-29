@@ -15,11 +15,12 @@ final class SavingsTests: XCTestCase {
     }
 
     private func session(context: Int, steps: [StepSnap], calls: Int = 60, usage: [UsagePoint] = [],
-                         bigResults: [BigResult] = []) -> SessionSnap {
-        let main = AgentSnap(id: "s/main", title: "Asosiy agent", subtitle: "Opus", kind: "", isMain: true,
+                         bigResults: [BigResult] = [], startContext: Int? = nil) -> SessionSnap {
+        var main = AgentSnap(id: "s/main", title: "Asosiy agent", subtitle: "Opus", kind: "", isMain: true,
                              tokens: TokenCounts(), calls: calls, topTools: [], lastAction: "", state: .idle,
                              lastActivity: t0, firstActivity: t0, steps: steps, resources: [], usage: usage,
                              bigResults: bigResults)
+        main.startContext = startContext
         let turn = TurnSnap(id: 1, prompt: "Xaritani yangila", start: t0, end: t0.addingTimeInterval(60),
                             tokens: TokenCounts(), steps: steps.count, errors: 0, active: false)
         return SessionSnap(id: "s", project: "Demo", title: "t", model: "Opus", contextTokens: context,
@@ -33,6 +34,14 @@ final class SavingsTests: XCTestCase {
         XCTAssertEqual(tip.level, .high)
         XCTAssertEqual(tip.tokens, 500_000 - SavingsAdvisor.baseline)
         XCTAssertTrue(tip.perCall)
+    }
+
+    func testStartContextSurvivesTrimmedUsage() {
+        let usage = [point(5000, context: 380_000)]
+        XCTAssertEqual(SavingsAdvisor.startContext(for: session(context: 400_000, steps: [], usage: usage)), 380_000)
+        // Uzun sessiyada `usage` boshi kesilgan — boshlang'ich kontekst alohida saqlanadi
+        let trimmed = session(context: 400_000, steps: [], usage: usage, startContext: 30_000)
+        XCTAssertEqual(SavingsAdvisor.startContext(for: trimmed), 30_000)
     }
 
     func testSmallContextHasNoTip() {

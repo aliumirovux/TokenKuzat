@@ -308,6 +308,7 @@ public final class Engine {
         if let ts = ev.timestamp {
             session.usageLog.append((ts, c))
             agent.usage.append(UsagePoint(date: ts, tokens: c, longCache: a.longCache))
+            if agent.startContext == nil { agent.startContext = agent.usage.last?.context }
             if agent.usage.count > 3000 { agent.usage.removeFirst(agent.usage.count - 2000) }
         }
         sourceUsage[fs.rootIndex, default: 0] += 1
@@ -452,7 +453,7 @@ public final class Engine {
                     state: st, lastActivity: a.lastActivity, firstActivity: a.firstActivity,
                     steps: a.steps.suffix(150).map { $0.snap(now: now, turn: Engine.turnIndex(starts, $0.start)) },
                     resources: a.resourceGroups(now: now),
-                    usage: a.usage, bigResults: a.bigResults, outputs: a.outputs))
+                    usage: a.usage, bigResults: a.bigResults, outputs: a.outputs, startContext: a.startContext))
             }
             if best != .idle { snap.activeSessions += 1 }
             if best == .running { snap.runningSessions += 1 }
@@ -654,6 +655,8 @@ private final class AgentAcc {
     var metaAttempts = 0
     var steps: [StepAcc] = []
     var usage: [UsagePoint] = []
+    /// `usage` kesilganda ham sessiya boshidagi kontekst yo'qolmasin
+    var startContext: Int?
     var bigResults: [BigResult] = []
     /// Terminal buyruqlarida tilga olingan rasm/HTML/PDF yo'llari → oxirgi marta
     var outputs: [String: Date] = [:]

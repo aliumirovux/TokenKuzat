@@ -48,11 +48,15 @@ enum MCPServer {
             let name = params["name"] as? String ?? ""
             let args = params["arguments"] as? [String: Any] ?? [:]
             if name == freeTool["name"] as? String {
-                let (text, failed) = askFree(args)
-                return ok(id, ["content": [["type": "text", "text": text]], "isError": failed])
+                // Bepul model 120 s gacha javob berishi mumkin — shu vaqtda boshqa so'rovlar kutib qolmasin
+                DispatchQueue.global(qos: .userInitiated).async {
+                    let (text, failed) = askFree(args)
+                    send(ok(id, ["content": [["type": "text", "text": text]], "isError": failed]))
+                }
+                return nil
             }
             guard let result = call(name, args) else {
-                return ok(id, ["content": [["type": "text", "text": "Noma'lum asbob: \(name)"]], "isError": true])
+                return ok(id, ["content": [["type": "text", "text": "Unknown tool: \(name)"]], "isError": true])
             }
             let text = (try? JSONSerialization.data(withJSONObject: result, options: [.prettyPrinted, .sortedKeys]))
                 .flatMap { String(data: $0, encoding: .utf8) } ?? "{}"
@@ -66,10 +70,15 @@ enum MCPServer {
         ["jsonrpc": "2.0", "id": id, "result": result]
     }
 
+    /// Bepul model javobi boshqa oqimdan yoziladi — qatorlar aralashmasin
+    private static let output = NSLock()
+
     private static func send(_ o: [String: Any]) {
         guard let data = try? JSONSerialization.data(withJSONObject: o),
               let s = String(data: data, encoding: .utf8) else { return }
+        output.lock()
         print(s)
+        output.unlock()
     }
 
     // MARK: Asboblar
@@ -159,7 +168,9 @@ enum MCPServer {
         if let err = out.2 { return ("FreeLLMAPI is not reachable at \(c.url): \(err.localizedDescription)", true) }
         let http = out.1 as? HTTPURLResponse
         guard let data = out.0, http?.statusCode == 200, let reply = FreeModels.chatReply(data) else {
-            let why = out.0.flatMap(FreeModels.errorText) ?? "HTTP \(http?.statusCode ?? 0)"
+            var why = out.0.flatMap(FreeModels.errorText) ?? "HTTP \(http?.statusCode ?? 0)"
+            // Server xato matnida kalitni qaytarsa, u Claude kontekstiga tushmasin
+            if !c.key.isEmpty { why = why.replacingOccurrences(of: c.key, with: "***") }
             return ("FreeLLMAPI error: \(why)", true)
         }
         // Qaysi provayder javob bergani: «X-Routed-Via: groq/llama-…»
@@ -216,7 +227,7 @@ enum MCPServer {
             if let p = l.plan { lim["plan"] = p }
             o["limits"] = lim
         } else {
-            o["limits"] = "Ulanmagan: Token Kuzatuv → Sozlamalar → «Claude Code'ga ulash»"
+            o["limits"] = "Not connected: Token Kuzatuv → Settings → «Connect limits»"
         }
         if let x = s.outside {
             func r(_ v: Double) -> Double { (v * 10).rounded() / 10 }

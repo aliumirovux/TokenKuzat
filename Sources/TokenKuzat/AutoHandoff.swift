@@ -105,9 +105,13 @@ enum AutoHandoff {
             let missing = tr("Token Kuzatuv: «claude» buyrug'i topilmadi. Claude Code'ni o'rnating yoki PATH'ga qo'shing (~/.zprofile).",
                              "Token Kuzatuv: the «claude» command wasn't found. Install Claude Code or add it to PATH (~/.zprofile).")
             // Ilova Claude sessiyasidan ishga tushirilgan bo'lsa, CLAUDE_* o'zgaruvchilari meros qoladi va yangi sessiya
-            // o'zini «bola sessiya» deb biladi (tarix saqlanmaydi) — ularni tozalaymiz
+            // o'zini «bola sessiya» deb biladi (tarix saqlanmaydi) — ularni tozalaymiz. Profil fayllari tozalashdan keyin
+            // o'qiladi: foydalanuvchining o'zi yozgan CLAUDE_CONFIG_DIR, CLAUDE_CODE_* va h.k. saqlanib qoladi
             let extra = prelude.map { $0 + "\n" } ?? ""
-            let script = "#!/bin/zsh -l\nunset -m 'CLAUDE*'\n\(extra)\(read)rm -f \(quote(url.path)) \(quote(promptURL.path))\n"
+            let profile = "unset -m 'CLAUDE*'\n"
+                + "[[ -r \"${ZDOTDIR:-$HOME}/.zshenv\" ]] && source \"${ZDOTDIR:-$HOME}/.zshenv\"\n"
+                + "for f in /etc/zprofile \"${ZDOTDIR:-$HOME}/.zprofile\" /etc/zlogin \"${ZDOTDIR:-$HOME}/.zlogin\"; do [[ -r $f ]] && source $f; done\n"
+            let script = "#!/bin/zsh -lf\n\(profile)\(extra)\(read)rm -f \(quote(url.path)) \(quote(promptURL.path))\n"
                 + "command -v claude >/dev/null || { echo \(quote(missing)); exit 1; }\n"
                 + "cd \(quote(dir)) && \(run)\n"
             try script.write(to: url, atomically: true, encoding: .utf8)

@@ -1,5 +1,14 @@
 # O'zgarishlar
 
+## 6.56.0 — 2026-10-30
+
+- `ask_free_model`: bepul model javobini kutayotganda (120 soniyagacha) boshqa MCP so'rovlari endi navbatda turmaydi. Server xato matnida kalitni qaytarsa, u yashiriladi va Claude'ga tushmaydi. MCP xato matnlari inglizcha.
+- Sozlamalarda ikki xil «Claude Code'ga ulash» tugmasi endi nomi bilan ajraladi: «Limitlarni ulash» (status line — haqiqiy limit foizi) va «Ruxsat xabarini ulash» (ruxsat kutish ogohlantirishi).
+- 5 soatlik limit kartasida «har 5 soatda yangilanadi» o'rniga «birinchi xabardan 5 soat o'tib yangilanadi».
+- «Bepul modellar» bo'limidagi eski xato yozuvi qayta urinishda yoki sozlama o'chirilganda tozalanadi.
+- Terminal'da yangi sessiya ochilganda faqat meros qolgan `CLAUDE_*` o'zgaruvchilari tozalanadi; profil faylingizdagi `CLAUDE_CONFIG_DIR`, `CLAUDE_CODE_*` kabi sozlamalar saqlanib qoladi.
+- Juda uzun sessiyada «kontekst ~X dan boshlanadi» va tejash hisobi endi sessiyaning haqiqiy boshidan olinadi.
+
 ## 6.55.0 — 2026-10-30
 
 - Eski sessiyadan yo'naltirishda yangi sessiya Claude ilovasida ochilsa, «xabaringiz yozib qo'yildi — u yerda Enter bosing» deyiladi (Terminal'da — «yuborildi», chunki u yerda xabar o'zi ketadi).
