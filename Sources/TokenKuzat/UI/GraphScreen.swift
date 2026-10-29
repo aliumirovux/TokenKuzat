@@ -46,6 +46,7 @@ struct GraphScreen: View {
     /// Tor oynada tafsilotlar paneli xarita ustida ochiladi (sukut bo'yicha yopiq) — xarita siqilmaydi
     @State private var narrowInspector = false
     @AppStorage(Pref.mapOnly) private var mapOnly = false
+    @Namespace private var focusTabNS
     /// «Faqat xarita» (Xulosa tabida — «Faqat sxema»): sarlavha, vaqt chizig'i, tablar va panel yashiriladi
     private var mapFocus: Bool { mapOnly && ["map", "summary"].contains(currentTab) }
     @State private var contentWidth: CGFloat = 1200
@@ -197,13 +198,18 @@ struct GraphScreen: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        // To'liq ko'rinishda ham ishlayotgan sessiyalar ko'rinadi — kanvas tepasida, o'rtada
+        // To'liq ko'rinishda ham kanvas tepasida: chapda Xarita/Xulosa tablari, o'ngda ishlayotgan sessiyalar (shisha kapsulalarda)
         .overlay(alignment: .top) {
             if mapFocus {
-                sessionsBar(framed: true)
-                    .padding(.top, 14).padding(.horizontal, 90)
-                    .ignoresSafeArea(.container, edges: .top)
-                    .transition(.opacity)
+                HStack(spacing: 12) {
+                    focusTabs
+                    Spacer(minLength: 0)
+                    sessionsBar(framed: true)
+                }
+                // Chapda — oyna tugmalari, o'ngda — to'liq rejimdan chiqish tugmasi
+                .padding(.top, 12).padding(.leading, 84).padding(.trailing, 62)
+                .ignoresSafeArea(.container, edges: .top)
+                .transition(.opacity)
             }
         }
             if let session, panelAvailable && !isNarrow && showInspector {
@@ -266,6 +272,41 @@ struct GraphScreen: View {
             Spacer(minLength: 16)
             sessionsBar()
         }
+    }
+
+    /// To'liq rejimdagi tablar: faqat Xarita va Xulosa (Fayllar va Natijalarda to'liq rejim yo'q) — shisha kapsulada,
+    /// tanlangani yorug' tabletka bilan, u tablar orasida suzib o'tadi
+    private var focusTabs: some View {
+        HStack(spacing: 2) {
+            focusTab("map", tr("Xarita", "Map"), "point.3.connected.trianglepath.dotted")
+            focusTab("summary", tr("Xulosa", "Summary"), "circle.hexagongrid")
+        }
+        .padding(4)
+        .glassCapsule()
+        .shadow(color: .black.opacity(0.35), radius: 18, y: 8)
+        .fixedSize()
+    }
+
+    private func focusTab(_ id: String, _ title: String, _ symbol: String) -> some View {
+        let on = currentTab == id
+        return Button {
+            withAnimation(.spring(response: 0.38, dampingFraction: 0.82)) { graphMode = "flow"; flowStyle = id }
+        } label: {
+            Label(title, systemImage: symbol)
+                .font(.system(size: 12.5, weight: on ? .semibold : .medium))
+                .foregroundStyle(on ? Color.primary : Color.secondary)
+                .padding(.horizontal, 14).frame(height: 30)
+                .background {
+                    if on {
+                        Capsule().fill(.white.opacity(0.13))
+                            .overlay(Capsule().strokeBorder(.white.opacity(0.18), lineWidth: 0.5))
+                            .shadow(color: .black.opacity(0.18), radius: 4, y: 1)
+                            .matchedGeometryEffect(id: "focusTab", in: focusTabNS)
+                    }
+                }
+                .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
     }
 
     /// Ishlayotgan sessiyalar — tablar yonida, «Faqat xarita/sxema»da esa kanvas tepasida

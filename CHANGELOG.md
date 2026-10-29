@@ -1,5 +1,9 @@
 # O'zgarishlar
 
+## 6.21.3 — 2026-10-29
+
+- To'liq rejimda (⇧⌘F) tepada chapda Xarita / Xulosa tablari — shisha kapsulada, tanlangani yorug' tabletka bilan suzib o'tadi; o'ngda ishlayotgan sessiyalar. Endi to'liq rejimdan chiqmasdan ko'rinish almashtiriladi.
+
 ## 6.21.2 — 2026-10-29
 
 - Ishlayotgan sessiyalar qatori — Apple Liquid Glass uslubida (macOS 26+ da haqiqiy shisha, eskisida shaffof material): bitta kapsula, dumaloq loyiha belgilari, tanlangan sessiya ichida yorug' «tabletka» va u bosilganda sessiyalar orasida suzib o'tadi; hover — yengil yoritish. «Ishlayapti» so'zi o'rnida yonib turgan yashil nuqta.
