@@ -147,6 +147,11 @@ struct GraphScreen: View {
                                        },
                                        interactive: !replayOn)
                     }
+                    .overlay(alignment: .topLeading) {
+                        if !chain.allSatisfy({ $0.turns.isEmpty }) {
+                            FlowTokenHUD(model: flow, agentId: currentSelection(session)?.agentId, mode: mode, floating: mapFocus)
+                        }
+                    }
                     // So'rovsiz sessiya (faqat yordamchi agentlar yoki tizim xabarlari) — bo'sh kanvas o'rniga tushuntirish
                     .overlay {
                         if chain.allSatisfy({ $0.turns.isEmpty }) {

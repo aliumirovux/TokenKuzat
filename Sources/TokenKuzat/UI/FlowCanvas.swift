@@ -311,11 +311,8 @@ struct FlowCanvas: View {
                 .overlay(alignment: .bottomTrailing) { zoomControls(layout, vs).padding(12) }
                 .overlay(alignment: .bottomLeading) { FlowLegend().padding(12) }
                 .overlay(alignment: .topTrailing) { focusButton.padding(12) }
-                // To'liq rejimda kanvas tepasida Xarita/Xulosa tablari turadi — karta ularning chap cheti bilan
-                // bir chiziqda, 12 pt pastda (tablar: oynada 84 pt chapdan, 12 pt tepadan, balandligi 34; kanvas 6 pt ichkarida)
                 .overlay(alignment: .topLeading) {
                     FlowTokenHUD(model: model, agentId: selectedAgent, mode: mode, floating: mapOnly)
-                        .padding(.leading, mapOnly ? 78 : 12).padding(.top, mapOnly ? 52 : 12)
                 }
                 .onAppear {
                     viewport = vs
@@ -815,8 +812,9 @@ private struct ResultNode: View {
     }
 }
 
-/// Chap tepa burchak: tanlangan agent (odatda asosiy) shu so'rovda qancha token sarflagani — Apple vidjetlari uslubida
-private struct FlowTokenHUD: View {
+/// Chap tepa burchak: tanlangan agent (odatda asosiy) shu so'rovda qancha token sarflagani — Apple vidjetlari uslubida.
+/// Xulosa va Xarita kanvaslarida bir xil turadi
+struct FlowTokenHUD: View {
     let model: FlowModel
     let agentId: String?
     let mode: CountMode
@@ -868,6 +866,9 @@ private struct FlowTokenHUD: View {
             .padding(.horizontal, 14).padding(.top, 10).padding(.bottom, 11)
             .glassCard(radius: 16)
             .shadow(color: .black.opacity(floating ? 0.35 : 0), radius: 18, y: 8)
+            // To'liq rejimda kanvas tepasida Xarita/Xulosa tablari turadi — karta ularning chap cheti bilan
+            // bir chiziqda, 12 pt pastda (tablar: oynada 84 pt chapdan, 12 pt tepadan, balandligi 34; kanvas 6 pt ichkarida)
+            .padding(.leading, floating ? 78 : 12).padding(.top, floating ? 52 : 12)
             .help(model.scoped ? tr("Bu agent shu so'rovda sarflagan token", "Tokens this agent used in this prompt")
                                : tr("Bu agent butun sessiyada sarflagan token", "Tokens this agent used in the whole session"))
         }

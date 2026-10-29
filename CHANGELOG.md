@@ -1,5 +1,9 @@
 # O'zgarishlar
 
+## 6.40.0 — 2026-10-29
+
+- Xarita: chap tepa burchakda ham token kartasi chiqadi — Xulosadagi bilan bir xil: «✦ Asosiy agent · shu so'rovda», raqam va yordamchilar bo'lsa ulush chizig'i. To'liq rejimda Xarita/Xulosa tablari ostida, oddiy rejimda kanvas chetidan 12 pt ichkarida turadi. So'rovsiz sessiyada karta chiqmaydi.
+
 ## 6.39.1 — 2026-10-29
 
 - Xulosa: token kartasining joylashuvi tuzatildi. To'liq rejimda karta Xarita/Xulosa tablari bilan bir chiziqda turadi: chap cheti tablarnikiga to'g'ri keladi, ulardan 12 pt pastda joylashgan, soyasi ham tablarniki bilan bir xil. Oddiy rejimda karta kanvas chetidan 12 pt ichkarida, xuddi o'ng burchakdagi tugma kabi. Karta ixchamroq bo'ldi: raqam 38 dan 30 pt ga kichraydi, burchaklar 16 pt — endi u tablardan og'ir ko'rinmaydi.
