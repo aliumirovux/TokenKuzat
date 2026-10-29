@@ -27,6 +27,10 @@ enum Pref {
     static let notifySavings = "notifySavings"
     /// Isrof ogohlantirishlari: sessiya konteksti 200K dan oshsa va loyiha bugun ko'p isrof qilsa
     static let notifyWaste = "notifyWaste"
+    /// Avtomatik yangi sessiya: kontekst chegaradan oshgan sessiya javobni tugatganda xulosa bilan yangi sessiya ochiladi
+    static let autoHandoff = "autoHandoff"
+    static let autoHandoffK = "autoHandoffK"
+    static let autoHandoffTarget = "autoHandoffTarget"
     /// Yengil rejim: bezak animatsiyalari (robot, aylanuvchi chegaralar, oqim nuqtalari) to'xtaydi — protsessor tejaladi
     static let lightMode = "lightMode"
     /// «Faqat xarita»: sessiya sahifasida yon menyu, sarlavha va tablar yashiriladi — oynada faqat xarita
@@ -51,6 +55,9 @@ enum Pref {
             notifyContext: true,
             notifySavings: true,
             notifyWaste: true,
+            autoHandoff: true,
+            autoHandoffK: AutoHandoffRule.defaultThresholdK,
+            autoHandoffTarget: AutoHandoffTarget.app.rawValue,
         ])
     }
 }

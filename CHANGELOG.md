@@ -1,5 +1,9 @@
 # O'zgarishlar
 
+## 6.25.0 — 2026-10-29
+
+- Avtomatik yangi sessiya (Sozlamalar → Bildirishnomalar, sukut bo'yicha yoqilgan): sessiya konteksti chegaradan (150K / **200K** / 300K / 500K) oshgan bo'lsa, Claude javobni tugatgan zahoti xulosa saqlanadi va yangi sessiya ochiladi — Claude ilovasida (`claude://code/new`) yoki Terminalda (`claude`, loyiha papkasida). Xulosani SessionStart hook yangi sessiyaga o'zi beradi. Ish o'rtasida hech qachon to'xtatilmaydi, ruxsat kutayotgan sessiyada ishlamaydi, har sessiyada bir marta; ilova ochilgandagi mavjud sessiyalar uchun emas. Bildirishnoma keladi.
+
 ## 6.24.0 — 2026-10-29
 
 - Menyu satri paneli: bugungi isrof qatori — «Bugun isrof ~9.6M · 45%», eng ko'p isrof qilgan loyiha; bosilsa «Tejash» sahifasi ochiladi. Ma'lumot har 5 daqiqada yoziladigan kunlik yakundan olinadi (panel ochilganda qayta hisoblanmaydi); isrof bo'lmasa qator ko'rinmaydi.

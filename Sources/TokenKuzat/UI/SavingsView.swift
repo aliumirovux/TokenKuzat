@@ -78,15 +78,12 @@ struct HandoffButton: View {
     }
 
     private func arm() {
-        let text = SavingsAdvisor.handoff(for: session)
         let pb = NSPasteboard.general
         pb.clearContents()
-        pb.setString(text, forType: .string)
-        do {
-            try SessionStartHook.install()
-            try HandoffStore.arm(PendingHandoff(text: text, sourceSession: session.id, cwd: session.cwd, created: Date()))
+        pb.setString(SavingsAdvisor.handoff(for: session), forType: .string)
+        if AutoHandoff.arm(session) {
             withAnimation(Motion.snappy) { armed = true; delivered = false; failed = false }
-        } catch {
+        } else {
             withAnimation(Motion.snappy) { failed = true }
         }
     }

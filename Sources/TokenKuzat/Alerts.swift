@@ -52,6 +52,36 @@ final class Alerts: NSObject, UNUserNotificationCenterDelegate {
         evaluateSavings(s)
         evaluateBigContext(s)
         evaluateProjectWaste(s)
+        evaluateAutoHandoff(s)
+    }
+
+    // MARK: - Avtomatik yangi sessiya
+
+    private var autoPrevious: [String: AgentState] = [:]
+    private var autoDone: Set<String> = []
+
+    /// Kontekst chegaradan oshgan sessiya javobini tugatdi — xulosa saqlanadi va yangi sessiya ochiladi (har sessiyada bir marta)
+    private func evaluateAutoHandoff(_ s: Snapshot) {
+        defer { autoPrevious = Dictionary(s.sessions.map { ($0.id, $0.state) }, uniquingKeysWith: { a, _ in a }) }
+        let d = UserDefaults.standard
+        guard s.initialScanDone, d.bool(forKey: Pref.autoHandoff) else { return }
+        let k = d.double(forKey: Pref.autoHandoffK)
+        for sess in s.sessions where AutoHandoffRule.shouldTrigger(
+            previous: autoPrevious[sess.id], state: sess.state, context: sess.contextTokens, thresholdK: k,
+            waitingPermission: s.permissionWaits[sess.id] != nil, alreadyDone: autoDone.contains(sess.id)) {
+            autoDone.insert(sess.id)
+            let target = AutoHandoffTarget(rawValue: d.string(forKey: Pref.autoHandoffTarget) ?? "") ?? .app
+            let ok = AutoHandoff.start(sess, target: target)
+            let start = SavingsAdvisor.startContext(for: sess) ?? SavingsAdvisor.baseline
+            post(tr("\(sess.project): yangi sessiya ochildi", "\(sess.project): new session opened"),
+                 ok ? tr("Kontekst \(Fmt.tokens(sess.contextTokens)) edi. Xulosa tayyor — yangi sessiyada birinchi xabarni yozing, "
+                         + "Claude ishni qayerda to'xtaganini o'zi oladi (kontekst ~\(Fmt.tokens(start)) dan boshlanadi).",
+                         "Context was \(Fmt.tokens(sess.contextTokens)). The summary is ready — send your first message in the new session "
+                         + "and Claude picks up where the work stopped (context starts at ~\(Fmt.tokens(start))).")
+                    : tr("Xulosani saqlab bo'lmadi — sessiyani oching va «Yangi sessiyada davom ettirish»ni bosing.",
+                         "Couldn't save the summary — open the session and click «Continue in a new session»."),
+                 session: sess.id)
+        }
     }
 
     // MARK: - Isrof

@@ -21,6 +21,9 @@ struct SettingsView: View {
     @AppStorage(Pref.notifyContext) private var notifyContext = true
     @AppStorage(Pref.notifySavings) private var notifySavings = true
     @AppStorage(Pref.notifyWaste) private var notifyWaste = true
+    @AppStorage(Pref.autoHandoff) private var autoHandoff = true
+    @AppStorage(Pref.autoHandoffK) private var autoHandoffK = AutoHandoffRule.defaultThresholdK
+    @AppStorage(Pref.autoHandoffTarget) private var autoHandoffTarget = AutoHandoffTarget.app.rawValue
     @AppStorage(Pref.lightMode) private var lightMode = false
     @AppStorage(Lang.prefKey) private var language = AppLanguage.system.rawValue
     @State private var hookInstalled = Hooks.isInstalled
@@ -84,6 +87,19 @@ struct SettingsView: View {
                 Toggle(tr("Kontekst 85% to'lganda (tez orada avtomatik xulosa)", "When context is 85% full (auto-summary coming soon)"), isOn: $notifyContext)
                 Toggle(tr("Katta kontekstda yangi mavzu boshlansa — yangi sessiya taklifi (token tejash)", "New topic in a large context — suggest a new session (saves tokens)"), isOn: $notifySavings)
                 Toggle(tr("Isrof: kontekst 200K dan oshsa yoki loyiha bugun sarfining 40%+ ini isrof qilsa", "Waste: context passes 200K, or a project wastes 40%+ of today's usage"), isOn: $notifyWaste)
+                Toggle(isOn: $autoHandoff) {
+                    Text(tr("Kontekst katta bo'lsa — avtomatik yangi sessiya", "Large context — open a new session automatically"))
+                    Text(tr("Claude javobni tugatgach xulosa saqlanadi va yangi sessiya ochiladi; ish o'rtasida to'xtatilmaydi",
+                            "After Claude finishes its reply, a summary is saved and a new session opens; work is never interrupted"))
+                }
+                if autoHandoff {
+                    Picker(tr("…kontekst oshganda", "…when context passes"), selection: $autoHandoffK) {
+                        ForEach(AutoHandoffRule.thresholdOptionsK, id: \.self) { Text(Fmt.tokens($0 * 1000)).tag($0) }
+                    }
+                    Picker(tr("…ochiladi", "…opens"), selection: $autoHandoffTarget) {
+                        ForEach(AutoHandoffTarget.allCases) { Text($0.title).tag($0.rawValue) }
+                    }
+                }
                 if handoffHookInstalled {
                     HStack {
                         Text(tr("Yangi sessiyada davom ettirish (xulosa avtomatik beriladi)", "Continue in a new session (summary passed automatically)"))
