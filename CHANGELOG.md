@@ -1,5 +1,13 @@
 # O'zgarishlar
 
+## 6.52.0 — 2026-10-29
+
+- Bepul modellar (FreeLLMAPI — bepul tariflarni bitta manzilga yig'adigan, o'zingiz o'rnatadigan server). Sozlamalarda yangi «Bepul modellar» bo'limi: manzil va umumiy kalit kiritiladi, ilova serverni tekshiradi va nechta model borligini ko'rsatadi.
+- Claude limiti tugaganda bildirishnomada «Bepul modelda davom etish» tugmasi chiqadi. Bosilsa, Terminal'da Claude Code bepul modelda ochiladi va oxirgi sessiya xulosasi birinchi xabar bo'lib beriladi. Bepul modelga katta o'zgarish, commit yoki push qilishdan oldin so'rash aytiladi. Limit tiklanganda «Claude'da davom etish» tugmasi bepul modeldagi ishni xulosa bilan Claude'ga qaytaradi; Claude avval bepul model nima o'zgartirganini tekshiradi. Claude ilovasidagi sessiyalar Claude'da qoladi.
+- Claude'ga yangi MCP asbobi — `ask_free_model`: tarjima, uzun logni qisqartirish kabi mayda, mustaqil ishlarni bepul modelga beradi va Claude limitini tejaydi. Javob oxirida qaysi model javob bergani yoziladi. Asbob faqat bepul modellar sozlangan bo'lsa ko'rinadi.
+- Bepul model sarfi Claude limitiga qo'shilmaydi: bugungi va 5 soatlik hisobda yo'q, sessiyada model nomi «· bepul model» belgisi bilan ko'rinadi. Bunday sessiyalar avtomatik yangi sessiyaga ko'chirilmaydi.
+- Kalit faqat shu Mac'da, faqat sizga ochiq faylda saqlanadi va faqat kiritilgan manzilga yuboriladi; terminal skriptiga yozilmaydi.
+
 ## 6.51.0 — 2026-10-29
 
 - Sozlamalarda ogohlantirish: Claude Code suhbatni ko'chirish chegarasidan oldin o'zi qisqartiradigan qilib sozlangan bo'lsa, avtomatik ko'chirish bo'limida sariq yozuv chiqadi — «Claude Code suhbatni 150K da o'zi qisqartiradi (autoCompactWindow) — bu ko'chirish chegarasidan (200K) kichik». Ilova bunday qisqartirishni bir marta to'xtatadi, lekin har doim ishonchli bo'lishi uchun chegarani pastroq tanlash tavsiya qilinadi. `~/.claude/settings.json` dagi `autoCompactWindow`, model bo'yicha `modelSettings.<model>.autoCompactWindow` va `CLAUDE_CODE_AUTO_COMPACT_WINDOW` o'qiladi, eng kichigi olinadi; «auto» qiymati aniq son bo'lmagani uchun hisobga olinmaydi.

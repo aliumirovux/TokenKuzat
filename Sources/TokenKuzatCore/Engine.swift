@@ -316,7 +316,8 @@ public final class Engine {
             session.contextPeak = max(session.contextPeak, session.context)
         }
 
-        guard let ts = ev.timestamp else { return }
+        // Bepul model (FreeLLMAPI) sarfi Claude limitiga kirmaydi — kunlik tarix va 5 soatlik hisobga qo'shilmaydi
+        guard let ts = ev.timestamp, FreeModels.isClaude(agent.model) else { return }
         if ts >= historyStart {
             dayTotals[HistoryStore.key(ts, calendar: calendar), default: TokenCounts()].add(c)
         }
@@ -326,6 +327,11 @@ public final class Engine {
             if agent.isMain { b.main.add(c) } else { b.agents.add(c) }
             minutes[minute] = b
         }
+    }
+
+    /// «Opus 5.5»; Claude bo'lmagan model (bepul, FreeLLMAPI orqali) — o'z nomi va belgisi bilan
+    static func modelLabel(_ m: String) -> String {
+        FreeModels.isClaude(m) ? Fmt.model(m) : m + tr(" · bepul model", " · free model")
     }
 
     /// Bir qator ikki marta o'qilsa (fayl qayta yozilgan) — takrorlanmaydi
@@ -434,7 +440,7 @@ public final class Engine {
                 if st == .running { snap.runningAgents += 1 }
                 agentSnaps.append(AgentSnap(
                     id: s.id + "/" + a.key, title: a.title,
-                    subtitle: a.isMain ? Fmt.model(a.model) : a.kind, kind: a.kind,
+                    subtitle: a.isMain ? Engine.modelLabel(a.model) : a.kind, kind: a.kind,
                     isMain: a.isMain, tokens: a.tokens, calls: a.calls,
                     topTools: a.tools.sorted { $0.value > $1.value }.map { (name: $0.key, count: $0.value) },
                     lastAction: a.lastAction.isEmpty ? "—" : a.lastAction,
@@ -454,7 +460,7 @@ public final class Engine {
             }
             sessSnaps.append(SessionSnap(
                 id: s.id, project: s.displayProject, title: s.displayTitle,
-                model: Fmt.model(s.model), contextTokens: s.context,
+                model: Engine.modelLabel(s.model), contextTokens: s.context,
                 tokens: main + sub, mainTokens: main, agentTokens: sub,
                 agents: agentSnaps, lastActivity: la, state: best,
                 turns: turnSnaps(s, starts: starts, active: best != .idle),
@@ -462,7 +468,7 @@ public final class Engine {
                 notes: s.notes.suffix(400).map {
                     NoteSnap(id: $0.id, date: $0.date, kind: $0.kind, text: $0.text, duration: $0.duration,
                              turn: Engine.turnIndex(starts, $0.date).map { $0 + 1 }, agent: $0.agent)
-                }, cwd: s.cwd))
+                }, cwd: s.cwd, isClaude: FreeModels.isClaude(s.model)))
         }
         sessSnaps.sort { ($0.lastActivity ?? .distantPast) > ($1.lastActivity ?? .distantPast) }
         snap.sessions = sessSnaps

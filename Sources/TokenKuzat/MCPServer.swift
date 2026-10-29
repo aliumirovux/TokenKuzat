@@ -42,10 +42,15 @@ enum MCPServer {
         case "ping":
             return ok(id, [String: Any]())
         case "tools/list":
-            return ok(id, ["tools": tools])
+            // Bepul model asbobi faqat FreeLLMAPI sozlangan bo'lsa ko'rinadi
+            return ok(id, ["tools": tools + (FreeModels.load() != nil ? [freeTool] : [])])
         case "tools/call":
             let name = params["name"] as? String ?? ""
             let args = params["arguments"] as? [String: Any] ?? [:]
+            if name == freeTool["name"] as? String {
+                let (text, failed) = askFree(args)
+                return ok(id, ["content": [["type": "text", "text": text]], "isError": failed])
+            }
             guard let result = call(name, args) else {
                 return ok(id, ["content": [["type": "text", "text": "Noma'lum asbob: \(name)"]], "isError": true])
             }
@@ -110,6 +115,54 @@ enum MCPServer {
             ],
         ],
     ]
+
+    private static let freeTool: [String: Any] = [
+        "name": "ask_free_model",
+        "description": "Send a small, self-contained text task to a free model through the user's local FreeLLMAPI gateway, to save the Claude limit: translating text, summarizing a long log or document you paste in, drafting boilerplate prose, classifying or extracting from given text. The free model sees ONLY the prompt (not this conversation or files), is weaker than Claude and may be wrong — put every needed piece of text in the prompt and check the answer before using it. Don't use it for code changes, decisions, or anything needing this conversation's context. Free providers may log or train on inputs: never send secrets, credentials, keys or private/customer data.",
+        "inputSchema": [
+            "type": "object",
+            "properties": [
+                "prompt": ["type": "string", "description": "The complete task with all text the model needs"],
+                "system": ["type": "string", "description": "Optional system instruction (role, output format)"],
+                "model": ["type": "string", "description": "Model id from the gateway; default auto (the gateway picks the best available free model)"],
+                "max_tokens": ["type": "integer", "description": "Optional cap on the answer length"],
+            ],
+            "required": ["prompt"],
+        ],
+    ]
+
+    /// FreeLLMAPI'ning `/v1/chat/completions` iga so'rov. Javob matni va xato bormi
+    private static func askFree(_ args: [String: Any]) -> (String, Bool) {
+        guard let c = FreeModels.load() else {
+            return ("Free models are not set up: Token Kuzatuv → Settings → «Free models».", true)
+        }
+        guard let prompt = args["prompt"] as? String, !prompt.isEmpty else { return ("prompt is required", true) }
+        guard let url = URL(string: FreeModels.rootURL(c.url) + "/v1/chat/completions"),
+              let body = try? JSONSerialization.data(withJSONObject: FreeModels.chatRequest(
+                prompt: prompt, system: args["system"] as? String, model: args["model"] as? String,
+                maxTokens: (args["max_tokens"] as? NSNumber)?.intValue)) else { return ("Bad gateway address: \(c.url)", true) }
+        var req = URLRequest(url: url, timeoutInterval: 120)
+        req.httpMethod = "POST"
+        req.httpBody = body
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.setValue("Bearer \(c.key)", forHTTPHeaderField: "Authorization")
+        var out: (Data?, URLResponse?, Error?) = (nil, nil, nil)
+        let done = DispatchSemaphore(value: 0)
+        URLSession.shared.dataTask(with: req) { out = ($0, $1, $2); done.signal() }.resume()
+        done.wait()
+        if let err = out.2 { return ("FreeLLMAPI is not reachable at \(c.url): \(err.localizedDescription)", true) }
+        let http = out.1 as? HTTPURLResponse
+        guard let data = out.0, http?.statusCode == 200, let reply = FreeModels.chatReply(data) else {
+            let why = out.0.flatMap(FreeModels.errorText) ?? "HTTP \(http?.statusCode ?? 0)"
+            return ("FreeLLMAPI error: \(why)", true)
+        }
+        // Qaysi provayder javob bergani: «X-Routed-Via: groq/llama-…»
+        let served = http?.value(forHTTPHeaderField: "X-Routed-Via") ?? reply.model ?? "unknown"
+        var meta = "[free model: \(served)"
+        if let t = reply.tokens { meta += ", \(t) tokens" }
+        meta += " — not Claude; verify before using]"
+        return (reply.text + "\n\n" + meta, false)
+    }
 
     private static func call(_ name: String, _ args: [String: Any]) -> [String: Any]? {
         let e = engine ?? Engine()

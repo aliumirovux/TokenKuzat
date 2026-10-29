@@ -37,6 +37,8 @@ enum Pref {
     static let autoHandoffTarget = "autoHandoffTarget"
     /// Ko'chirilgan eski sessiyada yozilgan birinchi xabar yangi sessiyaga yo'naltiriladi (UserPromptSubmit hook)
     static let autoHandoffRedirect = "autoHandoffRedirect"
+    /// Claude limiti tugaganda bildirishnomada «Bepul modelda davom etish» (FreeLLMAPI orqali, terminalda)
+    static let freeFallback = "freeFallback"
     /// Yengil rejim: bezak animatsiyalari (robot, aylanuvchi chegaralar, oqim nuqtalari) to'xtaydi — protsessor tejaladi
     static let lightMode = "lightMode"
     /// «Faqat xarita»: sessiya sahifasida yon menyu, sarlavha va tablar yashiriladi — oynada faqat xarita
@@ -67,6 +69,7 @@ enum Pref {
             autoHandoffRedirect: true,
             autoHandoffK: AutoHandoffRule.defaultThresholdK,
             autoHandoffTarget: AutoHandoffTarget.app.rawValue,
+            freeFallback: false,
         ])
     }
 }

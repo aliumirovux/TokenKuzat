@@ -172,6 +172,22 @@ final class EngineTests: XCTestCase {
         XCTAssertTrue(snap.feed.contains { $0.text == "Siz: Testni yoz" })
     }
 
+    /// Bepul model (FreeLLMAPI) sarfi sessiyada ko'rinadi, lekin Claude limiti hisobiga (bugun, 5 soat) qo'shilmaydi
+    func testFreeModelUsageStaysOutOfClaudeTotals() throws {
+        let now = Date()
+        try write("proj/claude.jsonl", [assistant("c1", now.addingTimeInterval(-30), output: 100)])
+        try write("proj/free.jsonl", [assistant("f1", now.addingTimeInterval(-20), output: 70)
+            .replacingOccurrences(of: "claude-opus-5-5", with: "gemini-3.6-flash")])
+        let snap = Engine(config: Engine.Config(roots: [root])).tick(now: now)
+        XCTAssertEqual(snap.today.total, 100)
+        XCTAssertEqual(snap.lastFiveHours.total, 100)
+        let free = try XCTUnwrap(snap.sessions.first { $0.id == "free" })
+        XCTAssertFalse(free.isClaude)
+        XCTAssertEqual(free.tokens.total, 70)
+        XCTAssertEqual(free.model, "gemini-3.6-flash · bepul model")
+        XCTAssertEqual(snap.sessions.first { $0.id == "claude" }?.isClaude, true)
+    }
+
     func testIncrementalTailAndPartialLine() throws {
         let now = Date()
         let url = root.appendingPathComponent("proj/s2.jsonl")

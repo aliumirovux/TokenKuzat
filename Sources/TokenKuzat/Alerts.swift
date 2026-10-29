@@ -20,6 +20,14 @@ final class Alerts: NSObject, UNUserNotificationCenterDelegate {
     func start() {
         guard let center else { return }
         center.delegate = self
+        center.setNotificationCategories([
+            UNNotificationCategory(identifier: Self.freeCategory, actions: [
+                UNNotificationAction(identifier: Self.freeAction, title: tr("Bepul modelda davom etish", "Continue on a free model"), options: []),
+            ], intentIdentifiers: []),
+            UNNotificationCategory(identifier: Self.backCategory, actions: [
+                UNNotificationAction(identifier: Self.backAction, title: tr("Claude'da davom etish", "Continue in Claude"), options: []),
+            ], intentIdentifiers: []),
+        ])
         let d = UserDefaults.standard
         let any = [Pref.notifyFinished, Pref.notifyStuck, Pref.notifyErrors, Pref.notifyRealLimit,
                    Pref.notifyPermission, Pref.notifyContext, Pref.notifyWaste, Pref.notifyCache].contains { d.bool(forKey: $0) }
@@ -40,6 +48,37 @@ final class Alerts: NSObject, UNUserNotificationCenterDelegate {
             self.post(tr("Token Kuzatuv: bildirishnomalar ishlayapti", "Token Kuzatuv: notifications are working"),
                       tr("Claude ishni tugatganda, qadam osilib qolganda yoki xatolar takrorlanganda shunday xabar keladi.",
                          "You'll get a message like this when Claude finishes, a step gets stuck, or errors repeat."))
+        }
+    }
+
+    // MARK: - Bepul modellar
+
+    private static let freeCategory = "free-fallback"
+    private static let freeAction = "free.start"
+    private static let backCategory = "claude-back"
+    private static let backAction = "claude.back"
+
+    /// Limit tugaganda bepul modelda davom etish taklif qilinsinmi: yoqilgan va server sozlangan
+    private var offerFree: Bool {
+        UserDefaults.standard.bool(forKey: Pref.freeFallback) && FreeModels.load() != nil
+    }
+
+    /// Bildirishnomadagi tugma: ish terminalda bepul modelda davom etadi
+    private func startFree(session: String?, resetsAt: Date?) {
+        let sess = FreeFallback.source(in: Store.shared.snap, preferred: session)
+        FreeFallback.start(from: sess, resetsAt: resetsAt) { ok in
+            if !ok {
+                self.post(tr("Bepul modelda ochib bo'lmadi", "Couldn't open on a free model"),
+                          tr("Sozlamalar → «Bepul modellar»da manzil va kalitni tekshiring.", "Check the address and key in Settings → «Free models»."),
+                          section: .settings)
+            }
+        }
+    }
+
+    /// Bildirishnomadagi tugma: bepul modeldagi ish Claude'ga qaytadi
+    private func backToClaude() {
+        FreeFallback.returnToClaude(in: Store.shared.snap) { ok in
+            if !ok { WindowManager.shared.show(.overview) }
         }
     }
 
@@ -152,10 +191,12 @@ final class Alerts: NSObject, UNUserNotificationCenterDelegate {
             return
         }
         let k = d.double(forKey: Pref.autoHandoffK)
+        // Bepul modeldagi sessiyalar (FreeLLMAPI) ko'chirilmaydi: Claude limiti tugagani uchun ochilgan, qisqartirishni Claude Code o'zi qiladi
+        let claude = s.sessions.filter(\.isClaude)
         // Chegaraga yaqin, hali ko'chirilmagan, so'nggi sutkada ishlagan sessiyalar — Claude javob oxirida eslatma yozsin
         let askFrom = HandoffNote.askFrom(thresholdK: k)
         let recent = Date().addingTimeInterval(-86400)
-        updateNoteRequests(Dictionary(s.sessions.filter {
+        updateNoteRequests(Dictionary(claude.filter {
             $0.contextTokens >= askFrom && ($0.lastActivity ?? .distantPast) >= recent
                 && !AutoHandoffRule.alreadyDone(doneAt: autoDoneContext[$0.id], known: autoDone[$0.id] != nil,
                                                 context: $0.contextTokens, thresholdK: k)
@@ -163,7 +204,7 @@ final class Alerts: NSObject, UNUserNotificationCenterDelegate {
         uniquingKeysWith: { a, _ in a }))
         // Hali ko'chirilmagan katta sessiyalar: Claude Code ularni avtomatik qisqartirmoqchi bo'lsa — bir marta to'xtatiladi,
         // o'rniga javob oxirida yangi sessiya ochiladi (aks holda qisqartirish ko'chirishdan oldin kelib, uni yo'qqa chiqarardi)
-        updateCompactGuard(Set(s.sessions.filter {
+        updateCompactGuard(Set(claude.filter {
             $0.contextTokens >= AutoHandoffRule.compactGuardFloor && ($0.lastActivity ?? .distantPast) >= recent
                 && !AutoHandoffRule.alreadyDone(doneAt: autoDoneContext[$0.id], known: autoDone[$0.id] != nil,
                                                 context: $0.contextTokens, thresholdK: k)
@@ -177,7 +218,7 @@ final class Alerts: NSObject, UNUserNotificationCenterDelegate {
                 AutoHandoff.summary(for: sess) { Self.armRedirect(sess, summary: $0) }
             }
         }
-        for sess in s.sessions where AutoHandoffRule.shouldTrigger(
+        for sess in claude where AutoHandoffRule.shouldTrigger(
             previous: autoPrevious[sess.id], state: sess.state, context: sess.contextTokens, thresholdK: k,
             waitingPermission: s.permissionWaits[sess.id] != nil,
             alreadyDone: AutoHandoffRule.alreadyDone(doneAt: autoDoneContext[sess.id], known: autoDone[sess.id] != nil,
@@ -342,9 +383,18 @@ final class Alerts: NSObject, UNUserNotificationCenterDelegate {
             let exhausted = [s.limits?.fiveHour, s.limits?.sevenDay].contains { ($0?.usedPercentage ?? 0) >= 99.5 }
             guard Date().timeIntervalSince(n.date) < 600, !(n.error == "rate_limit" && exhausted),
                   let sess = s.sessions.first(where: { $0.id == id }) else { continue }
-            let (title, body) = Self.failureText(n, limits: s.limits)
-            post("\(sess.project): \(title)", body, session: id, id: "failure-" + id)
+            var (title, body) = Self.failureText(n, limits: s.limits)
+            let free = n.error == "rate_limit" && sess.isClaude && offerFree
+            if free { body += Self.freeHint }
+            post("\(sess.project): \(title)", body, session: id, id: "failure-" + id,
+                 category: free ? Self.freeCategory : nil)
         }
+    }
+
+    /// Limit tugadi xabari oxiriga — bepul model tugmasi haqida
+    private static var freeHint: String {
+        tr(" «Bepul modelda davom etish» (bildirishnoma tugmasi) — ish terminalda bepul modelda davom etadi.",
+           " «Continue on a free model» (notification button) — the work continues in Terminal on a free model.")
     }
 
     static func failureText(_ n: HookNotice, limits: RateLimits?) -> (String, String) {
@@ -395,13 +445,18 @@ final class Alerts: NSObject, UNUserNotificationCenterDelegate {
                 fired["\(name)-80"] = w.resetsAt.timeIntervalSince1970
                 fired["\(name)-95"] = w.resetsAt.timeIntervalSince1970
                 let reset = LimitText.dayTime(w.resetsAt)
+                let free = offerFree
                 post(tr("\(label) Claude limiti tugadi", "\(label) Claude limit reached"),
                      tr("\(reset.prefix(1).uppercased() + reset.dropFirst()) da tiklanadi (\(Self.duration(w.resetsAt.timeIntervalSinceNow)) qoldi). Shu paytgacha Claude javob bermaydi — tiklanganda xabar beraman.",
-                        "Resets \(reset) (in \(Self.duration(w.resetsAt.timeIntervalSinceNow))). Claude won't answer until then — I'll let you know when it resets."),
-                     id: "limit-out-\(name)")
+                        "Resets \(reset) (in \(Self.duration(w.resetsAt.timeIntervalSinceNow))). Claude won't answer until then — I'll let you know when it resets.")
+                        + (free ? Self.freeHint : ""),
+                     id: "limit-out-\(name)", category: free ? Self.freeCategory : nil,
+                     extra: ["resetsAt": w.resetsAt.timeIntervalSince1970])
                 post(tr("\(label) Claude limiti tiklandi", "\(label) Claude limit reset"),
-                     tr("Claude'da yana ishlashingiz mumkin.", "You can use Claude again."),
-                     id: "limit-reset-\(name)", after: w.resetsAt.timeIntervalSinceNow)
+                     free ? tr("Claude'da yana ishlashingiz mumkin. Bepul modelda ishlagan bo'lsangiz — «Claude'da davom etish» o'sha ishni xulosa bilan Claude'ga qaytaradi.",
+                               "You can use Claude again. If you worked on a free model — «Continue in Claude» moves that work back to Claude with a summary.")
+                         : tr("Claude'da yana ishlashingiz mumkin.", "You can use Claude again."),
+                     id: "limit-reset-\(name)", after: w.resetsAt.timeIntervalSinceNow, category: free ? Self.backCategory : nil)
                 continue
             }
             for t in [80.0, 95.0] where w.usedPercentage >= t {
@@ -502,19 +557,23 @@ final class Alerts: NSObject, UNUserNotificationCenterDelegate {
     // MARK: - Yuborish va bosish
 
     /// `id` va `after` berilsa — shu vaqtdan keyin chiqadi va shu id bilan bekor qilinadi (yoki almashtiriladi)
+    /// `category` — tugmalar to'plami (bepul model / Claude'ga qaytish), `extra` — tugma uchun qo'shimcha ma'lumot
     private func post(_ title: String, _ body: String, session: String? = nil, section: Section? = nil,
-                      id: String? = nil, after: TimeInterval? = nil) {
+                      id: String? = nil, after: TimeInterval? = nil, category: String? = nil, extra: [String: Any] = [:]) {
         guard let center else { return }
         let content = UNMutableNotificationContent()
         content.title = title
         content.body = body
         content.sound = .default
+        var info = extra
         if let session {
-            content.userInfo = ["session": session]
+            info["session"] = session
             content.threadIdentifier = session
         } else if let section {
-            content.userInfo = ["section": section.rawValue]
+            info["section"] = section.rawValue
         }
+        content.userInfo = info
+        if let category { content.categoryIdentifier = category }
         let trigger = after.map { UNTimeIntervalNotificationTrigger(timeInterval: max(1, $0), repeats: false) }
         center.add(UNNotificationRequest(identifier: id ?? UUID().uuidString, content: content, trigger: trigger))
     }
@@ -527,9 +586,14 @@ final class Alerts: NSObject, UNUserNotificationCenterDelegate {
 
     func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse,
                                 withCompletionHandler done: @escaping () -> Void) {
-        let session = response.notification.request.content.userInfo["session"] as? String
+        let info = response.notification.request.content.userInfo
+        let session = info["session"] as? String
         DispatchQueue.main.async {
-            if let session {
+            if response.actionIdentifier == Self.freeAction {
+                self.startFree(session: session, resetsAt: (info["resetsAt"] as? Double).map(Date.init(timeIntervalSince1970:)))
+            } else if response.actionIdentifier == Self.backAction {
+                self.backToClaude()
+            } else if let session {
                 UserDefaults.standard.set(session, forKey: GraphScreen.selectedSessionKey)
                 WindowManager.shared.show(.graph)
             } else if let raw = response.notification.request.content.userInfo["section"] as? String, let section = Section(rawValue: raw) {

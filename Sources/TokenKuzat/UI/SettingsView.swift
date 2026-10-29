@@ -285,6 +285,8 @@ struct SettingsView: View {
                     .font(.caption).foregroundStyle(.secondary)
             }
 
+            FreeModelsSection()
+
             SwiftUI.Section {
                 Toggle(tr("Limitni kuzatish", "Track limit"), isOn: $budgetEnabled)
                 Picker(tr("Davr", "Period"), selection: $budgetPeriod) {

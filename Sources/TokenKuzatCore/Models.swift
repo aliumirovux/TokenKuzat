@@ -247,6 +247,8 @@ public struct SessionSnap: Identifiable, Sendable {
     public var notes: [NoteSnap] = []
     /// Ish papkasi (oxirgi ko'ringani)
     public var cwd: String? = nil
+    /// Asosiy agent Claude modelida ishlaydi (yo'q — bepul model, FreeLLMAPI orqali: Claude limitiga kirmaydi)
+    public var isClaude = true
 
     public var main: AgentSnap? { agents.first(where: \.isMain) }
     /// Kontekst qanchalik to'lgan (0…1)

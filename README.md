@@ -34,7 +34,7 @@ Claude Code'da:
 
 Birinchisi plaginni qo'shadi, ikkinchisida Claude talablarni tekshiradi, ilovani yig'adi va `~/Applications/Token Kuzatuv.app` ga o'rnatib ochadi. Eski Claude Code'da (2.1.275 dan oldingi) birinchi qator o'rniga `/plugin marketplace add aliumirovux/TokenKuzat`, keyin `/plugin install tokenkuzat@tokenkuzat`.
 
-Plagin Claude'ga MCP asboblarini ham beradi — sarfni to'g'ridan-to'g'ri so'rash mumkin: «bugun qancha token ketdi?», «qaysi sessiya ko'p sarflayapti?», «limitim qancha qoldi?» (`usage_summary`, `list_sessions`, `session_details`, `savings_report`). Asboblar ilovaning `--mcp` rejimida ishlaydi, shuning uchun avval `/tokenkuzat:install`; keyin `/mcp` da `tokenkuzat` ni qayta ulang.
+Plagin Claude'ga MCP asboblarini ham beradi — sarfni to'g'ridan-to'g'ri so'rash mumkin: «bugun qancha token ketdi?», «qaysi sessiya ko'p sarflayapti?», «limitim qancha qoldi?» (`usage_summary`, `list_sessions`, `session_details`, `savings_report`). Bepul modellar (FreeLLMAPI) sozlangan bo'lsa — `ask_free_model` ham: mayda ishlarni bepul modelga beradi. Asboblar ilovaning `--mcp` rejimida ishlaydi, shuning uchun avval `/tokenkuzat:install`; keyin `/mcp` da `tokenkuzat` ni qayta ulang.
 
 Tokenni tejash bir buyruq bilan: loyihada Claude Code'ni oching va `/tokenkuzat:optimize` yozing — Claude shu loyiha bo'yicha isrof sabablarini oladi, tushuntiradi va tuzatishlarni (CLAUDE.md qoidalari, ishlatilmaydigan MCP serverlar) har birini siz tasdiqlagandan keyin qo'llaydi.
 
@@ -158,7 +158,7 @@ From Claude Code:
 /tokenkuzat:install
 ```
 
-The plugin also gives Claude read-only MCP tools (`usage_summary`, `list_sessions`, `session_details`, `savings_report`), so you can ask "how many tokens today?" or "how much of my limit is left?". To cut waste in a project, open Claude Code there and run `/tokenkuzat:optimize`: Claude pulls that project's waste report and proposes fixes (CLAUDE.md rules, unused MCP servers), applying each only after you approve.
+The plugin also gives Claude read-only MCP tools (`usage_summary`, `list_sessions`, `session_details`, `savings_report`; plus `ask_free_model` when free models via FreeLLMAPI are set up), so you can ask "how many tokens today?" or "how much of my limit is left?". To cut waste in a project, open Claude Code there and run `/tokenkuzat:optimize`: Claude pulls that project's waste report and proposes fixes (CLAUDE.md rules, unused MCP servers), applying each only after you approve.
 
 The plugin also adds an "Office" pane beside the chat in Claude Code: the session's agent and its helper agents work as robots — a busy one shows its tool on the monitor, one waiting for permission waves, an idle one rests on the sofa. It opens when the session starts; reopen it with `/ofis`. In a terminal it shows a list instead of the drawing. The Mac app is not needed for it.
 

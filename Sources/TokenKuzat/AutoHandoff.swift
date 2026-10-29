@@ -35,6 +35,12 @@ enum AutoHandoff {
     static func start(_ sess: SessionSnap, target: AutoHandoffTarget, summary: String) -> Bool {
         let message = AutoHandoffRule.firstMessage(summary: summary, previousContext: sess.contextTokens,
                                                    english: SavingsAdvisor.conversationEnglish(sess))
+        return open(sess, target: target, message: message)
+    }
+
+    /// Sessiya loyihasida yangi sessiya — berilgan birinchi xabar bilan
+    @discardableResult
+    static func open(_ sess: SessionSnap, target: AutoHandoffTarget, message: String) -> Bool {
         let dir = SavingsAdvisor.projectFolder(for: sess) ?? sess.cwd
         switch target {
         case .app: return openInApp(cwd: dir, message: message)
@@ -68,9 +74,10 @@ enum AutoHandoff {
         return dir
     }
 
-    /// Terminal.app'da loyiha papkasida `claude "<birinchi xabar>"`. Claude ilovasining vaqtinchalik papkasi bo'lsa — uy papkasida
+    /// Terminal.app'da loyiha papkasida `claude "<birinchi xabar>"`. Claude ilovasining vaqtinchalik papkasi bo'lsa — uy papkasida.
+    /// `prelude` — `claude` dan oldingi qatorlar (masalan, bepul modellarga yo'naltiruvchi o'zgaruvchilar)
     @discardableResult
-    static func openInTerminal(cwd: String?, message: String? = nil) -> Bool {
+    static func openInTerminal(cwd: String?, message: String? = nil, prelude: String? = nil) -> Bool {
         let home = FileManager.default.homeDirectoryForCurrentUser.path
         let dir = projectDir(cwd) ?? home
         func quote(_ s: String) -> String { "'" + s.replacingOccurrences(of: "'", with: "'\\''") + "'" }
@@ -86,7 +93,8 @@ enum AutoHandoff {
             }
             // Ilova Claude sessiyasidan ishga tushirilgan bo'lsa, CLAUDE_* o'zgaruvchilari meros qoladi va yangi sessiya
             // o'zini «bola sessiya» deb biladi (tarix saqlanmaydi) — ularni tozalaymiz
-            try "#!/bin/zsh -l\nunset -m 'CLAUDE*'\ncd \(quote(dir)) && \(run)\n".write(to: url, atomically: true, encoding: .utf8)
+            let extra = prelude.map { $0 + "\n" } ?? ""
+            try "#!/bin/zsh -l\nunset -m 'CLAUDE*'\n\(extra)cd \(quote(dir)) && \(run)\n".write(to: url, atomically: true, encoding: .utf8)
             try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: url.path)
         } catch { return false }
         // `open` tugaguncha kutiladi: hook rejimida jarayon darhol chiqadi, asinxron ochish esa yarim yo'lda qolardi
