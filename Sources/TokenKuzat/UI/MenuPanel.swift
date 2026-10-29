@@ -47,7 +47,7 @@ struct MenuPanel: View {
                         Image(systemName: "bolt.fill")
                         Text(tr("\(Fmt.tokens(s.rate(mode)))/daq", "\(Fmt.tokens(s.rate(mode)))/min")).monospacedDigit()
                     }
-                    .font(.caption.weight(.semibold)).foregroundStyle(Color(light: 0x7CF0B6, dark: 0x7CF0B6))
+                    .font(.caption.weight(.semibold)).foregroundStyle(Brand.onInkOk)
                 }
             }
             if let l = s.limits, let w = l.sessionWindow {
@@ -72,13 +72,13 @@ struct MenuPanel: View {
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Brand.ink)
+        .background(InkBackdrop(shape: Rectangle()))
     }
 
     /// Bitta jumla: shu sur'at bilan nima bo'ladi
     private func paceLine(_ s: Snapshot, _ l: RateLimits) -> some View {
-        let warnColor = Color(light: 0xFFC46B, dark: 0xFFC46B)
-        let okColor = Color(light: 0x7CF0B6, dark: 0x7CF0B6)
+        let warnColor = Brand.onInkWarn
+        let okColor = Brand.onInkOk
         let (symbol, text, color): (String, String, Color) = {
             if case .runsOut(let at) = s.fiveHourForecast {
                 return ("exclamationmark.triangle.fill", LimitText.fiveHourWarning(at, reset: l.fiveHour?.resetsAt ?? at), warnColor)
@@ -434,13 +434,9 @@ struct LimitRing: View {
 
     var body: some View {
         let pct = min(100, max(0, window.usedPercentage))
-        let color: Color = pct >= 90 ? Brand.err : (pct >= 75 ? Color(light: 0xFFC46B, dark: 0xFFC46B) : Brand.inkFill)
         HStack(spacing: 12) {
             ZStack {
-                Circle().stroke(.white.opacity(0.1), lineWidth: size * 0.125)
-                Circle().trim(from: 0, to: pct / 100)
-                    .stroke(color, style: StrokeStyle(lineWidth: size * 0.125, lineCap: .round))
-                    .rotationEffect(.degrees(-90))
+                LimitRingStroke(pct: pct, lineWidth: size * 0.125)
                 VStack(spacing: -2) {
                     Text("\(Int(pct.rounded()))%").font(.system(size: size * 0.27, weight: .bold, design: .rounded)).monospacedDigit()
                         .foregroundStyle(.white)

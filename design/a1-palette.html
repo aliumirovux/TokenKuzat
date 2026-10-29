@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A1 · Bitta palitra</title>
+<style>
+  :root {
+    --bg: #F2F2F4; --surface: #FFFFFF; --line: #E8E8EC; --text: #17152B; --muted: #6B6A78;
+    --accent: #6C5CE7; --chg: #FFF4D6; --chg-line: #E5B53C;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #111113; --surface: #1F1F23; --line: #2C2C31; --text: #F2F2F4; --muted: #A1A1AA;
+      --accent: #8F82FF; --chg: #3A2F12; --chg-line: #B88A1E;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif; }
+  main { max-width: 1040px; margin: 0 auto; padding: 32px 16px 64px; }
+  h1 { font-size: 22px; margin: 0 0 4px; letter-spacing: -0.01em; }
+  h2 { font-size: 15px; margin: 32px 0 12px; }
+  p.lead { color: var(--muted); margin: 0 0 20px; max-width: 70ch; }
+  .bar { display: flex; gap: 12px; align-items: center; margin-bottom: 8px; }
+  .toggle { display: inline-flex; gap: 8px; align-items: center; padding: 6px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); cursor: pointer; font: inherit; color: inherit; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+  .card h3 { margin: 0 0 12px; font-size: 13px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+  .theme { border-radius: 8px; padding: 12px; margin-top: 8px; }
+  .theme.l { background: #FFFFFF; color: #17152B; border: 1px solid #E8E8EC; }
+  .theme.d { background: #1F1F23; color: #F2F2F4; }
+  .stack { display: flex; height: 12px; gap: 2px; border-radius: 4px; overflow: hidden; margin: 8px 0 10px; }
+  .stack span { display: block; }
+  .legend { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; font-size: 12px; }
+  .legend i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 6px; vertical-align: 0; }
+  .legend .n { font-variant-numeric: tabular-nums; opacity: .7; text-align: right; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; }
+  .sw { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -2px; margin-right: 6px; border: 1px solid rgba(0,0,0,.08); }
+  .pass { color: #17A35A; font-weight: 600; } .fail { color: #D93A2B; font-weight: 600; }
+  .lim { display: flex; flex-direction: column; gap: 10px; }
+  .lim .row { display: grid; grid-template-columns: 90px 1fr 44px; align-items: center; gap: 10px; font-size: 12px; }
+  .lim .track { height: 6px; border-radius: 3px; background: rgba(127,127,140,.18); overflow: hidden; }
+  .lim .fill { height: 100%; border-radius: 3px; }
+  .lim .pct { text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+  body.show-changes .changed { background: var(--chg); outline: 1px dashed var(--chg-line); outline-offset: 2px; border-radius: 6px; }
+  .note { color: var(--muted); font-size: 12px; margin-top: 8px; }
+  code { font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; }
+</style>
+</head>
+<body class="show-changes">
+<main>
+  <h1>A1 · Bitta palitra</h1>
+  <p class="lead">Hozir ilovada ikkita rang tizimi bor: brend binafsha (<code>Brand</code>) va macOS tizim ranglari (<code>.purple .teal .mint .orange .green .red .accentColor</code>). Taklif: hamma rang bitta joydan olinadi. Asosiy chiziq brend rangida bo'ladi, holat ranglari esa faqat holat uchun ishlatiladi.</p>
+  <div class="bar"><button class="toggle" onclick="document.body.classList.toggle('show-changes')">◐ O'zgarishlarni belgilash</button></div>
+
+  <h2>1. Token turlari (Sessiyalar, Tarix, Bugun, loyiha)</h2>
+  <div class="grid">
+    <div class="card">
+      <h3>Hozir</h3>
+      <div class="theme l">
+        <div class="stack"><span style="flex:6;background:#2F7BE5"></span><span style="flex:70;background:#AF52DE"></span><span style="flex:12;background:#30B0C7"></span><span style="flex:3;background:#00C7BE"></span><span style="flex:9;background:#FF9500"></span></div>
+        <div class="legend">
+          <span><i style="background:#2F7BE5"></i>Yordamchi agentlar</span><span class="n">6%</span>
+          <span><i style="background:#AF52DE"></i>Qayta o'qilgan kontekst</span><span class="n">70%</span>
+          <span><i style="background:#30B0C7"></i>Kontekstni eslab qolish</span><span class="n">12%</span>
+          <span><i style="background:#00C7BE"></i>Yangi kiritilgan matn</span><span class="n">3%</span>
+          <span><i style="background:#FF9500"></i>Claude javobi va fikrlashi</span><span class="n">9%</span>
+        </div>
+      </div>
+      <div class="theme d">
+        <div class="stack"><span style="flex:6;background:#4A8FF0"></span><span style="flex:70;background:#BF5AF2"></span><span style="flex:12;background:#40C8E0"></span><span style="flex:3;background:#63E6E2"></span><span style="flex:9;background:#FF9F0A"></span></div>
+      </div>
+      <p class="note">Asosiy bo'lak (70%) tizimning pushti-binafsha rangida, brend binafsha emas. «Eslab qolish» va «Yangi matn» deyarli bir xil rangda (ΔE 7,1). Agentlar va qayta o'qish rang ko'rmaslikda qo'shilib ketadi (ΔE 4,9).<br><span class="fail">Validator: FAIL</span></p>
+    </div>
+    <div class="card changed">
+      <h3>Taklif</h3>
+      <div class="theme l">
+        <div class="stack"><span style="flex:70;background:#6C5CE7"></span><span style="flex:12;background:#0E9F8E"></span><span style="flex:3;background:#B04FD8"></span><span style="flex:9;background:#E0731C"></span><span style="flex:6;background:#2F7BE5"></span></div>
+        <div class="legend">
+          <span><i style="background:#6C5CE7"></i>Qayta o'qilgan kontekst</span><span class="n">70%</span>
+          <span><i style="background:#0E9F8E"></i>Kontekstni eslab qolish</span><span class="n">12%</span>
+          <span><i style="background:#B04FD8"></i>Yangi kiritilgan matn</span><span class="n">3%</span>
+          <span><i style="background:#E0731C"></i>Claude javobi va fikrlashi</span><span class="n">9%</span>
+          <span><i style="background:#2F7BE5"></i>Yordamchi agentlar</span><span class="n">6%</span>
+        </div>
+      </div>
+      <div class="theme d">
+        <div class="stack"><span style="flex:70;background:#7F72F5"></span><span style="flex:12;background:#139C8C"></span><span style="flex:3;background:#AE62D8"></span><span style="flex:9;background:#DA7426"></span><span style="flex:6;background:#2F7BE5;background:#3F85EC"></span></div>
+      </div>
+      <p class="note">Asosiy bo'lak endi brend rangida. Yordamchi agentlar oxirga o'tadi: ko'k va binafsha yonma-yon tursa, rang ko'rmaydigan odam ularni ajrata olmaydi. Qorong'i rejim uchun alohida, sal to'qroq qadamlar tanlandi.<br><span class="pass">Validator: PASS</span> — yorug' rejimda CVD ΔE 13,7, oddiy ko'rishda 25,7; qorong'i rejimda 11,9 va 23,7; kontrast ≥ 3:1.</p>
+    </div>
+  </div>
+
+  <h2>2. Limit chizig'i — bitta qoida</h2>
+  <div class="grid">
+    <div class="card">
+      <h3>Hozir — 5 xil qoida</h3>
+      <table>
+        <tr><th>Joy</th><th>&lt; chegara</th><th>Ogohlantirish</th><th>Tanqidiy</th></tr>
+        <tr><td>Yon menyu</td><td><span class="sw" style="background:#6C5CE7"></span>accent</td><td>≥ 70 · warn</td><td>≥ 90 · err</td></tr>
+        <tr><td>Sozlamalar</td><td><span class="sw" style="background:#34C759"></span>tizim yashil</td><td>≥ 70 · tizim orange</td><td>≥ 90 · tizim red</td></tr>
+        <tr><td>Bugun / menyu paneli</td><td><span class="sw" style="background:#8F82FF"></span>inkFill</td><td>≥ 75 · <code>#FFC46B</code></td><td>≥ 90 · err</td></tr>
+        <tr><td>Limit kartasi</td><td><span class="sw" style="background:#6C5CE7"></span>accent</td><td>≥ 75 · warn</td><td>≥ 90 · err</td></tr>
+      </table>
+    </div>
+    <div class="card changed">
+      <h3>Taklif — <code>Palette.limit(pct)</code></h3>
+      <div class="lim">
+        <div class="row"><span>0–74%</span><div class="track"><div class="fill" style="width:48%;background:var(--accent)"></div></div><span class="pct">48%</span></div>
+        <div class="row"><span>75–89%</span><div class="track"><div class="fill" style="width:81%;background:#C27C0E"></div></div><span class="pct" style="color:#C27C0E">81%</span></div>
+        <div class="row"><span>90%+</span><div class="track"><div class="fill" style="width:94%;background:#D93A2B"></div></div><span class="pct" style="color:#D93A2B">94%</span></div>
+      </div>
+      <p class="note">Hamma joyda bir xil chegaralar (75 / 90) va bir xil ranglar ishlatiladi. To'q indigo karta ustida o'sha qoidaning yorqinroq varianti (<code>onInk</code>) qo'llanadi. Sozlamalardagi yashil rang yo'qoladi: limit holat emas, o'lchov.</p>
+    </div>
+  </div>
+
+  <h2>3. Qolgan tizim ranglari → DS tokenlari</h2>
+  <div class="card changed">
+    <table>
+      <tr><th>Hozir</th><th>Qayerda</th><th>Taklif</th></tr>
+      <tr><td><code>.green / .orange / .red</code></td><td>Sozlamalar (ulangan, xato), fayllar xaritasi, grafik belgilari, replay, sessiya kartasi chegarasi</td><td><span class="sw" style="background:#17A35A"></span><code>Brand.ok</code> · <span class="sw" style="background:#C27C0E"></span><code>Brand.warn</code> · <span class="sw" style="background:#D93A2B"></span><code>Brand.err</code></td></tr>
+      <tr><td><code>.accentColor</code></td><td>Grafikda tanlangan tugun, replay paneli, KPI plitasi</td><td><span class="sw" style="background:#6C5CE7"></span><code>Brand.accent</code>. Tizim accent'i foydalanuvchining macOS sozlamasiga qarab ko'k, pushti yoki boshqa rangga o'zgaradi.</td></tr>
+      <tr><td><code>.blue / .teal / .orange</code> KPI ikonkalari</td><td>Tarix, loyiha tejash</td><td>Bezak uchun <code>Brand.accent</code>. «Isrof» (🔥) <code>Brand.warn</code> bo'lib qoladi, chunki u ma'no beradi. Shakl A5 da o'zgaradi.</td></tr>
+      <tr><td>Fayl o'qish <code>.blue</code> · o'zgartirish <code>.orange</code></td><td>Fayllar xaritasi</td><td>Asbob turkumi tokenlari: o'qish — <span class="sw" style="background:#0E9F8E"></span>fayllar teal, o'zgartirish — <span class="sw" style="background:#E0731C"></span>orange</td></tr>
+      <tr><td>Asbob turkumlari: 4 ta alohida hex</td><td>Grafik, replay, xarita</td><td>O'sha qiymatlar <code>Hue.*</code> nomi bilan bitta joyda saqlanadi (fayllar = teal, veb = ko'k, MCP = orange, agent = accent)</td></tr>
+    </table>
+    <p class="note">Avatar ranglari (loyiha monogrammalari) o'zgarmaydi: ular identifikatsiya uchun ishlatiladi, ma'no bermaydi.</p>
+  </div>
+
+  <h2>Qanday bilamiz</h2>
+  <div class="card">
+    <p style="margin:0">Kodda <code>.purple .teal .mint .green .red .orange .accentColor</code> qolmaydi; <code>grep</code> 0 ta natija qaytaradi. Har bir limit chizig'i bir xil foizda bir xil rangda chiqadi. Token turlari palitrasi validator'dan ikkala rejimda o'tadi. Guardrail: holat ranglari (yashil, sariq, qizil) token turlari bilan aralashmaydi.</p>
+  </div>
+</main>
+</body>
+</html>

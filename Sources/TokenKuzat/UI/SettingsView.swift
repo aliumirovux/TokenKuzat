@@ -145,7 +145,7 @@ struct SettingsView: View {
                     HStack {
                         Text(tr("Yangi sessiyada davom ettirish (xulosa avtomatik beriladi)", "Continue in a new session (summary passed automatically)"))
                         Spacer()
-                        Label(tr("Ulangan", "Connected"), systemImage: "checkmark.circle.fill").font(.caption).foregroundStyle(.green)
+                        Label(tr("Ulangan", "Connected"), systemImage: "checkmark.circle.fill").font(.caption).foregroundStyle(Brand.ok)
                         Button(tr("Uzish", "Disconnect")) {
                             try? SessionStartHook.uninstall()
                             handoffHookInstalled = SessionStartHook.isInstalled
@@ -156,14 +156,14 @@ struct SettingsView: View {
                     Toggle(tr("Claude ruxsat so'raganda", "When Claude asks for permission"), isOn: $notifyPermission)
                     Spacer()
                     if hookInstalled {
-                        Label(tr("Ulangan", "Connected"), systemImage: "checkmark.circle.fill").font(.caption).foregroundStyle(.green)
+                        Label(tr("Ulangan", "Connected"), systemImage: "checkmark.circle.fill").font(.caption).foregroundStyle(Brand.ok)
                         Button(tr("Uzish", "Disconnect")) { toggleHook(false) }.buttonStyle(.link)
                     } else {
                         Button(tr("Claude Code'ga ulash", "Connect to Claude Code")) { toggleHook(true) }
                     }
                 }
                 if let hookError {
-                    Label(hookError, systemImage: "exclamationmark.triangle").font(.caption).foregroundStyle(.red)
+                    Label(hookError, systemImage: "exclamationmark.triangle").font(.caption).foregroundStyle(Brand.err)
                 }
                 HStack {
                     Spacer()
@@ -172,7 +172,7 @@ struct SettingsView: View {
                 if notifyDenied {
                     HStack {
                         Label(tr("macOS bildirishnomalarga ruxsat bermagan", "macOS hasn't allowed notifications"), systemImage: "exclamationmark.triangle")
-                            .font(.caption).foregroundStyle(.orange)
+                            .font(.caption).foregroundStyle(Brand.warn)
                         Spacer()
                         Button(tr("Ruxsat berish…", "Allow…")) {
                             NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.Notifications-Settings.extension?id=uz.ali.tokenkuzat")!)
@@ -232,7 +232,7 @@ struct SettingsView: View {
             SwiftUI.Section {
                 LabeledContent(tr("Holat", "Status")) {
                     HStack(spacing: 6) {
-                        Circle().fill(statusLineInstalled ? (store.snap.limits.map { !$0.isEmpty } == true ? Color.green : .orange) : .secondary)
+                        Circle().fill(statusLineInstalled ? (store.snap.limits.map { !$0.isEmpty } == true ? Brand.ok : Brand.warn) : .secondary)
                             .frame(width: 8, height: 8)
                         Text(statusLineStatus)
                     }
@@ -250,7 +250,7 @@ struct SettingsView: View {
                     .buttonStyle(.link)
                 }
                 if let statusLineError {
-                    Label(statusLineError, systemImage: "exclamationmark.triangle").font(.caption).foregroundStyle(.red)
+                    Label(statusLineError, systemImage: "exclamationmark.triangle").font(.caption).foregroundStyle(Brand.err)
                 }
                 if let l = store.snap.limits, !l.isEmpty {
                     RealLimitsView(limits: l, forecast: store.snap.fiveHourForecast)
@@ -353,11 +353,11 @@ struct SettingsView: View {
 
     private var accountColor: Color {
         switch accountStatus {
-        case .ok: return .green
+        case .ok: return Brand.ok
         case .loading, .off: return .secondary
-        case .throttled: return .orange
-        case .expired, .noCredentials: return .orange
-        case .failed: return .red
+        case .throttled: return Brand.warn
+        case .expired, .noCredentials: return Brand.warn
+        case .failed: return Brand.err
         }
     }
 

@@ -2,15 +2,16 @@ import SwiftUI
 import AppKit
 import TokenKuzatCore
 
-// MARK: - Ranglar (tizim semantik ranglari — yorug' va qorong'i rejimda to'g'ri)
+// MARK: - Ranglar (bitta palitra: hamma rang Brand / Hue tokenlaridan)
 
 enum Palette {
     static let main = Brand.accent
-    static let agents = Color(light: 0x2F7BE5, dark: 0x4A8FF0)
-    static let cacheRead = Color.purple
-    static let fresh = Color.teal
-    static let output = Color.orange
-    static let input = Color.mint
+    /// Token turlari: tartibi va qiymatlari rang ko'rmaslik validatoridan ikkala rejimda o'tgan (design/a1-palette.html)
+    static let cacheRead = Color(light: 0x6C5CE7, dark: 0x7F72F5)
+    static let fresh = Color(light: 0x0E9F8E, dark: 0x139C8C)
+    static let input = Color(light: 0xB04FD8, dark: 0xAE62D8)
+    static let output = Color(light: 0xE0731C, dark: 0xDA7426)
+    static let agents = Color(light: 0x2F7BE5, dark: 0x3F85EC)
     static let surface = Brand.surface
     static let canvas = Brand.canvas
     static let stroke = Brand.line
@@ -25,10 +26,82 @@ enum Palette {
 
     static func budget(_ l: BudgetStatus.Level) -> Color {
         switch l {
-        case .ok: return .green
-        case .warning: return .orange
-        case .over: return .red
+        case .ok: return Brand.accent
+        case .warning: return Brand.warn
+        case .over: return Brand.err
         }
+    }
+
+    /// Limit qoidasi hamma joyda bitta: 75% gacha urg'u, 75–89% ogohlantirish, 90%+ xato. Limit — o'lchov, holat emas,
+    /// shuning uchun yashil yo'q. `onInk` — to'q siyoh blok ustidagi yorqinroq qadamlar.
+    static func limit(_ pct: Double, onInk: Bool = false) -> Color {
+        if pct >= 90 { return onInk ? Brand.onInkErr : Brand.err }
+        if pct >= 75 { return onInk ? Brand.onInkWarn : Brand.warn }
+        return onInk ? Brand.inkFill : Brand.accent
+    }
+
+    /// Butun shkala bitta gradientda: chiziq foizgacha ochadi, uchidagi rang `limit(pct)` bilan mos keladi
+    static func limitScale(onInk: Bool = false) -> Gradient {
+        let a = limit(0, onInk: onInk), w = limit(80, onInk: onInk), e = limit(95, onInk: onInk)
+        return Gradient(stops: [.init(color: a, location: 0), .init(color: a, location: 0.73),
+                                .init(color: w, location: 0.77), .init(color: w, location: 0.88),
+                                .init(color: e, location: 0.92), .init(color: e, location: 1)])
+    }
+}
+
+// MARK: - Limit shkalasi
+
+/// Limit chizig'i: ostida butun shkala xira ko'rinadi (75 va 90 chegaralari chiziqning o'zida), ustida foizgacha ochilgan qismi
+struct LimitTrack: View {
+    let pct: Double
+    var height: CGFloat = 6
+    var onInk = false
+
+    var body: some View {
+        let scale = LinearGradient(gradient: Palette.limitScale(onInk: onInk), startPoint: .leading, endPoint: .trailing)
+        GeometryReader { g in
+            let w = g.size.width
+            ZStack(alignment: .leading) {
+                Capsule().fill(onInk ? Color.white.opacity(0.08) : Color.primary.opacity(0.06))
+                Capsule().fill(scale).opacity(onInk ? 0.22 : 0.18)
+                Capsule().fill(scale).frame(width: w)
+                    .mask(alignment: .leading) { Capsule().frame(width: max(height, w * CGFloat(min(max(pct, 0), 100) / 100))) }
+            }
+        }
+        .frame(height: height)
+        .animation(Motion.smooth, value: pct)
+    }
+}
+
+/// Limit halqasi: xira shkala izi va foizgacha ochilgan gradient yoy. Uchlari alohida doira — yumaloq uch gradientning
+/// qarama-qarshi chetidan rang olmasin.
+struct LimitRingStroke: View {
+    let pct: Double
+    let lineWidth: CGFloat
+    var onInk = true
+
+    var body: some View {
+        let p = min(max(pct, 0), 100) / 100
+        let scale = AngularGradient(gradient: Palette.limitScale(onInk: onInk), center: .center,
+                                    startAngle: .degrees(0), endAngle: .degrees(360))
+        GeometryReader { g in
+            let r = (min(g.size.width, g.size.height) - lineWidth) / 2
+            let c = CGPoint(x: g.size.width / 2, y: g.size.height / 2)
+            let end = CGFloat(p * 2 * .pi)
+            ZStack {
+                Circle().inset(by: lineWidth / 2).stroke(Color.white.opacity(0.06), lineWidth: lineWidth)
+                Circle().inset(by: lineWidth / 2).stroke(scale, lineWidth: lineWidth).opacity(0.22)
+                if p > 0 {
+                    Circle().inset(by: lineWidth / 2).trim(from: 0, to: p).stroke(scale, lineWidth: lineWidth)
+                    Circle().fill(Palette.limit(0, onInk: onInk)).frame(width: lineWidth, height: lineWidth)
+                        .position(x: c.x + r, y: c.y)
+                    Circle().fill(Palette.limit(pct, onInk: onInk)).frame(width: lineWidth, height: lineWidth)
+                        .position(x: c.x + r * cos(end), y: c.y + r * sin(end))
+                }
+            }
+            .rotationEffect(.degrees(-90))
+        }
+        .animation(Motion.smooth, value: pct)
     }
 }
 
@@ -189,7 +262,7 @@ struct MetricTile: View {
     var unit: String? = nil
     var footnote: String? = nil
     var symbol: String
-    var tint: Color = .accentColor
+    var tint: Color = Brand.accent
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -328,7 +401,7 @@ struct RealLimitsView: View {
 
     private func row(_ title: String, _ w: LimitWindow, note: (String, Color)?) -> some View {
         let pct = w.usedPercentage
-        let color: Color = pct >= 90 ? .red : (pct >= 70 ? .orange : .green)
+        let color = Palette.limit(pct)
         return VStack(alignment: .leading, spacing: 5) {
             HStack(alignment: .firstTextBaseline) {
                 Text(title).font(compact ? .caption.weight(.medium) : .callout.weight(.medium))
@@ -337,13 +410,7 @@ struct RealLimitsView: View {
                 Text("\(Int(pct.rounded()))%")
                     .font((compact ? Font.caption : .callout).weight(.semibold)).monospacedDigit().foregroundStyle(color)
             }
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    Capsule().fill(Color.primary.opacity(0.08))
-                    Capsule().fill(color.gradient).frame(width: max(4, geo.size.width * CGFloat(min(pct, 100) / 100)))
-                }
-            }
-            .frame(height: compact ? 6 : 8)
+            LimitTrack(pct: pct, height: compact ? 6 : 8)
             if let note {
                 Text(note.0).font(.caption2).foregroundStyle(note.1)
             }
@@ -353,7 +420,7 @@ struct RealLimitsView: View {
     private func forecastText(_ w: LimitWindow) -> (String, Color)? {
         switch forecast {
         case .runsOut(let at):
-            return (tr("Shu tezlikda ~\(Fmt.hourMinute.string(from: at)) da tugaydi (\(Alerts.duration(at.timeIntervalSinceNow)) qoldi)", "At this pace, runs out at ~\(Fmt.hourMinute.string(from: at)) (\(Alerts.duration(at.timeIntervalSinceNow)) left)"), .orange)
+            return (tr("Shu tezlikda ~\(Fmt.hourMinute.string(from: at)) da tugaydi (\(Alerts.duration(at.timeIntervalSinceNow)) qoldi)", "At this pace, runs out at ~\(Fmt.hourMinute.string(from: at)) (\(Alerts.duration(at.timeIntervalSinceNow)) left)"), Brand.warn)
         case .lasts:
             return compact ? nil : (tr("Shu tezlikda tiklanguncha yetadi", "At this pace, lasts until reset"), .secondary)
         case .unknown:
@@ -432,7 +499,6 @@ struct LimitBarRow: View {
 
     var body: some View {
         let pct = window.usedPercentage
-        let fill: Color = pct >= 90 ? Brand.err : (pct >= 75 ? Brand.warn : (dark ? Brand.inkFill : Brand.accent))
         VStack(alignment: .leading, spacing: 5) {
             HStack(alignment: .firstTextBaseline) {
                 Text(title).font(.caption.weight(.semibold)).foregroundStyle(dark ? Color.white : .primary)
@@ -442,13 +508,7 @@ struct LimitBarRow: View {
                 Text(tr("\(Int(pct.rounded()))% ishlatildi", "\(Int(pct.rounded()))% used")).font(.caption.weight(.semibold)).monospacedDigit()
                     .foregroundStyle(dark ? Color.white : .primary)
             }
-            GeometryReader { g in
-                ZStack(alignment: .leading) {
-                    Capsule().fill(dark ? Color.white.opacity(0.1) : Color.primary.opacity(0.08))
-                    Capsule().fill(fill).frame(width: max(4, g.size.width * CGFloat(min(pct, 100) / 100)))
-                }
-            }
-            .frame(height: 6)
+            LimitTrack(pct: pct, height: 6, onInk: dark)
         }
         .animation(Motion.smooth, value: pct)
     }

@@ -286,18 +286,12 @@ private struct Sidebar: View {
 
     private func limitRow(_ title: String, _ w: LimitWindow, weekly: Bool) -> some View {
         let pct = min(100, max(0, w.usedPercentage))
-        let color = pct >= 90 ? Brand.err : (pct >= 70 ? Brand.warn : Brand.accent)
+        let color = Palette.limit(pct)
         return HStack(spacing: 8) {
             Text(title).font(.system(size: 11)).foregroundStyle(.secondary).frame(width: 42, alignment: .leading)
-            GeometryReader { g in
-                ZStack(alignment: .leading) {
-                    Capsule().fill(Color.primary.opacity(0.08))
-                    Capsule().fill(color).frame(width: max(3, g.size.width * pct / 100))
-                }
-            }
-            .frame(height: 4)
+            LimitTrack(pct: pct, height: 4)
             Text("\(Int(pct.rounded()))%").font(.system(size: 11, weight: .semibold)).monospacedDigit()
-                .foregroundStyle(pct >= 70 ? color : .secondary)
+                .foregroundStyle(pct >= 75 ? color : .secondary)
                 .frame(width: 32, alignment: .trailing)
         }
         .help(tr("\(weekly ? "Haftalik" : "5 soatlik") limit: \(Int(pct.rounded()))% · tiklanadi \(Self.until(w.resetsAt)) dan keyin", "\(weekly ? "Weekly" : "5-hour") limit: \(Int(pct.rounded()))% · resets in \(Self.until(w.resetsAt))"))

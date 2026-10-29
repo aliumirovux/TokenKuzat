@@ -694,8 +694,8 @@ private struct FlowAgentNode: View {
         }
         .padding(.horizontal, 16)
         .frame(width: w, height: h)
-        .modifier(Surface(shape: shape, tint: agent.state == .running ? .green : nil, interactive: true,
-                               stroke: selected ? .accentColor : nil))
+        .modifier(Surface(shape: shape, tint: agent.state == .running ? Brand.ok : nil, interactive: true,
+                               stroke: selected ? Brand.accent : nil))
         .overlay { if agent.state == .running { LiveBorder(shape: shape, color: Brand.ok, lineWidth: 2) } }
         .scaleEffect(selected ? 1.02 : 1)
         .animation(Motion.spring, value: selected)
@@ -736,7 +736,7 @@ private struct ToolBubbleNode: View {
             ZStack(alignment: .topTrailing) {
                 Color.clear
                     .modifier(Surface(shape: Circle(), tint: bubble.busy || bubble.recent ? color : nil, interactive: true,
-                                           stroke: selected ? .accentColor : nil))
+                                           stroke: selected ? Brand.accent : nil))
                     .overlay {
                         Image(systemName: bubble.category?.symbol ?? "sparkles")
                             .font(.system(size: diameter * 0.36, weight: .medium))
@@ -748,7 +748,7 @@ private struct ToolBubbleNode: View {
                     Text(bubble.errors > 0 ? "\(bubble.calls) · \(bubble.errors)!" : "\(bubble.calls)")
                         .font(.system(size: 9, weight: .bold)).monospacedDigit()
                         .padding(.horizontal, 5).padding(.vertical, 2)
-                        .background(Capsule().fill(bubble.errors > 0 ? Color.red : color))
+                        .background(Capsule().fill(bubble.errors > 0 ? Brand.err : color))
                         .foregroundStyle(.white)
                         .offset(x: 6, y: -2)
                 }
@@ -773,7 +773,7 @@ private struct ResultNode: View {
 
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
-        let color: Color = result.active ? .green : (result.errors > 0 ? .orange : .accentColor)
+        let color: Color = result.active ? Brand.ok : (result.errors > 0 ? Brand.warn : Brand.accent)
         VStack(spacing: 10) {
             ZStack {
                 if result.active {
@@ -784,17 +784,17 @@ private struct ResultNode: View {
                 }
             }
             .frame(width: F.resultW, height: F.resultW)
-            .modifier(Surface(shape: shape, tint: result.active ? .green : color))
+            .modifier(Surface(shape: shape, tint: result.active ? Brand.ok : color))
             .overlay { if result.active { LiveBorder(shape: shape, color: Brand.ok, lineWidth: 2) } }
             VStack(spacing: 2) {
                 Text(result.active ? tr("Ishlayapti…", "Working…") : tr("Natija", "Result")).font(.caption.weight(.semibold))
                 Text("\(Alerts.duration(result.duration)) · \(Fmt.tokens(result.tokens.value(mode)))")
                     .font(.caption2.monospaced()).foregroundStyle(.secondary)
                 Text(tr("\(result.steps) qadam\(result.errors > 0 ? " · \(result.errors) xato" : "")", "\(result.steps) \(result.steps == 1 ? "step" : "steps")\(result.errors > 0 ? " · \(result.errors) \(result.errors == 1 ? "error" : "errors")" : "")"))
-                    .font(.caption2.monospaced()).foregroundStyle(result.errors > 0 ? .orange : .secondary)
+                    .font(.caption2.monospaced()).foregroundStyle(result.errors > 0 ? Brand.warn : .secondary)
                 if !result.changedFiles.isEmpty {
                     Text(tr("✎ \(result.changedFiles.count) fayl o'zgardi", "✎ \(result.changedFiles.count) \(result.changedFiles.count == 1 ? "file" : "files") changed"))
-                        .font(.caption2.monospaced()).foregroundStyle(.orange)
+                        .font(.caption2.monospaced()).foregroundStyle(Brand.warn)
                         .help(result.changedFiles.joined(separator: "\n"))
                 }
             }
@@ -819,7 +819,7 @@ private struct FlowLegend: View {
                 Text(tr("Asbob", "Tool"))
             }
             HStack(spacing: 5) {
-                Circle().fill(Color.green).frame(width: 7, height: 7)
+                Circle().fill(Brand.ok).frame(width: 7, height: 7)
                 Text(tr("Hozir ishlayapti", "Working now"))
             }
             Text(tr("Raqam — chaqiruvlar", "Number — calls")).foregroundStyle(.secondary)

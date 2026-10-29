@@ -131,10 +131,10 @@ struct FileHeatmapScreen: View {
     private var summary: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 18) {
-                stat("\(model.files.count)", model.files.count == 1 ? tr("fayl", "file") : tr("fayl", "files"), "doc.on.doc.fill", .blue)
-                stat("\(model.totalReads)", model.totalReads == 1 ? tr("o'qish", "read") : tr("o'qish", "reads"), "eye.fill", .blue)
-                stat("\(model.totalWrites)", model.totalWrites == 1 ? tr("o'zgartirish", "change") : tr("o'zgartirish", "changes"), "pencil", .orange)
-                if model.totalErrors > 0 { stat("\(model.totalErrors)", model.totalErrors == 1 ? tr("xato", "error") : tr("xato", "errors"), "exclamationmark.triangle.fill", .red) }
+                stat("\(model.files.count)", model.files.count == 1 ? tr("fayl", "file") : tr("fayl", "files"), "doc.on.doc.fill", Hue.read)
+                stat("\(model.totalReads)", model.totalReads == 1 ? tr("o'qish", "read") : tr("o'qish", "reads"), "eye.fill", Hue.read)
+                stat("\(model.totalWrites)", model.totalWrites == 1 ? tr("o'zgartirish", "change") : tr("o'zgartirish", "changes"), "pencil", Hue.write)
+                if model.totalErrors > 0 { stat("\(model.totalErrors)", model.totalErrors == 1 ? tr("xato", "error") : tr("xato", "errors"), "exclamationmark.triangle.fill", Brand.err) }
                 if model.searches > 0 { stat("\(model.searches)", model.searches == 1 ? tr("qidiruv", "search") : tr("qidiruv", "searches"), "magnifyingglass", .secondary) }
                 Spacer()
                 Toggle(tr("Faqat o'zgarganlar", "Changed only"), isOn: $onlyChanged).toggleStyle(.checkbox).font(.caption).fixedSize()
@@ -190,7 +190,7 @@ struct FileHeatmapScreen: View {
             VStack(alignment: .leading, spacing: 1) {
                 HStack(spacing: 4) {
                     Image(systemName: f.writes > 0 ? "doc.badge.ellipsis" : "doc.text")
-                        .font(.caption).foregroundStyle(f.writes > 0 ? .orange : .blue)
+                        .font(.caption).foregroundStyle(f.writes > 0 ? Hue.write : Hue.read)
                     Text(f.name).font(.callout.weight(f.writes > 0 ? .semibold : .regular)).lineLimit(1).truncationMode(.middle)
                 }
                 Text(f.dir).font(.caption2.monospaced()).foregroundStyle(.secondary).lineLimit(1).truncationMode(.head)
@@ -201,11 +201,11 @@ struct FileHeatmapScreen: View {
 
             HStack(spacing: 10) {
                 Text("\(f.reads)").foregroundStyle(f.reads > 0 ? .primary : .tertiary)
-                Text("\(f.writes)").foregroundStyle(f.writes > 0 ? Color.orange : Color.secondary.opacity(0.5))
+                Text("\(f.writes)").foregroundStyle(f.writes > 0 ? Hue.write : Color.secondary.opacity(0.5))
                 Text("\(f.agents.count)").foregroundStyle(.secondary)
                     .help(f.agentTitles.values.sorted().joined(separator: "\n"))
                 if f.errors > 0 {
-                    Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.red).help("\(f.errors) ta xato")
+                    Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(Brand.err).help("\(f.errors) ta xato")
                 }
             }
             .font(.caption.monospacedDigit())
@@ -247,7 +247,7 @@ private struct HeatStrip: View {
                 }
                 // Kam murojaat ham ko'rinsin: 0.35 dan boshlanadi
                 let k = 0.35 + 0.65 * sqrt(Double(c.total) / Double(maxCell))
-                let color: Color = c.errors > 0 ? .red : (c.writes > 0 ? .orange : .blue)
+                let color: Color = c.errors > 0 ? Brand.err : (c.writes > 0 ? Hue.write : Hue.read)
                 g.fill(path, with: .color(color.opacity(k)))
             }
         }

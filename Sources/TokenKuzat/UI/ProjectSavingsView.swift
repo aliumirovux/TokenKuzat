@@ -34,7 +34,7 @@ struct ProjectSavingsView: View {
                     LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 3), spacing: 12) {
                         MetricTile(title: tr("Jami sarf", "Total usage"), value: Fmt.tokens(total), unit: tr("token", "tokens"),
                                    footnote: tr("\(reports.count) ta loyiha", reports.count == 1 ? "1 project" : "\(reports.count) projects"),
-                                   symbol: "sum", tint: .blue)
+                                   symbol: "sum", tint: Brand.accent)
                         MetricTile(title: tr("Taxminiy isrof", "Estimated waste"), value: Fmt.tokens(waste), unit: tr("token", "tokens"),
                                    footnote: tr("sarfning \(Fmt.percent(waste, of: total)) — tejasa bo'ladi",
                                                 "\(Fmt.percent(waste, of: total)) of usage — can be saved"),
@@ -43,7 +43,7 @@ struct ProjectSavingsView: View {
                                    footnote: worst.map { r in
                                        r.issues.first.map { $0.title } ?? tr("isrof topilmadi", "no waste found")
                                    } ?? "—",
-                                   symbol: "flame.fill", tint: .orange)
+                                   symbol: "flame.fill", tint: Brand.warn)
                     }
 
                     VStack(alignment: .leading, spacing: 4) {

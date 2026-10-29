@@ -64,7 +64,7 @@ struct ReplayBar: View {
             .help(tr("Replay'dan chiqib, hozirgi holatga qaytish", "Exit replay and return to the current state"))
         }
         .padding(.horizontal, 14).padding(.vertical, 8)
-        .surface(radius: 14, tint: .accentColor)
+        .surface(radius: 14, tint: Brand.accent)
         .padding(.horizontal, 10).padding(.vertical, 6)
         .transition(.move(edge: .top).combined(with: .opacity))
     }
@@ -92,7 +92,7 @@ private struct StepTicks: View {
         Canvas { g, size in
             for s in steps {
                 let x = CGFloat(s.date.timeIntervalSince(range.lowerBound) / duration) * size.width
-                let color: Color = s.status == .failed ? .red : s.category.color
+                let color: Color = s.status == .failed ? Brand.err : s.category.color
                 g.fill(Path(CGRect(x: x - 0.75, y: 0, width: 1.5, height: size.height)), with: .color(color.opacity(0.8)))
             }
         }

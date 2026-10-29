@@ -87,10 +87,10 @@ enum Composition {
         ]
     }
 
-    /// Sessiya: yordamchi agentlar alohida, asosiy agent tarkibi bo'yicha
+    /// Sessiya: asosiy agent tarkibi bo'yicha, yordamchi agentlar oxirida — ko'k bo'lak binafsha bilan yonma-yon turmasin
     static func session(_ s: SessionSnap, _ mode: CountMode) -> [Slice] {
-        [Slice(id: "agents", label: tr("Yordamchi agentlar", "Subagents"), value: s.agentTokens.value(mode), color: Palette.agents)]
-            + slices(s.mainTokens, mode)
+        slices(s.mainTokens, mode)
+            + [Slice(id: "agents", label: tr("Yordamchi agentlar", "Subagents"), value: s.agentTokens.value(mode), color: Palette.agents)]
     }
 
     /// Birinchi marta ko'rgan odam uchun: texnik nomlar o'rniga oddiy so'zlar, izoh qatorning o'zida

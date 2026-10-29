@@ -9,12 +9,12 @@ import TokenKuzatCore
 extension ToolCategory {
     var color: Color {
         switch self {
-        case .files: return Color(light: 0x0E9F8E, dark: 0x16B3A0)
-        case .shell: return Color(light: 0x18181B, dark: 0x4A4A52)
-        case .web: return Color(light: 0x2F7BE5, dark: 0x4A8FF0)
-        case .mcp: return Color(light: 0xE0731C, dark: 0xEC8432)
+        case .files: return Hue.files
+        case .shell: return Hue.shell
+        case .web: return Hue.web
+        case .mcp: return Hue.mcp
         case .agent: return Brand.accent
-        case .other: return Color(light: 0x8A8A93, dark: 0x6E6E76)
+        case .other: return Hue.other
         }
     }
 }
@@ -476,9 +476,9 @@ private struct AccessBadges: View {
         let runs = item.calls - item.reads - item.writes
         HStack(spacing: 6) {
             if item.reads > 0 { badge("eye", item.reads, .secondary, tr("o'qildi", "read")) }
-            if item.writes > 0 { badge("pencil", item.writes, .orange, tr("o'zgartirildi", "changed")) }
+            if item.writes > 0 { badge("pencil", item.writes, Hue.write, tr("o'zgartirildi", "changed")) }
             if runs > 0 { badge("play.fill", runs, .secondary, tr("chaqirildi", "run")) }
-            if item.errors > 0 { badge("exclamationmark.triangle.fill", item.errors, .red, tr("xato", "error")) }
+            if item.errors > 0 { badge("exclamationmark.triangle.fill", item.errors, Brand.err, tr("xato", "error")) }
         }
     }
 

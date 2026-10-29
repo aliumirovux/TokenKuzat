@@ -171,7 +171,7 @@ struct SessionCard: View {
                 }
             }
         }
-        .card(padding: 16, highlight: session.state == .running ? .green : nil)
+        .card(padding: 16, highlight: session.state == .running ? Brand.ok : nil)
     }
 
     /// Asosiy raqam: limit ulushi → narx → token (nima ma'lum bo'lsa)
@@ -259,7 +259,7 @@ struct SourcesList: View {
             ForEach(sources) { src in
                 HStack(alignment: .top, spacing: 8) {
                     Image(systemName: src.exists ? (src.recent > 0 ? "checkmark.circle.fill" : "circle") : "xmark.circle")
-                        .foregroundStyle(src.exists ? (src.recent > 0 ? Color.green : Color.secondary) : Color.secondary.opacity(0.6))
+                        .foregroundStyle(src.exists ? (src.recent > 0 ? Brand.ok : Color.secondary) : Color.secondary.opacity(0.6))
                     VStack(alignment: .leading, spacing: 2) {
                         Text(src.path).font(.caption.monospaced()).lineLimit(1).truncationMode(.middle)
                         Text(detail(src)).font(.caption2).foregroundStyle(.secondary)

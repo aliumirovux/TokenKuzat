@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A1b · Gradient yo'nalishi</title>
+<style>
+  :root {
+    --bg: #F2F2F4; --surface: #FFFFFF; --line: #E8E8EC; --text: #17152B; --muted: #6B6A78;
+    --accent: #6C5CE7; --chg: #FFF4D6; --chg-line: #E5B53C;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #111113; --surface: #1F1F23; --line: #2C2C31; --text: #F2F2F4; --muted: #A1A1AA;
+      --accent: #8F82FF; --chg: #3A2F12; --chg-line: #B88A1E;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif; }
+  main { max-width: 1180px; margin: 0 auto; padding: 32px 16px 64px; }
+  h1 { font-size: 22px; margin: 0 0 4px; letter-spacing: -0.01em; }
+  h2 { font-size: 15px; margin: 36px 0 12px; }
+  p.lead { color: var(--muted); margin: 0 0 16px; max-width: 76ch; }
+  .bar { display: flex; gap: 12px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
+  .toggle { display: inline-flex; gap: 8px; align-items: center; padding: 6px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); cursor: pointer; font: inherit; color: inherit; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+  .cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  @media (max-width: 1000px) { .cols { grid-template-columns: 1fr; } }
+  .colhead h3 { margin: 0; font-size: 14px; }
+  .colhead p { margin: 2px 0 10px; color: var(--muted); font-size: 12px; min-height: 34px; }
+  .tag { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 999px; margin-left: 6px; vertical-align: 1px; }
+  .tag.rec { background: #E7F6EE; color: #11743F; }
+  .tag.no { background: #FCE9E7; color: #A8281C; }
+  .verdict { font-size: 12px; margin-top: 10px; color: var(--muted); }
+  .verdict b { color: var(--text); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; }
+  code { font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; overflow-wrap: anywhere; }
+  .cols > section { min-width: 0; }
+  @media (max-width: 640px) { table, tbody, tr, td { display: block; } tr:first-child { display: none; } td { border: 0; padding: 2px 0; } tr { padding: 10px 0; border-bottom: 1px solid var(--line); } td:first-child { font-weight: 600; } }
+  .pass { color: #17A35A; font-weight: 600; } .fail { color: #D93A2B; font-weight: 600; }
+  body.show-changes .changed { outline: 2px dashed var(--chg-line); outline-offset: 3px; }
+
+  /* ——— popover mock: each theme is self-contained ——— */
+  .pop { --s: #FFFFFF; --sunk: #F4F4F6; --ln: #E8E8EC; --tx: #17152B; --mu: #6B6A78;
+         --acc: #6C5CE7; --warn: #C27C0E; --err: #D93A2B; --track: rgba(23,21,43,.08);
+         --ink: #17152B; --ink2: #2E2870; --inkDim: #A9A6C9; --onAcc: #A79CFF; --onWarn: #FFC46B; --onErr: #FF8A7D;
+         background: var(--s); color: var(--tx); border: 1px solid var(--ln); border-radius: 14px; padding: 12px; margin-bottom: 12px;
+         box-shadow: 0 12px 32px rgba(17,17,19,.10); }
+  .pop.d { --s: #1F1F23; --sunk: #18181B; --ln: #2C2C31; --tx: #F2F2F4; --mu: #A1A1AA;
+           --acc: #8F82FF; --warn: #F2B544; --err: #FF6E61; --track: rgba(255,255,255,.10);
+           --ink: #24204A; --ink2: #3A3290; --inkDim: #B3AEE0; border-color: #2C2C31; box-shadow: none; }
+  .pop .lbl { font-size: 11px; font-weight: 600; color: var(--mu); text-transform: uppercase; letter-spacing: .05em; margin: 12px 2px 6px; }
+  .hero { border-radius: 12px; padding: 14px; color: #FFFFFF; position: relative; overflow: hidden; }
+  .hero .k { font-size: 11px; color: var(--inkDim); font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
+  .hero .big { font-size: 28px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; margin: 2px 0 0; }
+  .hero .sub { font-size: 12px; color: var(--inkDim); }
+  .hero .lim { margin-top: 12px; }
+  .hero .limrow { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 6px; }
+  .hero .limrow span:first-child { color: var(--inkDim); }
+  .hero .limrow b { font-variant-numeric: tabular-nums; }
+  .htrack { height: 8px; border-radius: 4px; background: rgba(255,255,255,.14); overflow: hidden; position: relative; }
+  .htrack .f { position: absolute; inset: 0 auto 0 0; border-radius: 4px; }
+  .htrack .ghost { position: absolute; inset: 0; opacity: .22; }
+  .ticks { position: relative; height: 12px; font-size: 10px; color: var(--inkDim); margin-top: 3px; }
+  .ticks span { position: absolute; transform: translateX(-50%); font-variant-numeric: tabular-nums; }
+  .stack { display: flex; height: 12px; gap: 2px; border-radius: 4px; overflow: hidden; }
+  .stack span { display: block; }
+  .legend { display: grid; grid-template-columns: 1fr auto; gap: 3px 10px; font-size: 12px; margin-top: 8px; }
+  .legend i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 6px; }
+  .legend .n { font-variant-numeric: tabular-nums; color: var(--mu); text-align: right; }
+  .chart svg { display: block; width: 100%; height: auto; }
+  .chart .days { display: grid; grid-template-columns: repeat(7, 1fr); font-size: 10px; color: var(--mu); text-align: center; margin-top: 2px; }
+</style>
+</head>
+<body class="show-changes">
+<main>
+  <h1>A1b · Gradient yo'nalishi (Apple uslubida)</h1>
+  <p class="lead">A1 dagi palitra o'zgarmaydi, faqat ranglarning qanday surtilishi o'zgaradi. Apple gradientni hamma joyda ishlatmaydi. U faqat rang biror qiymatni ifodalaganda paydo bo'ladi: Weather'dagi harorat oralig'i chizig'i, Fitness halqalari, Health grafigi ostidagi to'ldirish. Toifalar bo'yicha bo'lingan chiziqlar esa (Screen Time, Storage, Battery) tekis rangda qoladi. Uchta variantni yonma-yon qo'ydim: A1 (tekis), B (gradient faqat ma'no bor joyda) va C (hamma joyda gradient).</p>
+  <div class="bar">
+    <button class="toggle" onclick="document.body.classList.toggle('show-changes')">◐ A1 ga nisbatan o'zgarishlar</button>
+    <span style="color:var(--muted);font-size:12px">Har bir variant yorug' va qorong'i rejimda. Raqamlar namuna sifatida berilgan.</span>
+  </div>
+
+  <div class="cols" id="cols"></div>
+
+  <h2>B ichida aniq nima o'zgaradi</h2>
+  <div class="card">
+    <table>
+      <tr><th>Joy</th><th>A1 (tekis)</th><th>B (tavsiya)</th><th>Nega</th></tr>
+      <tr><td>5 soatlik limit chizig'i</td><td>Bitta rang: foizga qarab accent, warn yoki err</td><td>Chiziq ostida butun shkala xira ko'rinadi: 0–75 binafsha, 75–90 sariq, 90+ qizil. To'ldirilgan qismi shu shkalani foizgacha ochadi. Uchidagi rang <code>Palette.limit(pct)</code> bilan bir xil.</td><td>Weather'dagi harorat chizig'i kabi ishlaydi: 75 va 90 chegaralari chiziqning o'zida ko'rinadi, foydalanuvchi sariq zonagacha qancha qolganini oldindan ko'radi.</td></tr>
+      <tr><td>«Bugun» kartasi (ink)</td><td>Tekis <code>#17152B</code></td><td><code>ink → ink2</code> diagonal, burchakda accent rangidagi yumshoq nur (12%)</td><td>Bu panelda faqat shu karta asosiy element. Wallet va Fitness'dagi xulosa kartalari ham shunday chuqurlik bilan ajratiladi. Oq matn kontrasti ≥ 10,3:1.</td></tr>
+      <tr><td>Haftalik grafik</td><td>Faqat chiziq</td><td>Chiziq ostida accent rangidagi to'ldirish, yuqorida 28% dan pastda 0% gacha so'nadi</td><td>Health'dagi kabi to'ldirish hajmni ko'rsatadi va chiziq bilan raqobat qilmaydi.</td></tr>
+      <tr><td>Token turlari chizig'i</td><td>Tekis bo'laklar</td><td><b>O'zgarmaydi</b></td><td>Bu toifalar. Har bir bo'lakka gradient bersak, qo'shni bo'laklar chegarada bir-biriga qo'shilib ketadi va A1 dagi validator natijasi (ΔE ≥ 11,9) yo'qoladi. Apple'ning Storage va Screen Time chiziqlari ham tekis.</td></tr>
+      <tr><td>Holat ranglari (ok / warn / err)</td><td>Tekis</td><td><b>O'zgarmaydi</b></td><td>Holat rangiga gradient berilsa, u bezakka aylanib qoladi.</td></tr>
+    </table>
+  </div>
+
+  <h2>SwiftUI'da qanday yoziladi</h2>
+  <div class="card">
+    <table>
+      <tr><th>Token</th><th>Kod</th></tr>
+      <tr><td><code>Palette.limitScale</code></td><td><code>LinearGradient(stops: [.init(color: accent, location: 0), .init(color: accent, location: 0.72), .init(color: warn, location: 0.78), .init(color: warn, location: 0.87), .init(color: err, location: 0.93)])</code>. To'ldirish shu gradientning <code>.mask</code> orqali foizgacha ochilgan qismi; xira fon esa shu gradientning <code>.opacity(0.22)</code> nusxasi.</td></tr>
+      <tr><td><code>Brand.inkGradient</code></td><td><code>LinearGradient([ink, ink2], startPoint: .bottomLeading, endPoint: .topTrailing)</code> + <code>RadialGradient(accent.opacity(0.12) → .clear)</code> overlay. Yangi <code>ink2</code>: yorug' rejimda <code>#2E2870</code>, qorong'ida <code>#3A3290</code>.</td></tr>
+      <tr><td>Grafik to'ldirishi</td><td>Swift Charts <code>AreaMark(...).foregroundStyle(.linearGradient(colors: [accent.opacity(0.28), accent.opacity(0)], startPoint: .top, endPoint: .bottom))</code></td></tr>
+    </table>
+    <p class="verdict">Hajmi: 3 ta token va 4 ta view (Bugun, menyu paneli, limit kartasi, Tarix grafigi). A1 dagi palitra va limit qoidasi o'zgarishsiz qoladi; B ularning ustiga quriladi, shuning uchun avval A1, keyin B.</p>
+  </div>
+
+  <h2>Qanday bilamiz</h2>
+  <div class="card">
+    <p style="margin:0">To'ldirilgan qismining uchidagi rang hamma 4 joyda <code>Palette.limit(pct)</code> bilan bir xil chiqadi. Token turlari validator'dan ikkala rejimda avvalgidek o'tadi. Ink karta ustidagi oq va <code>inkDim</code> matn kontrasti ≥ 4,5:1. Guardrail: gradient faqat yuqoridagi 3 joyda ishlatiladi; <code>grep LinearGradient</code> natijasida ko'rinishlarda faqat shu tokenlar chiqishi kerak.</p>
+  </div>
+</main>
+
+<script>
+const variants = [
+  { id: 'a1', title: 'A1 · Tekis', tag: '', desc: 'Joriy taklif. Hamma joyda tekis rang ishlatiladi.' },
+  { id: 'b', title: 'B · Ma\'noli gradient', tag: '<span class="tag rec">Tavsiya</span>', desc: 'Gradient faqat 3 joyda: limit shkalasi, Bugun kartasi va grafik to\'ldirishi.' },
+  { id: 'c', title: 'C · Hamma joyda gradient', tag: '<span class="tag no">Tavsiya emas</span>', desc: 'Token bo\'laklari ham, karta ham, limit ham gradientda.' },
+];
+const verdicts = {
+  a1: '<b>Toza, lekin tekis.</b> Limit chegaralari chiziqdan bilinmaydi: sariq rang 75% dan oshgandagina paydo bo\'ladi.',
+  b: '<b>Chuqurlik bor, ma\'no saqlanadi.</b> 75 va 90 chegaralari chiziqning o\'zida ko\'rinadi. Token turlari A1 dagidek oson ajraladi.',
+  c: '<b>Bezak ma\'noni yeydi.</b> 3% bo\'lak qo\'shni bo\'lak ichida yo\'qoladi. Kamalak rangli limit chizig\'i 30% da ham sariq-qizil ko\'rinib, ogohlantirishdek tuyuladi. Karta burchagidagi orange ustida oq matn kontrasti 3,16:1, bu <span class="fail">FAIL</span>.',
+};
+const T = {
+  l: { seg: ['#6C5CE7','#0E9F8E','#B04FD8','#E0731C','#2F7BE5'], acc: '#6C5CE7', warn: '#C27C0E', err: '#D93A2B', ink: '#17152B', ink2: '#2E2870', onAcc: '#A79CFF', onWarn: '#FFC46B', onErr: '#FF8A7D' },
+  d: { seg: ['#7F72F5','#139C8C','#AE62D8','#DA7426','#3F85EC'], acc: '#8F82FF', warn: '#F2B544', err: '#FF6E61', ink: '#24204A', ink2: '#3A3290', onAcc: '#A79CFF', onWarn: '#FFC46B', onErr: '#FF8A7D' },
+};
+const tokens = [['Qayta o\'qilgan kontekst',70],['Kontekstni eslab qolish',12],['Yangi kiritilgan matn',3],['Claude javobi va fikrlashi',9],['Yordamchi agentlar',6]];
+const week = [6.1, 8.4, 5.2, 9.8, 7.3, 11.2, 12.4];
+const PCT = 81;
+let uid = 0;
+
+function scale(t) { // limit scale on the ink card (onInk steps)
+  return `linear-gradient(90deg, ${t.onAcc} 0%, ${t.onAcc} 72%, ${t.onWarn} 78%, ${t.onWarn} 87%, ${t.onErr} 93%)`;
+}
+function hero(v, t) {
+  let bg = t.ink, extra = '', track = '', pctColor = t.onWarn;
+  if (v === 'a1') {
+    track = `<div class="f" style="width:${PCT}%;background:${t.onWarn}"></div>`;
+  } else if (v === 'b') {
+    bg = `radial-gradient(120% 90% at 100% 0%, ${hexA(t.acc, .22)} 0%, transparent 55%), linear-gradient(45deg, ${t.ink} 0%, ${t.ink2} 100%)`;
+    track = `<div class="ghost" style="background:${scale(t)}"></div>
+             <div class="f" style="width:${PCT}%;background:${scale(t)};background-size:${10000/PCT}% 100%"></div>`;
+    extra = `<div class="ticks"><span style="left:75%">75</span><span style="left:90%">90</span></div>`;
+  } else {
+    bg = `linear-gradient(135deg, #6C5CE7 0%, #D9467A 60%, #E0731C 100%)`;
+    track = `<div class="f" style="width:${PCT}%;background:linear-gradient(90deg,#34C759,#FFCC00 ${3000/PCT}%,#FF3B30 ${10000/PCT}%);background-size:100% 100%"></div>`;
+    pctColor = '#FFFFFF';
+  }
+  const chg = v === 'b' ? ' changed' : '';
+  return `<div class="hero${chg}" style="background:${bg}">
+    <div class="k">Bugun</div>
+    <div class="big">12,4M token</div>
+    <div class="sub">38 ta so'rov · 3 sessiya</div>
+    <div class="lim">
+      <div class="limrow"><span>5 soatlik limit · 1 soat 12 daq. qoldi</span><b style="color:${pctColor}">${PCT}%</b></div>
+      <div class="htrack">${track}</div>${extra}
+    </div>
+  </div>`;
+}
+function stack(v, t) {
+  const order = tokens.map((x, i) => [x, t.seg[i]]);
+  const segs = order.map(([[, n], c], i) => {
+    let bg = c;
+    if (v === 'c') { const nx = t.seg[(i + 1) % t.seg.length]; bg = `linear-gradient(90deg, ${c}, ${nx})`; }
+    return `<span style="flex:${n};background:${bg}"></span>`;
+  }).join('');
+  const leg = order.map(([[name, n], c]) => `<span><i style="background:${c}"></i>${name}</span><span class="n">${n}%</span>`).join('');
+  return `<div class="lbl">Token turlari</div><div class="stack">${segs}</div><div class="legend">${leg}</div>`;
+}
+function chart(v, t) {
+  const W = 300, H = 72, pad = 6, max = 13, col = W / 7;
+  const pts = week.map((y, i) => [col / 2 + i * col, H - pad - (y / max) * (H - 2 * pad)]);
+  const line = pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' ');
+  const area = `${line} L ${pts[6][0]} ${H} L ${pts[0][0]} ${H} Z`;
+  const id = 'g' + (uid++);
+  let defs = '', fill = '', stroke = t.acc;
+  if (v === 'b') {
+    defs = `<linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${t.acc}" stop-opacity=".28"/><stop offset="1" stop-color="${t.acc}" stop-opacity="0"/></linearGradient>`;
+    fill = `<path d="${area}" fill="url(#${id})"/>`;
+  } else if (v === 'c') {
+    defs = `<linearGradient id="${id}" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#6C5CE7"/><stop offset=".6" stop-color="#D9467A"/><stop offset="1" stop-color="#E0731C"/></linearGradient>
+            <linearGradient id="${id}f" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#D9467A" stop-opacity=".45"/><stop offset="1" stop-color="#6C5CE7" stop-opacity=".05"/></linearGradient>`;
+    fill = `<path d="${area}" fill="url(#${id}f)"/>`;
+    stroke = `url(#${id})`;
+  }
+  const last = pts[6];
+  const chg = v === 'b' ? ' changed' : '';
+  return `<div class="lbl">Hafta · kunlik token</div>
+    <div class="chart${chg}"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Haftalik token sarfi, eng yuqorisi bugun 12,4M">
+      <defs>${defs}</defs>${fill}
+      <path d="${line}" fill="none" stroke="${stroke}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+      <circle cx="${last[0]}" cy="${last[1]}" r="3.5" fill="${v === 'c' ? '#E0731C' : t.acc}" stroke="var(--s)" stroke-width="2"/>
+    </svg><div class="days"><span>Du</span><span>Se</span><span>Ch</span><span>Pa</span><span>Ju</span><span>Sh</span><span>Ya</span></div></div>`;
+}
+function hexA(h, a) { const n = parseInt(h.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; }
+function pop(v, th) { const t = T[th]; return `<div class="pop ${th}">${hero(v, t)}${stack(v, t)}${chart(v, t)}</div>`; }
+
+document.getElementById('cols').innerHTML = variants.map(x => `
+  <section>
+    <div class="colhead"><h3>${x.title}${x.tag}</h3><p>${x.desc}</p></div>
+    ${pop(x.id, 'l')}${pop(x.id, 'd')}
+    <p class="verdict">${verdicts[x.id]}</p>
+  </section>`).join('');
+</script>
+</body>
+</html>

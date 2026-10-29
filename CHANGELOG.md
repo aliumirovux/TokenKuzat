@@ -1,5 +1,13 @@
 # O'zgarishlar
 
+## 6.37.0 — 2026-10-29
+
+- Bitta palitra: hamma rang dizayn tizimi tokenlaridan olinadi. macOS tizim ranglari (`.purple .teal .green .red .accentColor` …) kodda qolmadi, shuning uchun Mac'dagi urg'u rangi o'zgarsa ham ilova ranglari o'zgarmaydi.
+- Token turlari yangi ranglarda: asosiy bo'lak («Qayta o'qilgan kontekst») brend binafshada, qolganlari teal, orkide, orange va ko'k; rang ko'rmaydigan odam uchun ham ajraladi. Sessiyada yordamchi agentlar chiziqning oxiriga o'tdi.
+- Limit hamma joyda bitta qoida bilan: 75% gacha binafsha, 75–89% sariq, 90%+ qizil (Sozlamalardagi yashil rang olib tashlandi).
+- Limit chizig'i va halqalari endi butun shkalani xira ko'rsatadi — sariq va qizil zona qayerdan boshlanishi oldindan ko'rinadi; to'ldirilgan qism shkalani foizgacha ochadi.
+- «Bugun» va limit kartalari: to'q siyoh fonga yumshoq diagonal gradient va burchakda binafsha nur.
+
 ## 6.36.0 — 2026-10-29
 
 - Xulosa: agent kartasida endi shu so'rovda sarflagan tokeni ko'rsatiladi («8,3M token · Opus 5.5 · 49 qadam»). Raqam qadamlar soni bilan bir davr uchun hisoblanadi va sarlavhadagi so'rov raqami bilan mos keladi; yordamchi agentlarda ham shunday.

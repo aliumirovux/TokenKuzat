@@ -47,12 +47,12 @@ struct HistoryView: View {
 
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 3), spacing: 12) {
                     MetricTile(title: tr("\(range) kunda jami", "Total, \(range) days"), value: Fmt.tokens(total.value(mode)), unit: tr("token", "tokens"),
-                               footnote: tr("\(active.count) faol kun", active.count == 1 ? "1 active day" : "\(active.count) active days"), symbol: "sum", tint: .blue)
+                               footnote: tr("\(active.count) faol kun", active.count == 1 ? "1 active day" : "\(active.count) active days"), symbol: "sum", tint: Brand.accent)
                     MetricTile(title: tr("Faol kunda o'rtacha", "Average per active day"),
                                value: Fmt.tokens(active.isEmpty ? 0 : total.value(mode) / Double(active.count)), unit: tr("token", "tokens"),
-                               footnote: tr("Bo'sh kunlar hisobga olinmaydi", "Empty days aren't counted"), symbol: "chart.line.flattrend.xyaxis", tint: .teal)
+                               footnote: tr("Bo'sh kunlar hisobga olinmaydi", "Empty days aren't counted"), symbol: "chart.line.flattrend.xyaxis", tint: Brand.accent)
                     MetricTile(title: tr("Eng ko'p kun", "Peak day"), value: Fmt.tokens(peak?.tokens.value(mode) ?? 0), unit: tr("token", "tokens"),
-                               footnote: peak.map { Fmt.longDay.string(from: $0.date) } ?? "—", symbol: "flame.fill", tint: .orange)
+                               footnote: peak.map { Fmt.longDay.string(from: $0.date) } ?? "—", symbol: "flame.fill", tint: Brand.accent)
                 }
 
                 VStack(alignment: .leading, spacing: 10) {

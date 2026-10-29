@@ -113,12 +113,12 @@ struct LimitHero: View {
             }
         }
         .padding(22)
-        .background(RoundedRectangle(cornerRadius: 24, style: .continuous).fill(Brand.ink))
+        .background(InkBackdrop(shape: RoundedRectangle(cornerRadius: 24, style: .continuous)))
     }
 
     /// Bitta xulosa: sessiya yoki hafta shu sur'atda tugaydimi
     private var paceLine: some View {
-        let warn = Color(light: 0xFFC46B, dark: 0xFFC46B), ok = Color(light: 0x7CF0B6, dark: 0x7CF0B6)
+        let warn = Brand.onInkWarn, ok = Brand.onInkOk
         let (symbol, text, color): (String, String, Color) = {
             if case .runsOut(let at) = forecast {
                 return ("exclamationmark.triangle.fill", LimitText.fiveHourWarning(at, reset: window.resetsAt), warn)
@@ -192,13 +192,9 @@ private struct LimitCard: View {
 
     var body: some View {
         let pct = min(100, max(0, window.usedPercentage))
-        let color: Color = pct >= 90 ? Brand.err : (pct >= 75 ? Color(light: 0xFFC46B, dark: 0xFFC46B) : Brand.inkFill)
         HStack(alignment: .center, spacing: 22) {
             ZStack {
-                Circle().stroke(.white.opacity(0.09), lineWidth: 14)
-                Circle().trim(from: 0, to: pct / 100)
-                    .stroke(color, style: StrokeStyle(lineWidth: 14, lineCap: .round))
-                    .rotationEffect(.degrees(-90))
+                LimitRingStroke(pct: pct, lineWidth: 14)
                 VStack(spacing: 0) {
                     Text("\(Int(pct.rounded()))%").font(.system(size: 40, weight: .bold, design: .rounded)).monospacedDigit()
                         .foregroundStyle(.white)
@@ -328,7 +324,7 @@ private struct ConnectHero: View {
             }
         }
         .padding(26)
-        .background(RoundedRectangle(cornerRadius: 24, style: .continuous).fill(Brand.ink))
+        .background(InkBackdrop(shape: RoundedRectangle(cornerRadius: 24, style: .continuous)))
     }
 }
 
