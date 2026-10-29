@@ -1,5 +1,9 @@
 # O'zgarishlar
 
+## 6.50.0 — 2026-10-29
+
+- Yordamchi agent ishini tugatganda bildirishnoma: «TokenKuzat: yordamchi agent tugatdi — Explore · 3 daq · 24 qadam · 120K token. Natija asosiy agentga qaytdi.» Xabar asosiy agent hali ishlayotgan paytda chiqadi (masalan, fonda ishlagan yordamchi). Butun sessiya tugasa, odatdagi «Claude tugatdi» xabari yetadi. Ma'lumot transkriptdan olinadi, shuning uchun Claude ilovasidagi sessiyalarda ham ishlaydi. «Claude tugatdi» sozlamasi bilan birga yoqiladi va o'chiriladi, qisqa ishlar (sozlamadagi chegaradan qisqa) uchun chiqmaydi.
+
 ## 6.49.0 — 2026-10-29
 
 - «Og'ir boshlanish» maslahati endi aniq fayllarni ko'rsatadi: qaysi `CLAUDE.md` va `.claude/rules/` fayli sessiyaga yuklangani va qancha joy olgani («Ko'rsatma fayllari (10K): rules/swift.md 9K, ~/.claude/CLAUDE.md 1K»). Ma'lumot Claude Code'ning «InstructionsLoaded» hook'idan keladi: fayl sessiya boshida, ichki papkaga kirilganda yoki qoida mos kelganda yuklansa, ilova uni hajmi bilan yozib qo'yadi. Hook bildirishnoma hook'i bilan birga ulanadi, eski versiyadan yangilanganda ilova uni o'zi qo'shadi.

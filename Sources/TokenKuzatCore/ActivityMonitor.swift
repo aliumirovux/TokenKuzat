@@ -9,6 +9,8 @@ public struct ActivityEvent: Equatable {
         case stuck(step: String, duration: TimeInterval)
         /// Agent ketma-ket bir necha marta xato oldi
         case errorStreak(count: Int, lastStep: String)
+        /// Yordamchi agent ishini tugatdi, asosiy agent esa hali ishlayapti
+        case helperFinished(duration: TimeInterval, tokens: Int, steps: Int)
     }
 
     public let kind: Kind
@@ -41,6 +43,8 @@ public final class ActivityMonitor {
     }
 
     private var runs: [String: Run] = [:]
+    /// Yordamchi agentlar: «sessiya/agent» → ishga tushgan payt
+    private var helperRuns: [String: Run] = [:]
     private var seenStuck = Set<String>()
     private var seenStreak = Set<String>()
     private var primed = false
@@ -74,6 +78,20 @@ public final class ActivityMonitor {
                 }
             }
 
+            for agent in session.agents where !agent.isMain {
+                let key = session.id + "/" + agent.id
+                if agent.state != .idle {
+                    if helperRuns[key] == nil { helperRuns[key] = Run(start: now, tokens: agent.tokens.total, steps: agent.steps.count) }
+                } else if let run = helperRuns.removeValue(forKey: key), session.state != .idle {
+                    // Sessiya ham tinchisa — umumiy «tugadi» xabari yetadi
+                    let duration = (agent.lastActivity ?? now).timeIntervalSince(run.start)
+                    if duration >= config.finishMin {
+                        events.append(event(.helperFinished(duration: duration, tokens: agent.tokens.total - run.tokens,
+                                                            steps: agent.steps.count - run.steps), agent))
+                    }
+                }
+            }
+
             for agent in session.agents {
                 // Osilib qolgan qadam
                 if let last = agent.steps.last, last.status == .running, let d = last.duration, d >= config.stuckAfter,
@@ -88,6 +106,9 @@ public final class ActivityMonitor {
                 }
             }
         }
+        // Yo'qolgan sessiya va agentlar eslab qolinmaydi
+        let alive = Set(s.sessions.flatMap { sess in sess.agents.map { sess.id + "/" + $0.id } })
+        helperRuns = helperRuns.filter { alive.contains($0.key) }
         return events
     }
 }

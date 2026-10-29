@@ -321,6 +321,32 @@ final class ActivityMonitorTests: XCTestCase {
         XCTAssertEqual(steps, 2)
     }
 
+    func testHelperFinishedWhileMainStillWorks() throws {
+        let t0 = Date()
+        let engine = Engine(config: Engine.Config(roots: [root]))
+        let mon = ActivityMonitor()
+        let cfg = ActivityMonitor.Config(finishMin: 60, stuckAfter: 1000, errorStreak: 3)
+        // Asosiy agent yordamchini chaqirdi (natija hali yo'q), yordamchi ishlayapti
+        try append([#"{"type":"user","timestamp":"\#(f.string(from: t0))","message":{"content":"Qidir"}}"#, use("main", t0)])
+        let dir = root.appendingPathComponent("p/s/subagents")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let sub = dir.appendingPathComponent("agent-x.jsonl")
+        try ([use("h1", t0.addingTimeInterval(1)), result("h1", t0.addingTimeInterval(2))].joined(separator: "\n") + "\n")
+            .write(to: sub, atomically: true, encoding: .utf8)
+        XCTAssertTrue(mon.process(engine.tick(now: t0.addingTimeInterval(3)), config: cfg).isEmpty)
+        // Yordamchi 90 s ishlab tugatdi, asosiy agent hali kutyapti
+        let h = try FileHandle(forWritingTo: sub)
+        h.seekToEndOfFile()
+        h.write(Data(([use("h2", t0.addingTimeInterval(80)), result("h2", t0.addingTimeInterval(85)), end(t0.addingTimeInterval(90))]
+            .joined(separator: "\n") + "\n").utf8))
+        try h.close()
+        _ = mon.process(engine.tick(now: t0.addingTimeInterval(91)), config: cfg)
+        let done = mon.process(engine.tick(now: t0.addingTimeInterval(120)), config: cfg)
+        guard case .helperFinished(let d, _, let steps)? = done.first?.kind else { return XCTFail("\(done)") }
+        XCTAssertEqual(d, 87, accuracy: 3)
+        XCTAssertEqual(steps, 1)
+    }
+
     func testNoAlertsForStateFoundAtLaunch() throws {
         let t0 = Date()
         try append([use("x", t0.addingTimeInterval(-500))])

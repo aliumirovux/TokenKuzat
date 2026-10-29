@@ -436,6 +436,12 @@ final class Alerts: NSObject, UNUserNotificationCenterDelegate {
                      tr("\(e.title)\n\(Self.duration(duration)) · \(steps) qadam · \(Fmt.tokens(tokens)) token. Javobingizni kutyapti.",
                         "\(e.title)\n\(Self.duration(duration)) · \(steps) \(steps == 1 ? "step" : "steps") · \(Fmt.tokens(tokens)) tokens. Waiting for your reply."),
                      session: e.sessionId)
+            case .helperFinished(let duration, let tokens, let steps):
+                guard d.bool(forKey: Pref.notifyFinished) else { continue }
+                post(tr("\(e.project): yordamchi agent tugatdi", "\(e.project): subagent finished"),
+                     tr("\(e.agentTitle)\n\(Self.duration(duration)) · \(steps) qadam · \(Fmt.tokens(tokens)) token. Natija asosiy agentga qaytdi.",
+                        "\(e.agentTitle)\n\(Self.duration(duration)) · \(steps) \(steps == 1 ? "step" : "steps") · \(Fmt.tokens(tokens)) tokens. The result went back to the main agent."),
+                     session: e.sessionId)
             case .stuck(let step, let duration):
                 // Ruxsat kutilayotgani aniq bo'lsa — u haqda alohida xabar ketgan
                 guard d.bool(forKey: Pref.notifyStuck), s.permissionWaits[e.sessionId] == nil else { continue }
