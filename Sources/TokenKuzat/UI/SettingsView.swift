@@ -24,6 +24,10 @@ struct SettingsView: View {
     @AppStorage(Pref.notifyCache) private var notifyCache = true
     @AppStorage(Pref.autoHandoff) private var autoHandoff = true
     @AppStorage(Pref.autoHandoffK) private var autoHandoffK = AutoHandoffRule.defaultThresholdK
+    /// Claude Code'ning o'z qisqartirish oynasi (~/.claude/settings.json yoki muhit o'zgaruvchisi)
+    private var compactWindow: AutoCompactWindow.Found? {
+        (try? StatusLine.readSettings()).flatMap { AutoCompactWindow.smallest(settings: $0) }
+    }
     @AppStorage(Pref.autoHandoffTarget) private var autoHandoffTarget = AutoHandoffTarget.app.rawValue
     @AppStorage(Pref.autoHandoffRedirect) private var autoHandoffRedirect = true
     @AppStorage(Pref.lightMode) private var lightMode = false
@@ -138,6 +142,16 @@ struct SettingsView: View {
                     }
                     Picker(tr("…ochiladi", "…opens"), selection: $autoHandoffTarget) {
                         ForEach(AutoHandoffTarget.allCases) { Text($0.title).tag($0.rawValue) }
+                    }
+                    if let w = compactWindow, Double(w.tokens) <= autoHandoffK * 1000 {
+                        Label(tr("Claude Code suhbatni \(Fmt.tokens(w.tokens)) da o'zi qisqartiradi (\(w.source)) — bu ko'chirish chegarasidan "
+                                 + "(\(Fmt.tokens(Int(autoHandoffK * 1000)))) kichik. Ilova qisqartirishni bir marta to'xtatib, ishni yangi sessiyaga ko'chiradi. "
+                                 + "Har doim ishonchli bo'lishi uchun chegarani \(Fmt.tokens(w.tokens)) dan pastroq tanlang.",
+                                 "Claude Code compacts the conversation by itself at \(Fmt.tokens(w.tokens)) (\(w.source)) — below the handoff threshold "
+                                 + "(\(Fmt.tokens(Int(autoHandoffK * 1000)))). The app stops compaction once and moves the work to a new session. "
+                                 + "To be safe every time, pick a threshold below \(Fmt.tokens(w.tokens))."),
+                              systemImage: "exclamationmark.triangle.fill")
+                            .font(.caption).foregroundStyle(.orange)
                     }
                     captionToggle(tr("…eski sessiyada yozsam — yangi sessiyaga yo'naltirish", "…if I type in the old session — redirect to the new one"),
                                   tr("Keyingi xabaringiz xulosa bilan yangi sessiyaga ketadi", "Your next message goes to the new session with the summary"),

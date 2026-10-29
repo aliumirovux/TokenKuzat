@@ -1,5 +1,9 @@
 # O'zgarishlar
 
+## 6.51.0 — 2026-10-29
+
+- Sozlamalarda ogohlantirish: Claude Code suhbatni ko'chirish chegarasidan oldin o'zi qisqartiradigan qilib sozlangan bo'lsa, avtomatik ko'chirish bo'limida sariq yozuv chiqadi — «Claude Code suhbatni 150K da o'zi qisqartiradi (autoCompactWindow) — bu ko'chirish chegarasidan (200K) kichik». Ilova bunday qisqartirishni bir marta to'xtatadi, lekin har doim ishonchli bo'lishi uchun chegarani pastroq tanlash tavsiya qilinadi. `~/.claude/settings.json` dagi `autoCompactWindow`, model bo'yicha `modelSettings.<model>.autoCompactWindow` va `CLAUDE_CODE_AUTO_COMPACT_WINDOW` o'qiladi, eng kichigi olinadi; «auto» qiymati aniq son bo'lmagani uchun hisobga olinmaydi.
+
 ## 6.50.0 — 2026-10-29
 
 - Yordamchi agent ishini tugatganda bildirishnoma: «TokenKuzat: yordamchi agent tugatdi — Explore · 3 daq · 24 qadam · 120K token. Natija asosiy agentga qaytdi.» Xabar asosiy agent hali ishlayotgan paytda chiqadi (masalan, fonda ishlagan yordamchi). Butun sessiya tugasa, odatdagi «Claude tugatdi» xabari yetadi. Ma'lumot transkriptdan olinadi, shuning uchun Claude ilovasidagi sessiyalarda ham ishlaydi. «Claude tugatdi» sozlamasi bilan birga yoqiladi va o'chiriladi, qisqa ishlar (sozlamadagi chegaradan qisqa) uchun chiqmaydi.
