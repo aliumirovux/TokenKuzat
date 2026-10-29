@@ -166,7 +166,9 @@ struct GraphScreen: View {
                     }
                     .frame(minHeight: 320, maxHeight: .infinity)
                     .card(padding: 0)
-                    .padding(.horizontal, 24).padding(.bottom, 20)
+                    .padding(.horizontal, mapFocus ? 6 : 24).padding(.bottom, mapFocus ? 6 : 20)
+                    .padding(.top, mapFocus ? 6 : 0)
+                    .ignoresSafeArea(.container, edges: mapFocus ? .top : [])
                 case "files":
                     FileHeatmapScreen(model: HeatmapModel(timeline: tl)) { f in
                         if let owner = f.ownerId { select(.resource(agentId: owner, category: .files)) }
@@ -195,6 +197,15 @@ struct GraphScreen: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        // To'liq ko'rinishda ham ishlayotgan sessiyalar ko'rinadi — kanvas tepasida, o'rtada
+        .overlay(alignment: .top) {
+            if mapFocus {
+                sessionsBar(framed: true)
+                    .padding(.top, 14).padding(.horizontal, 90)
+                    .ignoresSafeArea(.container, edges: .top)
+                    .transition(.opacity)
+            }
+        }
             if let session, panelAvailable && !isNarrow && showInspector {
                 DetailsPanel(onClose: { withAnimation(Motion.spring) { showInspector = false } }) {
                     inspector(session, now: now)
@@ -253,10 +264,15 @@ struct GraphScreen: View {
             tab("outputs", tr("Natijalar", "Outputs"), "photo.on.rectangle.angled",
                 help: tr("Jarayonda yaratilgan yoki ko'rilgan rasm, HTML, PDF va videolar", "Images, HTML, PDFs and videos created or viewed during the process"))
             Spacer(minLength: 16)
-            ActiveSessionsBar(snap: store.snap, current: store.snap.sessions.first(where: { $0.id == sessionId })?.id
-                                ?? store.snap.sessions.first?.id) { id in
-                withAnimation(Motion.snappy) { sessionId = id }
-            }
+            sessionsBar()
+        }
+    }
+
+    /// Ishlayotgan sessiyalar — tablar yonida, «Faqat xarita/sxema»da esa kanvas tepasida
+    private func sessionsBar(framed: Bool = false) -> some View {
+        ActiveSessionsBar(snap: store.snap, current: store.snap.sessions.first(where: { $0.id == sessionId })?.id
+                            ?? store.snap.sessions.first?.id, framed: framed) { id in
+            withAnimation(Motion.snappy) { sessionId = id }
         }
     }
 
@@ -1256,6 +1272,8 @@ private struct StepInspector: View {
 private struct ActiveSessionsBar: View {
     let snap: Snapshot
     let current: String?
+    /// Kanvas ustida turganda — o'z foni bilan
+    var framed = false
     let onSelect: (String) -> Void
     private let visible = 4
 
@@ -1281,6 +1299,8 @@ private struct ActiveSessionsBar: View {
                 row(all, density: 0)
                 more(all, title: tr("Ishlayapti: \(all.count)", "Working: \(all.count)"))
             }
+            .padding(framed ? 5 : 0)
+            .background { if framed { Color.clear.surface(radius: 13) } }
             .background {
                 // Klaviatura: ⌘[ — oldingi, ⌘] — keyingi ishlayotgan sessiya
                 HStack {

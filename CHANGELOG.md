@@ -1,5 +1,10 @@
 # O'zgarishlar
 
+## 6.21.1 — 2026-10-29
+
+- «Faqat xarita / sxema» (to'liq) rejimida ham ishlayotgan sessiyalar ko'rinadi — kanvas tepasida, o'rtada, o'z foni bilan; bosib yoki ⌘[ / ⌘] bilan almashtiriladi.
+- Xulosa tabi to'liq rejimda xaritadagidek oyna chetlarigacha cho'ziladi.
+
 ## 6.21.0 — 2026-10-29
 
 - Sessiya sahifasida, tablar qatorining o'ng tomonida — «Ishlayapti»: hozir ishlayotgan va ruxsat kutayotgan boshqa sessiyalar (boshqa loyihalar va bir loyihadagi parallel sessiyalar). Har kartochkada loyiha va asosiy agent hozir nima qilayotgani; bosing — o'sha sessiyaga o'tadi. ⌘[ / ⌘] — oldingi/keyingisi.
