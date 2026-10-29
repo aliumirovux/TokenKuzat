@@ -30,6 +30,33 @@ final class CompactGuardTests: XCTestCase {
         XCTAssertEqual(c.change, Fmt.tokens(968_000) + " → " + Fmt.tokens(36_000))
     }
 
+    /// Oldindan tayyorlangan xulosa: uning vaqti qisqartirishdan bir soat oldin, fayldagi o'rni esa undan keyin
+    func testPrecomputedSummaryTakesBoundaryTime() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("tk-cb-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: root.appendingPathComponent("p"), withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let now = Date()
+        func ts(_ s: Double) -> String { f.string(from: now.addingTimeInterval(s)) }
+        let lines = [
+            #"{"type":"user","timestamp":"\#(ts(-7200))","message":{"content":"birinchi vazifa"}}"#,
+            #"{"type":"assistant","timestamp":"\#(ts(-1000))","message":{"id":"m1","content":[{"type":"text","text":"ok"}]}}"#,
+            #"{"type":"system","subtype":"compact_boundary","timestamp":"\#(ts(-600))","compactMetadata":{"trigger":"auto","preTokens":459211,"postTokens":30295}}"#,
+            #"{"type":"user","timestamp":"\#(ts(-4000))","isCompactSummary":true,"message":{"content":"This session is being continued from a previous conversation that ran out of context."}}"#,
+            #"{"type":"assistant","timestamp":"\#(ts(-590))","message":{"id":"m2","content":[{"type":"text","text":"davom"}]}}"#,
+        ]
+        try (lines.joined(separator: "\n") + "\n").write(to: root.appendingPathComponent("p/s.jsonl"), atomically: true, encoding: .utf8)
+
+        let turns = try XCTUnwrap(Engine(config: Engine.Config(roots: [root])).tick(now: now).sessions.first?.turns)
+        XCTAssertEqual(turns.count, 2)
+        XCTAssertEqual(turns[1].start.timeIntervalSince1970, now.addingTimeInterval(-600).timeIntervalSince1970, accuracy: 0.01)
+        let c = try XCTUnwrap(turns[1].compaction)
+        XCTAssertTrue(c.auto)
+        XCTAssertEqual(c.before, 459_211)
+        XCTAssertEqual(c.after, 30_295)
+    }
+
     func testBlocksOnlyActiveGuardedAutoCompactOnce() {
         let g: Set<String> = ["s"]
         XCTAssertTrue(CompactGuard.shouldBlock(trigger: "auto", sessionId: "s", guarded: g, blockedBefore: false, transcriptAge: 3))

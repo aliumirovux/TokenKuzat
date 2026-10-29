@@ -221,9 +221,11 @@ public final class Engine {
         }
         if case .compact(let auto, let before, let after) = ev.kind {
             // Faqat asosiy suhbat; bir qator ikki marta o'qilsa — takrorlanmaydi
-            if fs.agentKey == nil, ev.sidechainAgentId == nil, let ts = ev.timestamp,
-               !session.compactions.contains(where: { $0.date == ts }) {
-                session.compactions.append(Compaction(date: ts, auto: auto, before: before, after: after))
+            if fs.agentKey == nil, ev.sidechainAgentId == nil, let ts = ev.timestamp {
+                if !session.compactions.contains(where: { $0.date == ts }) {
+                    session.compactions.append(Compaction(date: ts, auto: auto, before: before, after: after))
+                }
+                session.pendingCompact = ts
             }
             return
         }
@@ -362,8 +364,15 @@ public final class Engine {
                 let title = AutoHandoffRule.continuationTitle(from: first).map { "↪ " + $0 } ?? firstLine
                 session.firstPrompt = String(title.prefix(90))
             }
-            if let ts = ev.timestamp { session.addTurn(start: ts, prompt: String(firstLine.prefix(160)),
-                                                         text: String(first.prefix(TurnSnap.textLimit))) }
+            if let ts = ev.timestamp {
+                // Oldindan tayyorlangan xulosaning vaqti qisqartirishdan ancha oldin bo'lishi mumkin:
+                // so'rov fayldagi o'rni bo'yicha — undan oldingi «compact_boundary» vaqtida boshlanadi
+                let pending = session.pendingCompact
+                session.pendingCompact = nil
+                let start = TurnSnap.isContinuation(first) ? max(ts, pending ?? ts) : ts
+                session.addTurn(start: start, prompt: String(firstLine.prefix(160)),
+                                text: String(first.prefix(TurnSnap.textLimit)))
+            }
             agent.lastAction = tr("Yangi so'rov oldi", "Got a new prompt")
             if let ts = ev.timestamp, ts >= dayStart {
                 addFeed(ev.uuid ?? UUID().uuidString, ts, session, agent, "person.fill",
@@ -759,6 +768,8 @@ private final class SessionAcc {
     var notes: [NoteAcc] = []
     var noteIds: Set<String> = []
     var compactions: [Compaction] = []
+    /// Oxirgi «compact_boundary» vaqti — undan keyingi xulosa so'rovi uni oladi
+    var pendingCompact: Date?
 
     init(id: String) { self.id = id }
 

@@ -1,5 +1,9 @@
 # O'zgarishlar
 
+## 6.47.1 — 2026-10-29
+
+- Xaritadagi qisqartirish kartasi oldindan tayyorlangan xulosada ham ishlaydi. Claude Code endi xulosani qisqartirishdan ancha oldin tayyorlab qo'yishi mumkin. Shunda xulosa qatori ertaroq vaqt bilan yoziladi va karta «Kontekst yangilandi» deb qolib ketardi. Endi xulosa so'rovi transkriptda o'zidan oldin turgan qisqartirish vaqtini oladi: karta «Avtomatik qisqartirildi» deb yozadi va Xaritada to'g'ri joyda turadi. O'sha oraliqdagi qadamlar ham oldingi so'rovga tegishli bo'lib qoladi.
+
 ## 6.47.0 — 2026-10-29
 
 - Xaritada qisqartirish aniq ko'rinadi: Claude Code suhbatni qisqartirgan joyda karta «Avtomatik qisqartirildi» yoki «/compact bilan qisqartirildi» deb yozadi va kontekst qanchadan qanchaga tushganini ko'rsatadi («Kontekst 968K → 36K»). Bo'lim yorlig'i — «Qisqartirildi». Ma'lumot transkriptdagi «compact_boundary» qatoridan olinadi, shuning uchun Claude ilovasidagi sessiyalarda ham ishlaydi.
