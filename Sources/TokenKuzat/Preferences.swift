@@ -42,7 +42,7 @@ enum Pref {
 
     static func register() {
         UserDefaults.standard.register(defaults: [
-            countMode: CountMode.raw.rawValue,
+            countMode: CountMode.weighted.rawValue,
             menuBarStyle: MenuBarStyle.tokens.rawValue,
             budgetEnabled: false,
             budgetPeriod: BudgetPeriod.fiveHours.rawValue,

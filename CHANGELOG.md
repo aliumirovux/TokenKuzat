@@ -1,5 +1,9 @@
 # O'zgarishlar
 
+## 6.32.1 — 2026-10-29
+
+- Tuzatildi: inglizcha interfeysda ba'zan o'zbekcha so'zlar chiqardi (masalan «Jonli · 1 agent»). Sabab — yangi sessiya xulosasi suhbat tilida yasalayotganda git chaqiruvi run loop'ni aylantirar va interfeys shu lahzada xulosa tilida chizilardi. Endi git kutish run loop'ni aylantirmaydi, til almashishi esa faqat o'z oqimida amal qiladi.
+
 ## 6.32.0 — 2026-10-29
 
 - Ko'chirilgan sessiya sarlavhasi endi tizim matni emas: «↪ so'nggi vazifa» (xulosadan olinadi).

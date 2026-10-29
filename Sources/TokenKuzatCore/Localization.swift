@@ -20,16 +20,21 @@ public enum AppLanguage: String, CaseIterable, Identifiable {
 public enum Lang {
     /// UserDefaults kaliti (@AppStorage ham shu nomdan foydalanadi)
     public static let prefKey = "language"
-    public private(set) static var isEnglish = false
+    /// Ilova tili. `with(english:)` faqat o'z oqimida almashtiradi — fondagi matn yasash UI'ga til aralashtirmasin
+    public static var isEnglish: Bool {
+        (Thread.current.threadDictionary[overrideKey] as? Bool) ?? appEnglish
+    }
+    nonisolated(unsafe) private static var appEnglish = false
+    private static let overrideKey = "uz.ali.tokenkuzat.lang.override"
 
     public static var choice: AppLanguage {
         AppLanguage(rawValue: UserDefaults.standard.string(forKey: prefKey) ?? "") ?? .system
     }
 
-    public static func load() { isEnglish = resolve(choice) }
+    public static func load() { appEnglish = resolve(choice) }
 
     public static func set(_ c: AppLanguage) {
-        isEnglish = resolve(c)
+        appEnglish = resolve(c)
         UserDefaults.standard.set(c.rawValue, forKey: prefKey)
     }
 
@@ -43,9 +48,10 @@ public enum Lang {
 
     /// `body` ichida `tr(...)` berilgan tilda qaytadi (Claude'ga yuboriladigan matnlar uchun — ilova tili emas, suhbat tili)
     public static func with<T>(english: Bool, _ body: () -> T) -> T {
-        let saved = isEnglish
-        isEnglish = english
-        defer { isEnglish = saved }
+        let dict = Thread.current.threadDictionary
+        let saved = dict[overrideKey]
+        dict[overrideKey] = english
+        defer { dict[overrideKey] = saved }
         return body()
     }
 

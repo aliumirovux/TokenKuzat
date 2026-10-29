@@ -26,4 +26,22 @@ final class LocalizationTests: XCTestCase {
         XCTAssertEqual(Lang.with(english: !before) { tr("uz", "en") }, before ? "uz" : "en")
         XCTAssertEqual(Lang.isEnglish, before)
     }
+
+    /// Fondagi `Lang.with` boshqa oqimdagi (UI) tilni o'zgartirmasligi kerak
+    func testWithOverrideStaysOnItsThread() {
+        let base = Lang.isEnglish
+        let inside = expectation(description: "override")
+        let release = DispatchSemaphore(value: 0)
+        Thread.detachNewThread {
+            Lang.with(english: !base) {
+                inside.fulfill()
+                release.wait()
+            }
+        }
+        wait(for: [inside], timeout: 2)
+        XCTAssertEqual(Lang.isEnglish, base)
+        release.signal()
+        XCTAssertEqual(Lang.with(english: !base) { Lang.isEnglish }, !base)
+        XCTAssertEqual(Lang.isEnglish, base)
+    }
 }

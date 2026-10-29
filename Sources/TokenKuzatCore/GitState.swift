@@ -36,9 +36,12 @@ public enum GitState {
         let out = Pipe()
         p.standardOutput = out
         p.standardError = FileHandle.nullDevice
+        // waitUntilExit() run loop'ni aylantiradi: asosiy oqimda `Lang.with` ichida UI boshqa tilda chizilib qolardi
+        let done = DispatchSemaphore(value: 0)
+        p.terminationHandler = { _ in done.signal() }
         do { try p.run() } catch { return nil }
         let data = out.fileHandleForReading.readDataToEndOfFile()
-        p.waitUntilExit()
+        done.wait()
         guard p.terminationStatus == 0 else { return nil }
         return String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines)
     }
