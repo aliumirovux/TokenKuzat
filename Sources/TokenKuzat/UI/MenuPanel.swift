@@ -320,7 +320,10 @@ struct MenuPanel: View {
 
     private func projects(_ s: Snapshot) -> some View {
         var seen = Set<String>()
-        let list = s.sessions.filter { seen.insert($0.project).inserted }.prefix(3)
+        // Vaqtinchalik papkalar (/tmp, scratchpad) — ishlayotgan bo'lmasa ko'rsatilmaydi (chap paneldagi «So'nggi» kabi)
+        let list = s.sessions
+            .filter { $0.state != .idle || !($0.cwd.map(ProjectBoard.isTemporaryFolder) ?? false) }
+            .filter { seen.insert($0.project).inserted }.prefix(3)
         return VStack(spacing: 0) {
             ForEach(Array(list)) { sess in
                 Button {

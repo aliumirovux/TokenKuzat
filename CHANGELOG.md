@@ -1,5 +1,9 @@
 # O'zgarishlar
 
+## 6.58.3 — 2026-10-30
+
+- Menyu panelidagi loyihalar ro'yxati ham vaqtinchalik papkalarni (/tmp, ilovaning papkasiz sessiyalari) ko'rsatmaydi — chap paneldagi «So'nggi» bilan bir xil.
+
 ## 6.58.2 — 2026-10-30
 
 - «Loyihalar» sahifasida loyihaning ichki papkasi (masalan, `ytbot/design`) alohida karta bo'lib chiqmaydi: undagi sessiyalar ota loyiha kartasiga qo'shiladi. Faqat bitta git loyihasi ichida; git'siz papkalar avvalgidek alohida.
