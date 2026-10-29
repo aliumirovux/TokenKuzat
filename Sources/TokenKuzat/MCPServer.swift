@@ -239,10 +239,13 @@ enum MCPServer {
         guard !reports.isEmpty else { return ["error": "No Claude usage in this period"] }
         // Loyiha nomi yoki yo'li (joriy papka) bo'yicha; berilmasa — isrofi eng katta loyiha
         let want = (args["project"] as? String)?.trimmingCharacters(in: .whitespaces)
-        let chosen = want.flatMap { w -> ProjectReport? in
+        let match = want.flatMap { w -> ProjectReport? in
             let name = (w as NSString).lastPathComponent.lowercased()
             return reports.first { $0.cwd == w || $0.project.lowercased() == w.lowercased() || $0.project.lowercased() == name }
-        } ?? reports.max { $0.waste < $1.waste }!
+        }
+        let chosen = match ?? reports.max { $0.waste < $1.waste }!
+        // Loyiha so'ralgan, lekin topilmadi — o'rniga ko'rsatilgani boshqa loyiha
+        let notFound = want != nil && match == nil
         let total = reports.reduce(0) { $0 + $1.tokens.total }
         func fix(_ f: ProjectIssue.Fix) -> String {
             switch f {
@@ -273,10 +276,15 @@ enum MCPServer {
             "task": ProjectSavings.prompt(for: chosen, period: period),
         ]
         if let cwd = chosen.cwd { p["cwd"] = cwd }
-        // Tuzatish qo'llangani belgilanadi — ilova shu sanadan oldingi va keyingi isrofni solishtiradi
+        // Tuzatish qo'llangani belgilanadi — ilova shu sanadan oldingi va keyingi isrofni solishtiradi.
+        // So'ralgan loyiha topilmasa — boshqa loyihaga yozilmaydi
         if args["applied"] as? Bool == true {
-            ProjectSavingsHistory().markFixed(chosen.project)
-            p["fix_recorded"] = true
+            if notFound {
+                p["fix_recorded"] = false
+            } else {
+                ProjectSavingsHistory().markFixed(chosen.project)
+                p["fix_recorded"] = true
+            }
         }
         if let ba = ProjectSavingsHistory().load().beforeAfter(chosen.project, mode: .weighted) {
             var b: [String: Any] = ["fixed_at": iso(ba.fixedAt)]
@@ -284,9 +292,9 @@ enum MCPServer {
             if let v = ba.after { b["waste_share_after_percent"] = Int((v * 100).rounded()) }
             p["last_fix"] = b
         }
-        if want != nil, chosen.cwd != want, chosen.project.lowercased() != want?.lowercased(),
-           chosen.project.lowercased() != (want.map { ($0 as NSString).lastPathComponent.lowercased() }) {
+        if notFound {
             p["note"] = "Requested project not found in this period; showing the project with the most waste"
+                + (args["applied"] as? Bool == true ? ". The fix date was not recorded — call again with the exact project name or folder" : "")
         }
         o["project_report"] = p
         return o
@@ -303,14 +311,19 @@ enum MCPServer {
     }
 
     private static func details(_ s: Snapshot, _ args: [String: Any], now: Date) -> [String: Any] {
-        let byId = (args["session_id"] as? String).flatMap { id in s.sessions.first { $0.id == id } }
-        let byProject = (args["project"] as? String).flatMap { p in
-            s.sessions.filter { $0.project.lowercased() == p.lowercased() }
-                .max { ($0.lastActivity ?? .distantPast) < ($1.lastActivity ?? .distantPast) }
+        let latest: ([SessionSnap]) -> SessionSnap? = { $0.max { ($0.lastActivity ?? .distantPast) < ($1.lastActivity ?? .distantPast) } }
+        // So'ralgan sessiya yoki loyiha topilmasa — boshqasi jim qaytarilmaydi; hech narsa so'ralmasa — eng so'nggisi
+        let sess: SessionSnap?
+        if let id = args["session_id"] as? String, !id.isEmpty {
+            sess = s.sessions.first { $0.id == id }
+            if sess == nil { return ["error": "Session \(id) not found (only the last 7 days are kept). Call list_sessions for current ids."] }
+        } else if let p = args["project"] as? String, !p.isEmpty {
+            sess = latest(s.sessions.filter { $0.project.lowercased() == p.lowercased() })
+            if sess == nil { return ["error": "No session found for project \(p). Call list_sessions to see project names."] }
+        } else {
+            sess = latest(s.sessions)
         }
-        guard let sess = byId ?? byProject ?? s.sessions.max(by: { ($0.lastActivity ?? .distantPast) < ($1.lastActivity ?? .distantPast) }) else {
-            return ["error": "Sessiya topilmadi"]
-        }
+        guard let sess else { return ["error": "No sessions yet"] }
         var o = brief(sess, s, now: now)
         o["turns"] = sess.turns.suffix(30).map { t -> [String: Any] in
             [

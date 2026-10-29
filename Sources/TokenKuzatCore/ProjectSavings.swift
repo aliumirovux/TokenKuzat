@@ -259,6 +259,10 @@ public enum ProjectSavings {
         }
         l.append(tr("3. Har bir faylni o'zgartirishdan oldin nima o'zgarishini ko'rsat va mening tasdig'imni kut. Kod va loyiha mantiqiga tegma.",
                     "3. Before changing any file, show what will change and wait for my approval. Don't touch code or project logic."))
+        l.append(tr("4. O'zgarishlar qo'llangach, Token Kuzatuv'ning savings_report asbobi bo'lsa — uni project=\"\(r.project)\", applied=true bilan chaqir "
+                    + "(tuzatish sanasi yoziladi, ilova avval va keyingi isrofni solishtiradi). Hech narsa qo'llanmasa — chaqirma.",
+                    "4. Once changes are applied, if Token Kuzatuv's savings_report tool is available, call it with project=\"\(r.project)\", applied=true "
+                    + "(this records the fix date so the app compares waste before and after). If nothing was applied, don't call it."))
         return l.joined(separator: "\n")
     }
 }

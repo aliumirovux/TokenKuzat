@@ -1,5 +1,14 @@
 # O'zgarishlar
 
+## 6.54.0 — 2026-10-30
+
+- Avtomatik ko'chirish endi faqat Claude javobini haqiqatan tugatganda yangi sessiya ochadi. Uzoq buyruq, uzoq o'ylash yoki javob kutilayotgan savol paytida ochilmaydi.
+- Terminal'ga ko'chirishda har ochilish o'z faylini oladi va ishga tushgach uni o'chiradi: ketma-ket ikki ko'chirish bir-birining xabarini bosib ketmaydi. `claude` topilmasa, Terminal sababini yozadi.
+- MCP `savings_report`: so'ralgan loyiha topilmasa, «tuzatildi» sanasi boshqa loyihaga yozilmaydi va Claude buni javobdan ko'radi.
+- MCP `session_details`: noto'g'ri id yoki loyiha berilsa, boshqa sessiya o'rniga aniq xato qaytadi.
+- Loyihalar tejami: «Claude'ga topshirish» endi faqat topshiriqni nusxalaydi. «Tuzatildi» sanasi «Qo'llandi deb belgilash» tugmasi bilan yoki Claude o'zgarishlarni qo'llagach MCP orqali qo'yiladi (bu qadam topshiriqqa qo'shildi).
+- Haftalik limit ham tugagan bo'lsa, 5 soatlik limit tiklanganda «yana ishlashingiz mumkin» degan xabar chiqmaydi — faqat haftalik limit haqida aytiladi.
+
 ## 6.53.0 — 2026-10-30
 
 - FreeLLMAPI Mac ilovasi yopiq bo'lsa, Token Kuzatuv uni o'zi orqa fonda ochadi: ilova ishga tushganda (kompyuter qayta yoqilgandan keyin ham), `ask_free_model` serverga ulana olmaganda (ochib, bir marta qayta uradi), ish bepul modelga ko'chayotganda va Sozlamalardagi tekshiruvda. Faqat manzil shu Mac'da bo'lsa (localhost, 127.0.0.1) va ilova o'rnatilgan bo'lsa ishlaydi; boshqa kompyuterdagi server ochilmaydi.

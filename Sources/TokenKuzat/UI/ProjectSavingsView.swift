@@ -148,6 +148,8 @@ private struct ProjectSavingsRow: View {
     let expanded: Bool
     let onToggle: () -> Void
     @State private var copied = false
+    /// Topshiriq nusxalangan — «Qo'llandi» belgisini qo'yish mumkin
+    @State private var handed = false
 
     private var wasteColor: Color {
         let s = report.wasteShare(mode)
@@ -258,6 +260,15 @@ private struct ProjectSavingsRow: View {
                              "Copies the report and a precise task: Claude reviews the causes, proposes changes to CLAUDE.md and settings, "
                              + "and applies each only after you approve it."))
                 }
+                // Nusxalash — hali tuzatish emas: «avval → keyin» sanasi faqat o'zgarish qo'llangach (shu yerda yoki MCP orqali Claude)
+                if handed {
+                    Button { onFixed(); handed = false } label: {
+                        Label(tr("Qo'llandi deb belgilash", "Mark as applied"), systemImage: "checkmark.seal")
+                    }
+                    .buttonStyle(.link).font(.callout)
+                    .help(tr("Claude o'zgarishlarni qo'llagan bo'lsa bosing — shu kundan oldingi va keyingi isrof solishtiriladi.",
+                             "Click once Claude has applied the changes — waste before and after this day is compared."))
+                }
                 if let cwd = report.cwd, FileManager.default.fileExists(atPath: cwd) {
                     Button { openTerminal(cwd) } label: { Label(tr("Terminalda ochish", "Open in Terminal"), systemImage: "terminal") }
                         .buttonStyle(.link).font(.callout)
@@ -316,8 +327,8 @@ private struct ProjectSavingsRow: View {
                         Text("\(Int((today.wasteShare(mode) * 100).rounded()))%")
                             .font(.callout.weight(.semibold)).monospacedDigit().foregroundStyle(wasteColor)
                     }
-                    Text(tr("«Claude'ga topshirish»dan keyin bu yerda «avval → keyin» natijasi chiqadi",
-                            "After «Hand to Claude», the before → after result shows here"))
+                    Text(tr("Tuzatish qo'llangach bu yerda «avval → keyin» natijasi chiqadi",
+                            "Once a fix is applied, the before → after result shows here"))
                         .font(.caption).foregroundStyle(.tertiary).fixedSize(horizontal: false, vertical: true)
                 }
                 Spacer()
@@ -326,7 +337,7 @@ private struct ProjectSavingsRow: View {
     }
 
     private func copyPrompt() {
-        onFixed()
+        handed = true
         let pb = NSPasteboard.general
         pb.clearContents()
         pb.setString(ProjectSavings.prompt(for: report, period: period), forType: .string)

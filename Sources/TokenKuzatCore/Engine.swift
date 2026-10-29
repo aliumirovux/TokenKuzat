@@ -417,6 +417,11 @@ public final class Engine {
         }
     }
 
+    /// Javob tugaganmi: asbob chaqirilgan, natija kelgan yoki yangi so'rov olingan bo'lsa — hali ishlayapti
+    static func turnEnded(lastStop: String?) -> Bool {
+        !["tool_use", "tool_result", "prompt"].contains(lastStop ?? "")
+    }
+
     // MARK: - Snapshot
 
     public func snapshot() -> Snapshot {
@@ -468,7 +473,8 @@ public final class Engine {
                 notes: s.notes.suffix(400).map {
                     NoteSnap(id: $0.id, date: $0.date, kind: $0.kind, text: $0.text, duration: $0.duration,
                              turn: Engine.turnIndex(starts, $0.date).map { $0 + 1 }, agent: $0.agent)
-                }, cwd: s.cwd, isClaude: FreeModels.isClaude(s.model)))
+                }, cwd: s.cwd, isClaude: FreeModels.isClaude(s.model),
+                turnEnded: Engine.turnEnded(lastStop: s.agents.values.first(where: \.isMain)?.lastStop)))
         }
         sessSnaps.sort { ($0.lastActivity ?? .distantPast) > ($1.lastActivity ?? .distantPast) }
         snap.sessions = sessSnaps

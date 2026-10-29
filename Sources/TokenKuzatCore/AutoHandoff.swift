@@ -19,10 +19,13 @@ public enum AutoHandoffRule {
     }
 
     /// Shu yangilanishda yangi sessiya ochilsinmi
-    /// `compactBlocked` — Claude Code shu sessiyani avtomatik qisqartirmoqchi edi va hook to'xtatdi: chegara kutilmaydi
+    /// `compactBlocked` — Claude Code shu sessiyani avtomatik qisqartirmoqchi edi va hook to'xtatdi: chegara kutilmaydi.
+    /// `turnEnded` — asosiy agent javobni tugatgan (`end_turn`). Uzoq buyruq yoki o'ylash paytida transkript jim turadi
+    /// va holat vaqt bo'yicha «bo'sh» bo'lib qoladi — bu javob tugagani emas
     public static func shouldTrigger(previous: AgentState?, state: AgentState, context: Int, thresholdK: Double,
-                                     waitingPermission: Bool, alreadyDone: Bool, compactBlocked: Bool = false) -> Bool {
-        guard !alreadyDone, !waitingPermission, state == .idle else { return false }
+                                     waitingPermission: Bool, alreadyDone: Bool, compactBlocked: Bool = false,
+                                     turnEnded: Bool = true) -> Bool {
+        guard !alreadyDone, !waitingPermission, turnEnded, state == .idle else { return false }
         guard let previous, previous != .idle else { return false }
         return compactBlocked || Double(context) >= thresholdK * 1000
     }

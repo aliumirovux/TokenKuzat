@@ -223,7 +223,8 @@ final class Alerts: NSObject, UNUserNotificationCenterDelegate {
             waitingPermission: s.permissionWaits[sess.id] != nil,
             alreadyDone: AutoHandoffRule.alreadyDone(doneAt: autoDoneContext[sess.id], known: autoDone[sess.id] != nil,
                                                      context: sess.contextTokens, thresholdK: k),
-            compactBlocked: compactBlocked[sess.id].map { $0.timeIntervalSince1970 > (autoDone[sess.id] ?? 0) } ?? false) {
+            compactBlocked: compactBlocked[sess.id].map { $0.timeIntervalSince1970 > (autoDone[sess.id] ?? 0) } ?? false,
+            turnEnded: sess.turnEnded) {
             let byCompact = Double(sess.contextTokens) < k * 1000
             autoDone[sess.id] = Date().timeIntervalSince1970
             autoDoneContext[sess.id] = sess.contextTokens
@@ -444,6 +445,14 @@ final class Alerts: NSObject, UNUserNotificationCenterDelegate {
                 // 95% xabari endi kerak emas — tugagani aytiladi
                 fired["\(name)-80"] = w.resetsAt.timeIntervalSince1970
                 fired["\(name)-95"] = w.resetsAt.timeIntervalSince1970
+                // Haftalik limit ham tugagan va keyinroq tiklanadi: 5 soatlik tiklanishi Claude'ni qaytarmaydi —
+                // bu xabarlar o'rniga haftalik «tugadi / tiklandi» aytiladi (oldin rejalashtirilgan 5 soatlik «tiklandi» bekor)
+                if let week = l.sevenDay, week.usedPercentage >= 99.5 {
+                    if name == "5 soatlik", week.resetsAt > w.resetsAt { continue }
+                    if name == "Haftalik", let five = l.fiveHour, five.resetsAt < w.resetsAt {
+                        center?.removePendingNotificationRequests(withIdentifiers: ["limit-reset-5 soatlik"])
+                    }
+                }
                 let reset = LimitText.dayTime(w.resetsAt)
                 let free = offerFree
                 post(tr("\(label) Claude limiti tugadi", "\(label) Claude limit reached"),

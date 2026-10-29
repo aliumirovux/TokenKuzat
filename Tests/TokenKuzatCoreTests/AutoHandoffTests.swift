@@ -17,6 +17,23 @@ final class AutoHandoffTests: XCTestCase {
         XCTAssertFalse(rule(.idle, .waiting, 300_000))
     }
 
+    func testWaitsForTheTurnToEnd() {
+        // Uzoq buyruq: 10 daqiqa yozuv yo'q — holat «bo'sh», lekin javob tugamagan
+        let now = Date()
+        let before = Engine.state(lastActivity: now.addingTimeInterval(-540), lastStop: "tool_use", now: now)
+        let after = Engine.state(lastActivity: now.addingTimeInterval(-660), lastStop: "tool_use", now: now)
+        XCTAssertEqual(after, .idle)
+        XCTAssertFalse(AutoHandoffRule.shouldTrigger(previous: before, state: after, context: 300_000, thresholdK: 200,
+                                                     waitingPermission: false, alreadyDone: false,
+                                                     turnEnded: Engine.turnEnded(lastStop: "tool_use")))
+        XCTAssertFalse(Engine.turnEnded(lastStop: "tool_result"))
+        XCTAssertFalse(Engine.turnEnded(lastStop: "prompt"))
+        XCTAssertTrue(Engine.turnEnded(lastStop: "end_turn"))
+        XCTAssertTrue(AutoHandoffRule.shouldTrigger(previous: .running, state: .idle, context: 300_000, thresholdK: 200,
+                                                    waitingPermission: false, alreadyDone: false,
+                                                    turnEnded: Engine.turnEnded(lastStop: "end_turn")))
+    }
+
     func testIgnoresSmallContextOldSessionsAndRepeats() {
         XCTAssertFalse(rule(.running, .idle, 150_000))
         XCTAssertFalse(rule(nil, .idle, 300_000))        // ilova ochilganda mavjud sessiya

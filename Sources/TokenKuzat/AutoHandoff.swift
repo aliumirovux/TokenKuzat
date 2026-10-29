@@ -81,20 +81,35 @@ enum AutoHandoff {
         let home = FileManager.default.homeDirectoryForCurrentUser.path
         let dir = projectDir(cwd) ?? home
         func quote(_ s: String) -> String { "'" + s.replacingOccurrences(of: "'", with: "'\\''") + "'" }
-        let folder = ProjectSavingsHistory.defaultURL.deletingLastPathComponent()
-        let url = folder.appendingPathComponent("new-session.command")
-        let promptURL = folder.appendingPathComponent("new-session-prompt.txt")
+        // Har ochish o'z fayllari bilan: ketma-ket ikki ochish (ikki sessiya, hook va ilova) bir-birining xabarini bosib ketmasin.
+        // Skript ishga tushgach xabarni o'qib, ikkala faylni o'chiradi
+        let folder = ProjectSavingsHistory.defaultURL.deletingLastPathComponent().appendingPathComponent("new-sessions")
+        let id = UUID().uuidString
+        let url = folder.appendingPathComponent("new-session-\(id).command")
+        let promptURL = folder.appendingPathComponent("new-session-\(id).txt")
+        // Eski versiyalarning umumiy fayllari
+        for name in ["new-session.command", "new-session-prompt.txt"] {
+            try? FileManager.default.removeItem(at: folder.deletingLastPathComponent().appendingPathComponent(name))
+        }
         do {
             try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+            var read = ""
             var run = "exec claude"
             if let message {
                 try message.write(to: promptURL, atomically: true, encoding: .utf8)
-                run = "exec claude \"$(cat \(quote(promptURL.path)))\""
+                read = "P=\"$(cat \(quote(promptURL.path)))\"\n"
+                run = "exec claude \"$P\""
             }
+            // `claude` topilmasa — Terminal jim yopilmasin, nima qilish kerakligini aytsin
+            let missing = tr("Token Kuzatuv: «claude» buyrug'i topilmadi. Claude Code'ni o'rnating yoki PATH'ga qo'shing (~/.zprofile).",
+                             "Token Kuzatuv: the «claude» command wasn't found. Install Claude Code or add it to PATH (~/.zprofile).")
             // Ilova Claude sessiyasidan ishga tushirilgan bo'lsa, CLAUDE_* o'zgaruvchilari meros qoladi va yangi sessiya
             // o'zini «bola sessiya» deb biladi (tarix saqlanmaydi) — ularni tozalaymiz
             let extra = prelude.map { $0 + "\n" } ?? ""
-            try "#!/bin/zsh -l\nunset -m 'CLAUDE*'\n\(extra)cd \(quote(dir)) && \(run)\n".write(to: url, atomically: true, encoding: .utf8)
+            let script = "#!/bin/zsh -l\nunset -m 'CLAUDE*'\n\(extra)\(read)rm -f \(quote(url.path)) \(quote(promptURL.path))\n"
+                + "command -v claude >/dev/null || { echo \(quote(missing)); exit 1; }\n"
+                + "cd \(quote(dir)) && \(run)\n"
+            try script.write(to: url, atomically: true, encoding: .utf8)
             try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: url.path)
         } catch { return false }
         // `open` tugaguncha kutiladi: hook rejimida jarayon darhol chiqadi, asinxron ochish esa yarim yo'lda qolardi

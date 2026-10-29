@@ -249,6 +249,8 @@ public struct SessionSnap: Identifiable, Sendable {
     public var cwd: String? = nil
     /// Asosiy agent Claude modelida ishlaydi (yo'q — bepul model, FreeLLMAPI orqali: Claude limitiga kirmaydi)
     public var isClaude = true
+    /// Asosiy agent javobni tugatgan: oxirgi qadam asbob chaqiruvi, asbob natijasi yoki yangi so'rov emas
+    public var turnEnded = true
 
     public var main: AgentSnap? { agents.first(where: \.isMain) }
     /// Kontekst qanchalik to'lgan (0…1)
