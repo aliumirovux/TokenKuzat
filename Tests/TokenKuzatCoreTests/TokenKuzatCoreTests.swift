@@ -92,6 +92,8 @@ final class FormatTests: XCTestCase {
     func testMcpShortName() {
         XCTAssertEqual(ToolDescriber.shortName("mcp__github__create_issue"), "github: create_issue")
         XCTAssertEqual(ToolDescriber.shortName("Bash"), "Bash")
+        // claude.ai konnektori: server o'rnida UUID — faqat asbob nomi
+        XCTAssertEqual(ToolDescriber.shortName("mcp__eca80fe4-5103-4c32-8b76-5d567197412b__get_deployment"), "get_deployment")
     }
 }
 

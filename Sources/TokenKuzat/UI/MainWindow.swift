@@ -22,10 +22,11 @@ struct MainWindow: View {
                 if section != .graph { header }
                 detail
                     .id(section)
-                    .transition(.opacity.combined(with: .offset(y: 8)))
+                    // Eski sahifa darhol ketadi — yangisi ustiga chiqib, ikkalasi aralashib ko'rinmasin
+                    .transition(.asymmetric(insertion: .opacity.combined(with: .offset(y: 6)), removal: .identity))
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            .animation(Motion.spring, value: section)
+            .animation(Motion.snappy, value: section)
             .background(Brand.canvas)
             // Chat yozuvi (.jsonl) oynaga tashlansa — qo'shiladi
             .dropDestination(for: URL.self) { urls, _ in
@@ -90,6 +91,8 @@ struct MainWindow: View {
             StatusPill(running: store.snap.runningAgents, active: store.snap.activeSessions)
             if section == .history || section == .sessions || section == .savings { CountModePicker() }
         }
+        // Sarlavha almashganda eski va yangi matn ustma-ust chiqmasin
+        .transaction { $0.animation = nil }
         .padding(.horizontal, 24)
         .padding(.top, 12)
         .padding(.bottom, 14)

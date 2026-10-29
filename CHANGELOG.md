@@ -1,5 +1,12 @@
 # O'zgarishlar
 
+## 6.23.1 — 2026-10-29
+
+- «Tejash»: tuzatish hali bo'lmagan loyihada ustunlar yonida bugungi isrof foizi va «avval → keyin» qayerda chiqishi haqida izoh.
+- Sahifa almashganda eski sahifa yangisi ostida ko'rinib turmaydi; sarlavha matni ustma-ust chiqmaydi.
+- claude.ai konnektorlari (server nomi UUID) asbob ro'yxatlarida UUID o'rniga asbob nomi bilan ko'rinadi; «ishlatilgan konnektorlar» ro'yxatiga kirmaydi.
+- «Jonli» kartalarida kontekst foizi («15%») ikki qatorga bo'linmaydi.
+
 ## 6.23.0 — 2026-10-29
 
 - Tejashni o'lchash: loyihalar bo'yicha kunlik sarf va isrof diskda saqlanadi (`project-savings.json`, 120 kun) — sessiyalar 7 kundan keyin xotiradan chiqsa ham. «Tejash» sahifasida har loyihada 14 kunlik isrof ulushi ustunlari va «avval → keyin»: tuzatishdan oldingi 7 kun va keyingi kunlardagi isrof foizi (tuzatish kuni hisobga olinmaydi; birinchi natija ertasi kuni).

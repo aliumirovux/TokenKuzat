@@ -251,6 +251,15 @@ private struct ProjectSavingsRow: View {
                             Text(tr("natija ertadan ko'rinadi", "results show from tomorrow")).font(.caption).foregroundStyle(.secondary)
                         }
                     }
+                } else if let today = days.last ?? nil {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(tr("Bugun", "Today")).font(.caption2.weight(.semibold)).foregroundStyle(.secondary)
+                        Text("\(Int((today.wasteShare(mode) * 100).rounded()))%")
+                            .font(.callout.weight(.semibold)).monospacedDigit().foregroundStyle(wasteColor)
+                    }
+                    Text(tr("«Claude'ga topshirish»dan keyin bu yerda «avval → keyin» natijasi chiqadi",
+                            "After «Hand to Claude», the before → after result shows here"))
+                        .font(.caption).foregroundStyle(.tertiary).fixedSize(horizontal: false, vertical: true)
                 }
                 Spacer()
             }

@@ -9,15 +9,21 @@ public enum ToolDescriber {
         public var paths: [String] = []
     }
 
-    /// «mcp__github__create_issue» → «github: create_issue»
+    /// «mcp__github__create_issue» → «github: create_issue»; claude.ai konnektori (server nomi UUID) → «create_issue»
     public static func shortName(_ name: String) -> String {
         if name.hasPrefix("mcp__") {
             let p = name.components(separatedBy: "__")
             if p.count >= 3 {
-                return "\(p[1].replacingOccurrences(of: "_", with: " ")): \(p[2...].joined(separator: "_"))"
+                let tool = p[2...].joined(separator: "_")
+                return isOpaqueServer(p[1]) ? tool : "\(p[1].replacingOccurrences(of: "_", with: " ")): \(tool)"
             }
         }
         return name
+    }
+
+    /// Server nomi o'rnida ID (UUID) — foydalanuvchiga ko'rsatib bo'lmaydi
+    public static func isOpaqueServer(_ server: String) -> Bool {
+        server.range(of: #"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"#, options: .regularExpression) != nil
     }
 
     public static func describe(_ name: String, _ input: [String: Any]) -> Description {
@@ -149,6 +155,7 @@ extension ToolDescriber {
                 let p = name.components(separatedBy: "__")
                 let server = p.count >= 2 ? p[1].replacingOccurrences(of: "_", with: " ") : name
                 let tool = p.count >= 3 ? p[2...].joined(separator: "_") : ""
+                if p.count >= 2, isOpaqueServer(p[1]) { return t(.mcp, p[1], tool, tr("konnektor", "connector"), .run) }
                 return t(.mcp, server, server, tool, .run)
             }
             return t(.other, name, name, "", .run)

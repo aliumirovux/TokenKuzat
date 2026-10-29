@@ -244,7 +244,7 @@ struct ContextGauge: View {
                 Capsule().fill(color).frame(width: max(3, 54 * f))
             }
             .frame(width: 54, height: 5)
-            Text("\(Int((f * 100).rounded()))%").monospacedDigit().foregroundStyle(f >= 0.8 ? color : .secondary)
+            Text("\(Int((f * 100).rounded()))%").monospacedDigit().lineLimit(1).fixedSize().foregroundStyle(f >= 0.8 ? color : .secondary)
         }
         .help(tr("Kontekst: \(Fmt.tokens(Double(session.contextTokens))) / \(Fmt.tokens(Double(session.contextWindow))) token.",
                  "Context: \(Fmt.tokens(Double(session.contextTokens))) / \(Fmt.tokens(Double(session.contextWindow))) tokens.")
