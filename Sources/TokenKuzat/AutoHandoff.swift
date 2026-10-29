@@ -23,25 +23,38 @@ enum AutoHandoff {
     static func start(_ sess: SessionSnap, target: AutoHandoffTarget) -> Bool {
         guard arm(sess) else { return false }
         switch target {
-        case .app: openInApp()
+        case .app: openInApp(cwd: sess.cwd)
         case .terminal: openInTerminal(cwd: sess.cwd)
         }
         return true
     }
 
-    /// Claude ilovasida yangi Code sessiyasi
-    static func openInApp() {
-        guard let url = URL(string: "claude://code/new") else { return }
+    /// Claude ilovasida yangi Code sessiyasi — o'sha papkada (Finder'dagi «New Claude Code Session Here» bilan bir xil havola).
+    /// `folder`siz havola ilovani faqat oldinga chiqaradi, sessiya ochmaydi
+    static func openInApp(cwd: String?) {
+        var c = URLComponents()
+        c.scheme = "claude"
+        c.host = "code"
+        c.path = "/new"
+        var items: [URLQueryItem] = []
+        if let dir = projectDir(cwd) { items.append(URLQueryItem(name: "folder", value: dir)) }
+        items.append(URLQueryItem(name: "source", value: "services"))
+        c.queryItems = items
+        guard let url = c.url else { return }
         NSWorkspace.shared.open(url)
+    }
+
+    /// Haqiqiy loyiha papkasi (Claude ilovasining vaqtinchalik papkasi yoki yo'q papka — nil)
+    static func projectDir(_ cwd: String?) -> String? {
+        guard let dir = cwd, !dir.contains("/scratch-workspaces/"), !dir.contains("/claude-code-sessions/"),
+              FileManager.default.fileExists(atPath: dir) else { return nil }
+        return dir
     }
 
     /// Terminal.app'da loyiha papkasida `claude`. Claude ilovasining vaqtinchalik papkasi bo'lsa — uy papkasida
     static func openInTerminal(cwd: String?) {
         let home = FileManager.default.homeDirectoryForCurrentUser.path
-        var dir = cwd ?? home
-        if dir.contains("/scratch-workspaces/") || dir.contains("/claude-code-sessions/") || !FileManager.default.fileExists(atPath: dir) {
-            dir = home
-        }
+        let dir = projectDir(cwd) ?? home
         let quoted = "'" + dir.replacingOccurrences(of: "'", with: "'\\''") + "'"
         let script = "#!/bin/zsh -l\ncd \(quoted) && exec claude\n"
         let url = ProjectSavingsHistory.defaultURL.deletingLastPathComponent().appendingPathComponent("new-session.command")

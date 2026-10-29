@@ -1,5 +1,9 @@
 # O'zgarishlar
 
+## 6.25.1 — 2026-10-29
+
+- Tuzatildi: avtomatik yangi sessiya Claude ilovasida ochilmasdi — `claude://code/new` papkasiz faqat ilovani oldinga chiqaradi. Endi Finder'dagi «New Claude Code Session Here» bilan bir xil havola: `claude://code/new?folder=<loyiha papkasi>&source=services` — yangi sessiya o'sha papkada ochiladi va xulosa unga beriladi.
+
 ## 6.25.0 — 2026-10-29
 
 - Avtomatik yangi sessiya (Sozlamalar → Bildirishnomalar, sukut bo'yicha yoqilgan): sessiya konteksti chegaradan (150K / **200K** / 300K / 500K) oshgan bo'lsa, Claude javobni tugatgan zahoti xulosa saqlanadi va yangi sessiya ochiladi — Claude ilovasida (`claude://code/new`) yoki Terminalda (`claude`, loyiha papkasida). Xulosani SessionStart hook yangi sessiyaga o'zi beradi. Ish o'rtasida hech qachon to'xtatilmaydi, ruxsat kutayotgan sessiyada ishlamaydi, har sessiyada bir marta; ilova ochilgandagi mavjud sessiyalar uchun emas. Bildirishnoma keladi.
