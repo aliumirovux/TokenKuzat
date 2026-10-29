@@ -41,3 +41,33 @@ final class ProjectSavingsTests: XCTestCase {
         XCTAssertTrue(ProjectSavings.prompt(for: r, period: .today).contains("«Demo»"))
     }
 }
+
+final class ProjectSavingsHistoryTests: XCTestCase {
+    private var cal: Calendar { var c = Calendar(identifier: .gregorian); c.timeZone = TimeZone(identifier: "UTC")!; return c }
+
+    private func day(_ n: Int) -> Date { Date(timeIntervalSince1970: 1_800_000_000 + Double(n) * 86_400) }
+
+    func testBeforeAfterAroundFix() {
+        var data = ProjectSavingsData()
+        // Tuzatishdan oldin: isrof 60%, keyin: 20% (vaznli)
+        for n in 0..<3 { data.days[HistoryStore.key(day(n), calendar: cal)] = ["A": ProjectDay(tokens: 100, weighted: 100, waste: 60, wasteWeighted: 60)] }
+        data.days[HistoryStore.key(day(3), calendar: cal)] = ["A": ProjectDay(tokens: 100, weighted: 100, waste: 50, wasteWeighted: 50)]
+        for n in 4..<6 { data.days[HistoryStore.key(day(n), calendar: cal)] = ["A": ProjectDay(tokens: 100, weighted: 100, waste: 20, wasteWeighted: 20)] }
+        data.fixes["A"] = day(3).addingTimeInterval(3600)
+        let ba = data.beforeAfter("A", mode: .weighted, calendar: cal)
+        XCTAssertEqual(ba?.before ?? 0, 0.6, accuracy: 0.001)
+        XCTAssertEqual(ba?.after ?? 0, 0.2, accuracy: 0.001)
+        XCTAssertNil(data.beforeAfter("B", mode: .weighted, calendar: cal))
+    }
+
+    func testRecordAndMarkFixedRoundTrip() throws {
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("tk-ps-\(UUID().uuidString).json")
+        defer { try? FileManager.default.removeItem(at: url) }
+        let h = ProjectSavingsHistory(url: url)
+        h.markFixed("A", at: day(1))
+        let fixed = h.load().fixes["A"]
+        XCTAssertNotNil(fixed)
+        XCTAssertEqual(fixed!.timeIntervalSince1970, day(1).timeIntervalSince1970, accuracy: 1)
+        XCTAssertEqual(h.load().series("A", count: 3, now: day(1), calendar: cal).count, 3)
+    }
+}

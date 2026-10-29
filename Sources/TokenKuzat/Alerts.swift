@@ -22,7 +22,7 @@ final class Alerts: NSObject, UNUserNotificationCenterDelegate {
         center.delegate = self
         let d = UserDefaults.standard
         let any = [Pref.notifyFinished, Pref.notifyStuck, Pref.notifyErrors, Pref.notifyRealLimit,
-                   Pref.notifyPermission, Pref.notifyContext].contains { d.bool(forKey: $0) }
+                   Pref.notifyPermission, Pref.notifyContext, Pref.notifyWaste].contains { d.bool(forKey: $0) }
             || (d.bool(forKey: Pref.budgetEnabled) && d.bool(forKey: Pref.budgetNotify))
         if any { requestPermission() }
     }
@@ -50,6 +50,55 @@ final class Alerts: NSObject, UNUserNotificationCenterDelegate {
         evaluatePermission(s)
         evaluateContext(s)
         evaluateSavings(s)
+        evaluateBigContext(s)
+        evaluateProjectWaste(s)
+    }
+
+    // MARK: - Isrof
+
+    private var bigContextWarned: Set<String> = []
+    private var bigContextPrimed = false
+    private var lastWasteCheck = Date.distantPast
+
+    /// Ishlayotgan sessiya konteksti 200K dan oshganda — bir marta (100K dan tushsa — /compact yoki yangi sessiya — qayta qurollanadi).
+    /// Ilova ochilgandagi mavjud katta sessiyalar uchun emas
+    private func evaluateBigContext(_ s: Snapshot) {
+        defer { bigContextPrimed = true }
+        for sess in s.sessions {
+            if sess.contextTokens < 100_000 { bigContextWarned.remove(sess.id); continue }
+            guard sess.contextTokens >= 200_000, !bigContextWarned.contains(sess.id) else { continue }
+            bigContextWarned.insert(sess.id)
+            guard bigContextPrimed, sess.state != .idle, UserDefaults.standard.bool(forKey: Pref.notifyWaste) else { continue }
+            let extra = sess.contextTokens - (SavingsAdvisor.startContext(for: sess) ?? SavingsAdvisor.baseline)
+            post(tr("\(sess.project): kontekst \(Fmt.tokens(sess.contextTokens))", "\(sess.project): context \(Fmt.tokens(sess.contextTokens))"),
+                 tr("Har javobda ~\(Fmt.tokens(extra)) ortiqcha qayta o'qilyapti. Yangi mavzu bo'lsa — yangi sessiya, shu mavzu bo'lsa — /compact. "
+                    + "Bosing — sessiya ochiladi, «Yangi sessiyada davom ettirish» u yerda.",
+                    "~\(Fmt.tokens(extra)) extra is re-read on every reply. New topic — a new session; same topic — /compact. "
+                    + "Click to open the session — «Continue in a new session» is there."),
+                 session: sess.id)
+        }
+    }
+
+    /// Loyiha bugun sarfining 40%+ i isrof bo'lsa (narx bo'yicha, kamida 2M vaznli) — kuniga bir marta, 5 daqiqada bir tekshiriladi
+    private func evaluateProjectWaste(_ s: Snapshot) {
+        let now = s.updatedAt
+        guard s.initialScanDone, now.timeIntervalSince(lastWasteCheck) >= 300 else { return }
+        lastWasteCheck = now
+        let d = UserDefaults.standard
+        guard d.bool(forKey: Pref.notifyWaste) else { return }
+        let day = HistoryStore.key(now)
+        var alerted = d.dictionary(forKey: "wasteAlerted") as? [String: String] ?? [:]
+        for r in ProjectSavings.reports(s, period: .today, now: now)
+        where r.wasteShare(.weighted) >= 0.4 && r.waste(.weighted) >= 2_000_000 && alerted[r.project] != day {
+            alerted[r.project] = day
+            let pct = Int((r.wasteShare(.weighted) * 100).rounded())
+            post(tr("\(r.project): bugun sarfning ~\(pct)% isrof", "\(r.project): ~\(pct)% of today's usage is waste"),
+                 (r.issues.first.map { tr("Asosiy sabab: ", "Main cause: ") + $0.title.lowercased() + ". " } ?? "")
+                    + tr("Bosing — Tejash sahifasida sabablar va «Claude'ga topshirish».",
+                         "Click for the causes and «Hand to Claude» on the Savings page."),
+                 section: .savings)
+        }
+        d.set(alerted, forKey: "wasteAlerted")
     }
 
     private var savingsAnnounced: [String: Int] = [:]
@@ -218,7 +267,7 @@ final class Alerts: NSObject, UNUserNotificationCenterDelegate {
 
     // MARK: - Yuborish va bosish
 
-    private func post(_ title: String, _ body: String, session: String? = nil) {
+    private func post(_ title: String, _ body: String, session: String? = nil, section: Section? = nil) {
         guard let center else { return }
         let content = UNMutableNotificationContent()
         content.title = title
@@ -227,6 +276,8 @@ final class Alerts: NSObject, UNUserNotificationCenterDelegate {
         if let session {
             content.userInfo = ["session": session]
             content.threadIdentifier = session
+        } else if let section {
+            content.userInfo = ["section": section.rawValue]
         }
         center.add(UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil))
     }
@@ -244,6 +295,8 @@ final class Alerts: NSObject, UNUserNotificationCenterDelegate {
             if let session {
                 UserDefaults.standard.set(session, forKey: GraphScreen.selectedSessionKey)
                 WindowManager.shared.show(.graph)
+            } else if let raw = response.notification.request.content.userInfo["section"] as? String, let section = Section(rawValue: raw) {
+                WindowManager.shared.show(section)
             } else {
                 WindowManager.shared.show(.overview)
             }

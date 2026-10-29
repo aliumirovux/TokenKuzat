@@ -25,6 +25,8 @@ enum Pref {
     static let accountUsage = "accountUsage"
     /// Katta kontekstda yangi mavzu boshlanganda — yangi sessiya taklifi
     static let notifySavings = "notifySavings"
+    /// Isrof ogohlantirishlari: sessiya konteksti 200K dan oshsa va loyiha bugun ko'p isrof qilsa
+    static let notifyWaste = "notifyWaste"
     /// Yengil rejim: bezak animatsiyalari (robot, aylanuvchi chegaralar, oqim nuqtalari) to'xtaydi — protsessor tejaladi
     static let lightMode = "lightMode"
     /// «Faqat xarita»: sessiya sahifasida yon menyu, sarlavha va tablar yashiriladi — oynada faqat xarita
@@ -48,6 +50,7 @@ enum Pref {
             notifyPermission: true,
             notifyContext: true,
             notifySavings: true,
+            notifyWaste: true,
         ])
     }
 }

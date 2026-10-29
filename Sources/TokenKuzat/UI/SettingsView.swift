@@ -20,6 +20,7 @@ struct SettingsView: View {
     @AppStorage(Pref.notifyPermission) private var notifyPermission = true
     @AppStorage(Pref.notifyContext) private var notifyContext = true
     @AppStorage(Pref.notifySavings) private var notifySavings = true
+    @AppStorage(Pref.notifyWaste) private var notifyWaste = true
     @AppStorage(Pref.lightMode) private var lightMode = false
     @AppStorage(Lang.prefKey) private var language = AppLanguage.system.rawValue
     @State private var hookInstalled = Hooks.isInstalled
@@ -82,6 +83,7 @@ struct SettingsView: View {
                 Toggle(tr("Agent ketma-ket 3 marta xato olsa", "When an agent hits 3 errors in a row"), isOn: $notifyErrors)
                 Toggle(tr("Kontekst 85% to'lganda (tez orada avtomatik xulosa)", "When context is 85% full (auto-summary coming soon)"), isOn: $notifyContext)
                 Toggle(tr("Katta kontekstda yangi mavzu boshlansa — yangi sessiya taklifi (token tejash)", "New topic in a large context — suggest a new session (saves tokens)"), isOn: $notifySavings)
+                Toggle(tr("Isrof: kontekst 200K dan oshsa yoki loyiha bugun sarfining 40%+ ini isrof qilsa", "Waste: context passes 200K, or a project wastes 40%+ of today's usage"), isOn: $notifyWaste)
                 if handoffHookInstalled {
                     HStack {
                         Text(tr("Yangi sessiyada davom ettirish (xulosa avtomatik beriladi)", "Continue in a new session (summary passed automatically)"))

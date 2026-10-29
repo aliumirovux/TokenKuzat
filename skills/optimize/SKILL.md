@@ -34,4 +34,6 @@ Har bir fayl o'zgarishini avval ko'rsating (nima qo'shiladi/o'zgaradi) va foydal
 
 ## 4. Yakun
 
+Kamida bitta o'zgarish qo'llangan bo'lsa, `savings_report` ni o'sha `project` va `applied: true` bilan yana bir marta chaqiring — Token Kuzatuv tuzatish sanasini yozib, keyingi kunlarda isrofni «avval → keyin» solishtiradi. Hisobotda `last_fix` bo'lsa (oldingi tuzatish), uning natijasini ham bir gapda ayting.
+
 Nima o'zgargani va kutilgan tejashni bir-ikki gapda ayting. Natijani keyingi kunlarda Token Kuzatuv → Tejash sahifasida (loyiha isrofi kamayganini) kuzatish mumkinligini eslating.

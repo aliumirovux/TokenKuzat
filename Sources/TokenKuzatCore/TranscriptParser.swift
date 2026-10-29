@@ -207,8 +207,13 @@ public enum TranscriptParser {
     }
 
     /// Tizim qo'shgan matnlar («<system-reminder>…», «[Request interrupted…]») so'rov hisoblanmaydi.
+    /// Boshidagi «<system-reminder>» bloklari olib tashlanadi: boshqa sessiyadan ochilgan sessiyada haqiqiy topshiriq
+    /// ular ortidan keladi (aks holda sessiyada birorta so'rov qolmay, xarita bo'sh chiqardi).
     static func prompt(_ raw: String) -> String? {
-        let s = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        var s = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        while s.hasPrefix("<system-reminder>"), let end = s.range(of: "</system-reminder>") {
+            s = String(s[end.upperBound...]).trimmingCharacters(in: .whitespacesAndNewlines)
+        }
         guard !s.isEmpty, !s.hasPrefix("<"), !s.hasPrefix("[Request interrupted") else { return nil }
         return s
     }

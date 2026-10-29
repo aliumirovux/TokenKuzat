@@ -105,6 +105,7 @@ enum MCPServer {
                 "properties": [
                     "project": ["type": "string", "description": "Project folder name or path (e.g. the current working directory). Default: the project with the most waste"],
                     "period": ["type": "string", "enum": ["today", "week"], "description": "today or week (last 7 days, default)"],
+                    "applied": ["type": "boolean", "description": "Set true after you applied fixes in this project (with the user's approval) — records the date so Token Kuzatuv can compare waste before and after"],
                 ],
             ],
         ],
@@ -208,6 +209,17 @@ enum MCPServer {
             "task": ProjectSavings.prompt(for: chosen, period: period),
         ]
         if let cwd = chosen.cwd { p["cwd"] = cwd }
+        // Tuzatish qo'llangani belgilanadi — ilova shu sanadan oldingi va keyingi isrofni solishtiradi
+        if args["applied"] as? Bool == true {
+            ProjectSavingsHistory().markFixed(chosen.project)
+            p["fix_recorded"] = true
+        }
+        if let ba = ProjectSavingsHistory().load().beforeAfter(chosen.project, mode: .weighted) {
+            var b: [String: Any] = ["fixed_at": iso(ba.fixedAt)]
+            if let v = ba.before { b["waste_share_before_percent"] = Int((v * 100).rounded()) }
+            if let v = ba.after { b["waste_share_after_percent"] = Int((v * 100).rounded()) }
+            p["last_fix"] = b
+        }
         if want != nil, chosen.cwd != want, chosen.project.lowercased() != want?.lowercased(),
            chosen.project.lowercased() != (want.map { ($0 as NSString).lastPathComponent.lowercased() }) {
             p["note"] = "Requested project not found in this period; showing the project with the most waste"

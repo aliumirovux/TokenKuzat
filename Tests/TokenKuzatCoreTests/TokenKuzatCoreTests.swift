@@ -48,6 +48,14 @@ final class ParserTests: XCTestCase {
         XCTAssertTrue(m.prompts.isEmpty)
     }
 
+    func testPromptAfterLeadingSystemReminder() {
+        // Boshqa sessiyadan ochilgan sessiya: topshiriq «<system-reminder>» bloklari ortidan keladi
+        XCTAssertEqual(TranscriptParser.prompt("<system-reminder>\nholat\n</system-reminder>\n<system-reminder>b</system-reminder>\nTask: tarjima qil"),
+                       "Task: tarjima qil")
+        XCTAssertNil(TranscriptParser.prompt("<system-reminder>faqat tizim</system-reminder>"))
+        XCTAssertNil(TranscriptParser.prompt("<task-notification>x</task-notification>"))
+    }
+
     func testCustomTitleAndIgnoredTypes() {
         let t = #"{"type":"custom-title","customTitle":"Mening sessiyam"}"#
         if case .title(let s)? = TranscriptParser.parse(Data(t.utf8))?.kind {

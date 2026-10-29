@@ -147,6 +147,16 @@ struct GraphScreen: View {
                                        },
                                        interactive: !replayOn)
                     }
+                    // So'rovsiz sessiya (faqat yordamchi agentlar yoki tizim xabarlari) — bo'sh kanvas o'rniga tushuntirish
+                    .overlay {
+                        if chain.allSatisfy({ $0.turns.isEmpty }) {
+                            EmptyStateView(symbol: "point.3.connected.trianglepath.dotted",
+                                           title: tr("Bu sessiyada so'rov topilmadi", "No prompts in this session"),
+                                           text: tr("Xarita so'rovlar bo'yicha chiziladi. Qadamlar va asboblarni Xulosa va Fayllar tablarida ko'ring.",
+                                                    "The map is drawn by prompts. See the steps and tools on the Summary and Files tabs."))
+                                .allowsHitTesting(false)
+                        }
+                    }
                     .frame(minHeight: 320, maxHeight: .infinity)
                     .card(padding: 0)
                     // Faqat xaritada — oyna chetlarigacha, tepada ham (oyna tugmalari xarita ustida turadi)

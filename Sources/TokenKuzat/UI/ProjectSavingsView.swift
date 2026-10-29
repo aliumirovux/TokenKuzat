@@ -54,6 +54,8 @@ struct ProjectSavingsView: View {
                             ProjectSavingsRow(report: r, period: period, mode: mode,
                                               share: total > 0 ? r.tokens.value(mode) / total : 0,
                                               session: r.latestSession.flatMap { id in store.snap.sessions.first { $0.id == id } },
+                                              history: store.savingsHistory, now: store.snap.updatedAt,
+                                              onFixed: { store.markFixed(r.project) },
                                               expanded: expanded.contains(r.id)) {
                                 // Yumshoq prujina: balandlik ravon o'sadi, mazmun biroz kechikib paydo bo'ladi
                                 withAnimation(.spring(response: 0.42, dampingFraction: 0.9)) {
@@ -81,6 +83,9 @@ private struct ProjectSavingsRow: View {
     let mode: CountMode
     let share: Double
     let session: SessionSnap?
+    let history: ProjectSavingsData
+    let now: Date
+    let onFixed: () -> Void
     let expanded: Bool
     let onToggle: () -> Void
     @State private var copied = false
@@ -150,6 +155,7 @@ private struct ProjectSavingsRow: View {
     @ViewBuilder
     private var details: some View {
         VStack(alignment: .leading, spacing: 12) {
+            trend
             if report.issues.isEmpty {
                 Label(tr("Bu loyihada isrof ko'rinmayapti — kontekst kichik, qadamlar takrorlanmayapti.",
                          "No waste in this project — the context is small and steps aren't repeating."),
@@ -215,7 +221,44 @@ private struct ProjectSavingsRow: View {
         }
     }
 
+    /// 14 kunlik isrof ulushi (ustunlar) va tuzatishdan keyingi natija — «avval → keyin»
+    @ViewBuilder
+    private var trend: some View {
+        let days = history.series(report.project, count: 14, now: now)
+        let ba = history.beforeAfter(report.project, mode: mode)
+        if days.contains(where: { $0 != nil }) || ba != nil {
+            HStack(alignment: .center, spacing: 14) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(tr("Isrof ulushi · 14 kun", "Waste share · 14 days")).font(.caption2.weight(.semibold)).foregroundStyle(.secondary)
+                    MiniBars(values: days.map { ($0?.wasteShare(mode) ?? 0) * 100 }, color: wasteColor, highlightLast: 1)
+                        .frame(width: 168, height: 26)
+                        .help(tr("Har kun — loyiha sarfining necha foizi isrof bo'lgani", "Each day — what share of the project's usage was waste"))
+                }
+                if let ba {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(tr("Tuzatish · \(Fmt.shortDay.string(from: ba.fixedAt))", "Fixed · \(Fmt.shortDay.string(from: ba.fixedAt))"))
+                            .font(.caption2.weight(.semibold)).foregroundStyle(.secondary)
+                        if let after = ba.after {
+                            let before = ba.before
+                            HStack(spacing: 6) {
+                                Text(before.map { "\(Int(($0 * 100).rounded()))%" } ?? "—").foregroundStyle(.secondary)
+                                Image(systemName: "arrow.right").font(.caption2)
+                                Text("\(Int((after * 100).rounded()))%")
+                                    .foregroundStyle(before.map { after < $0 } ?? true ? Brand.ok : Brand.warn)
+                            }
+                            .font(.callout.weight(.semibold)).monospacedDigit()
+                        } else {
+                            Text(tr("natija ertadan ko'rinadi", "results show from tomorrow")).font(.caption).foregroundStyle(.secondary)
+                        }
+                    }
+                }
+                Spacer()
+            }
+        }
+    }
+
     private func copyPrompt() {
+        onFixed()
         let pb = NSPasteboard.general
         pb.clearContents()
         pb.setString(ProjectSavings.prompt(for: report, period: period), forType: .string)

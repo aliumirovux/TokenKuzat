@@ -34,6 +34,8 @@ final class Store: ObservableObject {
     static let shared = Store()
 
     @Published private(set) var snap = Snapshot()
+    /// Loyihalar bo'yicha kunlik sarf/isrof va tuzatish sanalari — «Tejash» sahifasidagi «avval / keyin» uchun
+    @Published private(set) var savingsHistory = ProjectSavingsData()
 
     private let engine: Engine
     private let limitsReader = RateLimitsReader()
@@ -42,9 +44,12 @@ final class Store: ObservableObject {
     private var timer: DispatchSourceTimer?
     private var lastRevision = -1
     private var lastPublish = Date.distantPast
+    private let projectHistory = ProjectSavingsHistory()
+    private var lastProjectRecord = Date.distantPast
 
     init() {
         engine = Engine(history: HistoryStore(url: HistoryStore.defaultURL))
+        savingsHistory = projectHistory.load()
         let t = DispatchSource.makeTimerSource(queue: queue)
         t.schedule(deadline: .now(), repeating: 1.0, leeway: .milliseconds(250))
         t.setEventHandler { [weak self] in self?.step() }
@@ -89,9 +94,24 @@ final class Store: ObservableObject {
                 s.permissionWaits[sess.id] = n
             }
         }
+        // Loyiha yakunlari 5 daqiqada bir marta diskka (bugungi kun ustiga yoziladi)
+        var savings: ProjectSavingsData?
+        if s.initialScanDone, now.timeIntervalSince(lastProjectRecord) >= 300 {
+            lastProjectRecord = now
+            savings = projectHistory.record(ProjectSavings.reports(s, period: .today, now: now), now: now)
+        }
         DispatchQueue.main.async {
             self.snap = s
+            if let savings, savings != self.savingsHistory { self.savingsHistory = savings }
             Alerts.shared.evaluate(s)
+        }
+    }
+
+    /// «Claude'ga topshirish» bosilganda — shu sanadan keyingi kunlar «keyin» sifatida solishtiriladi
+    func markFixed(_ project: String) {
+        queue.async { [projectHistory] in
+            let data = projectHistory.markFixed(project)
+            DispatchQueue.main.async { self.savingsHistory = data }
         }
     }
 
@@ -103,6 +123,8 @@ final class Store: ObservableObject {
         queue.async { [engine] in
             engine.clearHistory()
             self.outsideTracker.reset()
+            self.projectHistory.clear()
+            DispatchQueue.main.async { self.savingsHistory = ProjectSavingsData() }
             self.lastRevision = -1
         }
     }

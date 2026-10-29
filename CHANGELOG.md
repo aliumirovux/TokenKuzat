@@ -1,5 +1,13 @@
 # O'zgarishlar
 
+## 6.23.0 — 2026-10-29
+
+- Tejashni o'lchash: loyihalar bo'yicha kunlik sarf va isrof diskda saqlanadi (`project-savings.json`, 120 kun) — sessiyalar 7 kundan keyin xotiradan chiqsa ham. «Tejash» sahifasida har loyihada 14 kunlik isrof ulushi ustunlari va «avval → keyin»: tuzatishdan oldingi 7 kun va keyingi kunlardagi isrof foizi (tuzatish kuni hisobga olinmaydi; birinchi natija ertasi kuni).
+- Tuzatish sanasi «Claude'ga topshirish» bosilganda va `/tokenkuzat:optimize` o'zgarishlarni qo'llagach (`savings_report` → `applied: true`) yoziladi. MCP hisobotida `last_fix` — oldingi tuzatish natijasi.
+- Isrof bildirishnomalari (Sozlamalar → Bildirishnomalar, sukut bo'yicha yoqilgan): ishlayotgan sessiya konteksti 200K dan oshsa — bir marta (bosilsa sessiya ochiladi); loyiha bugun sarfining 40%+ ini isrof qilsa (narx bo'yicha, kamida 2M) — kuniga bir marta (bosilsa «Tejash» ochiladi).
+- Tuzatildi: boshqa sessiyadan ochilgan sessiyalarda birinchi xabar `<system-reminder>` bilan boshlangani uchun topshiriq so'rov hisoblanmasdi — sessiyada so'rov qolmay, xarita bo'sh chiqardi. Endi boshidagi tizim bloklari olib tashlanadi. So'rovsiz sessiyada xarita o'rnida tushuntirish chiqadi.
+- «Tarixni tozalash» loyiha tarixini ham o'chiradi.
+
 ## 6.22.1 — 2026-10-29
 
 - Tablar yagona uslubda: sessiya tablari (Xarita / Xulosa / Fayllar / Natijalar), davr (Bugun / 7 kun, 7 / 14 / 30 kun), Xom / Vaznli va Jonli ko'rinishlari — bitta shisha kapsula komponenti (`PillSegments`), tanlangani yorug' tabletka bilan suzib o'tadi. Ishlayotgan sessiyalar qatori ham shu tabletkani ishlatadi; yorug' temada oq tabletka va yengil soya.
