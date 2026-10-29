@@ -67,21 +67,32 @@ final class SavingsTests: XCTestCase {
         XCTAssertTrue(text.contains("check first"))
     }
 
-    private func handoffSession(title: String, prompts: [String], cwd: String?, files: [String] = []) -> SessionSnap {
-        let steps = files.enumerated().map { i, f in
+    private func handoffSession(title: String, prompts: [String], cwd: String?, files: [String] = [],
+                                texts: [String?] = [], reply: String? = nil, toolInput: String? = nil) -> SessionSnap {
+        var steps = files.enumerated().map { i, f in
             StepSnap(id: "w\(i)", date: t0, symbol: "doc", text: "Yozyapti", category: .files, targetName: f,
                      targetKey: "files|\(f)", targetDetail: "", access: .write, duration: 1, status: .done, turn: 1)
+        }
+        if let toolInput {
+            var st = StepSnap(id: "ask", date: t0, symbol: "checkmark", text: "wrap_up", category: .other, targetName: "wrap_up",
+                              targetKey: "other|wrap_up", targetDetail: "", access: .run, duration: 1, status: .done, turn: 1)
+            st.input = toolInput
+            steps.append(st)
         }
         let main = AgentSnap(id: "s/main", title: "Asosiy agent", subtitle: "Opus", kind: "", isMain: true,
                              tokens: TokenCounts(), calls: 10, topTools: [], lastAction: "", state: .idle,
                              lastActivity: t0, firstActivity: t0, steps: steps, resources: [], usage: [], bigResults: [])
         let turns = prompts.enumerated().map { i, p in
-            TurnSnap(id: i + 1, prompt: p, start: t0, end: t0, tokens: TokenCounts(), steps: 0, errors: 0, active: false)
+            TurnSnap(id: i + 1, prompt: p, text: i < texts.count ? texts[i] : nil, start: t0, end: t0,
+                     tokens: TokenCounts(), steps: 0, errors: 0, active: false)
         }
         var s = SessionSnap(id: "s", project: "Demo", title: title, model: "Opus", contextTokens: 300_000,
                             tokens: TokenCounts(), mainTokens: TokenCounts(), agentTokens: TokenCounts(), agents: [main],
                             lastActivity: t0, state: .idle, turns: turns)
         s.cwd = cwd
+        if let reply {
+            s.notes = [NoteSnap(id: "r", date: t0, kind: .reply, text: reply, duration: nil, turn: nil, agent: nil)]
+        }
         return s
     }
 
@@ -123,6 +134,41 @@ final class SavingsTests: XCTestCase {
         let bare = handoffSession(title: "Ofis paneli", prompts: [], cwd: scratch)
         XCTAssertNil(SavingsAdvisor.projectFolder(for: bare))
         XCTAssertTrue(SavingsAdvisor.handoff(for: bare, gitLines: { _ in [] }).hasPrefix("↪ Ofis paneli\n"))
+    }
+
+    func testHandoffKeepsTheEndOfALongReplyAndThePendingQuestion() {
+        let reply = "Boshlanish qismi. " + String(repeating: "Tahlil davom etadi. ", count: 150)
+            + "\n**Taklifim:** 3. Sessiya loyiha papkasida ochiladi.\nQaysidan boshlaymiz?"
+        let s = handoffSession(title: "Ofis paneli", prompts: ["Ofis panelini plaginga qo'sh"], cwd: nil, reply: reply)
+        let text = Lang.with(english: false) { SavingsAdvisor.handoff(for: s, gitLines: { _ in [] }) }
+        XCTAssertTrue(text.contains("3. Sessiya loyiha papkasida ochiladi."))
+        XCTAssertFalse(text.contains("Boshlanish qismi"))
+        XCTAssertTrue(text.contains("Kutilayotgan qaror (foydalanuvchi hali javob bermagan): Qaysidan boshlaymiz?"))
+        // Transkriptdan o'qilganda ham uzun javobning oxiri yo'qolmaydi
+        let clipped = TranscriptParser.clipMiddle(reply, TranscriptEvent.noteLimit)
+        XCTAssertTrue(clipped.hasPrefix("Boshlanish qismi.") && clipped.hasSuffix("Qaysidan boshlaymiz?"))
+        XCTAssertLessThan(clipped.count, TranscriptEvent.noteLimit + 5)
+    }
+
+    func testPendingQuestionComesFromTheClosingAsk() {
+        // Kiritma kesilgan bo'lsa ham (JSON yopilmagan) — «ask» maydoni topiladi
+        let input = "{\n  \"actions\" : [],\n  \"ask\" : \"Release this as \\\"6.44.0\\\"?\",\n  \"recap\" : \"All three…"
+        let s = handoffSession(title: "Ofis paneli", prompts: ["Ofis panelini plaginga qo'sh"], cwd: nil,
+                               reply: "Uchala tuzatish kiritildi.", toolInput: input)
+        XCTAssertEqual(SavingsAdvisor.pendingQuestion(s), "Release this as \"6.44.0\"?")
+        let none = handoffSession(title: "t", prompts: ["Ofis panelini plaginga qo'sh"], cwd: nil, reply: "Tayyor.")
+        XCTAssertNil(SavingsAdvisor.pendingQuestion(none))
+    }
+
+    func testLastPromptsAreKeptInFullAndTempFilesDropped() {
+        let long = "bir muammo bor ishlab turgan sessionda token ko'p ketishni boshlaganda yangi sessionga o'tishi yaxshi"
+        let s = handoffSession(title: "t", prompts: ["Birinchi uzun vazifa matni", String(long.prefix(40))], cwd: nil,
+                               files: ["/p/App.swift", "/private/tmp/claude-501/x/scratchpad/notes.md"],
+                               texts: [nil, long + "\nfaqat yangi session boshlanganda qaysi loyiha davomi ekanligi"])
+        let text = Lang.with(english: false) { SavingsAdvisor.handoff(for: s, gitLines: { _ in [] }) }
+        XCTAssertTrue(text.contains("#2: " + long + "\n  faqat yangi session boshlanganda qaysi loyiha davomi ekanligi"))
+        XCTAssertTrue(text.contains("/p/App.swift"))
+        XCTAssertFalse(text.contains("scratchpad"))
     }
 
     func testCacheTTLFollowsLastWrite() {

@@ -120,7 +120,11 @@ public struct NoteSnap: Identifiable, Sendable {
 public struct TurnSnap: Identifiable, Sendable {
     /// 1 dan boshlanadigan tartib raqami
     public let id: Int
+    /// Birinchi qatori (ko'pi bilan 160 belgi) — ro'yxat va sarlavhalar uchun
     public let prompt: String
+    /// To'liq matni (ko'pi bilan `TurnSnap.textLimit` belgi) — ko'chirish xulosasi uchun
+    public let text: String
+    public static let textLimit = 2000
     public let start: Date
     /// Oxirgi harakat vaqti
     public let end: Date
@@ -134,10 +138,11 @@ public struct TurnSnap: Identifiable, Sendable {
     /// So'rov ichida ishlagan yordamchi agentlar
     public var helpers: [String] = []
 
-    public init(id: Int, prompt: String, start: Date, end: Date, tokens: TokenCounts, steps: Int, errors: Int,
+    public init(id: Int, prompt: String, text: String? = nil, start: Date, end: Date, tokens: TokenCounts, steps: Int, errors: Int,
                 active: Bool, tools: [TurnTool] = [], helpers: [String] = []) {
         self.id = id
         self.prompt = prompt
+        self.text = text ?? prompt
         self.start = start
         self.end = end
         self.tokens = tokens

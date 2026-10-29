@@ -354,7 +354,8 @@ public final class Engine {
                 let title = AutoHandoffRule.continuationTitle(from: first).map { "↪ " + $0 } ?? firstLine
                 session.firstPrompt = String(title.prefix(90))
             }
-            if let ts = ev.timestamp { session.addTurn(start: ts, prompt: String(firstLine.prefix(160))) }
+            if let ts = ev.timestamp { session.addTurn(start: ts, prompt: String(firstLine.prefix(160)),
+                                                         text: String(first.prefix(TurnSnap.textLimit))) }
             agent.lastAction = tr("Yangi so'rov oldi", "Got a new prompt")
             if let ts = ev.timestamp, ts >= dayStart {
                 addFeed(ev.uuid ?? UUID().uuidString, ts, session, agent, "person.fill",
@@ -534,7 +535,7 @@ public final class Engine {
             if let h = helper, !helpers[i].contains(h) { helpers[i].append(h) }
         }
         return s.turns.indices.map { i in
-            TurnSnap(id: i + 1, prompt: s.turns[i].prompt, start: s.turns[i].start, end: ends[i],
+            TurnSnap(id: i + 1, prompt: s.turns[i].prompt, text: s.turns[i].text, start: s.turns[i].start, end: ends[i],
                      tokens: tokens[i], steps: steps[i], errors: errors[i],
                      active: active && i == s.turns.count - 1,
                      tools: cats[i].map { cat, v in
@@ -733,7 +734,7 @@ private final class SessionAcc {
     var agents: [String: AgentAcc] = [:]
     var lastActivity: Date?
     /// So'rovlar, boshlanish vaqti bo'yicha tartiblangan
-    var turns: [(start: Date, prompt: String)] = []
+    var turns: [(start: Date, prompt: String, text: String)] = []
     /// Har bir sanalgan javob: vaqti va tokenlari (so'rovlar bo'yicha taqsimlash uchun)
     var usageLog: [(Date, TokenCounts)] = []
     /// Barcha qadamlar (agentdagi ro'yxat qisqartiriladi, bu yerda — yo'q): so'rovlar xaritasi uchun.
@@ -744,11 +745,11 @@ private final class SessionAcc {
 
     init(id: String) { self.id = id }
 
-    func addTurn(start: Date, prompt: String) {
+    func addTurn(start: Date, prompt: String, text: String) {
         // Bir xil so'rov qayta o'qilsa (fayl qayta yozilgan) — takrorlanmaydi
         guard !turns.contains(where: { $0.start == start }) else { return }
         let i = turns.firstIndex { $0.start > start } ?? turns.count
-        turns.insert((start: start, prompt: prompt), at: i)
+        turns.insert((start: start, prompt: prompt, text: text), at: i)
     }
 
     var displayProject: String { project.isEmpty ? String(id.prefix(8)) : project }

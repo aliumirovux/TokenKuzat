@@ -12,7 +12,7 @@ public struct TranscriptEvent {
     public enum Item: Equatable {
         /// `input` — asbobga berilgan parametrlar (JSON, ko'pi bilan `ioLimit` belgi)
         case tool(id: String, name: String, description: ToolDescriber.Description, target: ToolTarget, input: String)
-        /// Javob matni (boshi, ko'pi bilan `noteLimit` belgi)
+        /// Javob matni (ko'pi bilan `noteLimit` belgi; uzuni — boshi va oxiri)
         case text(String)
         /// O'ylash matni; shifrlangan bo'lsa — bo'sh
         case thinking(String)
@@ -100,7 +100,7 @@ public enum TranscriptParser {
             case "text":
                 if let t = b["text"] as? String {
                     let s = t.trimmingCharacters(in: .whitespacesAndNewlines)
-                    if !s.isEmpty { a.items.append(.text(String(s.prefix(TranscriptEvent.noteLimit)))) }
+                    if !s.isEmpty { a.items.append(.text(clipMiddle(s, TranscriptEvent.noteLimit))) }
                 }
             case "thinking", "redacted_thinking":
                 let s = (b["thinking"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
@@ -176,6 +176,13 @@ public enum TranscriptParser {
     }
 
     /// Belgilar bo'yicha qisqartirish; kesilgan bo'lsa oxirida «…»
+    /// Uzun javobning boshi va oxiri: savol va kutilayotgan qaror odatda oxirida bo'ladi
+    static func clipMiddle(_ s: String, _ limit: Int) -> String {
+        guard s.count > limit else { return s }
+        let head = limit * 3 / 10
+        return String(s.prefix(head)) + "\n…\n" + String(s.suffix(limit - head))
+    }
+
     static func clip(_ s: String, _ limit: Int) -> String {
         let t = s.trimmingCharacters(in: .whitespacesAndNewlines)
         return t.count > limit ? String(t.prefix(limit)) + "…" : t

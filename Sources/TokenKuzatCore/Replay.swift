@@ -69,7 +69,7 @@ extension SessionSnap {
             let steps = allSteps.filter { inTurn($0.date) }
             let usage = allUsage.filter { inTurn($0.date) }
             let end = ([turn.start] + steps.map { $0.end ?? $0.date } + usage.map(\.date)).max() ?? turn.start
-            return TurnSnap(id: turn.id, prompt: turn.prompt, start: turn.start, end: min(end, t),
+            return TurnSnap(id: turn.id, prompt: turn.prompt, text: turn.text, start: turn.start, end: min(end, t),
                             tokens: usage.reduce(TokenCounts()) { $0 + $1.tokens }, steps: steps.count,
                             errors: steps.filter { $0.status == .failed }.count,
                             active: best != .idle && i == visibleTurns.count - 1,

@@ -257,9 +257,57 @@ public enum SavingsAdvisor {
     }
 
     /// Sessiyada yozilgan fayllar (tartiblangan)
+    /// Vaqtinchalik fayllar (scratchpad, /tmp) kirmaydi — yangi sessiya ularga tayanmasin
     static func changedFiles(_ s: SessionSnap) -> [String] {
         Array(Set(s.agents.flatMap(\.steps).filter { $0.category == .files && $0.access == .write }
-            .map { $0.targetKey.replacingOccurrences(of: "files|", with: "") })).sorted()
+            .map { $0.targetKey.replacingOccurrences(of: "files|", with: "") }
+            .filter { !isTemporary($0) })).sorted()
+    }
+
+    static func isTemporary(_ path: String) -> Bool {
+        ["/tmp/", "/private/tmp/"].contains { path.hasPrefix($0) }
+            || path.contains("/scratchpad/") || HandoffStore.isScratch(path)
+    }
+
+    /// Oxirgi so'rovda foydalanuvchiga berilgan va javobsiz qolgan savol: yakuniy savol («ask») yoki
+    /// AskUserQuestion savoli; ular bo'lmasa — oxirgi javobning «?» bilan tugagan so'nggi qatori
+    static func pendingQuestion(_ s: SessionSnap) -> String? {
+        let since = s.turns.last?.start ?? .distantPast
+        for st in (s.main?.steps ?? []).reversed() where st.date >= since {
+            if let input = st.input, let q = jsonField(input, ["ask", "question"]) { return q }
+        }
+        let last = lastReply(s)?.text.split(separator: "\n")
+            .map { $0.trimmingCharacters(in: .whitespaces) }.last { !$0.isEmpty }
+        return last.flatMap { $0.hasSuffix("?") ? $0 : nil }
+    }
+
+    /// Asbob kiritmasidagi (JSON, kesilgan bo'lishi mumkin) birinchi topilgan matn maydoni
+    static func jsonField(_ json: String, _ keys: [String]) -> String? {
+        for key in keys {
+            let pattern = "\"" + key + #""\s*:\s*"((?:[^"\\]|\\.)*)""#
+            guard let re = try? NSRegularExpression(pattern: pattern),
+                  let m = re.firstMatch(in: json, range: NSRange(json.startIndex..., in: json)),
+                  let r = Range(m.range(at: 1), in: json),
+                  let v = try? JSONSerialization.jsonObject(with: Data(("\"" + json[r] + "\"").utf8), options: .fragmentsAllowed) as? String,
+                  !v.isEmpty else { continue }
+            return v
+        }
+        return nil
+    }
+
+    static func lastReply(_ s: SessionSnap) -> NoteSnap? {
+        s.notes.last { $0.kind == .reply && $0.agent == nil }
+    }
+
+    /// Matnning oxiri, gap yoki xatboshi chegarasidan boshlab
+    static func tail(_ text: String, max: Int) -> String {
+        guard text.count > max else { return text }
+        let cut = String(text.suffix(max))
+        let window = cut.prefix(300)
+        if let r = window.range(of: "\n") ?? window.range(of: ". ") {
+            return "…" + cut[r.upperBound...].trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        return "…" + cut
     }
 
     /// Xulosaga kiradigan so'rovlar: oldingi ko'chirish xabarlari, yolg'iz havolalar va «Ha, yasa» kabi qisqa javoblar
@@ -305,9 +353,17 @@ public enum SavingsAdvisor {
         if !turns.isEmpty {
             lines.append("")
             lines.append(tr("So'nggi vazifalar:", "Recent tasks:"))
+            // So'nggi ikkitasi to'liq: odatda asosiy talab va kutilayotgan ish shularda
+            let full = Set(turns.suffix(2).map(\.id))
             for t in turns {
-                let p = t.prompt.replacingOccurrences(of: "\n", with: " ")
-                lines.append("- #\(t.id): " + (p.count > 400 ? String(p.prefix(400)) + "…" : p))
+                guard full.contains(t.id) else {
+                    let p = t.prompt.replacingOccurrences(of: "\n", with: " ")
+                    lines.append("- #\(t.id): " + (p.count > 400 ? String(p.prefix(400)) + "…" : p))
+                    continue
+                }
+                let body = t.text.components(separatedBy: "\n").map { $0.trimmingCharacters(in: .whitespaces) }
+                    .filter { !$0.isEmpty }.joined(separator: "\n  ")
+                lines.append("- #\(t.id): " + (body.count > 1500 ? String(body.prefix(1500)) + "…" : body))
             }
         }
         let changed = changedFiles(s)
@@ -322,10 +378,15 @@ public enum SavingsAdvisor {
             lines.append(tr("Git holati (ko'chirish paytida):", "Git state (at handoff time):"))
             lines += git
         }
-        if let reply = s.notes.last(where: { $0.kind == .reply && $0.agent == nil }) {
+        if let reply = lastReply(s) {
             lines.append("")
             lines.append(tr("Oxirgi holat (oldingi javobdan):", "Last state (from the previous reply):"))
-            lines.append(String(reply.text.prefix(1200)))
+            lines.append(tail(reply.text, max: 1500))
+        }
+        if let q = pendingQuestion(s) {
+            lines.append("")
+            lines.append(tr("Kutilayotgan qaror (foydalanuvchi hali javob bermagan): \(q)",
+                            "Pending decision (the user hasn't answered yet): \(q)"))
         }
         lines.append("")
         lines.append(tr("Avval kerakli fayllarni o'qib chiq, keyin davom et. Allaqachon bajarilganlarni qayta qilma. "
