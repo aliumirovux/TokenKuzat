@@ -35,6 +35,7 @@ struct SettingsView: View {
     }
     @AppStorage(Pref.autoHandoffTarget) private var autoHandoffTarget = AutoHandoffTarget.app.rawValue
     @AppStorage(Pref.autoHandoffRedirect) private var autoHandoffRedirect = true
+    @AppStorage(Pref.closeOldTerminal) private var closeOldTerminal = true
     @AppStorage(Pref.lightMode) private var lightMode = false
     @AppStorage(Lang.prefKey) private var language = AppLanguage.system.rawValue
     @State private var hookInstalled = Hooks.isInstalled
@@ -169,6 +170,13 @@ struct SettingsView: View {
                                   isOn: $autoHandoffRedirect)
                     // Hook eslatma so'rovi uchun ham kerak — avtomatik ko'chirish yoqiq bo'lsa, faqat yo'naltirishlar o'chiriladi
                     .onChange(of: autoHandoffRedirect) { on in if !on { try? FileManager.default.removeItem(at: RedirectStore.defaultURL) } }
+                    captionToggle(tr("Ko'chirilgandan keyin eski Terminal oynasini yopish", "Close the old Terminal window after the move"),
+                                  tr("Yangi sessiya ochilgach, eskisi to'xtatiladi va oynasi yopiladi", "Once the new session opens, the old one is stopped and its window closed"),
+                                  help: tr("Faqat Terminal ilovasida, yangi sessiya Terminal'da ochilganda (bepul modelga o'tishda ham). Suhbat saqlanadi — claude --resume bilan qaytariladi. "
+                                           + "Birinchi marta macOS Terminal'ni boshqarishga ruxsat so'raydi",
+                                           "Terminal app only, when the new session opens in Terminal (also when moving to a free model). The conversation is kept — reopen it with claude --resume. "
+                                           + "The first time, macOS asks for permission to control Terminal"),
+                                  isOn: $closeOldTerminal)
                 }
                 if handoffHookInstalled {
                     HStack {

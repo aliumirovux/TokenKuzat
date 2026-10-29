@@ -82,7 +82,9 @@ enum PromptRedirectHook {
             let opened: Bool
             switch target {
             case .app: opened = AutoHandoff.openInApp(cwd: d.cwd, message: d.message)
-            case .terminal: opened = AutoHandoff.openInTerminal(cwd: d.cwd, message: d.message)
+            case .terminal:
+                let sid = ((try? JSONSerialization.jsonObject(with: data)) as? [String: Any])?["session_id"] as? String
+                opened = AutoHandoff.openInTerminal(cwd: d.cwd, message: d.message, closing: sid)
             }
             // Ochib bo'lmasa — xabar to'xtatilmaydi, shu sessiyada odatdagidek ketadi
             if opened {

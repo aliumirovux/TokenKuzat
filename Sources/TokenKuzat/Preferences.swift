@@ -39,6 +39,8 @@ enum Pref {
     static let autoHandoffRedirect = "autoHandoffRedirect"
     /// Claude limiti tugaganda bildirishnomada «Bepul modelda davom etish» (FreeLLMAPI orqali, terminalda)
     static let freeFallback = "freeFallback"
+    /// Ish yangi Terminal sessiyasiga ko'chgach, eski sessiyaning Terminal oynasi yopiladi
+    static let closeOldTerminal = "closeOldTerminal"
     /// Yengil rejim: bezak animatsiyalari (robot, aylanuvchi chegaralar, oqim nuqtalari) to'xtaydi — protsessor tejaladi
     static let lightMode = "lightMode"
     /// «Faqat xarita»: sessiya sahifasida yon menyu, sarlavha va tablar yashiriladi — oynada faqat xarita
@@ -70,6 +72,7 @@ enum Pref {
             autoHandoffK: AutoHandoffRule.defaultThresholdK,
             autoHandoffTarget: AutoHandoffTarget.app.rawValue,
             freeFallback: false,
+            closeOldTerminal: true,
         ])
     }
 }

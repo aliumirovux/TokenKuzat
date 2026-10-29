@@ -100,7 +100,7 @@ enum FreeFallback {
             let message = FreeModels.fallbackMessage(summary: summary, resetsAt: resetsAt,
                                                      english: SavingsAdvisor.conversationEnglish(sess))
             done(AutoHandoff.openInTerminal(cwd: SavingsAdvisor.projectFolder(for: sess) ?? sess.cwd,
-                                            message: message, prelude: prelude))
+                                            message: message, prelude: prelude, closing: sess.id))
         }
     }
 

@@ -45,7 +45,7 @@ enum AutoHandoff {
         let dir = SavingsAdvisor.projectFolder(for: sess) ?? sess.cwd
         switch target {
         case .app: return openInApp(cwd: dir, message: message)
-        case .terminal: return openInTerminal(cwd: dir, message: message)
+        case .terminal: return openInTerminal(cwd: dir, message: message, closing: sess.id)
         }
     }
 
@@ -76,9 +76,10 @@ enum AutoHandoff {
     }
 
     /// Terminal.app'da loyiha papkasida `claude "<birinchi xabar>"`. Claude ilovasining vaqtinchalik papkasi bo'lsa — uy papkasida.
-    /// `prelude` — `claude` dan oldingi qatorlar (masalan, bepul modellarga yo'naltiruvchi o'zgaruvchilar)
+    /// `prelude` — `claude` dan oldingi qatorlar (masalan, bepul modellarga yo'naltiruvchi o'zgaruvchilar);
+    /// `closing` — ish ko'chayotgan eski sessiya: yangisi ishga tushgach, uning Terminal oynasi yopiladi
     @discardableResult
-    static func openInTerminal(cwd: String?, message: String? = nil, prelude: String? = nil) -> Bool {
+    static func openInTerminal(cwd: String?, message: String? = nil, prelude: String? = nil, closing: String? = nil) -> Bool {
         let home = FileManager.default.homeDirectoryForCurrentUser.path
         let dir = projectDir(cwd) ?? home
         func quote(_ s: String) -> String { "'" + s.replacingOccurrences(of: "'", with: "'\\''") + "'" }
@@ -113,6 +114,7 @@ enum AutoHandoff {
                 + "for f in /etc/zprofile \"${ZDOTDIR:-$HOME}/.zprofile\" /etc/zlogin \"${ZDOTDIR:-$HOME}/.zlogin\"; do [[ -r $f ]] && source $f; done\n"
             let script = "#!/bin/zsh -lf\n\(profile)\(extra)\(read)rm -f \(quote(url.path)) \(quote(promptURL.path))\n"
                 + "command -v claude >/dev/null || { echo \(quote(missing)); exit 1; }\n"
+                + OldTerminal.scriptLine(closing: closing)
                 + "cd \(quote(dir)) && \(run)\n"
             try script.write(to: url, atomically: true, encoding: .utf8)
             try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: url.path)

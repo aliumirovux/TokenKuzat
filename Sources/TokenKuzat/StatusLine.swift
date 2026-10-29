@@ -129,6 +129,7 @@ enum StatusLine {
             try? data.write(to: supportDir.appendingPathComponent("latest.json"), options: .atomic)
             if let id = parsed?.sessionId, !id.contains("/") {
                 try? data.write(to: sessions.appendingPathComponent(id + ".json"), options: .atomic)
+                OldTerminal.record(session: id)
             }
         }
 

@@ -1,5 +1,11 @@
 # O'zgarishlar
 
+## 6.57.0 — 2026-10-30
+
+- Ish yangi Terminal sessiyasiga ko'chgach (kontekst to'lganda, eski sessiyada yozilgan xabar yo'naltirilganda yoki limit tugab bepul modelga o'tilganda), eski sessiyaning Terminal oynasi o'zi yopiladi: yangi sessiya ishga tushgach, eski `claude` to'xtatiladi va oynasi yopiladi. Ekran eski oynalar bilan to'lmaydi. Suhbat saqlanadi — `claude --resume` bilan qaytariladi.
+- Faqat Terminal ilovasida ishlaydi: eski sessiya iTerm, VS Code yoki Claude ilovasida bo'lsa, hech narsa to'xtatilmaydi. Oynada bir nechta tab bo'lsa, faqat shu tab yopiladi. Sessiya qaysi oynada ekanini status line yozib boradi, shuning uchun u ulangan bo'lishi kerak.
+- Sozlamalar → avtomatik ko'chirish: «Ko'chirilgandan keyin eski Terminal oynasini yopish» (standart — yoqilgan).
+
 ## 6.56.0 — 2026-10-30
 
 - `ask_free_model`: bepul model javobini kutayotganda (120 soniyagacha) boshqa MCP so'rovlari endi navbatda turmaydi. Server xato matnida kalitni qaytarsa, u yashiriladi va Claude'ga tushmaydi. MCP xato matnlari inglizcha.

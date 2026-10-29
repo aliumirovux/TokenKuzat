@@ -11,6 +11,7 @@
     <key>CFBundleShortVersionString</key><string>__VERSION__</string>
     <key>CFBundleVersion</key><string>__BUILD__</string>
     <key>CFBundleDevelopmentRegion</key><string>uz</string>
+    <key>NSAppleEventsUsageDescription</key><string>Ish yangi sessiyaga ko'chgach, eski sessiyaning Terminal oynasini yopish uchun.</string>
     <key>LSApplicationCategoryType</key><string>public.app-category.developer-tools</string>
     <key>LSMinimumSystemVersion</key><string>13.0</string>
     <key>LSUIElement</key><true/>
