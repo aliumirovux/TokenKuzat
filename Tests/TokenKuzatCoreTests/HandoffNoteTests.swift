@@ -21,6 +21,18 @@ final class HandoffNoteTests: XCTestCase {
         XCTAssertEqual(HandoffNote.extract(from: "A\n<!-- tk-handoff\nIsh: X")?.note, "Ish: X")
     }
 
+    func testExtractsMarkdownDefinitionNote() throws {
+        let reply = "Tayyor, commit qilindi.\n\n**Sizdan kerak:** hech narsa.\n\n[tk-handoff]: <Ish: Ko'chirish eslatmasi>\n"
+            + "[tk-handoff]: <Qolgan: testlar>\n\n[tk-handoff]: <Muhim: bash build.sh>\n"
+        let x = try XCTUnwrap(HandoffNote.extract(from: reply))
+        XCTAssertEqual(x.note, "Ish: Ko'chirish eslatmasi\nQolgan: testlar\nMuhim: bash build.sh")
+        XCTAssertEqual(x.rest, "Tayyor, commit qilindi.\n\n**Sizdan kerak:** hech narsa.")
+        XCTAssertEqual(HandoffNote.field(x.note, ["Ish", "Task"]), "Ko'chirish eslatmasi")
+        // Burchak qavssiz yozilsa ham o'qiladi; bo'sh eslatma — yo'q
+        XCTAssertEqual(HandoffNote.extract(from: "A\n\n[tk-handoff]: Ish: X")?.note, "Ish: X")
+        XCTAssertNil(HandoffNote.extract(from: "A\n\n[tk-handoff]: <>"))
+    }
+
     func testHookAsksOnlyListedSessionsInTheirLanguage() throws {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("note-\(UUID().uuidString).json")
         defer { try? FileManager.default.removeItem(at: url) }
@@ -32,7 +44,7 @@ final class HandoffNoteTests: XCTestCase {
         let h = try XCTUnwrap(o["hookSpecificOutput"] as? [String: Any])
         XCTAssertEqual(h["hookEventName"] as? String, "UserPromptSubmit")
         let ctx = try XCTUnwrap(h["additionalContext"] as? String)
-        XCTAssertTrue(ctx.contains("180K") && ctx.contains("<!-- tk-handoff") && ctx.contains("Kutilayotgan qaror"))
+        XCTAssertTrue(ctx.contains("180K") && ctx.contains("[tk-handoff]: <Ish:") && ctx.contains("Kutilayotgan qaror"))
         XCTAssertNil(NoteRequestStore.handlePrompt(input: input("b"), at: url))
         // Bo'sh ro'yxat — fayl o'chadi (hook skripti ilovani umuman ishga tushirmaydi)
         NoteRequestStore.save([:], at: url)

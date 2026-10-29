@@ -1,5 +1,9 @@
 # O'zgarishlar
 
+## 6.48.1 — 2026-10-29
+
+- Ko'chirish eslatmasi endi Claude ilovasida ko'rinmaydi. Avval u `<!-- … -->` izohi bo'lib yozilardi, Claude ilovasi esa uni yashirmay, javob oxirida chalkash matn qilib ko'rsatardi. Endi har qatori Markdown havola ta'rifi (`[tk-handoff]: <…>`), Markdown uni chizmaydi. Eski formatdagi eslatmalar ham o'qiladi.
+
 ## 6.48.0 — 2026-10-29
 
 - Yangi sessiya oldingi suhbatdan hech narsani yo'qotmaydi. Xulosaga sig'maydigan narsalar uchun (ancha oldin muhokama qilingan jadval, taklif yoki qaror) xulosaning boshida oldingi sessiya yozuvi (.jsonl) yo'li beriladi. Foydalanuvchi xulosada yo'q narsani eslasa, Claude faylni butunlay o'qimaydi, grep bilan kerakli joyini topadi, shuning uchun kontekst kichik qoladi. Sessiya bir necha marta ko'chirilgan bo'lsa, oldingi yozuvlar ham olib o'tiladi (4 tagacha).
