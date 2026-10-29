@@ -1,5 +1,10 @@
 # O'zgarishlar
 
+## 6.52.1 — 2026-10-30
+
+- `ask_free_model` tuzatildi: o'ylaydigan bepul model (masalan, gpt-oss) javob uzunligi chegarasini o'ylashga sarflab qo'ysa, endi uning o'ylash matni javob sifatida qaytmaydi — «max_tokens ni oshiring» degan aniq xato chiqadi. Javob chegarada uzilsa, oxirida «javob to'liq emas» deb yoziladi.
+- Bepul modellar manzili endi standart bo'yicha FreeLLMAPI Mac ilovasiniki — `http://127.0.0.1:31415` (server versiyasi — `http://localhost:3001`). Sozlamalardagi izoh yangilandi: Docker shart emas, kalit «Unified API key» bo'limidan olinadi, Claude Code uchun katta kontekstli va asboblarni chaqira oladigan model kerak (masalan, Gemini) — faqat Groq kaliti yetmaydi.
+
 ## 6.52.0 — 2026-10-29
 
 - Bepul modellar (FreeLLMAPI — bepul tariflarni bitta manzilga yig'adigan, o'zingiz o'rnatadigan server). Sozlamalarda yangi «Bepul modellar» bo'limi: manzil va umumiy kalit kiritiladi, ilova serverni tekshiradi va nechta model borligini ko'rsatadi.

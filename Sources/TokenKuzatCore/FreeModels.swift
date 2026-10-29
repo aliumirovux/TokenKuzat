@@ -6,7 +6,8 @@ import Foundation
 /// 2) MCP `ask_free_model` — Claude mayda, mustaqil ishlarni (tarjima, uzun logni qisqartirish) bepul modelga beradi.
 /// Serverni foydalanuvchi o'zi o'rnatadi; Token Kuzatuv faqat manzil va kalitni saqlaydi.
 public enum FreeModels {
-    public static let defaultURL = "http://localhost:3001"
+    /// FreeLLMAPI Mac ilovasining manzili (Docker/server versiyasi — http://localhost:3001)
+    public static let defaultURL = "http://127.0.0.1:31415"
     /// Model nomi o'rniga — server o'zi eng yaxshi bo'sh modelni tanlaydi
     public static let autoModel = "auto"
     /// Bepul modellarning ko'pi 128K kontekstli: Claude Code shundan oldin qisqartirsin (eng kichik ruxsat etilgan qiymat)
@@ -96,15 +97,26 @@ public enum FreeModels {
         public var text: String
         public var model: String?
         public var tokens: Int?
+        /// Javob max_tokens chegarasida uzildi
+        public var truncated = false
+        /// Model chegarani o'ylashga sarflab, javob bermadi (text — bo'sh)
+        public var thinkingOnly = false
     }
 
-    /// Javob matni, javob bergan model va jami tokenlar. Server xato qaytarsa — nil
+    /// Javob matni, javob bergan model va jami tokenlar. Server xato qaytarsa — nil.
+    /// O'ylaydigan modellar (gpt-oss…) chegaraga yetsa, shlyuz `content` ga o'ylash matnini qo'yadi — bu javob emas
     public static func chatReply(_ data: Data) -> Reply? {
         guard let o = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
-              let choices = o["choices"] as? [[String: Any]], let msg = choices.first?["message"] as? [String: Any],
-              let text = msg["content"] as? String else { return nil }
+              let choices = o["choices"] as? [[String: Any]], let msg = choices.first?["message"] as? [String: Any] else { return nil }
+        let reasoning = (msg["reasoning"] ?? msg["reasoning_content"]) as? String ?? ""
+        guard var text = msg["content"] as? String ?? (reasoning.isEmpty ? nil : "") else { return nil }
+        let truncated = choices.first?["finish_reason"] as? String == "length"
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        let thinkingOnly = trimmed.isEmpty || (!reasoning.isEmpty && trimmed == reasoning.trimmingCharacters(in: .whitespacesAndNewlines))
+        if thinkingOnly { text = "" }
         let usage = o["usage"] as? [String: Any]
-        return Reply(text: text, model: o["model"] as? String, tokens: (usage?["total_tokens"] as? NSNumber)?.intValue)
+        return Reply(text: text, model: o["model"] as? String, tokens: (usage?["total_tokens"] as? NSNumber)?.intValue,
+                     truncated: truncated, thinkingOnly: thinkingOnly)
     }
 
     /// Server xatosining matni (`{"error": {"message": …}}` yoki oddiy matn)

@@ -158,8 +158,13 @@ enum MCPServer {
         }
         // Qaysi provayder javob bergani: «X-Routed-Via: groq/llama-…»
         let served = http?.value(forHTTPHeaderField: "X-Routed-Via") ?? reply.model ?? "unknown"
+        if reply.thinkingOnly {
+            return ("The free model (\(served)) spent its whole max_tokens on reasoning and gave no answer. "
+                    + "Retry with a larger max_tokens (e.g. 2000) or leave it unset.", true)
+        }
         var meta = "[free model: \(served)"
         if let t = reply.tokens { meta += ", \(t) tokens" }
+        if reply.truncated { meta += ", cut off at max_tokens — the answer is incomplete" }
         meta += " — not Claude; verify before using]"
         return (reply.text + "\n\n" + meta, false)
     }

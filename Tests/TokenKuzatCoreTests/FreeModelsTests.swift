@@ -63,6 +63,27 @@ final class FreeModelsTests: XCTestCase {
         XCTAssertEqual(FreeModels.modelCount(Data(#"{"object":"list","data":[{"id":"a"},{"id":"b"}]}"#.utf8)), 2)
     }
 
+    /// gpt-oss kabi o'ylaydigan modellar: javob va o'ylash alohida; chegaraga yetsa shlyuz content ga o'ylashni qo'yadi
+    func testReasoningReplies() {
+        let ok = #"{"model":"openai/gpt-oss-20b","choices":[{"finish_reason":"stop","message":{"role":"assistant","content":"Yig'ish tugadi.","reasoning":"We need to translate…"}}]}"#
+        XCTAssertEqual(FreeModels.chatReply(Data(ok.utf8)), .init(text: "Yig'ish tugadi.", model: "openai/gpt-oss-20b", tokens: nil))
+
+        let thinking = #"{"model":"openai/gpt-oss-20b","choices":[{"finish_reason":"length","message":{"role":"assistant","content":"We need to translate","reasoning":"We need to translate"}}]}"#
+        let r = FreeModels.chatReply(Data(thinking.utf8))
+        XCTAssertEqual(r?.thinkingOnly, true)
+        XCTAssertEqual(r?.truncated, true)
+        XCTAssertEqual(r?.text, "")
+
+        let nullContent = #"{"choices":[{"finish_reason":"length","message":{"role":"assistant","content":null,"reasoning":"Hmm"}}]}"#
+        XCTAssertEqual(FreeModels.chatReply(Data(nullContent.utf8))?.thinkingOnly, true)
+
+        let cut = #"{"choices":[{"finish_reason":"length","message":{"role":"assistant","content":"Birinchi qism","reasoning":"plan"}}]}"#
+        let c = FreeModels.chatReply(Data(cut.utf8))
+        XCTAssertEqual(c?.text, "Birinchi qism")
+        XCTAssertEqual(c?.truncated, true)
+        XCTAssertEqual(c?.thinkingOnly, false)
+    }
+
     func testFallbackMessageKeepsHeadlineFirst() {
         let summary = "↪ TokenKuzat — Bepul modellar\nIsh: zaxira rejimi\nQolgan: testlar"
         let m = FreeModels.fallbackMessage(summary: summary, resetsAt: nil, english: false)
