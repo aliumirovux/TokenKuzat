@@ -58,6 +58,13 @@ final class Alerts: NSObject, UNUserNotificationCenterDelegate {
     // MARK: - Avtomatik yangi sessiya
 
     private var autoPrevious: [String: AgentState] = [:]
+    private var redirectArmed: Set<String> = []
+
+    /// Eski sessiyaning keyingi xabari yangi sessiyaga ketsin: xulosa saqlanadi, hook ulanadi
+    private static func armRedirect(_ sess: SessionSnap) {
+        RedirectStore.add(session: sess.id, summary: SavingsAdvisor.handoff(for: sess), previousContext: sess.contextTokens)
+        try? PromptRedirectHook.install()
+    }
     /// Yangi sessiya ochilgan sessiyalar — diskda (ilova qayta ishga tushsa yoki yangilansa ham qayta ochilmasin), 7 kun
     private let autoDoneKey = "autoHandoffDone"
     private lazy var autoDone: [String: Double] = {
@@ -72,11 +79,20 @@ final class Alerts: NSObject, UNUserNotificationCenterDelegate {
         let d = UserDefaults.standard
         guard s.initialScanDone, d.bool(forKey: Pref.autoHandoff) else { return }
         let k = d.double(forKey: Pref.autoHandoffK)
+        // Ko'chirilgan sessiyalar (shu jumladan ilova qayta ishga tushishidan oldingilari) — keyingi xabari yangi sessiyaga yo'naltiriladi
+        if d.bool(forKey: Pref.autoHandoffRedirect) {
+            let cutoff = Date().timeIntervalSince1970 - RedirectStore.lifetime
+            for sess in s.sessions where (autoDone[sess.id] ?? 0) >= cutoff && !redirectArmed.contains(sess.id) {
+                redirectArmed.insert(sess.id)
+                Self.armRedirect(sess)
+            }
+        }
         for sess in s.sessions where AutoHandoffRule.shouldTrigger(
             previous: autoPrevious[sess.id], state: sess.state, context: sess.contextTokens, thresholdK: k,
             waitingPermission: s.permissionWaits[sess.id] != nil, alreadyDone: autoDone[sess.id] != nil) {
             autoDone[sess.id] = Date().timeIntervalSince1970
             d.set(autoDone, forKey: autoDoneKey)
+            if d.bool(forKey: Pref.autoHandoffRedirect) { redirectArmed.insert(sess.id); Self.armRedirect(sess) }
             let target = AutoHandoffTarget(rawValue: d.string(forKey: Pref.autoHandoffTarget) ?? "") ?? .app
             let ok = AutoHandoff.start(sess, target: target)
             let start = SavingsAdvisor.startContext(for: sess) ?? SavingsAdvisor.baseline

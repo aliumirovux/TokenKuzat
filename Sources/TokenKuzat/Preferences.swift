@@ -33,6 +33,8 @@ enum Pref {
     static let checkUpdates = "checkUpdates"
     static let autoHandoffK = "autoHandoffK"
     static let autoHandoffTarget = "autoHandoffTarget"
+    /// Ko'chirilgan eski sessiyada yozilgan birinchi xabar yangi sessiyaga yo'naltiriladi (UserPromptSubmit hook)
+    static let autoHandoffRedirect = "autoHandoffRedirect"
     /// Yengil rejim: bezak animatsiyalari (robot, aylanuvchi chegaralar, oqim nuqtalari) to'xtaydi — protsessor tejaladi
     static let lightMode = "lightMode"
     /// «Faqat xarita»: sessiya sahifasida yon menyu, sarlavha va tablar yashiriladi — oynada faqat xarita
@@ -59,6 +61,7 @@ enum Pref {
             notifyWaste: true,
             autoHandoff: true,
             checkUpdates: true,
+            autoHandoffRedirect: true,
             autoHandoffK: AutoHandoffRule.defaultThresholdK,
             autoHandoffTarget: AutoHandoffTarget.app.rawValue,
         ])

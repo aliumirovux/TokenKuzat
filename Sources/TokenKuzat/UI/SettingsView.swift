@@ -24,6 +24,7 @@ struct SettingsView: View {
     @AppStorage(Pref.autoHandoff) private var autoHandoff = true
     @AppStorage(Pref.autoHandoffK) private var autoHandoffK = AutoHandoffRule.defaultThresholdK
     @AppStorage(Pref.autoHandoffTarget) private var autoHandoffTarget = AutoHandoffTarget.app.rawValue
+    @AppStorage(Pref.autoHandoffRedirect) private var autoHandoffRedirect = true
     @AppStorage(Pref.lightMode) private var lightMode = false
     @AppStorage(Lang.prefKey) private var language = AppLanguage.system.rawValue
     @State private var hookInstalled = Hooks.isInstalled
@@ -133,6 +134,12 @@ struct SettingsView: View {
                     Picker(tr("…ochiladi", "…opens"), selection: $autoHandoffTarget) {
                         ForEach(AutoHandoffTarget.allCases) { Text($0.title).tag($0.rawValue) }
                     }
+                    Toggle(isOn: $autoHandoffRedirect) {
+                        Text(tr("…eski sessiyada yozsam — yangi sessiyaga yo'naltirish", "…if I type in the old session — redirect to the new one"))
+                        Text(tr("Birinchi xabar to'xtatilib, xulosa bilan yangi sessiyaga yuboriladi; qayta yuborsangiz — eski sessiyada qoladi",
+                                "The first message is stopped and sent to the new session with the summary; send it again to stay in the old session"))
+                    }
+                    .onChange(of: autoHandoffRedirect) { on in if !on { try? PromptRedirectHook.uninstall() } }
                 }
                 if handoffHookInstalled {
                     HStack {

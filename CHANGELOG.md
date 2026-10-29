@@ -1,5 +1,10 @@
 # O'zgarishlar
 
+## 6.28.0 — 2026-10-29
+
+- Eski sessiyadan yo'naltirish: avtomatik yangi sessiya ochilgandan keyin eski sessiyada yozilgan birinchi xabar to'xtatiladi (Claude Code `UserPromptSubmit` hook'i) va xulosa bilan birga yangi sessiyaga yuboriladi — u yerda Claude aynan shu so'rovni bajaradi. Sabab eski sessiyada ko'rsatiladi; xabar qayta yuborilsa — eski sessiyada qoladi. Slash-buyruqlar (`/compact` va h.k.) to'xtatilmaydi; 24 soatdan eski sessiyalar ham. Sozlamalar → «…eski sessiyada yozsam — yangi sessiyaga yo'naltirish» (sukut bo'yicha yoqilgan; o'chirilsa hook olib tashlanadi). Ilova qayta ishga tushsa ham allaqachon ko'chirilgan sessiyalar yo'naltiriladi.
+- Tuzatildi: Terminalda yangi sessiya hook rejimidan ochilmasdi (asinxron ochish jarayon chiqishi bilan uzilardi) — endi `/usr/bin/open -a Terminal` tugashi kutiladi. Terminal skriptida `CLAUDE_*` o'zgaruvchilari tozalanadi, yangi sessiya o'zini bola sessiya deb hisoblamasin.
+
 ## 6.27.1 — 2026-10-29
 
 - Tuzatildi: avtomatik yangi sessiya bir sessiya uchun ikki marta ochilishi mumkin edi — «ochildi» belgisi faqat xotirada turardi, ilova qayta ishga tushganda (masalan, yangilangandan keyin) yo'qolardi. Endi diskda saqlanadi (7 kun).

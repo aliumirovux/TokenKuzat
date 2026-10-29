@@ -71,11 +71,17 @@ enum AutoHandoff {
                 try message.write(to: promptURL, atomically: true, encoding: .utf8)
                 run = "exec claude \"$(cat \(quote(promptURL.path)))\""
             }
-            try "#!/bin/zsh -l\ncd \(quote(dir)) && \(run)\n".write(to: url, atomically: true, encoding: .utf8)
+            // Ilova Claude sessiyasidan ishga tushirilgan bo'lsa, CLAUDE_* o'zgaruvchilari meros qoladi va yangi sessiya
+            // o'zini «bola sessiya» deb biladi (tarix saqlanmaydi) — ularni tozalaymiz
+            try "#!/bin/zsh -l\nunset -m 'CLAUDE*'\ncd \(quote(dir)) && \(run)\n".write(to: url, atomically: true, encoding: .utf8)
             try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: url.path)
         } catch { return false }
-        let terminal = URL(fileURLWithPath: "/System/Applications/Utilities/Terminal.app")
-        NSWorkspace.shared.open([url], withApplicationAt: terminal, configuration: NSWorkspace.OpenConfiguration())
-        return true
+        // `open` tugaguncha kutiladi: hook rejimida jarayon darhol chiqadi, asinxron ochish esa yarim yo'lda qolardi
+        let p = Process()
+        p.executableURL = URL(fileURLWithPath: "/usr/bin/open")
+        p.arguments = ["-a", "Terminal", url.path]
+        do { try p.run() } catch { return false }
+        p.waitUntilExit()
+        return p.terminationStatus == 0
     }
 }
