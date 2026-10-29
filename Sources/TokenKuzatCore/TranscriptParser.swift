@@ -243,7 +243,61 @@ public enum TranscriptParser {
 
     static func date(_ v: Any?) -> Date? {
         guard let s = v as? String else { return nil }
-        return isoFrac.date(from: s) ?? isoPlain.date(from: s)
+        return fastISO(s) ?? isoFrac.date(from: s) ?? isoPlain.date(from: s)
+    }
+
+    /// «2026-10-29T22:01:15.031Z» (yoki «+05:00» bilan) — formatter'dan o'nlab marta tez; har qatorda chaqiriladi.
+    /// Boshqa ko'rinishdagi sana — nil (formatter o'qiydi)
+    static func fastISO(_ string: String) -> Date? {
+        var str = string
+        return str.withUTF8 { b -> Date? in
+            guard b.count >= 20, b[4] == 0x2D, b[7] == 0x2D, b[10] == 0x54 || b[10] == 0x74, b[13] == 0x3A, b[16] == 0x3A
+            else { return nil }
+            func num(_ from: Int, _ len: Int) -> Int? {
+                var v = 0
+                for i in from..<from + len {
+                    let d = Int(b[i]) - 48
+                    guard d >= 0, d <= 9 else { return nil }
+                    v = v * 10 + d
+                }
+                return v
+            }
+            guard let y = num(0, 4), let mo = num(5, 2), let d = num(8, 2), let h = num(11, 2), let mi = num(14, 2),
+                  let sec = num(17, 2), (1...12).contains(mo), (1...31).contains(d), h < 24, mi < 60, sec < 61 else { return nil }
+            var i = 19
+            var frac = 0.0
+            if b[i] == 0x2E {
+                i += 1
+                var scale = 1.0, v = 0.0
+                while i < b.count, b[i] >= 48, b[i] <= 57 {
+                    if scale < 1e9 { v = v * 10 + Double(b[i] - 48); scale *= 10 }
+                    i += 1
+                }
+                guard scale > 1 else { return nil }
+                frac = v / scale
+            }
+            guard i < b.count else { return nil }
+            var offset = 0
+            switch b[i] {
+            case 0x5A, 0x7A:
+                guard i + 1 == b.count else { return nil }
+            case 0x2B, 0x2D:
+                let colon = i + 3 < b.count && b[i + 3] == 0x3A
+                guard b.count == i + (colon ? 6 : 5), let oh = num(i + 1, 2), let om = num(i + (colon ? 4 : 3), 2),
+                      oh < 24, om < 60 else { return nil }
+                offset = (oh * 3600 + om * 60) * (b[i] == 0x2D ? -1 : 1)
+            default:
+                return nil
+            }
+            // Kunlar soni 1970-01-01 dan (proleptik Grigorian kalendari)
+            let yy = mo <= 2 ? y - 1 : y
+            let era = (yy >= 0 ? yy : yy - 399) / 400
+            let yoe = yy - era * 400
+            let doy = (153 * (mo > 2 ? mo - 3 : mo + 9) + 2) / 5 + d - 1
+            let days = era * 146_097 + yoe * 365 + yoe / 4 - yoe / 100 + doy - 719_468
+            let t = Double(days * 86_400 + h * 3600 + mi * 60 + sec - offset) + frac
+            return Date(timeIntervalSince1970: t)
+        }
     }
 
     private static func int(_ v: Any?) -> Int { (v as? NSNumber)?.intValue ?? 0 }

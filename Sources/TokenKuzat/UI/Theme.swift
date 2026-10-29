@@ -152,8 +152,9 @@ struct Spinner: View {
     @AppStorage(Pref.lightMode) private var lightMode = false
 
     var body: some View {
-        TimelineView(.periodic(from: .now, by: lightMode ? 3600 : 0.1)) { ctx in
-            let step = lightMode ? 0 : Int(ctx.date.timeIntervalSinceReferenceDate * 10) % 8
+        let calm = lightMode || Power.saving
+        TimelineView(.periodic(from: .now, by: calm ? 3600 : 0.1)) { ctx in
+            let step = calm ? 0 : Int(ctx.date.timeIntervalSinceReferenceDate * 10) % 8
             Canvas { g, sz in
                 let c = CGPoint(x: sz.width / 2, y: sz.height / 2), r = min(sz.width, sz.height) / 2
                 for i in 0..<8 {
@@ -180,7 +181,7 @@ struct StateDot: View {
 
     var body: some View {
         Group {
-            if state == .running && !lightMode {
+            if state == .running && !lightMode && !Power.saving {
                 TimelineView(.animation(minimumInterval: 1.0 / 20)) { ctx in
                     let t = ctx.date.timeIntervalSinceReferenceDate
                     let p = CGFloat((sin(t * 2.4) + 1) / 2)

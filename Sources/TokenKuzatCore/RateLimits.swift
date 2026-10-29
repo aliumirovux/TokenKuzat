@@ -79,6 +79,8 @@ public final class RateLimitsReader {
     private var lastMtime: Date?
     private var cached: RateLimits?
     private var history: [(Date, Double)] = []
+    /// sessions/<id>.json: fayl → (o'zgargan vaqti, sessiya, narx, kontekst oynasi). Har javobda faqat o'zgargani o'qiladi
+    private var sessionFiles: [String: (mtime: Date?, id: String?, cost: Double?, window: Int?)] = [:]
 
     public static var defaultDirectory: URL {
         HistoryStore.defaultURL.deletingLastPathComponent().appendingPathComponent("statusline")
@@ -102,11 +104,22 @@ public final class RateLimitsReader {
         var costs: [String: Double] = [:]
         var windows: [String: Int] = [:]
         let sessionsDir = directory.appendingPathComponent("sessions")
-        for url in (try? FileManager.default.contentsOfDirectory(at: sessionsDir, includingPropertiesForKeys: nil)) ?? [] {
-            guard url.pathExtension == "json", let sd = try? Data(contentsOf: url),
-                  let sp = StatusLinePayload.parse(sd), let id = sp.sessionId else { continue }
-            if let c = sp.costUSD { costs[id] = c }
-            if let w = sp.contextWindow, w > 0 { windows[id] = w }
+        var files: [String: (mtime: Date?, id: String?, cost: Double?, window: Int?)] = [:]
+        let list = (try? FileManager.default.contentsOfDirectory(at: sessionsDir, includingPropertiesForKeys: [.contentModificationDateKey])) ?? []
+        for url in list where url.pathExtension == "json" {
+            let m = (try? url.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
+            if let old = sessionFiles[url.path], old.mtime == m, m != nil {
+                files[url.path] = old
+            } else {
+                let sp = (try? Data(contentsOf: url)).flatMap { StatusLinePayload.parse($0) }
+                files[url.path] = (m, sp?.sessionId, sp?.costUSD, sp?.contextWindow)
+            }
+        }
+        sessionFiles = files
+        for f in files.values {
+            guard let id = f.id else { continue }
+            if let c = f.cost { costs[id] = c }
+            if let w = f.window, w > 0 { windows[id] = w }
         }
         var r = RateLimits(fiveHour: p.fiveHour, sevenDay: p.sevenDay, updatedAt: mtime, costBySession: costs)
         r.windowBySession = windows

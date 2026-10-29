@@ -30,6 +30,7 @@ struct BudgetStatus {
 
 /// Engine'ni fon navbatida har soniyada yurgizadi va UI'ga snapshot beradi.
 /// Ma'lumot o'zgarmasa UI 3 soniyada bir marta yangilanadi (holat va «N s oldin» uchun) — CPU tejaladi.
+/// Oyna ochiq bo'lmasa va hech bir sessiya ishlamasa — 15 soniyada bir (limit yoki hook xabari kelsa — darhol).
 final class Store: ObservableObject {
     static let shared = Store()
 
@@ -46,9 +47,20 @@ final class Store: ObservableObject {
     private var lastPublish = Date.distantPast
     private let projectHistory = ProjectSavingsHistory()
     private var lastProjectRecord = Date.distantPast
+    private let hookReader = HookEventsReader()
+    /// Oxirgi ko'rsatilgan tashqi ma'lumotlar vaqti: status line limiti, hook xabari, hisobdan olingan limit
+    private var lastSignals: [Date?] = []
+    /// Ko'rinib turgan oynalar (menyu paneli, asosiy oyna)
+    private var viewers: Set<String> = []
+    /// Oxirgi snapshot'da ishlayotgan, kutayotgan yoki ruxsat so'ragan sessiya bor edi
+    private var lastBusy = true
+    static let calmInterval: TimeInterval = 15
 
     init() {
-        engine = Engine(history: HistoryStore(url: HistoryStore.defaultURL))
+        var config = Engine.Config()
+        // Fayllar o'zgarishi tizimdan olinadi: har soniyada minglab fayl tekshirilmaydi
+        config.watchChanges = true
+        engine = Engine(config: config, history: HistoryStore(url: HistoryStore.defaultURL))
         savingsHistory = projectHistory.load()
         let t = DispatchSource.makeTimerSource(queue: queue)
         t.schedule(deadline: .now(), repeating: 1.0, leeway: .milliseconds(250))
@@ -60,11 +72,16 @@ final class Store: ObservableObject {
     private func step() {
         let now = Date()
         engine.update(now: now)
-        guard engine.revision != lastRevision || now.timeIntervalSince(lastPublish) >= 3 else { return }
+        // Fayl o'zgarmasa keshdan — har soniyada so'rash arzon
+        let statusLine = limitsReader.read()
+        let notices = hookReader.read()
+        let signals = [statusLine?.updatedAt, hookReader.changedAt, AccountUsage.shared.latest?.updatedAt]
+        let every: TimeInterval = viewers.isEmpty && !lastBusy ? Store.calmInterval : 3
+        guard engine.revision != lastRevision || signals != lastSignals || now.timeIntervalSince(lastPublish) >= every else { return }
         lastRevision = engine.revision
+        lastSignals = signals
         lastPublish = now
         var s = engine.snapshot()
-        let statusLine = limitsReader.read()
         s.applyContextWindows(statusLine?.windowBySession ?? [:])
         if let l = statusLine?.active(at: now), !l.isEmpty || !l.costBySession.isEmpty {
             s.limits = l
@@ -90,7 +107,6 @@ final class Store: ObservableObject {
         let out = outsideTracker.summary(now: now)
         if out.hasWindow || out.outsideTodayPct > 0 { s.outside = out }
         // Claude ruxsat so'rab to'xtagan sessiyalar: hook xabaridan keyin transkriptda harakat bo'lmagan
-        let notices = HookEvents.read()
         for sess in s.sessions {
             if let n = notices[sess.id], n.isPending(lastActivity: sess.lastActivity, now: now) {
                 s.permissionWaits[sess.id] = n
@@ -105,10 +121,23 @@ final class Store: ObservableObject {
             savings = projectHistory.record(ProjectSavings.reports(s, period: .today, now: now),
                                              cache: ProjectSavings.cacheDays(s, now: now), now: now)
         }
+        lastBusy = s.activeSessions > 0 || s.runningAgents > 0 || !s.permissionWaits.isEmpty
         DispatchQueue.main.async {
             self.snap = s
             if let savings, savings != self.savingsHistory { self.savingsHistory = savings }
             Alerts.shared.evaluate(s)
+        }
+    }
+
+    /// Menyu paneli yoki asosiy oyna ko'rinib turibdimi — ko'rinsa holat tez-tez yangilanadi.
+    /// Ochilganda darhol yangi snapshot beriladi (tinch paytdagi 15 soniyani kutmaydi)
+    func setVisible(_ viewer: String, _ visible: Bool) {
+        queue.async {
+            if visible {
+                if self.viewers.insert(viewer).inserted { self.lastPublish = .distantPast }
+            } else {
+                self.viewers.remove(viewer)
+            }
         }
     }
 

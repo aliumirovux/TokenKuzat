@@ -21,10 +21,23 @@ public enum ToolDescriber {
         return name
     }
 
-    /// Server nomi o'rnida ID (UUID) — foydalanuvchiga ko'rsatib bo'lmaydi
+    /// Server nomi o'rnida ID (UUID) — foydalanuvchiga ko'rsatib bo'lmaydi.
+    /// Har asbob chaqiruvida tekshiriladi — regex o'rniga belgilar bo'yicha
     public static func isOpaqueServer(_ server: String) -> Bool {
-        server.range(of: #"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"#, options: .regularExpression) != nil
+        let b = Array(server.utf8)
+        guard b.count == 36 else { return false }
+        for (i, c) in b.enumerated() {
+            if [8, 13, 18, 23].contains(i) {
+                guard c == 0x2D else { return false }
+            } else {
+                guard (0x30...0x39).contains(c) || (0x41...0x46).contains(c) || (0x61...0x66).contains(c) else { return false }
+            }
+        }
+        return true
     }
+
+    /// Uy papkasi — har fayl qadamida qayta so'ralmaydi
+    static let homePath = FileManager.default.homeDirectoryForCurrentUser.path
 
     public static func describe(_ name: String, _ input: [String: Any]) -> Description {
         func str(_ k: String) -> String? {
@@ -33,7 +46,8 @@ public enum ToolDescriber {
         }
         func file() -> String {
             guard let p = str("file_path") ?? str("path") ?? str("notebook_path") else { return "" }
-            return URL(fileURLWithPath: p).lastPathComponent
+            // URL(fileURLWithPath:) diskdan papka-yo'qligini so'raydi — bu yerda faqat nom kerak
+            return (p as NSString).lastPathComponent
         }
         func clip(_ s: String, _ n: Int = 70) -> String {
             let one = s.replacingOccurrences(of: "\n", with: " ")
@@ -167,8 +181,7 @@ extension ToolDescriber {
         }
         func shortDir(_ path: String) -> String {
             let dir = (path as NSString).deletingLastPathComponent
-            let home = FileManager.default.homeDirectoryForCurrentUser.path
-            return dir.hasPrefix(home) ? "~" + dir.dropFirst(home.count) : dir
+            return dir.hasPrefix(homePath) ? "~" + dir.dropFirst(homePath.count) : dir
         }
         func t(_ c: ToolCategory, _ key: String, _ n: String, _ d: String, _ a: ToolAccess) -> ToolTarget {
             ToolTarget(category: c, key: c.rawValue + "|" + key, name: n, detail: d, access: a)

@@ -13,6 +13,9 @@ public final class Engine {
         /// Sessiyalar ro'yxatida shuncha kunlik sessiyalar ko'rinadi
         public var sessionDays = 7
         public var calendar = Calendar.current
+        /// Fayllar o'zgarishini tizimdan (FSEvents) olish: har soniyada faqat o'zgargan va faol fayllar tekshiriladi,
+        /// papkalar yangi fayl paydo bo'lganda (yoki daqiqada bir) aylaniladi. O'chiq bo'lsa — hammasi har safar
+        public var watchChanges = false
 
         public init(roots: [URL] = Engine.defaultRoots()) {
             self.roots = roots
@@ -42,6 +45,13 @@ public final class Engine {
     private var lastHistorySave = Date.distantPast
     private var initialDone = false
     private var now = Date()
+    /// nil — kuzatuv yo'q: har safar hamma fayl tekshiriladi, papkalar 5 soniyada aylaniladi
+    private var watcher: ChangeWatcher?
+    private let makeWatcher: (([URL]) -> ChangeWatcher?)?
+    /// Tinchib qolgan sessiyalarning tayyor snapshot'i — har yangilanishda qaytadan qurilmaydi
+    private var snapCache: [String: (version: Int, english: Bool, snap: SessionSnap)] = [:]
+    /// Testlar uchun: keshdagi sessiyalar
+    var cachedSessions: Set<String> { Set(snapCache.keys) }
 
     private var calendar: Calendar { config.calendar }
     private var dayStart: Date { calendar.startOfDay(for: now) }
@@ -52,10 +62,25 @@ public final class Engine {
         calendar.date(byAdding: .day, value: -(config.sessionDays - 1), to: dayStart) ?? dayStart
     }
 
-    public init(config: Config = Config(), history: HistoryStore? = nil) {
+    public convenience init(config: Config = Config(), history: HistoryStore? = nil) {
+        self.init(config: config, history: history,
+                  watcher: config.watchChanges ? { ChangeWatcher.make(roots: $0) } : nil)
+    }
+
+    /// `watcher` — kuzatuvchi yaratadigan funksiya (testlarda oqimsiz kuzatuvchi beriladi)
+    init(config: Config, history: HistoryStore?, watcher: (([URL]) -> ChangeWatcher?)?) {
         self.config = config
         self.history = history
+        makeWatcher = watcher
     }
+
+    /// Sessiyaning oxirgi yozuvidan shuncha vaqt o'tgach uning holati endi vaqtga bog'liq emas
+    /// (agent «kutyapti» ko'pi bilan 10 daqiqa, qadam «ishlayapti» ham 10 daqiqa) — snapshot keshlanadi
+    static let settleTime: TimeInterval = 610
+    /// Kuzatuv bilan: oxirgi shuncha vaqtda o'sgan fayl voqea kelmasa ham har soniyada tekshiriladi
+    static let hotTime: TimeInterval = 120
+    /// Kuzatuv bilan: voqealar o'tkazib yuborilgan bo'lsa ham papkalar shuncha vaqtda bir to'liq aylaniladi
+    static let rescanInterval: TimeInterval = 60
 
     /// Sessiyada kirish/chiqish matni saqlanadigan oxirgi qadamlar soni
     public static let keepStepIO = 200
@@ -96,15 +121,29 @@ public final class Engine {
     // MARK: - Asosiy sikl
 
     /// Yangi fayllarni topadi (5 soniyada bir) va yangi qatorlarni o'qiydi.
+    /// Kuzatuv bilan: faqat o'zgargan va yaqinda o'sgan fayllar o'qiladi, papkalar yangi fayl chiqqanda aylaniladi.
     public func update(now: Date = Date()) {
         let previousDay = dayStart
         self.now = now
         if dayStart != previousDay { rollDay() }
-        if now.timeIntervalSince(lastDiscovery) >= 5 {
-            discover()
-            lastDiscovery = now
+        if let watcher {
+            let changes = watcher.drain()
+            var rescan = changes.rescan || now.timeIntervalSince(lastDiscovery) >= Engine.rescanInterval
+            for p in changes.paths {
+                if let fs = files[p] { fs.dirty = true } else if Engine.isTranscript(p) { rescan = true }
+            }
+            if rescan {
+                discover()
+                lastDiscovery = now
+            }
+            for fs in files.values where fs.dirty || now.timeIntervalSince(fs.lastGrowth) < Engine.hotTime { readNew(fs) }
+        } else {
+            if now.timeIntervalSince(lastDiscovery) >= 5 {
+                discover()
+                lastDiscovery = now
+            }
+            for fs in files.values { readNew(fs) }
         }
-        for fs in files.values { readNew(fs) }
         initialDone = true
         if let history, now.timeIntervalSince(lastHistorySave) >= 60 {
             history.save(scanned: dayTotals, now: now, calendar: calendar)
@@ -139,6 +178,7 @@ public final class Engine {
         if !old.isEmpty {
             sessions = sessions.filter { !old.contains($0.key) }
             pendingSteps = pendingSteps.filter { $0.value.start >= historyStart }
+            snapCache = snapCache.filter { !old.contains($0.key) }
         }
         flushHistory()
         lastDiscovery = .distantPast
@@ -161,7 +201,7 @@ public final class Engine {
             for case let url as URL in en {
                 let name = url.lastPathComponent
                 if Engine.skipDirs.contains(name) { en.skipDescendants(); continue }
-                guard url.pathExtension == "jsonl", name != "journal.jsonl", name != "audit.jsonl" else { continue }
+                guard Engine.isTranscriptName(name) else { continue }
                 let m = (try? url.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
                 info.total += 1
                 if let m, info.latest.map({ m > $0 }) ?? true { info.latest = m }
@@ -170,6 +210,7 @@ public final class Engine {
                 info.recent += 1
                 seen.insert(url.path)
                 if let fs = files[url.path] {
+                    if fs.mtime != m { fs.dirty = true }
                     fs.mtime = m
                 } else {
                     let fs = FileState(url: url, rootIndex: idx)
@@ -181,21 +222,42 @@ public final class Engine {
         // O'chirilgan yoki oynadan chiqib ketgan fayllar kuzatilmaydi
         if files.count != seen.count { files = files.filter { seen.contains($0.key) } }
         sources = infos
+        // Kuzatuv faqat mavjud papkalarga qo'yiladi — yangi papka paydo bo'lsa (Claude ilovasi o'rnatildi), qaytadan
+        if let makeWatcher {
+            let existing = zip(config.roots, infos).filter { $0.1.exists }.map(\.0)
+            if watcher?.roots != existing.map(\.path) { watcher = existing.isEmpty ? nil : makeWatcher(existing) }
+        }
+    }
+
+    private static func isTranscriptName(_ name: String) -> Bool {
+        name.hasSuffix(".jsonl") && name != "journal.jsonl" && name != "audit.jsonl"
+    }
+
+    /// Kuzatuv voqeasidagi yo'l — biz o'qiydigan transkriptmi (katta/keraksiz papkalar ichidagisi emas)
+    static func isTranscript(_ path: String) -> Bool {
+        let comps = path.split(separator: "/")
+        guard let name = comps.last, isTranscriptName(String(name)) else { return false }
+        return !comps.dropLast().contains { skipDirs.contains(String($0)) }
     }
 
     // MARK: - O'qish
 
     private func readNew(_ fs: FileState) {
         guard let attrs = try? fm.attributesOfItem(atPath: fs.path),
-              let size = (attrs[.size] as? NSNumber)?.uint64Value else { return }
+              let size = (attrs[.size] as? NSNumber)?.uint64Value else { fs.dirty = false; return }
         // Fayl qisqargan (qayta yozilgan) — boshidan; takroriy tokenlarni seenUsage to'xtatadi
         if size < fs.offset { fs.offset = 0; fs.partial = Data() }
-        guard size > fs.offset, let h = FileHandle(forReadingAtPath: fs.path) else { return }
+        guard size > fs.offset, let h = FileHandle(forReadingAtPath: fs.path) else { fs.dirty = false; return }
         defer { try? h.close() }
         do { try h.seek(toOffset: fs.offset) } catch { return }
         let want = Int(min(size - fs.offset, 64 * 1024 * 1024))
         guard let data = try? h.read(upToCount: want), !data.isEmpty else { return }
         fs.offset += UInt64(data.count)
+        fs.lastGrowth = now
+        // Vaqti yo'q qatorlar fayl vaqtini oladi — kuzatuv bilan papkalar kamdan-kam aylanilgani uchun shu yerda yangilanadi
+        if let m = attrs[.modificationDate] as? Date { fs.mtime = m }
+        // 64 MB dan katta qism qolgan bo'lsa — keyingi safar davom etadi
+        fs.dirty = fs.offset < size
 
         var buf = fs.partial
         buf.append(data)
@@ -213,8 +275,10 @@ public final class Engine {
         sourceLines[fs.rootIndex, default: 0] += 1
 
         let session = sessionAcc(fs.sessionId)
+        session.version += 1
         // Sessiya boshqa papkaga ko'chsa — oxirgi papka nomi olinadi
-        if let cwd = ev.cwd { session.project = URL(fileURLWithPath: cwd).lastPathComponent; session.cwd = cwd }
+        // Har qatorda keladi: URL(fileURLWithPath:) diskdan so'raydi, nom uchun satr kifoya
+        if let cwd = ev.cwd, cwd != session.cwd { session.project = (cwd as NSString).lastPathComponent; session.cwd = cwd }
         if case .title(let t) = ev.kind {
             session.customTitle = t
             return
@@ -276,7 +340,8 @@ public final class Engine {
                 if target.access == .write { res.writes += 1 } else if target.access == .read { res.reads += 1 }
                 if res.lastActivity.map({ ts > $0 }) ?? true { res.lastActivity = ts }
                 for p in d.paths where agent.outputs[p].map({ ts > $0 }) ?? true { agent.outputs[p] = ts }
-                let step = StepAcc(id: id, start: ts, symbol: d.symbol, text: d.text, target: target, resource: res)
+                let step = StepAcc(id: id, start: ts, symbol: d.symbol, text: d.text, target: target, resource: res, session: session)
+                if session.lastStepStart.map({ ts > $0 }) ?? true { session.lastStepStart = ts }
                 step.input = input.isEmpty ? nil : input
                 agent.addStep(step)
                 session.allSteps.append((step, agent.isMain ? nil : agent.title))
@@ -350,6 +415,8 @@ public final class Engine {
         if u.hasToolResult { agent.lastStop = "tool_result" }
         for r in u.results {
             guard let step = pendingSteps.removeValue(forKey: r.id) else { continue }
+            // Natija boshqa sessiya faylida kelishi mumkin (davom ettirilgan sessiya) — qadam egasi ham yangilanadi
+            step.session?.version += 1
             step.end = ev.timestamp ?? now
             step.resultTokens = r.tokens
             if step.keepsIO, !r.text.isEmpty { step.output = r.text }
@@ -433,8 +500,17 @@ public final class Engine {
         snap.sources = sources
 
         var sessSnaps: [SessionSnap] = []
+        let english = Lang.isEnglish
         for s in sessions.values {
             guard let la = s.lastActivity else { continue }
+            // Tinchib qolgan sessiya: holati vaqtga bog'liq emas — yangi qator kelmaguncha tayyor snapshot olinadi,
+            // ro'yxat oynasidan chiqqani esa umuman qurilmaydi
+            let settled = now.timeIntervalSince(max(la, s.lastStepStart ?? la)) > Engine.settleTime
+            if settled && la < sessionStart { snapCache[s.id] = nil; continue }
+            if settled, let c = snapCache[s.id], c.version == s.version, c.english == english {
+                sessSnaps.append(c.snap)
+                continue
+            }
             let starts = s.turns.map(\.start)
             var main = TokenCounts(), sub = TokenCounts()
             var agentSnaps: [AgentSnap] = []
@@ -464,7 +540,7 @@ public final class Engine {
                 if $0.isMain != $1.isMain { return $0.isMain }
                 return ($0.firstActivity ?? .distantPast) > ($1.firstActivity ?? .distantPast)
             }
-            sessSnaps.append(SessionSnap(
+            let built = SessionSnap(
                 id: s.id, project: s.displayProject, title: s.displayTitle,
                 model: Engine.modelLabel(s.model), contextTokens: s.context,
                 tokens: main + sub, mainTokens: main, agentTokens: sub,
@@ -475,7 +551,9 @@ public final class Engine {
                     NoteSnap(id: $0.id, date: $0.date, kind: $0.kind, text: $0.text, duration: $0.duration,
                              turn: Engine.turnIndex(starts, $0.date).map { $0 + 1 }, agent: $0.agent)
                 }, cwd: s.cwd, isClaude: FreeModels.isClaude(s.model),
-                turnEnded: Engine.turnEnded(lastStop: s.agents.values.first(where: \.isMain)?.lastStop)))
+                turnEnded: Engine.turnEnded(lastStop: s.agents.values.first(where: \.isMain)?.lastStop))
+            snapCache[s.id] = settled ? (s.version, english, built) : nil
+            sessSnaps.append(built)
         }
         sessSnaps.sort { ($0.lastActivity ?? .distantPast) > ($1.lastActivity ?? .distantPast) }
         snap.sessions = sessSnaps
@@ -620,6 +698,10 @@ private final class FileState {
     var offset: UInt64 = 0
     var partial = Data()
     var mtime: Date?
+    /// Kuzatuv bilan: o'zgargan (yoki hali o'qilmagan) — keyingi yangilanishda o'qiladi
+    var dirty = true
+    /// Oxirgi marta yangi bayt o'qilgan payt — faol fayl voqeasiz ham tekshirib turiladi
+    var lastGrowth = Date.distantPast
 
     init(url: URL, rootIndex: Int) {
         path = url.path
@@ -720,6 +802,8 @@ private final class StepAcc {
     let text: String
     let target: ToolTarget
     let resource: ResourceAcc
+    /// Qadam qaysi sessiyaniki — natijasi kelganda uning snapshot'i yangilanadi
+    weak var session: SessionAcc?
     var end: Date?
     var failed = false
     var input: String?
@@ -734,7 +818,9 @@ private final class StepAcc {
         output = nil
     }
 
-    init(id: String, start: Date, symbol: String, text: String, target: ToolTarget, resource: ResourceAcc) {
+    init(id: String, start: Date, symbol: String, text: String, target: ToolTarget, resource: ResourceAcc,
+         session: SessionAcc? = nil) {
+        self.session = session
         self.id = id
         self.start = start
         self.symbol = symbol
@@ -785,6 +871,10 @@ private final class SessionAcc {
     var compactions: [Compaction] = []
     /// Oxirgi «compact_boundary» vaqti — undan keyingi xulosa so'rovi uni oladi
     var pendingCompact: Date?
+    /// Har yangi qator (yoki uning qadamiga natija) bilan oshadi — keshlangan snapshot eskirganini bildiradi
+    var version = 0
+    /// Eng so'nggi qadam boshlangan payt (qadam holati vaqtga bog'liq bo'lgan oraliq uchun)
+    var lastStepStart: Date?
 
     init(id: String) { self.id = id }
 

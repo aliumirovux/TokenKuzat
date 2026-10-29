@@ -65,6 +65,7 @@ final class WindowManager: NSObject, NSWindowDelegate {
         NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
         window?.makeKeyAndOrderFront(nil)
+        Store.shared.setVisible("window", true)
     }
 
     /// Oyna butunlay boshqa oynalar ortida yoki Dock'da: ko'rinish ajratib qo'yiladi (animatsiyalar to'xtaydi),
@@ -72,6 +73,7 @@ final class WindowManager: NSObject, NSWindowDelegate {
     func windowDidChangeOcclusionState(_ notification: Notification) {
         guard let w = window else { return }
         let visible = w.occlusionState.contains(.visible)
+        Store.shared.setVisible("window", visible && w.isVisible)
         if !visible, parked == nil, let v = w.contentView {
             parked = v
             w.contentView = NSView(frame: v.frame)
@@ -83,6 +85,7 @@ final class WindowManager: NSObject, NSWindowDelegate {
 
     func windowWillClose(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
+        Store.shared.setVisible("window", false)
         // Yopilgan oyna ko'rinishlari yo'q qilinadi: aks holda xarita, robot va oqim animatsiyalari ko'rinmasa ham
         // chizilishda davom etib, protsessorni band qiladi. Keyingi ochilishda oyna qaytadan yaratiladi.
         DispatchQueue.main.async { [weak self] in

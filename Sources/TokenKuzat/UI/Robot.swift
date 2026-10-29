@@ -31,7 +31,7 @@ struct RobotView: View {
     @AppStorage(Pref.lightMode) private var lightMode = false
 
     var body: some View {
-        let still = reduceMotion || lightMode
+        let still = reduceMotion || lightMode || Power.saving
         // 20 kadr/s — mayda harakatlar uchun yetarli; tinch holatda (uxlash, kuzatish) — 8 kadr/s, sekin harakatlar
         // shunda ham silliq. Shakl GPU'da chiziladi (drawingGroup)
         let calm = action == .sleeping || action == .watching

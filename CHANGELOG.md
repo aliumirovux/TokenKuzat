@@ -1,5 +1,15 @@
 # O'zgarishlar
 
+## 6.58.0 — 2026-10-30
+
+- Token Kuzatuv Mac'ni kamroq yuklaydi. Ilova har soniyada oxirgi 30 kunning barcha transkriptlarini tekshirmaydi va papkalarni 5 soniyada bir aylanib chiqmaydi: qaysi fayl o'zgargani macOS'dan (FSEvents) olinadi, o'qiladigani faqat o'zgargan va hozir yozilayotgan fayllar. Papkalar yangi sessiya paydo bo'lganda va ehtiyot uchun daqiqada bir aylaniladi.
+- Tinch sessiyalar (10 daqiqadan beri yozuvsiz) har yangilanishda qaytadan qurilmaydi — yangi qator kelmaguncha tayyor holati olinadi. 300 sessiyali sinovda bitta yangilanish 116 ms dan 7 ms ga tushdi. Ro'yxatdan chiqqan eski sessiyalar umuman qurilmaydi.
+- Ilova ochilgandagi dastlabki o'qish sinovda ~3,5 baravar tezlashdi: sana har qatorda tez usulda o'qiladi, fayl nomi uchun diskka murojaat qilinmaydi.
+- Menyu paneli va oyna yopiq, hech bir sessiya ishlamayotgan paytda holat 3 soniya o'rniga 15 soniyada bir yangilanadi. Yangi limit yoki ruxsat so'rovi kelsa — darhol, panel ochilganda ham darhol yangilanadi.
+- Claude ishlayotganda status line soniyasiga bir necha marta chaqiriladi va har safar ilova ishga tushardi. Endi skript limit va narx fayllarini o'zi yozadi, ilovani esa sessiyaga 5 soniyada ko'pi bilan bir marta ochadi, oraliqda oxirgi satrni ko'rsatadi. Skript ilova ochilganda o'zi yangilanadi.
+- Hook xabarlari va sessiyalar narxi fayllari faqat o'zgarganda qayta o'qiladi. Replay to'xtab turganda soniyasiga 10 marta ishlaydigan taymer endi yo'q.
+- «Kam animatsiya» Mac quvvatni tejash rejimida (Low Power Mode) o'zi yoqiladi; menyu panelidagi jarayon izi ham shu sozlamaga bo'ysunadi.
+
 ## 6.57.0 — 2026-10-30
 
 - Ish yangi Terminal sessiyasiga ko'chgach (kontekst to'lganda, eski sessiyada yozilgan xabar yo'naltirilganda yoki limit tugab bepul modelga o'tilganda), eski sessiyaning Terminal oynasi o'zi yopiladi: yangi sessiya ishga tushgach, eski `claude` to'xtatiladi va oynasi yopiladi. Ekran eski oynalar bilan to'lmaydi. Suhbat saqlanadi — `claude --resume` bilan qaytariladi.

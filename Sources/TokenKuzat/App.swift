@@ -38,6 +38,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         // 6.46.0 dan oldin hook faqat Notification'ga ulangan — StopFailure ham qo'shiladi (API xatosi haqida xabar uchun)
         if !CommandLine.arguments.contains(where: { $0.hasPrefix("--snapshot") }), Hooks.needsUpgrade { try? Hooks.install() }
+        // Status line skripti ilovani har yangilanishda emas, sessiyaga 5 soniyada bir chaqiradi (6.58.0 dan)
+        if !CommandLine.arguments.contains(where: { $0.hasPrefix("--snapshot") }) { StatusLine.upgradeIfNeeded() }
         // Ishlab chiquvchi uchun: `TokenKuzat --snapshot-panel fayl.png` — menyu panelini rasmga saqlab chiqadi
         if let i = CommandLine.arguments.firstIndex(of: "--snapshot-panel"), i + 1 < CommandLine.arguments.count {
             snapshotPanel(to: URL(fileURLWithPath: CommandLine.arguments[i + 1]))

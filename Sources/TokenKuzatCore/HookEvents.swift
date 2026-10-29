@@ -84,3 +84,24 @@ public enum HookEvents {
         return out
     }
 }
+
+/// `HookEvents.read` keshi: Store har soniyada so'raydi, papka esa kamdan-kam o'zgaradi.
+/// Hook fayli atomik yoziladi (yangi fayl nomi almashtiriladi) — shuning uchun papka vaqti o'zgarishni bildiradi.
+public final class HookEventsReader {
+    private let dir: URL
+    private var mtime: Date?
+    private var cached: [String: HookNotice] = [:]
+
+    public init(dir: URL = HookEvents.defaultDirectory) { self.dir = dir }
+
+    /// Papka oxirgi marta qachon o'zgargan (yangi xabar kelganini bilish uchun)
+    public var changedAt: Date? { mtime }
+
+    public func read() -> [String: HookNotice] {
+        let m = (try? FileManager.default.attributesOfItem(atPath: dir.path))?[.modificationDate] as? Date
+        guard m != mtime || m == nil else { return cached }
+        mtime = m
+        cached = m == nil ? [:] : HookEvents.read(dir)
+        return cached
+    }
+}

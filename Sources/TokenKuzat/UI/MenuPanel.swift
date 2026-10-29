@@ -30,6 +30,9 @@ struct MenuPanel: View {
         .frame(width: 372)
         // Butun panel bir xil qattiq fonda, oyna chetlarigacha — tagidagi rasm ko'rinmaydi
         .background(Brand.canvas.ignoresSafeArea())
+        // Panel ochiq — holat tez-tez yangilanadi; yopilgach ilova tinch paytda kamroq uyg'onadi
+        .onAppear { store.setVisible("menu", true) }
+        .onDisappear { store.setVisible("menu", false) }
     }
 
     // MARK: Limit
@@ -359,6 +362,7 @@ private struct MiniTrace: View {
     let notes: [NoteSnap]
     let live: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @AppStorage(Pref.lightMode) private var lightMode = false
 
     private enum Item { case step(StepSnap), note(NoteSnap) }
 
@@ -374,7 +378,7 @@ private struct MiniTrace: View {
         }
         .font(.system(size: 8.5, weight: .medium)).foregroundStyle(.tertiary)
         .frame(width: 42, alignment: .trailing)
-        TimelineView(.animation(minimumInterval: 1.0 / 30, paused: !live || reduceMotion)) { ctx in
+        TimelineView(.animation(minimumInterval: 1.0 / 30, paused: !live || reduceMotion || lightMode || Power.saving)) { ctx in
             Canvas { g, size in
                 guard !items.isEmpty else { return }
                 // Uchta teng yo'lak: tepada mahalliy, o'rtada model, pastda tashqi

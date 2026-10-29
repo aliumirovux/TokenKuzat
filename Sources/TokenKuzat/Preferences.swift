@@ -77,6 +77,11 @@ enum Pref {
     }
 }
 
+/// Mac quvvatni tejash rejimida (Low Power Mode) bezak animatsiyalari «Kam animatsiya» yoqilgandek to'xtaydi
+enum Power {
+    static var saving: Bool { ProcessInfo.processInfo.isLowPowerModeEnabled }
+}
+
 enum MenuBarStyle: String, CaseIterable, Identifiable {
     case tokens, budget, icon
     var id: String { rawValue }

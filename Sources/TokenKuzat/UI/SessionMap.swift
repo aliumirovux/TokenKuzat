@@ -1098,7 +1098,7 @@ private struct MapEdges: View {
     @AppStorage(Pref.lightMode) private var lightMode = false
 
     var body: some View {
-        let animated = edges.contains(where: \.live) && !reduceMotion && !lightMode
+        let animated = edges.contains(where: \.live) && !reduceMotion && !lightMode && !Power.saving
         TimelineView(.animation(minimumInterval: 1.0 / 30, paused: !animated)) { ctx in
             let t = ctx.date.timeIntervalSinceReferenceDate
             Canvas { g, size in

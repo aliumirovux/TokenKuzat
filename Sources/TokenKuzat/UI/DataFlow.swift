@@ -87,7 +87,7 @@ struct LiveBorder<S: InsettableShape>: View {
 
     var body: some View {
         Group {
-            if reduceMotion || lightMode {
+            if reduceMotion || lightMode || Power.saving {
                 shape.strokeBorder(color.opacity(0.8), lineWidth: lineWidth)
             } else {
                 // 20 kadr/s yetarli; konus gradient va xiralashtirish GPU'da (drawingGroup)

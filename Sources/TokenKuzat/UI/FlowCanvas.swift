@@ -544,7 +544,7 @@ private struct FlowEdges: View {
     @AppStorage(Pref.lightMode) private var lightMode = false
 
     var body: some View {
-        let animated = edges.contains(where: \.live) && !lightMode
+        let animated = edges.contains(where: \.live) && !lightMode && !Power.saving
         let entering = Date().timeIntervalSince(appearedAt) < 1.4
         TimelineView(.animation(minimumInterval: 1.0 / 30, paused: !animated && !entering)) { ctx in
             let t = ctx.date.timeIntervalSinceReferenceDate

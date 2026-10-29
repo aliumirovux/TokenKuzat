@@ -129,10 +129,12 @@ Sources/
 Tests/                   parser, engine, tarix, formatlash testlari
 ```
 
-- Engine har 5 soniyada oxirgi 30 kunda o'zgargan `.jsonl` fayllarni topadi va har soniyada faqat yangi qo'shilgan qatorlarni o'qiydi.
+- Engine oxirgi 30 kunda o'zgargan `.jsonl` fayllardan faqat yangi qo'shilgan qatorlarni o'qiydi. Qaysi fayl o'zgargani macOS'dan (FSEvents) olinadi: har soniyada faqat o'zgargan va oxirgi 2 daqiqada o'sgan fayllar tekshiriladi, papkalar yangi transkript paydo bo'lganda (va ehtiyot uchun daqiqada bir) aylaniladi.
+- 10 daqiqadan beri tinch sessiyaning snapshot'i keshda turadi — yangi qator kelmaguncha qaytadan qurilmaydi.
 - Bitta javob transcript'da bir necha qatorga bo'linib, har birida bir xil `usage` takrorlanadi — `message.id + requestId` bo'yicha bir marta sanaladi.
 - Kun almashganda hech narsa qayta o'qilmaydi; kunlik jami har daqiqada diskka yoziladi, shuning uchun eski transcript'lar o'chsa ham tarix qoladi.
-- Ma'lumot o'zgarmasa UI 3 soniyada bir yangilanadi — CPU tejaladi.
+- Ma'lumot o'zgarmasa UI 3 soniyada bir yangilanadi; menyu paneli va oyna yopiq, hech bir sessiya ishlamayotgan paytda — 15 soniyada bir (yangi limit yoki hook xabari darhol ko'rsatiladi).
+- Status line skripti limit fayllarini har safar o'zi yozadi, ilovani esa sessiyaga 5 soniyada ko'pi bilan bir marta ishga tushiradi.
 
 ## Cheklovlar
 

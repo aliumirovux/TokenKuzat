@@ -103,7 +103,7 @@ struct SettingsView: View {
                 Toggle(isOn: $lightMode) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(tr("Kam animatsiya", "Reduce motion"))
-                        Text(tr("Robot, aylanuvchi chegaralar va oqim animatsiyalari to'xtaydi — oyna ochiq turganda protsessor taxminan ikki baravar kam ishlaydi", "Stops the robot, spinning borders and flow animations — uses about half the CPU while the window is open"))
+                        Text(tr("Robot, aylanuvchi chegaralar va oqim animatsiyalari to'xtaydi — oyna ochiq turganda protsessor taxminan ikki baravar kam ishlaydi. Mac quvvatni tejash rejimida o'zi yoqiladi", "Stops the robot, spinning borders and flow animations — uses about half the CPU while the window is open. Turns on by itself in Low Power Mode"))
                             .font(.caption).foregroundStyle(.secondary)
                     }
                 }

@@ -19,7 +19,7 @@ struct OfficeView: View {
         let rooms = OfficeModel.rooms(store.snap)
         // Tugmalar 3D maydon ustida emas, ostida: AppKit ko'rinishi ustidagi SwiftUI tugmalariga bosish yetib bormaydi
         VStack(spacing: 12) {
-            OfficeSceneView(world: world, rooms: rooms, still: reduceMotion || lightMode, onPick: pick)
+            OfficeSceneView(world: world, rooms: rooms, still: reduceMotion || lightMode || Power.saving, onPick: pick)
                 .overlay(alignment: .topLeading) {
                     Text(tr("Sudrab aylantiring · chimdib yaqinlashtiring · robotni bosing — sessiya ochiladi",
                             "Drag to orbit · pinch to zoom · click a robot to open its session"))

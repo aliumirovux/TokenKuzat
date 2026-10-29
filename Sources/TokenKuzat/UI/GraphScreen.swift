@@ -65,7 +65,6 @@ struct GraphScreen: View {
     @State private var speed = 20.0
     /// Oqim tabida: «process» — ketma-ket jarayon, «summary» — asboblar xulosasi
     @AppStorage("flowStyle") private var flowStyle = "map"
-    private let ticker = Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()
 
     var body: some View {
         let s = store.snap
@@ -259,15 +258,27 @@ struct GraphScreen: View {
         .onAppear { if !["map", "summary"].contains(flowStyle) { flowStyle = "map" } }
         .onChange(of: sessionId) { _ in selection = nil; turnId = nil; stopReplay() }
         .onChange(of: turnId) { _ in if replayOn { replayTime = live.flatMap { replayRange($0) }?.lowerBound } }
-        .onReceive(ticker) { _ in
-            guard replayOn, playing, let range else { return }
-            let next = (replayTime ?? range.lowerBound).addingTimeInterval(0.1 * speed)
-            if next >= range.upperBound {
-                replayTime = range.upperBound
-                playing = false
-            } else {
-                replayTime = next
+        // Replay o'ynayotgandagina soniyasiga 10 qadam. Avval taymer har doim (har chizilishda yangisi) yurardi
+        .task(id: replayOn && playing) {
+            guard replayOn && playing else { return }
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 100_000_000)
+                guard !Task.isCancelled else { return }
+                await MainActor.run { advanceReplay() }
             }
+        }
+    }
+
+    private func advanceReplay() {
+        let s = store.snap
+        guard replayOn, playing, let live = s.sessions.first(where: { $0.id == sessionId }) ?? s.sessions.first,
+              let range = replayRange(live) else { return }
+        let next = (replayTime ?? range.lowerBound).addingTimeInterval(0.1 * speed)
+        if next >= range.upperBound {
+            replayTime = range.upperBound
+            playing = false
+        } else {
+            replayTime = next
         }
     }
 

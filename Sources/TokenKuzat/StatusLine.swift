@@ -18,28 +18,61 @@ enum StatusLine {
     private static var previousURL: URL { supportDir.appendingPathComponent("previous-statusline.json") }
 
     /// Status line skripti: ma'lumotni bir zumda faylga yozadi (Claude Code sekin skriptni to'xtatib qo'yishi mumkin),
-    /// keyin satrni ilova chiqaradi
+    /// keyin satrni ilova chiqaradi. Claude ishlayotganda status line soniyasiga bir necha marta yangilanadi —
+    /// har safar ilovani ishga tushirish protsessorni band qiladi, shuning uchun ilova sessiyaga 5 soniyada ko'pi bilan
+    /// bir marta chaqiriladi, oraliqda uning oxirgi satri ko'rsatiladi (limit va narx fayllari baribir har safar yoziladi)
     private static var scriptURL: URL { supportDir.deletingLastPathComponent().appendingPathComponent("statusline.sh") }
 
     static var command: String { "\"\(scriptURL.path)\"" }
 
-    private static func writeScript() throws {
-        let exe = Bundle.main.executablePath ?? CommandLine.arguments[0]
-        let script = """
+    static func script(exe: String) -> String {
+        #"""
         #!/bin/sh
         # Token Kuzatuv — Claude Code status line (ilova yaratgan; Sozlamalar → «Uzish» bilan olib tashlanadi)
         D="$HOME/Library/Application Support/TokenKuzat/statusline"
-        mkdir -p "$D"
+        mkdir -p "$D/sessions" "$D/out"
         T="$D/.in.$$"
         cat > "$T"
-        cp "$T" "$D/latest.json.tmp" && mv -f "$D/latest.json.tmp" "$D/latest.json"
-        if [ -x "\(exe)" ]; then "\(exe)" \(flag) < "$T"; else echo "Token Kuzatuv"; fi
+        cp "$T" "$D/.latest.$$" && mv -f "$D/.latest.$$" "$D/latest.json"
+        SID=$(sed -n 's/.*"session_id"[[:space:]]*:[[:space:]]*"\([A-Za-z0-9_-]*\)".*/\1/p' "$T" | head -n 1)
+        O="$D/out/$SID.txt"
+        if [ -n "$SID" ] && [ -f "$O" ]; then
+            M=$(stat -f %m "$O" 2>/dev/null)
+            case "$M" in ''|*[!0-9]*) M=0 ;; esac
+            if [ $(( $(date +%s) - M )) -lt 5 ]; then
+                cp "$T" "$D/sessions/.$SID.$$" && mv -f "$D/sessions/.$SID.$$" "$D/sessions/$SID.json"
+                cat "$O"
+                rm -f "$T"
+                exit 0
+            fi
+        fi
+        if [ ! -x "\#(exe)" ]; then
+            echo "Token Kuzatuv"
+        elif [ -n "$SID" ]; then
+            "\#(exe)" \#(flag) < "$T" > "$O.$$"
+            cat "$O.$$"
+            mv -f "$O.$$" "$O"
+            find "$D/out" -name '*.txt' -mtime +2 -delete 2>/dev/null
+        else
+            "\#(exe)" \#(flag) < "$T"
+        fi
         rm -f "$T"
 
-        """
+        """#
+    }
+
+    private static func writeScript() throws {
+        let exe = Bundle.main.executablePath ?? CommandLine.arguments[0]
         try FileManager.default.createDirectory(at: supportDir, withIntermediateDirectories: true)
-        try script.write(to: scriptURL, atomically: true, encoding: .utf8)
+        try script(exe: exe).write(to: scriptURL, atomically: true, encoding: .utf8)
         try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: scriptURL.path)
+    }
+
+    /// Ilova ochilganda: ulangan bo'lsa va skript eski (oldingi versiya yoki ilova ko'chirilgan) — qayta yoziladi
+    static func upgradeIfNeeded() {
+        guard isInstalled, let exe = Bundle.main.executablePath,
+              (try? String(contentsOf: scriptURL, encoding: .utf8)) != script(exe: exe) else { return }
+        try? writeScript()
     }
 
     private static func isOurs(_ command: String?) -> Bool {
