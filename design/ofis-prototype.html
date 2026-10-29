@@ -1,0 +1,1498 @@
+<!doctype html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ofis — prototip</title>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"}}</script>
+<style>
+:root {
+  --canvas: #111113; --surface: #1a1a1e; --surface2: #222228; --line: rgba(255,255,255,.08);
+  --ink: #f2f2f5; --ink2: rgba(242,242,245,.62); --ink3: rgba(242,242,245,.38);
+  --accent: #8F82FF; --helper: #4FC3D9; --ok: #3DD68C; --warn: #F2B544; --err: #FF6E61;
+  --wall: #1d1d24; --wall2: #18181e; --floor: #26262d; --wood: #3a3440; --wood2: #2e2933;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--canvas); color: var(--ink);
+  font: 13px/1.4 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", sans-serif; -webkit-font-smoothing: antialiased; }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 24px 16px 48px; }
+
+/* Sarlavha */
+.head { display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; }
+.head h1 { font: 700 26px/1.1 -apple-system, "SF Pro Display", sans-serif; letter-spacing: -.4px; margin: 0; }
+.summary { display: flex; gap: 14px; color: var(--ink2); flex-wrap: wrap; }
+.summary b { color: var(--ink); font-weight: 600; }
+.dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; }
+.spacer { flex: 1; }
+.seg { display: inline-flex; max-width: 100%; overflow-x: auto; scrollbar-width: none; padding: 3px; border-radius: 12px; background: rgba(255,255,255,.06); border: 1px solid var(--line); }
+.seg button { all: unset; cursor: pointer; white-space: nowrap; padding: 6px 12px; border-radius: 9px; color: var(--ink2); font-weight: 600; font-size: 12.5px; }
+.seg button[aria-pressed="true"] { background: rgba(255,255,255,.12); color: var(--ink); box-shadow: 0 1px 0 rgba(255,255,255,.08) inset; }
+.seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.toggle { all: unset; cursor: pointer; color: var(--ink2); font-weight: 600; font-size: 12.5px; display: inline-flex; gap: 6px; align-items: center;
+  padding: 7px 12px; border-radius: 10px; border: 1px solid var(--line); background: rgba(255,255,255,.04); }
+.toggle[aria-pressed="true"] { color: var(--ok); border-color: rgba(61,214,140,.35); }
+
+/* Xonalar */
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; }
+.room { border-radius: 18px; overflow: hidden; background: var(--surface); border: 1px solid var(--line);
+  box-shadow: 0 10px 30px rgba(0,0,0,.35); transition: border-color .4s, box-shadow .4s; }
+.room.waiting { border-color: rgba(242,181,68,.55); box-shadow: 0 0 0 1px rgba(242,181,68,.25), 0 10px 30px rgba(0,0,0,.35); }
+.room-head { display: flex; align-items: center; gap: 10px; padding: 12px 14px 10px; }
+.avatar { width: 24px; height: 24px; border-radius: 7px; display: grid; place-items: center; font-weight: 700; font-size: 12px; background: rgba(143,130,255,.18); color: var(--accent); }
+.room-title { font-weight: 650; font-size: 14px; }
+.room-sub { color: var(--ink3); font-size: 11.5px; }
+.chip { margin-left: auto; font-size: 11.5px; font-weight: 600; padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
+.chip.working { color: var(--ok); background: rgba(61,214,140,.12); }
+.chip.waiting { color: var(--warn); background: rgba(242,181,68,.14); }
+.chip.idle { color: var(--ink2); background: rgba(255,255,255,.06); }
+.chip.error { color: var(--err); background: rgba(255,110,97,.13); }
+.scene { display: block; width: 100%; height: auto; }
+.room-foot { display: flex; flex-direction: column; gap: 6px; padding: 10px 14px 13px; border-top: 1px solid var(--line); }
+.agent-row { display: flex; align-items: center; gap: 8px; font-size: 12px; min-width: 0; }
+.agent-row .name { font-weight: 600; white-space: nowrap; }
+.agent-row .what { color: var(--ink2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.agent-row .when { margin-left: auto; color: var(--ink3); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.bot { cursor: pointer; }
+.bot:focus-visible { outline: none; }
+.bot:focus-visible .hit { stroke: var(--accent); stroke-width: 2; }
+
+/* Animatsiyalar — sekin, oz harakat */
+@keyframes bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-1.2px); } }
+@keyframes type { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }
+@keyframes blink { 0%,94%,100% { transform: scaleY(1); } 97% { transform: scaleY(.1); } }
+@keyframes think { 0%,100% { opacity: .25; } 50% { opacity: 1; } }
+@keyframes wave { 0%,100% { transform: rotate(-8deg); } 50% { transform: rotate(14deg); } }
+@keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.12); } }
+@keyframes zz { 0% { opacity: 0; transform: translate(0,0); } 30% { opacity: .9; } 100% { opacity: 0; transform: translate(10px,-18px); } }
+@keyframes steam { 0% { opacity: 0; transform: translateY(0); } 40% { opacity: .6; } 100% { opacity: 0; transform: translateY(-9px); } }
+@keyframes flicker { 0%,100% { opacity: .95; } 50% { opacity: .75; } }
+@keyframes breathe { 0%,100% { transform: translateY(0); } 50% { transform: translateY(.8px); } }
+.a-bob { animation: bob 3.2s ease-in-out infinite; transform-box: fill-box; }
+.a-breathe { animation: breathe 4.5s ease-in-out infinite; transform-box: fill-box; }
+.a-type1 { animation: type .32s ease-in-out infinite; transform-box: fill-box; }
+.a-type2 { animation: type .32s ease-in-out .16s infinite; transform-box: fill-box; }
+.a-blink { animation: blink 4.2s infinite; transform-box: fill-box; transform-origin: center; }
+.a-think1 { animation: think 1.4s infinite; } .a-think2 { animation: think 1.4s .25s infinite; } .a-think3 { animation: think 1.4s .5s infinite; }
+.a-wave { animation: wave 1.1s ease-in-out infinite; transform-box: fill-box; transform-origin: 50% 100%; }
+.a-pulse { animation: pulse 1.6s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+.a-zz1 { animation: zz 3s linear infinite; } .a-zz2 { animation: zz 3s linear 1s infinite; } .a-zz3 { animation: zz 3s linear 2s infinite; }
+.a-steam1 { animation: steam 2.4s linear infinite; } .a-steam2 { animation: steam 2.4s linear 1.2s infinite; }
+.a-flicker { animation: flicker 2.6s ease-in-out infinite; }
+.fade { transition: opacity .5s; }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+/* D: 3D ofis */
+.office3d { display: none; position: relative; height: clamp(380px, 58vw, 660px); border-radius: 18px; overflow: hidden;
+  border: 1px solid var(--line); background: #0b0d16; margin-bottom: 16px; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+.office3d.on { display: block; }
+.office3d canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+.office3d .labels { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.label3d { all: unset; position: absolute; left: 0; top: 0; pointer-events: auto; cursor: pointer; display: inline-flex; align-items: center; gap: 7px;
+  padding: 4px 9px 4px 4px; border-radius: 10px; background: rgba(18,18,24,.74); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255,255,255,.12); font-size: 12px; font-weight: 600; white-space: nowrap; color: var(--ink); box-shadow: 0 4px 14px rgba(0,0,0,.35); }
+.label3d .avatar { width: 20px; height: 20px; border-radius: 6px; font-size: 11px; }
+.label3d .st { font-weight: 600; font-size: 11px; }
+.label3d.waiting { border-color: rgba(242,181,68,.7); }
+.label3d:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.stage-tools { position: absolute; right: 12px; top: 12px; display: flex; gap: 8px; }
+.stage-hint { position: absolute; left: 14px; bottom: 11px; color: rgba(242,242,245,.55); font-size: 11.5px; pointer-events: none; text-shadow: 0 1px 2px rgba(0,0,0,.6); }
+.stage-msg { position: absolute; inset: 0; display: grid; place-items: center; color: var(--ink2); }
+.grid.compact .scene { display: none; }
+.office3d { container-type: inline-size; }
+@container (max-width: 560px) { .label3d .st { display: none; } .stage-hint { display: none; } }
+
+/* Izoh paneli */
+.notes { margin-top: 22px; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px; }
+.panel h3 { margin: 0 0 8px; font-size: 13px; }
+.panel table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.panel td { padding: 5px 0; border-top: 1px solid var(--line); vertical-align: top; }
+.panel td:first-child { color: var(--ink); font-weight: 600; width: 38%; padding-right: 10px; }
+.panel td:last-child { color: var(--ink2); }
+.panel p { margin: 0 0 6px; color: var(--ink2); font-size: 12px; }
+.toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(20px); opacity: 0; pointer-events: none;
+  background: rgba(40,40,48,.92); backdrop-filter: blur(20px); border: 1px solid var(--line); padding: 10px 16px; border-radius: 12px;
+  font-weight: 600; transition: .25s; box-shadow: 0 10px 30px rgba(0,0,0,.4); }
+.toast.show { opacity: 1; transform: translateX(-50%); }
+@media (max-width: 420px) { .grid { grid-template-columns: 1fr; } .head h1 { font-size: 22px; } .seg { max-width: 100%; } .seg button { padding: 6px 9px; font-size: 12px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <div>
+      <h1>Ofis</h1>
+      <div class="summary" id="summary"></div>
+    </div>
+    <div class="spacer"></div>
+    <div class="seg" role="group" aria-label="Vizual yo'nalish">
+      <button data-dir="A" aria-pressed="false">A · Kesma</button>
+      <button data-dir="B" aria-pressed="false">B · Izometrik</button>
+      <button data-dir="C" aria-pressed="false">C · Zamonaviy</button>
+      <button data-dir="D" aria-pressed="true">D · 3D ofis</button>
+    </div>
+    <button class="toggle" id="live" aria-pressed="true">● Jonli demo</button>
+  </div>
+  <div class="office3d" id="office3d" aria-label="3D ofis">
+    <div class="stage-msg" id="stageMsg">3D sahna yuklanyapti…</div>
+    <div class="labels" id="labels"></div>
+    <div class="stage-tools"><button class="toggle" id="camReset">Butun ofis</button></div>
+    <div class="stage-hint">Sudrab aylantiring · g'ildirak bilan yaqinlashtiring · xona nomini bosing</div>
+  </div>
+  <div class="grid" id="grid"></div>
+
+  <div class="notes">
+    <div class="panel">
+      <h3>Holat → ofisda</h3>
+      <table>
+        <tr><td>Asbob ishlatyapti</td><td>Stolda yozyapti, monitorda asbob belgisi (terminal, fayl, veb, qidiruv)</td></tr>
+        <tr><td>O'ylayapti</td><td>Stolda, ustida «…» bulutcha, monitor xira</td></tr>
+        <tr><td>Ruxsat kutyapti</td><td>Turib qo'l silkitadi, sariq «!», xona chegarasi sariq, xona ro'yxat boshiga chiqadi</td></tr>
+        <tr><td>Bo'sh (&lt; 30 daq)</td><td>Divanda qahva ichadi</td></tr>
+        <tr><td>Uzoq bo'sh</td><td>Divanda uxlaydi, «z z», xona chirog'i xira</td></tr>
+        <tr><td>Xato</td><td>Stoldan o'girilib boshini qashiydi, ko'zlari xafa, monitor qizil, «×» belgi</td></tr>
+        <tr><td>Yordamchi ishga tushdi</td><td>Asosiy agent (quloqchinli) unga o'girilib qo'l bilan ko'rsatadi, «→ Explore» pufakcha, binafsha karta uchib boradi</td></tr>
+        <tr><td>Yordamchi tugatdi</td><td>Xursand sakraydi, «✓ Tayyor», yashil karta asosiy agentga qaytadi</td></tr>
+        <tr><td>Kuzatuvchi</td><td>Dron yo'lak ustida aylanadi; ruxsat yoki xato bo'lsa o'sha xonaga uchib, robotga nur tushiradi</td></tr>
+      </table>
+    </div>
+    <div class="panel">
+      <h3>Qoidalar</h3>
+      <p>Xona = loyiha, robot = agent (katta, quloqchinli — asosiy; kichik — yordamchi). Robotni bosish → sessiya Xaritada ochiladi.</p>
+      <p>Yuz ifodasi holatdan keladi: ishlaganda diqqatli, o'ylaganda yuqoriga qaraydi, kutganda ko'zi katta va sizga qaraydi, xatoda xafa, bo'shda xursand, uxlaganda yumuq. Bo'sh robot ba'zan turib javon yoki deraza oldiga boradi.</p>
+      <p>Kuzatuvchi — TokenKuzat'ning o'zi, agent emas. Uni bossangiz e'tibor kerak xonalarni aytadi va kamerani o'sha xonaga olib boradi.</p>
+      <p>Holat hech qachon faqat rang bilan berilmaydi: har xonada holat yozuvi va pastda agentlar ro'yxati bor.</p>
+      <p>Derazadagi osmon — hozirgi vaqt. Hech kim ishlamasa xona chirog'i pasayadi.</p>
+      <p>Animatsiya sekin va kichik; «Reduce Motion»da to'xtaydi. SwiftUI'da oyna ko'rinmasa to'xtatiladi.</p>
+    </div>
+    <div class="panel">
+      <h3>Yo'nalishlar</h3>
+      <p><b style="color:var(--ink)">D — 3D ofis (yangi).</b> Bitta qavat tepadan, real soya va yorug'lik: quyosh soatga qarab yuradi, kechasi xona chiroqlari va monitorlar yoritadi. Xonalar joyidan siljimaydi — e'tibor sariq chiroq va yorliq bilan, tartiblangan ro'yxat pastda. SwiftUI'da RealityKit bilan quriladi.</p>
+      <p><b style="color:var(--ink)">C — Zamonaviy.</b> A ning joylashuvi, lekin real yorug'lik: osma chiroq nuri, monitor shu'lasi robot yuziga tushadi, yumshoq soyalar, yog'och va mato. Chiroq holatga qarab yonadi va o'chadi.</p>
+      <p><b style="color:var(--ink)">A — Kesma xonalar.</b> Tekis 2D, ilovaning qorong'i/shisha uslubi. SwiftUI shakllari bilan chiziladi, har o'lchamda tiniq.</p>
+      <p><b style="color:var(--ink)">B — Izometrik piksel.</b> «Vibe» kuchliroq, lekin shisha UI bilan to'qnashadi va kichik o'lchamda piksellar mayda bo'lib qoladi.</p>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+const C = { accent: '#8F82FF', helper: '#4FC3D9', ok: '#3DD68C', warn: '#F2B544', err: '#FF6E61' };
+const TOOLS = { terminal: '>_', file: '{ }', web: '◎', search: '⌕' };
+const TOOL_NAME = { terminal: 'Terminal', file: 'Fayllar', web: 'Veb', search: 'Qidiruv' };
+
+// Demo ma'lumot — ilovadagi haqiqiy holatlar
+const rooms = [
+  { id: 'redesign', title: 'redesign', sub: 'ingliz-sayt/redesign · 1 sessiya', tokens: '812K', agents: [
+    { name: 'Asosiy agent', kind: 'main', state: 'waiting', what: 'Bash: npm run build — ruxsat kerak', when: '1 daq' } ] },
+  { id: 'tk', title: 'TokenKuzat', sub: '2 sessiya', tokens: '1,9M', agents: [
+    { name: 'Asosiy agent', kind: 'main', state: 'working', tool: 'terminal', what: 'swift build -c release', when: '12 s' },
+    { name: 'Explore', kind: 'helper', state: 'thinking', what: 'Keyingi qadamni tanlayapti', when: '4 s' },
+    { name: 'Plan', kind: 'helper', state: 'idle', what: 'Tugatdi', when: '2 daq oldin' } ] },
+  { id: 'docs', title: 'Documents', sub: '1 sessiya', tokens: '96K', agents: [
+    { name: 'Asosiy agent', kind: 'main', state: 'error', tool: 'file', what: 'Edit: fayl topilmadi', when: '40 s' } ] },
+  { id: 'ingliz', title: 'ingliz-sayt', sub: '1 sessiya', tokens: '430K', agents: [
+    { name: 'Asosiy agent', kind: 'main', state: 'idle', what: 'Javob berdi', when: '6 daq oldin' } ] },
+  { id: 'handoff', title: 'handoff-test', sub: '1 sessiya', tokens: '58K', agents: [
+    { name: 'Asosiy agent', kind: 'main', state: 'sleeping', what: 'Tinch', when: '3 soat' } ] },
+];
+
+const ORDER = { waiting: 0, error: 1, working: 2, thinking: 2, idle: 3, sleeping: 4 };
+const atDesk = s => ['working', 'thinking', 'error', 'waiting'].includes(s);
+const busy = s => ['working', 'thinking'].includes(s);
+
+function roomState(r) {
+  const s = r.agents.map(a => a.state);
+  if (s.includes('waiting')) return ['waiting', 'Sizni kutyapti'];
+  if (s.includes('error')) return ['error', 'Xato'];
+  if (s.some(busy)) return ['working', `${s.filter(busy).length} ishlayapti`];
+  if (s.every(x => x === 'sleeping')) return ['idle', 'Uxlayapti'];
+  return ['idle', 'Dam olyapti'];
+}
+function stateLabel(a) {
+  return { working: TOOL_NAME[a.tool] || 'Ishlayapti', thinking: "O'ylayapti", waiting: 'Ruxsat kutyapti', idle: "Bo'sh", sleeping: 'Uxlayapti', error: 'Xato' }[a.state];
+}
+function stateColor(s) { return { working: C.ok, thinking: C.ok, waiting: C.warn, error: C.err, idle: 'rgba(242,242,245,.35)', sleeping: 'rgba(242,242,245,.25)' }[s]; }
+
+// Hozirgi soatga qarab osmon
+function sky() {
+  const h = new Date().getHours() + new Date().getMinutes() / 60;
+  if (h >= 7 && h < 17) return ['#5a8fd6', '#a9c9ee', false];
+  if (h >= 17 && h < 19.5) return ['#3b3f7a', '#e59a6b', false];
+  if (h >= 5 && h < 7) return ['#40477e', '#d9a3a0', false];
+  return ['#0e1230', '#25294f', true];
+}
+
+/* ---------------- A: kesma xonalar ---------------- */
+function botA(a, x, y, pose, idx, roomId) {
+  const col = a.kind === 'main' ? C.accent : C.helper;
+  const s = a.kind === 'main' ? 1 : 0.82;
+  const sleeping = a.state === 'sleeping';
+  const eyes = sleeping
+    ? `<rect x="-7" y="-31" width="5" height="1.6" rx=".8" fill="${col}" opacity=".7"/><rect x="2" y="-31" width="5" height="1.6" rx=".8" fill="${col}" opacity=".7"/>`
+    : `<g class="a-blink"><rect x="-7" y="-33" width="4" height="5" rx="2" fill="${col}"/><rect x="3" y="-33" width="4" height="5" rx="2" fill="${col}"/></g>`;
+  const head = `
+    <line x1="0" y1="-44" x2="0" y2="-49" stroke="${col}" stroke-width="1.6" opacity=".8"/>
+    <circle cx="0" cy="-50.5" r="2.2" fill="${col}" class="${busy(a.state) ? 'a-pulse' : ''}"/>
+    <rect x="-14" y="-44" width="28" height="22" rx="8" fill="#e9e7f5"/>
+    <rect x="-11" y="-39" width="22" height="13" rx="6" fill="#17161f"/>
+    ${eyes}`;
+  const body = `<rect x="-10" y="-22" width="20" height="16" rx="6" fill="#d7d4e8"/><rect x="-4" y="-17" width="8" height="3" rx="1.5" fill="${col}" opacity=".85"/>`;
+  let g = '';
+  if (pose === 'desk') {
+    const hands = a.state === 'working'
+      ? `<rect class="a-type1" x="-13" y="-8" width="7" height="4" rx="2" fill="#e9e7f5"/><rect class="a-type2" x="6" y="-8" width="7" height="4" rx="2" fill="#e9e7f5"/>`
+      : `<rect x="-13" y="-7" width="7" height="4" rx="2" fill="#e9e7f5"/><rect x="6" y="-7" width="7" height="4" rx="2" fill="#e9e7f5"/>`;
+    g = `<g class="${a.state === 'working' ? 'a-bob' : 'a-breathe'}">${body}${head}</g>${hands}`;
+  } else if (pose === 'stand') {
+    g = `<g>${body}${head}
+      <rect x="-15" y="-21" width="5" height="12" rx="2.5" fill="#d7d4e8"/>
+      <g class="a-wave"><rect x="10" y="-38" width="5" height="17" rx="2.5" fill="#d7d4e8"/></g>
+      <rect x="-8" y="-6" width="6" height="9" rx="2.5" fill="#bdb9d3"/><rect x="2" y="-6" width="6" height="9" rx="2.5" fill="#bdb9d3"/></g>`;
+  } else { // sofa
+    const tilt = sleeping ? 'transform="rotate(14 0 -22)"' : '';
+    const cup = sleeping ? '' : `<g transform="translate(13,-14)"><rect x="-1" y="0" width="7" height="7" rx="1.5" fill="#f4efe6"/>
+      <path d="M6 2 q3 1.5 0 3.5" stroke="#f4efe6" stroke-width="1.3" fill="none"/>
+      <path class="a-steam1" d="M1 -2 q-1.5 -2.5 0 -5" stroke="rgba(255,255,255,.5)" stroke-width="1" fill="none"/>
+      <path class="a-steam2" d="M4 -2 q1.5 -2.5 0 -5" stroke="rgba(255,255,255,.5)" stroke-width="1" fill="none"/></g>`;
+    g = `<g class="a-breathe">${body}<g ${tilt}>${head}</g></g>${cup}`;
+  }
+  // Holat belgilari
+  let badge = '';
+  if (a.state === 'thinking') badge = `<g transform="translate(16,-58)"><rect x="0" y="-9" width="26" height="14" rx="7" fill="#2b2b33" stroke="rgba(255,255,255,.12)"/>
+    <circle class="a-think1" cx="7" cy="-2" r="1.8" fill="#fff"/><circle class="a-think2" cx="13" cy="-2" r="1.8" fill="#fff"/><circle class="a-think3" cx="19" cy="-2" r="1.8" fill="#fff"/></g>`;
+  if (a.state === 'waiting') badge = `<g transform="translate(0,-66)"><g class="a-pulse"><circle r="9" fill="${C.warn}"/><text y="4.5" text-anchor="middle" font-size="13" font-weight="800" fill="#1a1406">!</text></g></g>`;
+  if (a.state === 'error') badge = `<g transform="translate(16,-54)"><circle r="7.5" fill="${C.err}"/><text y="3.8" text-anchor="middle" font-size="11" font-weight="800" fill="#2a0905">×</text></g>`;
+  if (sleeping) badge = `<g transform="translate(10,-48)" font-weight="700" fill="rgba(255,255,255,.75)">
+    <text class="a-zz1" font-size="9">z</text><text class="a-zz2" font-size="7" x="2">z</text><text class="a-zz3" font-size="11" x="-2">z</text></g>`;
+  return `<g class="bot" tabindex="0" role="button" aria-label="${a.name}: ${stateLabel(a)}" data-room="${roomId}" data-i="${idx}" transform="translate(${x},${y}) scale(${s})">
+    <rect class="hit" x="-20" y="-58" width="40" height="64" rx="10" fill="transparent"/>${g}${badge}</g>`;
+}
+
+function deskA(x, y, a) {
+  const glow = a ? (a.state === 'error' ? C.err : a.state === 'waiting' ? C.warn : a.state === 'working' ? '#9fd8ff' : '#6c6f8a') : '#3a3a44';
+  const icon = a && a.state === 'working' ? TOOLS[a.tool] : a && a.state === 'error' ? '!' : a && a.state === 'thinking' ? '···' : '';
+  return `<g transform="translate(${x},${y})">
+    <rect x="38" y="-40" width="34" height="23" rx="3" fill="#0d0d12" stroke="#3b3b46"/>
+    <rect x="40" y="-38" width="30" height="19" rx="2" fill="${glow}" opacity="${a ? .22 : .08}" class="${a && a.state === 'working' ? 'a-flicker' : ''}"/>
+    <text x="55" y="-25" text-anchor="middle" font-size="9" font-weight="700" fill="${glow}" font-family="ui-monospace, SFMono-Regular, monospace">${icon}</text>
+    <rect x="52" y="-17" width="6" height="5" fill="#3b3b46"/>
+    <rect x="-30" y="-12" width="100" height="7" rx="2.5" fill="var(--wood)"/>
+    <rect x="-26" y="-5" width="4" height="22" fill="var(--wood2)"/><rect x="62" y="-5" width="4" height="22" fill="var(--wood2)"/>
+  </g>`;
+}
+
+function roomA(r) {
+  const [top, bot, night] = sky();
+  const deskAgents = r.agents.filter(a => atDesk(a.state) && a.state !== 'waiting');
+  const waiting = r.agents.filter(a => a.state === 'waiting');
+  const lounge = r.agents.filter(a => !atDesk(a.state));
+  const lit = r.agents.some(a => a.state !== 'sleeping');
+  const id = 'r' + r.id;
+  let s = `<svg class="scene" viewBox="0 0 400 210" role="img" aria-label="${r.title} xonasi">
+  <defs>
+    <linearGradient id="${id}w" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#202028"/><stop offset="1" stop-color="var(--wall2)"/></linearGradient>
+    <linearGradient id="${id}s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${top}"/><stop offset="1" stop-color="${bot}"/></linearGradient>
+    <radialGradient id="${id}l" cx=".5" cy="0" r="1"><stop offset="0" stop-color="#ffe7b8" stop-opacity=".16"/><stop offset="1" stop-color="#ffe7b8" stop-opacity="0"/></radialGradient>
+  </defs>
+  <rect width="400" height="210" fill="url(#${id}w)"/>
+  <rect y="160" width="400" height="50" fill="var(--floor)"/><rect y="160" width="400" height="1.5" fill="rgba(255,255,255,.06)"/>
+  <g transform="translate(150,30)"><rect width="88" height="58" rx="6" fill="url(#${id}s)"/>
+    ${night ? '<circle cx="66" cy="16" r="6" fill="#f4f0d8" opacity=".9"/><circle cx="20" cy="12" r=".9" fill="#fff"/><circle cx="38" cy="22" r=".7" fill="#fff"/><circle cx="50" cy="9" r=".8" fill="#fff"/>' : ''}
+    <rect x="43" width="2" height="58" fill="#2a2a33"/><rect y="28" width="88" height="2" fill="#2a2a33"/>
+    <rect width="88" height="58" rx="6" fill="none" stroke="#2f2f39" stroke-width="3"/></g>
+  <g transform="translate(14,24)"><rect width="26" height="34" rx="2" fill="#2a2a33"/><rect x="3" y="3" width="20" height="28" fill="#3c3550"/><rect x="3" y="20" width="20" height="11" fill="${C.accent}" opacity=".35"/></g>
+  <ellipse cx="96" cy="0" rx="120" ry="150" fill="url(#${id}l)" opacity="${lit ? 1 : 0}" class="fade"/>
+  <g transform="translate(96,0)"><line x1="0" y1="0" x2="0" y2="16" stroke="#3a3a44"/><path d="M-9 16 h18 l-4 -6 h-10z" fill="#3a3a44"/><circle cy="18" r="3" fill="#ffe7b8" opacity="${lit ? .9 : .15}"/></g>`;
+  // Stollar (2 ta joy)
+  const slots = [58, 160];
+  slots.forEach((x, i) => {
+    const a = deskAgents[i];
+    if (a) s += botA(a, x, 152, 'desk', r.agents.indexOf(a), r.id);
+    s += deskA(x - 18, 160, a);
+  });
+  waiting.forEach((a, i) => { s += botA(a, 112 + i * 40, 172, 'stand', r.agents.indexOf(a), r.id); });
+  // Dam olish burchagi
+  s += `<g transform="translate(262,0)">
+    <rect x="96" y="96" width="22" height="64" rx="4" fill="#2c2c34"/><rect x="99" y="100" width="16" height="10" rx="2" fill="#17171c"/><circle cx="107" cy="118" r="2.5" fill="${C.ok}" opacity=".7"/>
+    <path d="M8 160 v-34 a6 6 0 0 1 6 -6 h0 v40z" fill="#3a5a46"/><ellipse cx="14" cy="118" rx="9" ry="13" fill="#4f7d5f"/><rect x="6" y="150" width="16" height="10" rx="2" fill="#4a3a3a"/>
+    <rect x="22" y="118" width="70" height="22" rx="8" fill="#38364a"/>`;
+  lounge.forEach((a, i) => { s += botA(a, 42 + i * 30, 146, 'sofa', r.agents.indexOf(a), r.id); });
+  s += `<rect x="18" y="134" width="78" height="16" rx="6" fill="#45425a"/><rect x="16" y="126" width="9" height="24" rx="4" fill="#3d3a52"/><rect x="89" y="126" width="9" height="24" rx="4" fill="#3d3a52"/>
+    <rect x="24" y="150" width="4" height="8" fill="#2a2834"/><rect x="86" y="150" width="4" height="8" fill="#2a2834"/></g>`;
+  if (!lit) s += `<rect width="400" height="210" fill="#000" opacity=".28"/>`;
+  return s + '</svg>';
+}
+
+/* ---------------- B: izometrik piksel ---------------- */
+const P = (x, y, z = 0) => [200 + (x - y) * 27, 84 + (x + y) * 13.5 - z * 26];
+const pts = a => a.map(p => p.join(',')).join(' ');
+function box(x, y, z, w, d, h, top, left, right) {
+  const t = [P(x, y, z + h), P(x + w, y, z + h), P(x + w, y + d, z + h), P(x, y + d, z + h)];
+  const l = [P(x, y + d, z + h), P(x + w, y + d, z + h), P(x + w, y + d, z), P(x, y + d, z)];
+  const r = [P(x + w, y, z + h), P(x + w, y + d, z + h), P(x + w, y + d, z), P(x + w, y, z)];
+  return `<polygon points="${pts(l)}" fill="${left}"/><polygon points="${pts(r)}" fill="${right}"/><polygon points="${pts(t)}" fill="${top}"/>`;
+}
+function pixBot(a, x, y, z, idx, roomId) {
+  const col = a.kind === 'main' ? C.accent : C.helper;
+  const [cx, cy] = P(x, y, z);
+  const p = a.kind === 'main' ? 5 : 4.1;
+  const sleeping = a.state === 'sleeping';
+  // [x, y, w, h, rang] piksel birligida
+  const px = [[3, 0, 1, 1, col], [1, 1, 5, 4, '#e9e7f5'], [2, 2, 3, 2, '#17161f'],
+    ...(sleeping ? [[2, 3, 1, 1, col], [4, 3, 1, 1, col]] : [[2, 2, 1, 1, col], [4, 2, 1, 1, col]]),
+    [2, 5, 3, 3, '#d7d4e8'], [3, 6, 1, 1, col], [2, 8, 1, 1, '#bdb9d3'], [4, 8, 1, 1, '#bdb9d3']];
+  if (a.state === 'waiting') px.push([5, 1, 1, 4, '#d7d4e8']);
+  let g = px.map(([X, Y, W, H, c]) => `<rect x="${X * p}" y="${Y * p}" width="${W * p}" height="${H * p}" fill="${c}"/>`).join('');
+  let badge = '';
+  if (a.state === 'thinking') badge = `<g transform="translate(${7 * p},-6)"><rect width="16" height="7" fill="#2b2b33"/><rect class="a-think1" x="2" y="2" width="3" height="3" fill="#fff"/><rect class="a-think2" x="6.5" y="2" width="3" height="3" fill="#fff"/><rect class="a-think3" x="11" y="2" width="3" height="3" fill="#fff"/></g>`;
+  if (a.state === 'waiting') badge = `<g transform="translate(${1.5 * p},-16)"><g class="a-pulse"><rect width="12" height="12" fill="${C.warn}"/><rect x="5" y="2" width="2" height="5" fill="#1a1406"/><rect x="5" y="8.5" width="2" height="2" fill="#1a1406"/></g></g>`;
+  if (a.state === 'error') badge = `<g transform="translate(${6 * p},-8)"><rect width="10" height="10" fill="${C.err}"/><rect x="2" y="4" width="6" height="2" fill="#2a0905"/></g>`;
+  if (sleeping) badge = `<g transform="translate(${6 * p},-4)" font-family="ui-monospace,monospace" font-weight="700" fill="rgba(255,255,255,.75)"><text class="a-zz1" font-size="8">z</text><text class="a-zz2" font-size="6" x="3">z</text></g>`;
+  return `<g class="bot" tabindex="0" role="button" aria-label="${a.name}: ${stateLabel(a)}" data-room="${roomId}" data-i="${idx}"
+    transform="translate(${cx - 3.5 * p},${cy - 9 * p})" shape-rendering="crispEdges">
+    <rect class="hit" x="-4" y="-4" width="${7 * p + 8}" height="${9 * p + 8}" fill="transparent"/>
+    <g class="${a.state === 'working' ? 'a-bob' : ''}">${g}</g>${badge}</g>`;
+}
+function roomB(r) {
+  const deskAgents = r.agents.filter(a => atDesk(a.state) && a.state !== 'waiting');
+  const waiting = r.agents.filter(a => a.state === 'waiting');
+  const lounge = r.agents.filter(a => !atDesk(a.state));
+  const lit = r.agents.some(a => a.state !== 'sleeping');
+  let s = `<svg class="scene" viewBox="59 0 309 236" role="img" aria-label="${r.title} xonasi" shape-rendering="crispEdges"><rect width="400" height="236" fill="#15151a"/>`;
+  // Pol va devorlar
+  for (let x = 0; x < 6; x++) for (let y = 0; y < 5; y++)
+    s += `<polygon points="${pts([P(x, y), P(x + 1, y), P(x + 1, y + 1), P(x, y + 1)])}" fill="${(x + y) % 2 ? '#2a2a32' : '#26262d'}"/>`;
+  s += `<polygon points="${pts([P(0, 0), P(6, 0), P(6, 0, 3), P(0, 0, 3)])}" fill="#22222a"/>`;
+  s += `<polygon points="${pts([P(0, 0), P(0, 5), P(0, 5, 3), P(0, 0, 3)])}" fill="#1c1c23"/>`;
+  const [top, , night] = sky();
+  s += `<polygon points="${pts([P(2.2, 0, 1.3), P(3.8, 0, 1.3), P(3.8, 0, 2.5), P(2.2, 0, 2.5)])}" fill="${top}"/>`;
+  if (night) s += `<rect x="${P(3.3, 0, 2.2)[0]}" y="${P(3.3, 0, 2.2)[1]}" width="3" height="3" fill="#f4f0d8"/>`;
+  // Stollar va monitorlar
+  const desks = [[0.6, 1.2], [0.6, 3.0]];
+  desks.forEach(([x, y], i) => {
+    const a = deskAgents[i];
+    const glow = a ? (a.state === 'error' ? C.err : a.state === 'working' ? '#9fd8ff' : '#6c6f8a') : '#3a3a44';
+    if (a) s += pixBot(a, x + 1.6, y + 0.5, 0, r.agents.indexOf(a), r.id);
+    s += box(x, y, 0, 1.0, 1.4, 0.75, '#4a4252', '#2e2933', '#3a3440');
+    s += box(x + 0.15, y + 0.4, 0.75, 0.2, 0.6, 0.5, glow, '#15151a', '#1e1e25');
+  });
+  waiting.forEach((a, i) => { s += pixBot(a, 2.6, 2.4 + i, 0, r.agents.indexOf(a), r.id); });
+  // Divan
+  s += box(4.2, 3.1, 0, 1.4, 1.7, 0.45, '#45425a', '#38364a', '#3d3a52');
+  s += box(5.4, 3.1, 0.45, 0.2, 1.7, 0.5, '#4d4a63', '#38364a', '#3d3a52');
+  lounge.forEach((a, i) => { s += pixBot(a, 4.7, 3.45 + i * 0.8, 0.45, r.agents.indexOf(a), r.id); });
+  s += box(5.2, 0.4, 0, 0.5, 0.5, 1.4, '#2c2c34', '#24242b', '#2a2a31'); // qahva mashinasi
+  s += box(4.3, 0.5, 0, 0.4, 0.4, 0.4, '#4a3a3a', '#3a2c2c', '#443434'); s += box(4.35, 0.55, 0.4, 0.3, 0.3, 0.6, '#4f7d5f', '#3a5a46', '#446b52');
+  if (!lit) s += `<rect width="400" height="236" fill="#000" opacity=".3"/>`;
+  return s + '</svg>';
+}
+
+/* ---------------- C: zamonaviy, real yorug'lik ---------------- */
+const WARM = '#ffd9a0';
+function toolIcon(kind, c) {
+  const d = {
+    terminal: '<path d="M2 3.5 L5 6 L2 8.5"/><path d="M6.5 9 H10"/>',
+    file: '<path d="M3 1.5 H7 L9.5 4 V10.5 H3 Z"/><path d="M7 1.5 V4 H9.5"/>',
+    web: '<circle cx="6" cy="6" r="4.5"/><ellipse cx="6" cy="6" rx="2" ry="4.5"/><path d="M1.5 6 H10.5"/>',
+    search: '<circle cx="5" cy="5" r="3.2"/><path d="M7.4 7.4 L10.5 10.5"/>',
+    error: '<path d="M6 1.5 L10.8 10 H1.2 Z"/><path d="M6 5 V7"/>',
+    waiting: '<path d="M6 2 V7"/><path d="M6 9.6 V9.7"/>',
+    thinking: '<path d="M2.5 6 h.1 M6 6 h.1 M9.5 6 h.1" stroke-width="2.2"/>',
+  }[kind] || '';
+  return `<g transform="translate(-6,-6)" fill="none" stroke="${c}" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">${d}</g>`;
+}
+function glowOf(a) {
+  if (!a) return null;
+  return { error: C.err, waiting: C.warn, working: '#9fd8ff', thinking: '#9b9fc4' }[a.state] || null;
+}
+
+function botC(a, x, y, pose, idx, roomId, id) {
+  const col = a.kind === 'main' ? C.accent : C.helper;
+  const s = a.kind === 'main' ? 1 : 0.82;
+  const sleeping = a.state === 'sleeping';
+  const eyeR = (fx) => `<rect x="-7.5" y="-42" width="4.5" height="6" rx="2.25"${fx}/><rect x="3" y="-42" width="4.5" height="6" rx="2.25"${fx}/>`;
+  const eyes = sleeping
+    ? `<rect x="-7.5" y="-38" width="4.5" height="1.4" rx=".7" fill="${col}" opacity=".55"/><rect x="3" y="-38" width="4.5" height="1.4" rx=".7" fill="${col}" opacity=".55"/>`
+    : `<g fill="${col}" filter="url(#${id}b2)" opacity=".9">${eyeR('')}</g><g class="a-blink" fill="${col}">${eyeR('')}</g>`;
+  const head = `
+    <line x1="0" y1="-50" x2="0" y2="-55" stroke="#9a97ae" stroke-width="1.4"/>
+    ${sleeping ? '' : `<circle cx="0" cy="-56.5" r="4" fill="${col}" opacity=".5" filter="url(#${id}b2)"/>`}
+    <circle cx="0" cy="-56.5" r="2.2" fill="${col}" opacity="${sleeping ? .4 : 1}" class="${busy(a.state) ? 'a-pulse' : ''}"/>
+    <rect x="-17" y="-42" width="3" height="8" rx="1.5" fill="${col}" opacity=".55"/><rect x="14" y="-42" width="3" height="8" rx="1.5" fill="${col}" opacity=".55"/>
+    <rect x="-15" y="-50" width="30" height="24" rx="11" fill="url(#${id}hd)"/>
+    <rect x="-12" y="-46" width="24" height="15" rx="7.5" fill="url(#${id}vz)"/>
+    <path d="M-8.5 -43.6 q8.5 -2.6 17 0" stroke="rgba(255,255,255,.2)" stroke-width="1.1" fill="none" stroke-linecap="round"/>
+    ${eyes}`;
+  const body = `<rect x="-3.5" y="-27.5" width="7" height="3" fill="#6f6c82"/>
+    <rect x="-11" y="-25" width="22" height="20" rx="8" fill="url(#${id}bd)"/>
+    <rect x="-4" y="-19" width="8" height="3" rx="1.5" fill="${col}"/>`;
+  const limb = '#d9d6e6';
+  let g = '', shadow = '';
+  if (pose === 'desk') {
+    const hands = a.state === 'working'
+      ? `<rect class="a-type1" x="-14" y="-8" width="8" height="4.5" rx="2.25" fill="${limb}"/><rect class="a-type2" x="6" y="-8" width="8" height="4.5" rx="2.25" fill="${limb}"/>`
+      : `<rect x="-14" y="-7" width="8" height="4.5" rx="2.25" fill="${limb}"/><rect x="6" y="-7" width="8" height="4.5" rx="2.25" fill="${limb}"/>`;
+    g = `<g class="${a.state === 'working' ? 'a-bob' : 'a-breathe'}">${body}${head}</g>${hands}`;
+  } else if (pose === 'stand') {
+    shadow = `<ellipse cx="0" cy="4" rx="15" ry="3" fill="#000" opacity=".5" filter="url(#${id}b2)"/>`;
+    g = `<g>${body}${head}
+      <rect x="-16" y="-23" width="5" height="13" rx="2.5" fill="${limb}"/>
+      <g class="a-wave"><rect x="11" y="-41" width="5" height="17" rx="2.5" fill="${limb}"/></g>
+      <rect x="-8" y="-6" width="6" height="10" rx="3" fill="#a9a5bf"/><rect x="2" y="-6" width="6" height="10" rx="3" fill="#a9a5bf"/></g>`;
+  } else {
+    const tilt = sleeping ? 'transform="rotate(14 0 -26)"' : '';
+    const cup = sleeping ? '' : `<g transform="translate(13,-15)"><rect x="-1" y="0" width="7" height="8" rx="1.8" fill="#efe9df"/>
+      <path d="M6 2.2 q3 1.6 0 3.6" stroke="#efe9df" stroke-width="1.3" fill="none"/>
+      <path class="a-steam1" d="M1 -2 q-1.5 -2.5 0 -5" stroke="rgba(255,255,255,.45)" stroke-width="1" fill="none"/>
+      <path class="a-steam2" d="M4 -2 q1.5 -2.5 0 -5" stroke="rgba(255,255,255,.45)" stroke-width="1" fill="none"/></g>`;
+    g = `<g class="a-breathe">${body}<g ${tilt}>${head}</g></g>${cup}`;
+  }
+  let badge = '';
+  if (a.state === 'thinking') badge = `<g transform="translate(16,-62)"><rect x="0" y="-8" width="28" height="15" rx="7.5" fill="rgba(36,36,46,.88)" stroke="rgba(255,255,255,.14)"/>
+    <circle class="a-think1" cx="8" cy="-.5" r="1.8" fill="#fff"/><circle class="a-think2" cx="14" cy="-.5" r="1.8" fill="#fff"/><circle class="a-think3" cx="20" cy="-.5" r="1.8" fill="#fff"/></g>`;
+  if (a.state === 'waiting') badge = `<g transform="translate(0,-70)"><circle r="13" fill="${C.warn}" opacity=".45" filter="url(#${id}b4)"/>
+    <g class="a-pulse"><circle r="9" fill="${C.warn}"/><rect x="-1.25" y="-5.5" width="2.5" height="6.5" rx="1.25" fill="#1a1406"/><circle cy="3.6" r="1.4" fill="#1a1406"/></g></g>`;
+  if (a.state === 'error') badge = `<g transform="translate(17,-56)"><circle r="7.5" fill="${C.err}"/>
+    <path d="M-2.6 -2.6 L2.6 2.6 M2.6 -2.6 L-2.6 2.6" stroke="#2a0905" stroke-width="1.8" stroke-linecap="round"/></g>`;
+  if (sleeping) badge = `<g transform="translate(12,-50)" font-weight="700" fill="rgba(255,255,255,.75)">
+    <text class="a-zz1" font-size="9">z</text><text class="a-zz2" font-size="7" x="2">z</text><text class="a-zz3" font-size="11" x="-2">z</text></g>`;
+  return `<g class="bot" tabindex="0" role="button" aria-label="${a.name}: ${stateLabel(a)}" data-room="${roomId}" data-i="${idx}" transform="translate(${x},${y}) scale(${s})">
+    <rect class="hit" x="-20" y="-62" width="40" height="70" rx="10" fill="transparent"/>${shadow}${g}${badge}</g>`;
+}
+
+// Stol: orqa qism (devordagi monitor nuri, stul) robotdan oldin, old qism keyin chiziladi
+function deskBackC(x, a, id) {
+  const glow = glowOf(a);
+  return (glow ? `<ellipse cx="${x + 38}" cy="112" rx="38" ry="26" fill="${glow}" opacity="${a.state === 'working' ? .26 : .18}" filter="url(#${id}b10)"/>` : '') +
+    `<rect x="${x - 15}" y="110" width="30" height="40" rx="10" fill="#19181f" stroke="rgba(255,255,255,.05)"/>`;
+}
+function deskFrontC(x, a, id) {
+  const glow = glowOf(a);
+  const icon = !a ? '' : a.state === 'working' ? toolIcon(a.tool, '#eaf7ff') : toolIcon(a.state, glow);
+  let s = `<ellipse cx="${x + 4}" cy="182" rx="60" ry="4" fill="#000" opacity=".55" filter="url(#${id}b4)"/>
+    <rect x="${x - 47}" y="153" width="2.5" height="28" fill="#2b2a31"/><rect x="${x + 52}" y="153" width="2.5" height="28" fill="#2b2a31"/>
+    <rect x="${x - 47}" y="170" width="102" height="1.6" fill="#24232a"/>
+    <polygon points="${x - 50},144 ${x + 58},144 ${x + 62},149 ${x - 54},149" fill="url(#${id}wt)"/>
+    <rect x="${x - 54}" y="149" width="116" height="4" rx="1" fill="url(#${id}wd)"/>
+    <rect x="${x - 42}" y="137" width="7" height="8" rx="1.8" fill="#d9d3c9"/><path d="M${x - 35} 139.2 q3 1.6 0 3.6" stroke="#d9d3c9" stroke-width="1.2" fill="none"/>
+    <rect x="${x - 12}" y="144.6" width="24" height="2" rx="1" fill="#2c2b33"/>
+    <rect x="${x + 37}" y="129" width="3" height="15" fill="#2a2930"/><ellipse cx="${x + 38.5}" cy="144.5" rx="7" ry="1.3" fill="#2a2930"/>
+    <rect x="${x + 19}" y="103" width="39" height="27" rx="3" fill="#0b0b10" stroke="#34333d"/>
+    <rect x="${x + 21}" y="105" width="35" height="23" rx="1.8" fill="#0e1018"/>`;
+  if (glow) s += `<rect x="${x + 21}" y="105" width="35" height="23" rx="1.8" fill="${glow}" opacity="${a.state === 'working' ? .34 : .22}" class="${a.state === 'working' ? 'a-flicker' : ''}"/>
+    <g transform="translate(${x + 38.5},116.5)">${icon}</g>
+    <ellipse cx="${x + 36}" cy="146" rx="30" ry="3" fill="${glow}" opacity=".35" filter="url(#${id}b4)"/>
+    <ellipse cx="${x + 24}" cy="120" rx="22" ry="30" fill="${glow}" opacity=".16" filter="url(#${id}b10)" style="mix-blend-mode:screen"/>`;
+  else s += `<circle cx="${x + 55}" cy="127" r=".9" fill="${C.ok}" opacity=".6"/>`;
+  return s + `<polygon points="${x + 21},105 ${x + 34},105 ${x + 26},128 ${x + 21},128" fill="#fff" opacity=".035"/>`;
+}
+
+const SKYLINE = [[0, 30, 14], [14, 44, 10], [24, 26, 12], [36, 52, 9], [45, 36, 15], [60, 22, 10], [70, 48, 12], [82, 32, 13], [95, 56, 10], [105, 28, 11]];
+function roomC(r) {
+  const [top, bot, night] = sky();
+  const deskAgents = r.agents.filter(a => atDesk(a.state) && a.state !== 'waiting');
+  const waiting = r.agents.filter(a => a.state === 'waiting');
+  const lounge = r.agents.filter(a => !atDesk(a.state));
+  const lit = r.agents.some(a => a.state !== 'sleeping');
+  const id = 'c' + r.id, on = lit ? 1 : 0;
+  let s = `<svg class="scene" viewBox="0 0 400 210" role="img" aria-label="${r.title} xonasi">
+  <defs>
+    <linearGradient id="${id}w" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#16161b"/><stop offset="1" stop-color="#25232b"/></linearGradient>
+    <linearGradient id="${id}f" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2c2a31"/><stop offset="1" stop-color="#161519"/></linearGradient>
+    <linearGradient id="${id}s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${top}"/><stop offset="1" stop-color="${bot}"/></linearGradient>
+    <linearGradient id="${id}sh" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${bot}" stop-opacity="${night ? .1 : .18}"/><stop offset="1" stop-color="${bot}" stop-opacity="0"/></linearGradient>
+    <linearGradient id="${id}cone" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${WARM}" stop-opacity=".16"/><stop offset="1" stop-color="${WARM}" stop-opacity=".02"/></linearGradient>
+    <linearGradient id="${id}sl" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#3b2f27"/><stop offset="1" stop-color="#271f1a"/></linearGradient>
+    <linearGradient id="${id}wt" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7d6756"/><stop offset="1" stop-color="#5f4d40"/></linearGradient>
+    <linearGradient id="${id}wd" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4a3b31"/><stop offset="1" stop-color="#2f2620"/></linearGradient>
+    <linearGradient id="${id}fb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5a586e"/><stop offset="1" stop-color="#3b394b"/></linearGradient>
+    <linearGradient id="${id}bd" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f1f0f8"/><stop offset="1" stop-color="#a6a2bb"/></linearGradient>
+    <linearGradient id="${id}vz" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#262535"/><stop offset="1" stop-color="#09090d"/></linearGradient>
+    <radialGradient id="${id}hd" cx=".35" cy=".25" r=".9"><stop offset="0" stop-color="#ffffff"/><stop offset=".55" stop-color="#d9d6e8"/><stop offset="1" stop-color="#9f9bb6"/></radialGradient>
+    <radialGradient id="${id}vg" cx=".5" cy=".45" r=".75"><stop offset=".6" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".5"/></radialGradient>
+    <filter id="${id}b2" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.6"/></filter>
+    <filter id="${id}b4" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3.5"/></filter>
+    <filter id="${id}b10" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="10"/></filter>
+    <clipPath id="${id}win"><rect x="120" y="18" width="116" height="78" rx="4"/></clipPath>
+  </defs>
+  <rect width="400" height="210" fill="url(#${id}w)"/>`;
+  // Yog'och reykali devor (dam olish burchagi)
+  for (let i = 0; i < 20; i++) s += `<rect x="${260 + i * 7}" y="0" width="4.6" height="152" fill="url(#${id}sl)"/>`;
+  // Deraza: osmon, shahar siluetlari, kechasi yoniq derazalar
+  s += `<rect x="112" y="10" width="132" height="94" fill="${bot}" opacity="${night ? .06 : .12}" filter="url(#${id}b10)"/>
+    <g clip-path="url(#${id}win)"><rect x="120" y="18" width="116" height="78" fill="url(#${id}s)"/>
+    ${night ? '<circle cx="214" cy="32" r="5" fill="#f4f0d8" opacity=".9"/><circle cx="214" cy="32" r="10" fill="#f4f0d8" opacity=".15"/>' : ''}`;
+  SKYLINE.forEach(([bx, h, w], i) => {
+    s += `<rect x="${120 + bx}" y="${96 - h}" width="${w}" height="${h}" fill="${night ? '#0a0c1c' : '#6f88b0'}" opacity="${night ? 1 : .55}"/>`;
+    if (night) for (let k = 0; k < 4; k++) if ((i * 7 + k * 3) % 5 < 2)
+      s += `<rect x="${122 + bx + (k % 2) * (w / 2 - 1)}" y="${100 - h + 6 + k * 8}" width="2" height="2" fill="#ffd27a" opacity=".75"/>`;
+  });
+  s += `</g><rect x="120" y="18" width="116" height="78" rx="4" fill="none" stroke="#0e0e13" stroke-width="3"/>
+    <rect x="177" y="18" width="2" height="78" fill="#0e0e13"/><rect x="116" y="96" width="124" height="3" rx="1" fill="#34323b"/>
+    <g transform="translate(16,26)"><rect width="30" height="40" rx="2" fill="#26252c"/><rect x="3" y="3" width="24" height="34" fill="#e8e3da" opacity=".9"/>
+      <circle cx="12" cy="16" r="7" fill="${C.accent}" opacity=".75"/><circle cx="18" cy="24" r="5" fill="${C.helper}" opacity=".65"/><rect x="6" y="30" width="18" height="1.5" fill="#26252c" opacity=".5"/></g>`;
+  // Shiftdagi chiziqli chiroqning devordagi nuri
+  s += `<ellipse cx="100" cy="40" rx="90" ry="34" fill="${WARM}" opacity="${.14 * on}" filter="url(#${id}b10)" class="fade"/>
+    <ellipse cx="350" cy="96" rx="56" ry="50" fill="${WARM}" opacity="${.16 * on}" filter="url(#${id}b10)" class="fade"/>`;
+  // Pol: perspektivadagi taxtalar, deraza va chiroq yorug'ligi
+  s += `<rect y="152" width="400" height="58" fill="url(#${id}f)"/>`;
+  for (let bx = -200; bx <= 600; bx += 36) s += `<line x1="${bx}" y1="152" x2="${200 + (bx - 200) * 1.52}" y2="210" stroke="rgba(255,255,255,.035)"/>`;
+  s += `<polygon points="124,152 232,152 266,210 92,210" fill="url(#${id}sh)"/>
+    <ellipse cx="100" cy="168" rx="110" ry="12" fill="${WARM}" opacity="${.09 * on}" filter="url(#${id}b4)" class="fade"/>
+    <rect y="151" width="400" height="2" fill="#121116"/>`;
+  // Dam olish burchagi: o'simlik, yoysimon chiroq, divan
+  s += `<ellipse cx="330" cy="176" rx="72" ry="9" fill="#2b2933"/><ellipse cx="330" cy="176" rx="72" ry="9" fill="none" stroke="rgba(255,255,255,.04)"/>
+    <g transform="translate(266,0)">
+      <path d="M2 118 q-8 -20 2 -40" stroke="#2d4d39" stroke-width="1.4" fill="none"/>
+      <ellipse cx="-2" cy="86" rx="7" ry="14" transform="rotate(-25 -2 86)" fill="#3e6b4f"/><ellipse cx="9" cy="96" rx="6" ry="13" transform="rotate(30 9 96)" fill="#4f8462"/>
+      <ellipse cx="-6" cy="106" rx="6" ry="12" transform="rotate(-50 -6 106)" fill="#35603f"/><ellipse cx="6" cy="78" rx="5" ry="11" transform="rotate(12 6 78)" fill="#5a9470"/>
+      <path d="M-7 126 h18 l-2 26 h-14z" fill="#3b302c"/><rect x="-8" y="124" width="20" height="3" rx="1" fill="#4a3d37"/></g>
+    <ellipse cx="392" cy="151.5" rx="8" ry="2" fill="#141318"/>
+    <path d="M392 151 V72 Q392 48 366 51" stroke="#3a3942" stroke-width="2" fill="none"/>
+    <path d="M352 56 Q361 40 371 56 Z" fill="#2d2c33"/><ellipse cx="361.5" cy="56" rx="8" ry="2" fill="${WARM}" opacity="${lit ? .95 : .12}" class="fade"/>
+    <polygon points="354,56 369,56 392,148 318,148" fill="${WARM}" opacity="${.06 * on}" class="fade"/>
+    <ellipse cx="334" cy="176" rx="86" ry="18" fill="#000" opacity=".35" filter="url(#${id}b4)"/>
+    <rect x="284" y="110" width="45" height="26" rx="9" fill="url(#${id}fb)"/><rect x="331" y="110" width="45" height="26" rx="9" fill="url(#${id}fb)"/>`;
+  lounge.forEach((a, i) => { s += botC(a, 304 + i * 30, 146, 'sofa', r.agents.indexOf(a), r.id, id); });
+  s += `<rect x="282" y="132" width="96" height="18" rx="7" fill="#4b495d"/><rect x="282" y="132" width="96" height="2" rx="1" fill="rgba(255,255,255,.08)"/>
+    <rect x="276" y="120" width="12" height="32" rx="6" fill="#423f53"/><rect x="372" y="120" width="12" height="32" rx="6" fill="#423f53"/>
+    <rect x="286" y="150" width="3" height="10" fill="#1c1b20"/><rect x="371" y="150" width="3" height="10" fill="#1c1b20"/>`;
+  // Ish stollari
+  const slots = [58, 160];
+  slots.forEach((x, i) => {
+    const a = deskAgents[i];
+    s += deskBackC(x, a, id);
+    if (a) s += botC(a, x, 150, 'desk', r.agents.indexOf(a), r.id, id);
+    s += deskFrontC(x, a, id);
+  });
+  waiting.forEach((a, i) => { s += botC(a, 112 + i * 40, 184, 'stand', r.agents.indexOf(a), r.id, id); });
+  // Osma chiroq va uning nur konusi
+  s += `<line x1="52" y1="0" x2="52" y2="24" stroke="#2c2b32"/><line x1="148" y1="0" x2="148" y2="24" stroke="#2c2b32"/>
+    <polygon points="42,28 158,28 210,152 -10,152" fill="url(#${id}cone)" opacity="${on}" class="fade" style="mix-blend-mode:screen"/>
+    <ellipse cx="100" cy="29" rx="62" ry="5" fill="${WARM}" opacity="${.55 * on}" filter="url(#${id}b4)" class="fade"/>
+    <rect x="40" y="23" width="120" height="5" rx="2.5" fill="#24232a"/><rect x="43" y="27" width="114" height="1.4" rx=".7" fill="#ffe6bd" opacity="${lit ? .95 : .15}" class="fade"/>
+    <rect width="400" height="210" fill="url(#${id}vg)" pointer-events="none"/>`;
+  if (!lit) s += `<rect width="400" height="210" fill="#05050a" opacity=".38" pointer-events="none"/>`;
+  return s + '</svg>';
+}
+
+/* ---------------- Chizish ---------------- */
+let dir = 'D';
+function render() {
+  const sorted = [...rooms].sort((a, b) => Math.min(...a.agents.map(x => ORDER[x.state])) - Math.min(...b.agents.map(x => ORDER[x.state])));
+  const grid = document.getElementById('grid');
+  grid.classList.toggle('compact', dir === 'D');
+  document.getElementById('office3d').classList.toggle('on', dir === 'D');
+  grid.innerHTML = sorted.map(r => {
+    const [cls, label] = roomState(r);
+    return `<section class="room ${cls === 'waiting' ? 'waiting' : ''}" aria-label="${r.title}">
+      <div class="room-head"><div class="avatar">${r.title[0].toUpperCase()}</div>
+        <div><div class="room-title">${r.title}</div><div class="room-sub">${r.sub} · ${r.tokens} token</div></div>
+        <span class="chip ${cls}">${label}</span></div>
+      ${dir === 'A' ? roomA(r) : dir === 'B' ? roomB(r) : dir === 'C' ? roomC(r) : ''}
+      <div class="room-foot">${r.agents.map(a => `<div class="agent-row"><span class="dot" style="background:${stateColor(a.state)}"></span>
+        <span class="name" style="color:${a.kind === 'main' ? 'var(--ink)' : 'var(--ink2)'}">${a.name}</span>
+        <span class="what">${stateLabel(a)} · ${a.what}</span><span class="when">${a.when}</span></div>`).join('')}</div>
+    </section>`;
+  }).join('');
+  const all = rooms.flatMap(r => r.agents);
+  const n = f => all.filter(f).length;
+  document.getElementById('summary').innerHTML =
+    `<span><span class="dot" style="background:${C.ok}"></span><b>${n(a => busy(a.state))}</b> ishlayapti</span>
+     <span><span class="dot" style="background:${C.warn}"></span><b>${n(a => a.state === 'waiting')}</b> sizni kutyapti</span>
+     <span><span class="dot" style="background:${C.err}"></span><b>${n(a => a.state === 'error')}</b> xato</span>
+     <span><span class="dot" style="background:rgba(242,242,245,.35)"></span><b>${n(a => !atDesk(a.state))}</b> dam olyapti</span>`;
+  window.office3d && window.office3d.sync(dir === 'D');
+}
+
+document.querySelectorAll('[data-dir]').forEach(b => b.onclick = () => {
+  dir = b.dataset.dir;
+  document.querySelectorAll('[data-dir]').forEach(x => x.setAttribute('aria-pressed', x === b));
+  render();
+});
+
+const toast = document.getElementById('toast');
+function showToast(text) {
+  toast.textContent = text;
+  toast.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => toast.classList.remove('show'), 1800);
+}
+function openBot(el) { openAgent(el.dataset.room, +el.dataset.i); }
+function openAgent(roomId, i) {
+  const r = rooms.find(x => x.id === roomId), a = r.agents[i];
+  showToast(`${r.title} · ${a.name} — Xaritada ochiladi`);
+}
+// 3D modul uchun umumiy ma'lumot
+window.ofis = { rooms, ORDER, roomState, stateLabel, atDesk, busy, openAgent, toast: showToast, get dir() { return dir; } };
+document.addEventListener('click', e => { const b = e.target.closest('.bot'); if (b) openBot(b); });
+document.addEventListener('keydown', e => { const b = e.target.closest && e.target.closest('.bot'); if (b && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openBot(b); } });
+
+// Jonli demo: TokenKuzat'da asosiy agent Explore va Plan'ga topshiriq beradi, ular tugatib qaytadi,
+// oxirida asosiy agent ruxsat so'raydi
+const tk = rooms.find(r => r.id === 'tk');
+const [lead, explore, plan] = tk.agents;
+const script = [
+  () => { lead.tool = 'file'; lead.what = 'Edit: FlowCanvas.swift'; },
+  () => { explore.state = 'working'; explore.tool = 'search'; explore.what = 'Grep: contextFraction'; },
+  () => { explore.state = 'idle'; explore.what = 'Tugatdi'; explore.when = 'hozir'; },
+  () => { plan.state = 'working'; plan.tool = 'file'; plan.what = 'Read: PLAN.md'; plan.when = '1 s'; },
+  () => { lead.tool = 'web'; lead.what = 'WebFetch: developer.apple.com'; },
+  () => { plan.state = 'idle'; plan.what = 'Tugatdi'; plan.when = 'hozir'; },
+  () => { explore.state = 'thinking'; explore.what = 'Keyingi qadamni tanlayapti'; explore.when = '2 s'; },
+  () => { lead.state = 'waiting'; lead.what = 'Bash: git push — ruxsat kerak'; lead.when = 'hozir'; },
+  () => {},
+  () => { lead.state = 'working'; lead.tool = 'terminal'; lead.what = 'git push'; lead.when = '1 s'; },
+];
+let step = 0, timer = null;
+function startLive() { timer = setInterval(() => { script[step++ % script.length](); render(); }, 3500); }
+const live = document.getElementById('live');
+live.onclick = () => {
+  const on = live.getAttribute('aria-pressed') !== 'true';
+  live.setAttribute('aria-pressed', on); live.textContent = on ? '● Jonli demo' : '○ Jonli demo';
+  on ? startLive() : clearInterval(timer);
+};
+render(); startLive();
+{ const seg = document.querySelector('.seg'); seg.scrollLeft = seg.scrollWidth; }
+</script>
+
+<!-- ---------------- D: 3D ofis (Three.js) ---------------- -->
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+
+const O = window.ofis;
+const host = document.getElementById('office3d');
+const labelsEl = document.getElementById('labels');
+const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const PI = Math.PI;
+
+let renderer;
+try { renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' }); }
+catch (e) { document.getElementById('stageMsg').textContent = "3D ko'rinish uchun WebGL kerak — pastdagi ro'yxat ishlaydi"; throw e; }
+document.getElementById('stageMsg').remove();
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+host.prepend(renderer.domElement);
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(30, 2, 0.5, 200);
+camera.position.set(0, 22, 22);
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+
+/* ---------- yordamchilar ---------- */
+let seed = 7;
+const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const STD = (color, o = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.85, ...o });
+const rbox = (w, h, d, r = 0.03) => new RoundedBoxGeometry(w, h, d, 3, Math.min(r, w / 2, h / 2, d / 2));
+const cyl = (rt, rb, h, seg = 24) => new THREE.CylinderGeometry(rt, rb, h, seg);
+function add(parent, geo, mat, x = 0, y = 0, z = 0, cast = true) {
+  const m = new THREE.Mesh(geo, mat);
+  m.position.set(x, y, z); m.castShadow = cast; m.receiveShadow = true;
+  parent.add(m); return m;
+}
+function canvasTex(w, h, draw, repeat) {
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  draw(c.getContext('2d'), w, h);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8;
+  if (repeat) { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(...repeat); }
+  t.userData.canvas = c;
+  return t;
+}
+
+/* ---------- materiallar ---------- */
+const woodFloor = STD(0xffffff, { roughness: 0.55, map: canvasTex(512, 512, (c, w, h) => {
+  const rows = 8, rh = h / rows;
+  for (let r = 0; r < rows; r++) {
+    let x = -rnd() * 220;
+    while (x < w) {
+      const len = 170 + rnd() * 210;
+      c.fillStyle = `hsl(${27 + rnd() * 6},${30 + rnd() * 10}%,${50 + rnd() * 9}%)`;
+      c.fillRect(x, r * rh, len, rh);
+      for (let k = 0; k < 7; k++) {
+        const y = r * rh + rnd() * rh;
+        c.strokeStyle = `rgba(80,48,25,${0.06 + rnd() * 0.09})`; c.lineWidth = 1;
+        c.beginPath(); c.moveTo(x, y);
+        c.bezierCurveTo(x + len * 0.3, y + (rnd() - 0.5) * 6, x + len * 0.6, y + (rnd() - 0.5) * 6, x + len, y + (rnd() - 0.5) * 4); c.stroke();
+      }
+      c.fillStyle = 'rgba(40,24,12,.35)'; c.fillRect(x, r * rh, 1.5, rh);
+      x += len;
+    }
+    c.fillStyle = 'rgba(40,24,12,.3)'; c.fillRect(0, r * rh, w, 1.5);
+  }
+}, [1.6, 1.6]) });
+const concrete = STD(0xffffff, { roughness: 0.92, map: canvasTex(256, 256, (c, w, h) => {
+  c.fillStyle = '#c9c5bd'; c.fillRect(0, 0, w, h);
+  for (let i = 0; i < 2600; i++) { c.fillStyle = `rgba(${rnd() > 0.5 ? '255,255,255' : '60,55,50'},${rnd() * 0.06})`; c.fillRect(rnd() * w, rnd() * h, 2, 2); }
+}, [8, 5]) });
+const grass = STD(0xffffff, { roughness: 1, map: canvasTex(256, 256, (c, w, h) => {
+  c.fillStyle = '#4c6b3c'; c.fillRect(0, 0, w, h);
+  for (let i = 0; i < 5000; i++) { c.fillStyle = `hsla(${85 + rnd() * 30},${35 + rnd() * 20}%,${25 + rnd() * 22}%,.55)`; c.fillRect(rnd() * w, rnd() * h, 1.5, 3); }
+}, [30, 30]) });
+const plaster = STD(0xece6dc, { roughness: 0.95 });
+const wallCap = STD(0x34333a, { roughness: 0.7 });
+const oak = STD(0xb48b62, { roughness: 0.5 });
+const walnut = STD(0x6b4a33, { roughness: 0.55 });
+const metal = STD(0x2b2b31, { roughness: 0.4, metalness: 0.6 });
+const blackPlastic = STD(0x141418, { roughness: 0.35 });
+const glass = new THREE.MeshPhysicalMaterial({ color: 0xcfe4ee, roughness: 0.05, transparent: true, opacity: 0.16, depthWrite: false });
+const terracotta = STD(0xb06a4d, { roughness: 0.9 });
+const ceramic = STD(0xf1ece4, { roughness: 0.3 });
+const leafMats = [0x4f7d4f, 0x5f9160, 0x3f6a45, 0x6fa36a].map(c => STD(c, { roughness: 0.6, side: THREE.DoubleSide }));
+const SOFAS = [0x7d8f7a, 0xb5735a, 0x6c7f99, 0xc49a4a, 0x9a7f9e];
+const RUGS = ['#d9cbb4', '#c9d3cf', '#d6c4c0', '#cfd0dc', '#d8d0bd'];
+
+/* ---------- robot ---------- */
+const robotWhite = new THREE.MeshPhysicalMaterial({ color: 0xf3f2f9, roughness: 0.32, clearcoat: 1, clearcoatRoughness: 0.18 });
+const robotJoint = STD(0xb9b5cc, { roughness: 0.5 });
+const visorMat = new THREE.MeshPhysicalMaterial({ color: 0x0a0a10, roughness: 0.12, clearcoat: 1 });
+const glowMat = {};
+const glowOf = (hex, dim) => (glowMat[hex + (dim ? 'd' : '')] ||= new THREE.MeshBasicMaterial({ color: new THREE.Color(hex).multiplyScalar(dim ? 0.35 : 1.6), toneMapped: false }));
+
+// Tashqi guruh (g) joy va burilishni, ichki (m) sakrash va nafasni oladi
+function makeBot(a) {
+  const main = a.kind === 'main', col = main ? 0x8F82FF : 0x4FC3D9;
+  const g = new THREE.Group(), m = new THREE.Group(); g.add(m);
+  const s0 = main ? 1 : 0.82; m.scale.setScalar(s0);
+  add(m, new THREE.CapsuleGeometry(0.15, 0.16, 6, 18), robotWhite, 0, 0.2, 0);
+  const chest = add(m, rbox(0.1, 0.035, 0.02, 0.012), glowOf(col), 0, 0.24, 0.148, false);
+  const head = new THREE.Group(); head.position.set(0, 0.52, 0); m.add(head);
+  add(head, rbox(0.4, 0.31, 0.33, 0.12), robotWhite);
+  add(head, rbox(0.31, 0.18, 0.04, 0.07), visorMat, 0, -0.005, 0.15, false);
+  // yuz: ko'zlar kanvasda chiziladi — his-tuyg'u shu yerda
+  const face = canvasTex(128, 76, () => {});
+  add(head, new THREE.PlaneGeometry(0.29, 0.172), new THREE.MeshBasicMaterial({ map: face, transparent: true, toneMapped: false, depthWrite: false }), 0, -0.005, 0.1715, false);
+  [-0.205, 0.205].forEach(x => { const ear = add(head, cyl(0.035, 0.035, 0.03, 16), glowOf(col, true), x, 0, 0, false); ear.rotation.z = PI / 2; });
+  add(head, cyl(0.012, 0.012, 0.11, 8), robotJoint, 0, 0.21, 0);
+  const tip = add(head, new THREE.SphereGeometry(0.032, 16, 12), glowOf(col), 0, 0.275, 0, false);
+  if (main) {
+    // asosiy agent quloqchin va mikrofon taqadi — yordamchilarga topshiriq beradi
+    add(head, new THREE.TorusGeometry(0.218, 0.016, 8, 32, PI), robotJoint);
+    const p0 = new THREE.Vector3(-0.21, -0.02, 0.02), p1 = new THREE.Vector3(-0.09, -0.11, 0.19);
+    const boom = add(head, cyl(0.008, 0.008, p0.distanceTo(p1), 8), metal, ...p0.clone().lerp(p1, 0.5).toArray(), false);
+    boom.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), p1.clone().sub(p0).normalize());
+    add(head, new THREE.SphereGeometry(0.02, 12, 8), glowOf(col), ...p1.toArray(), false);
+  }
+  const limb = (x, y, len, r) => {
+    const pivot = new THREE.Group(); pivot.position.set(x, y, 0); pivot.rotation.order = 'YXZ'; m.add(pivot);
+    add(pivot, new THREE.CapsuleGeometry(r, len, 4, 12), robotWhite, 0, -len / 2 - r * 0.6, 0);
+    return pivot;
+  };
+  const armL = limb(-0.2, 0.33, 0.15, 0.045), armR = limb(0.2, 0.33, 0.15, 0.045);
+  const legL = limb(-0.08, 0.02, 0.17, 0.055), legR = limb(0.08, 0.02, 0.17, 0.055);
+  const mug = add(armR, cyl(0.04, 0.035, 0.1, 16), ceramic, 0, -0.22, 0.05); mug.rotation.x = PI / 2; mug.visible = false;
+  return { g, m, s0, col, head, chest, tip, armL, armR, legL, legR, mug, a,
+    face, fctx: face.userData.canvas.getContext('2d'), fcol: main ? '#b3aaff' : '#8be6f5', eyeX: [-22, 22], eyeK: 1,
+    phase: rnd() * 10, nextBlink: 0, blinkUntil: 0, path: [] };
+}
+
+/* ---------- yuz ifodasi ---------- */
+const EMO = { working: 'focus', thinking: 'think', waiting: 'wide', error: 'sad', idle: 'happy', sleeping: 'sleep' };
+function drawFace(b, emo, lx, ly, blink) {
+  const key = `${emo}${blink ? 'b' : ''}${Math.round(lx * 20)},${Math.round(ly * 20)}${b.fcol}`;
+  if (key === b.faceKey) return;
+  b.faceKey = key;
+  const c = b.fctx, k = b.eyeK;
+  c.clearRect(0, 0, 128, 76);
+  c.fillStyle = c.strokeStyle = c.shadowColor = b.fcol; c.shadowBlur = 9; c.lineCap = 'round';
+  const cy = 38 + ly * 9;
+  b.eyeX.forEach(ox => {
+    const side = Math.sign(ox) || 1, x = 64 + ox + lx * 11;
+    c.lineWidth = 7 * k; c.beginPath();
+    if (emo === 'sleep' || (blink && emo !== 'happy')) { c.moveTo(x - 10 * k, cy + 3); c.lineTo(x + 10 * k, cy + 3); c.stroke(); return; }
+    if (emo === 'happy') { c.arc(x, cy + 9 * k, 12 * k, PI * 1.18, PI * 1.82); c.stroke(); return; }
+    const ew = (emo === 'wide' ? 24 : 21) * k, eh = (emo === 'wide' ? 34 : emo === 'focus' ? 17 : 29) * k;
+    const top = cy - eh / 2, inner = x - side * ew / 2, outer = x + side * ew / 2;
+    c.roundRect(x - ew / 2, top, ew, eh, 9 * k); c.fill();
+    c.save(); c.globalCompositeOperation = 'destination-out'; c.shadowBlur = 0; c.beginPath();
+    if (emo === 'sad') { // ko'z chetlari pastga — xafa, yordam kutyapti
+      c.moveTo(inner - side * 4, top - 12); c.lineTo(outer + side * 4, top - 12);
+      c.lineTo(outer + side * 4, top + eh * 0.5); c.lineTo(inner - side * 4, top + 2); c.fill();
+    }
+    if (emo === 'think') { c.rect(x - ew, cy + eh * 0.16, ew * 2, eh); c.fill(); } // yuqoriga qarab ko'zini qisadi
+    c.restore();
+    if (emo === 'wide') { c.lineWidth = 4 * k; c.beginPath(); c.arc(x, top + 2, ew * 0.62, PI * 1.25, PI * 1.75); c.stroke(); } // qosh ko'tarilgan
+  });
+  b.face.needsUpdate = true;
+}
+function glowTex(hex) {
+  return spriteCache['glow' + hex] ||= canvasTex(64, 64, (c) => {
+    const gr = c.createRadialGradient(32, 32, 0, 32, 32, 32);
+    gr.addColorStop(0, hex); gr.addColorStop(1, 'rgba(0,0,0,0)');
+    c.fillStyle = gr; c.fillRect(0, 0, 64, 64);
+  });
+}
+function textBubble(text, col) {
+  const tex = canvasTex(256, 72, (c) => {
+    c.font = '600 30px -apple-system, system-ui, sans-serif';
+    const w = Math.min(248, c.measureText(text).width + 40);
+    c.fillStyle = 'rgba(22,22,28,.92)'; c.strokeStyle = col; c.lineWidth = 3;
+    c.beginPath(); c.roundRect((256 - w) / 2, 8, w, 54, 27); c.fill(); c.stroke();
+    c.fillStyle = '#fff'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(text, 128, 36);
+  });
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthTest: false, transparent: true }));
+  s.scale.set(1.0, 0.28, 1); s.renderOrder = 21; return s;
+}
+
+/* ---------- belgi (sprite) ---------- */
+const spriteCache = {};
+function badgeTex(kind) {
+  return spriteCache[kind] ||= canvasTex(128, 128, (c) => {
+    c.lineCap = 'round';
+    if (kind === 'waiting' || kind === 'error') {
+      c.shadowColor = kind === 'waiting' ? 'rgba(242,181,68,.8)' : 'rgba(255,110,97,.8)'; c.shadowBlur = 18;
+      c.fillStyle = kind === 'waiting' ? '#F2B544' : '#FF6E61';
+      c.beginPath(); c.arc(64, 64, 40, 0, PI * 2); c.fill(); c.shadowBlur = 0;
+      c.strokeStyle = kind === 'waiting' ? '#1a1406' : '#2a0905'; c.lineWidth = 10;
+      c.beginPath();
+      if (kind === 'waiting') { c.moveTo(64, 42); c.lineTo(64, 68); c.moveTo(64, 86); c.lineTo(64, 86.5); }
+      else { c.moveTo(50, 50); c.lineTo(78, 78); c.moveTo(78, 50); c.lineTo(50, 78); }
+      c.stroke();
+    } else if (kind === 'thinking') {
+      c.fillStyle = 'rgba(30,30,40,.9)'; c.strokeStyle = 'rgba(255,255,255,.25)'; c.lineWidth = 3;
+      c.beginPath(); c.roundRect(10, 38, 108, 52, 26); c.fill(); c.stroke();
+      c.fillStyle = '#fff'; [40, 64, 88].forEach(x => { c.beginPath(); c.arc(x, 64, 7, 0, PI * 2); c.fill(); });
+    } else {
+      c.fillStyle = 'rgba(255,255,255,.9)'; c.font = '700 72px -apple-system, sans-serif'; c.textAlign = 'center'; c.fillText('z', 64, 88);
+    }
+  });
+}
+function sprite(kind, size) {
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: badgeTex(kind), depthTest: false, transparent: true }));
+  s.scale.set(size, size, 1); s.renderOrder = 20; return s;
+}
+
+/* ---------- monitor ekrani ---------- */
+const ICON = {
+  terminal: 'M2 3.5 L5 6 L2 8.5 M6.5 9 H10',
+  file: 'M3 1.5 H7 L9.5 4 V10.5 H3 Z M7 1.5 V4 H9.5',
+  web: 'M10.5 6 A4.5 4.5 0 1 1 1.5 6 A4.5 4.5 0 1 1 10.5 6 Z M8 6 A2 4.5 0 1 1 4 6 A2 4.5 0 1 1 8 6 Z M1.5 6 H10.5',
+  search: 'M8.2 5 A3.2 3.2 0 1 1 1.8 5 A3.2 3.2 0 1 1 8.2 5 Z M7.4 7.4 L10.5 10.5',
+  error: 'M6 1.5 L10.8 10 H1.2 Z M6 5 V7 M6 8.9 V9',
+  thinking: 'M2.5 6 h.1 M6 6 h.1 M9.5 6 h.1',
+};
+const SCREEN = { working: ['#0c1a2c', '#d8f1ff', 0x9fd8ff], thinking: ['#14152a', '#b9bce0', 0x9b9fc4], error: ['#2a0d0d', '#ff8a7f', 0xff6e61] };
+function drawScreen(tex, a) {
+  const cv = tex.userData.canvas, c = cv.getContext('2d'), w = cv.width, h = cv.height;
+  c.setTransform(1, 0, 0, 1, 0, 0); c.shadowBlur = 0;
+  if (!a) { c.fillStyle = '#060709'; c.fillRect(0, 0, w, h); tex.needsUpdate = true; return; }
+  const [bg, ic] = SCREEN[a.state];
+  c.fillStyle = bg; c.fillRect(0, 0, w, h);
+  c.globalAlpha = 0.4;
+  for (let i = 0; i < 9; i++) { c.fillStyle = i % 3 ? '#5d7da6' : '#8F82FF'; c.fillRect(14 + (i % 2) * 14, 14 + i * 15, 30 + ((i * 53) % 90), 6); }
+  c.globalAlpha = 1;
+  c.translate(w * 0.7 - 36, h * 0.5 - 36); c.scale(6, 6);
+  c.strokeStyle = ic; c.lineWidth = a.state === 'thinking' ? 2.4 : 1.3; c.lineCap = c.lineJoin = 'round';
+  c.shadowColor = ic; c.shadowBlur = 14;
+  c.stroke(new Path2D(ICON[a.state === 'working' ? a.tool : a.state]));
+  tex.needsUpdate = true;
+}
+
+/* ---------- mebel ---------- */
+function plant(parent, x, z, s = 1) {
+  const p = new THREE.Group(); p.position.set(x, 0, z); p.scale.setScalar(s); parent.add(p);
+  add(p, cyl(0.22, 0.17, 0.42), terracotta, 0, 0.21, 0);
+  add(p, cyl(0.2, 0.2, 0.02), STD(0x3a2a20), 0, 0.41, 0, false);
+  for (let i = 0; i < 11; i++) {
+    const ang = (i / 11) * PI * 2 + rnd() * 0.4, tilt = 0.5 + rnd() * 0.7, len = 0.45 + rnd() * 0.3;
+    const stem = new THREE.Group(); stem.position.set(0, 0.42, 0); stem.rotation.set(0, ang, 0); p.add(stem);
+    const leaf = add(stem, new THREE.SphereGeometry(0.17, 12, 8), leafMats[i % 4], 0, Math.cos(tilt) * len, Math.sin(tilt) * len * 0.8);
+    leaf.scale.set(0.75, 0.12, 1.25); leaf.rotation.x = tilt - 0.3;
+  }
+  return p;
+}
+function tree(x, z, s) {
+  const t = new THREE.Group(); t.position.set(x, 0, z); t.scale.setScalar(s); scene.add(t);
+  add(t, cyl(0.1, 0.16, 1.5, 10), STD(0x5b4332), 0, 0.75, 0);
+  [[0, 1.9, 0, 1.0], [0.45, 1.6, 0.2, 0.75], [-0.4, 1.7, -0.15, 0.8], [0.1, 2.4, -0.1, 0.7]].forEach(([fx, fy, fz, r], i) =>
+    add(t, new THREE.IcosahedronGeometry(r, 2), STD([0x3f6a3f, 0x4c7a45, 0x5a8a4e, 0x47733f][i], { roughness: 0.9 }), fx, fy, fz));
+}
+
+function buildDesk(g, x, z) {
+  add(g, rbox(1.4, 0.04, 0.7, 0.015), oak, x, 0.74, z);
+  [-0.64, 0.64].forEach(dx => { add(g, new THREE.BoxGeometry(0.04, 0.72, 0.6), metal, x + dx, 0.36, z); });
+  add(g, new THREE.BoxGeometry(1.24, 0.03, 0.03), metal, x, 0.62, z - 0.25);
+  add(g, cyl(0.1, 0.11, 0.015), metal, x, 0.768, z - 0.2);
+  add(g, new THREE.BoxGeometry(0.04, 0.2, 0.025), metal, x, 0.87, z - 0.22);
+  add(g, rbox(0.66, 0.4, 0.03, 0.012), blackPlastic, x, 1.04, z - 0.21);
+  const tex = canvasTex(256, 150, () => {});
+  const screen = add(g, new THREE.PlaneGeometry(0.62, 0.36), new THREE.MeshBasicMaterial({ map: tex, toneMapped: false }), x, 1.04, z - 0.193, false);
+  screen.receiveShadow = false;
+  add(g, rbox(0.42, 0.015, 0.14, 0.006), STD(0x2c2b33, { roughness: 0.5 }), x - 0.05, 0.768, z + 0.12);
+  add(g, rbox(0.07, 0.015, 0.1, 0.006), STD(0x2c2b33, { roughness: 0.5 }), x + 0.28, 0.768, z + 0.12);
+  add(g, cyl(0.04, 0.035, 0.1, 16), ceramic, x - 0.5, 0.81, z + 0.05);
+  // stul (robotga qaragan tomoni stol)
+  const cz = z + 0.62;
+  add(g, cyl(0.26, 0.26, 0.03, 20), metal, x, 0.03, cz);
+  add(g, cyl(0.03, 0.03, 0.34, 10), metal, x, 0.22, cz);
+  add(g, rbox(0.48, 0.07, 0.46, 0.03), STD(0x2f2e36, { roughness: 0.75 }), x, 0.43, cz);
+  add(g, rbox(0.46, 0.34, 0.06, 0.03), STD(0x2f2e36, { roughness: 0.75 }), x, 0.68, cz + 0.24);
+  const light = new THREE.PointLight(0x9fd8ff, 0, 2.6, 2); light.position.set(x, 1.0, z + 0.05); g.add(light);
+  return { tex, light, seat: new THREE.Vector3(x, 0.47, cz) };
+}
+
+function buildRoom(r, cx, cz, i) {
+  const g = new THREE.Group(); g.position.set(cx, 0.1, cz); scene.add(g);
+  const floor = add(g, new THREE.PlaneGeometry(6, 5), woodFloor, 0, 0.003, 0, false); floor.rotation.x = -PI / 2;
+  floor.userData.room = r.id;
+  // devorlar (kesma — past), tepasida to'q qopqoq
+  const wall = (w, d, x, z, h = 1.1) => { add(g, new THREE.BoxGeometry(w, h, d), plaster, x, h / 2, z); add(g, new THREE.BoxGeometry(w + 0.002, 0.02, d + 0.002), wallCap, x, h + 0.01, z, false); };
+  wall(6.12, 0.12, 0, -2.5); wall(0.12, 5, -3, 0); wall(0.12, 5, 3, 0);
+  // old tomoni — shisha, eshik bilan
+  [[-1.25, 3.5], [2.3, 1.4]].forEach(([x, w]) => {
+    add(g, new THREE.BoxGeometry(w, 1.0, 0.03), glass, x, 0.5, 2.5, false);
+    add(g, new THREE.BoxGeometry(w, 0.03, 0.05), metal, x, 1.0, 2.5, false);
+  });
+  // stollar
+  const desks = [-1.75, 0.05].map(x => buildDesk(g, x, -1.85));
+  // dam olish burchagi: gilam, divan, stolcha
+  const rug = add(g, new THREE.PlaneGeometry(2.3, 2.5), STD(0xffffff, { roughness: 1, map: canvasTex(256, 256, (c, w, h) => {
+    c.fillStyle = RUGS[i % RUGS.length]; c.fillRect(0, 0, w, h);
+    c.strokeStyle = 'rgba(60,50,40,.25)'; c.lineWidth = 6; c.strokeRect(18, 18, w - 36, h - 36);
+    c.lineWidth = 2; c.strokeRect(32, 32, w - 64, h - 64);
+    for (let k = 0; k < 1800; k++) { c.fillStyle = `rgba(0,0,0,${rnd() * 0.05})`; c.fillRect(rnd() * w, rnd() * h, 2, 2); }
+  }) }), 1.75, 0.006, 1.0, false); rug.rotation.x = -PI / 2;
+  const fabric = STD(SOFAS[i % SOFAS.length], { roughness: 0.95 });
+  const sz = 1.0;
+  add(g, rbox(0.85, 0.4, 2.0, 0.06), fabric, 2.5, 0.22, sz);
+  add(g, rbox(0.2, 0.44, 2.0, 0.06), fabric, 2.82, 0.62, sz);
+  [-1.08, 1.08].forEach(dz => add(g, rbox(0.85, 0.6, 0.16, 0.06), fabric, 2.5, 0.32, sz + dz));
+  [-0.49, 0.49].forEach(dz => {
+    add(g, rbox(0.62, 0.13, 0.95, 0.06), fabric, 2.42, 0.47, sz + dz);
+    const b = add(g, rbox(0.16, 0.4, 0.92, 0.07), fabric, 2.66, 0.72, sz + dz); b.rotation.z = 0.15;
+  });
+  add(g, cyl(0.38, 0.38, 0.035, 32), walnut, 1.3, 0.42, sz);
+  add(g, cyl(0.04, 0.05, 0.4, 10), metal, 1.3, 0.2, sz);
+  add(g, cyl(0.2, 0.2, 0.02, 20), metal, 1.3, 0.01, sz);
+  add(g, rbox(0.24, 0.035, 0.17, 0.008), STD(0x8b3a3a), 1.22, 0.455, sz - 0.12).rotation.y = 0.3;
+  add(g, cyl(0.04, 0.035, 0.1, 16), ceramic, 1.42, 0.49, sz + 0.14);
+  // javon, kitoblar
+  add(g, rbox(1.5, 0.85, 0.3, 0.02), walnut, 1.75, 0.425, -2.28);
+  ['#c44f3d', '#2f5d8a', '#d9b25a', '#3d7a5a', '#e8e2d8', '#6a4a8a'].forEach((col, k) =>
+    add(g, new THREE.BoxGeometry(0.05 + (k % 2) * 0.02, 0.24 + (k % 3) * 0.04, 0.2), STD(col, { roughness: 0.7 }), 1.15 + k * 0.08, 0.85 + 0.12 + (k % 3) * 0.02, -2.28));
+  plant(g, 2.35, -2.25, 0.55);
+  plant(g, 2.55, -1.55, 0.9);
+  plant(g, -2.55, 2.05, 1.0);
+  // torshyer
+  add(g, cyl(0.16, 0.16, 0.02, 20), metal, 2.6, 0.01, 2.2);
+  add(g, cyl(0.015, 0.015, 1.45, 8), metal, 2.6, 0.73, 2.2);
+  const shadeMat = new THREE.MeshStandardMaterial({ color: 0xf1e6d2, roughness: 0.9, emissive: 0xffc98a, emissiveIntensity: 0, side: THREE.DoubleSide });
+  add(g, new THREE.CylinderGeometry(0.13, 0.2, 0.24, 24, 1, true), shadeMat, 2.6, 1.5, 2.2, false);
+  const lamp = new THREE.PointLight(0xffc98a, 0, 4, 2); lamp.position.set(2.6, 1.35, 2.2); g.add(lamp);
+  // xona chirog'i
+  const light = new THREE.PointLight(0xffd9b0, 0, 9, 2); light.position.set(-0.2, 2.5, 0); g.add(light);
+  // e'tibor halqasi (ruxsat kutilsa)
+  const ringMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(0xF2B544).multiplyScalar(1.4), toneMapped: false, transparent: true, opacity: 0.9 });
+  const outline = new THREE.Group(); outline.visible = false; g.add(outline);
+  [[5.76, 0.05, 0, -2.4], [5.76, 0.05, 0, 2.4], [0.05, 4.8, -2.9, 0], [0.05, 4.8, 2.9, 0]].forEach(([w, d, x, z]) =>
+    add(outline, new THREE.BoxGeometry(w, 0.012, d), ringMat, x, 0.012, z, false));
+  return { r, g, desks, light, lamp, shadeMat, outline, ringMat, bots: [], botMap: new Map(), center: new THREE.Vector3(cx, 0, cz), anchor: new THREE.Vector3(cx - 0.4, 1.7, cz + 0.7) };
+}
+
+function buildGarden(cx, cz) {
+  const g = new THREE.Group(); g.position.set(cx, 0.1, cz); scene.add(g);
+  const lawn = add(g, new THREE.PlaneGeometry(5.4, 4.4), grass, 0, 0.004, 0, false); lawn.rotation.x = -PI / 2;
+  [[-1.8, -1.3], [1.6, 1.2], [1.9, -1.5]].forEach(([x, z], k) => plant(g, x, z, 0.8 + k * 0.15));
+  const t = new THREE.Group(); t.position.set(cx - 0.2, 0.1, cz - 0.2); scene.add(t);
+  add(t, cyl(0.1, 0.15, 1.6, 10), STD(0x5b4332), 0, 0.8, 0);
+  [[0, 2.0, 0, 1.0], [0.5, 1.7, 0.2, 0.7], [-0.45, 1.8, -0.1, 0.75]].forEach(([fx, fy, fz, r], i) =>
+    add(t, new THREE.IcosahedronGeometry(r, 2), STD([0x4c7a45, 0x5a8a4e, 0x3f6a3f][i], { roughness: 0.9 }), fx, fy, fz));
+  [-1, 1].forEach(s => { add(g, rbox(1.4, 0.06, 0.4, 0.02), oak, s * 1.6, 0.45, 0.2 * s); add(g, new THREE.BoxGeometry(1.2, 0.42, 0.06), metal, s * 1.6, 0.21, 0.2 * s); });
+}
+
+/* ---------- bino va tashqari ---------- */
+const ground = add(scene, new THREE.PlaneGeometry(160, 160), grass, 0, 0, 0, false); ground.rotation.x = -PI / 2;
+add(scene, new THREE.BoxGeometry(21.4, 0.1, 12.4), concrete, 0, 0.05, 0, false);
+const path = add(scene, new THREE.PlaneGeometry(2.2, 12), STD(0xb9b2a6, { roughness: 0.95 }), 0, 0.012, 12.2, false); path.rotation.x = -PI / 2;
+[[21.4, 0.2, 0, -6.2], [0.2, 12.4, -10.7, 0], [0.2, 12.4, 10.7, 0]].forEach(([w, d, x, z]) => {
+  add(scene, new THREE.BoxGeometry(w, 1.1, d), plaster, x, 0.65, z);
+  add(scene, new THREE.BoxGeometry(w + 0.002, 0.02, d + 0.002), wallCap, x, 1.21, z, false);
+});
+[[-5.95, 9.5], [5.95, 9.5]].forEach(([x, w]) => {
+  add(scene, new THREE.BoxGeometry(w, 1.0, 0.04), glass, x, 0.6, 6.2, false);
+  add(scene, new THREE.BoxGeometry(w, 0.04, 0.08), metal, x, 1.1, 6.2, false);
+});
+seed = 11;
+for (let k = 0; k < 34; k++) {
+  const ang = rnd() * PI * 2, rad = 15 + rnd() * 14;
+  const x = Math.cos(ang) * rad * 1.25, z = Math.sin(ang) * rad * 0.9;
+  if (Math.abs(x) < 2.5 && z > 6) continue;
+  tree(x, z, 0.9 + rnd() * 0.8);
+}
+
+/* ---------- yorug'lik: soatga qarab ---------- */
+const hemi = new THREE.HemisphereLight(0xdfe9ff, 0x5b4a3a, 1);
+scene.add(hemi);
+const sun = new THREE.DirectionalLight(0xffffff, 3);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, { left: -19, right: 19, top: 14, bottom: -14, near: 1, far: 70 });
+sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.03;
+scene.add(sun, sun.target);
+let night = false;
+function applyTime() {
+  const h = new Date().getHours() + new Date().getMinutes() / 60;
+  const T = h >= 7 && h < 17 ? 'day' : h >= 17 && h < 19.5 ? 'dusk' : h >= 5 && h < 7 ? 'dawn' : 'night';
+  night = T === 'night';
+  const cfg = {
+    day:   { sky: 0xdfe9ff, gnd: 0x5b4a3a, hemi: 1.1, sun: 0xfff1de, si: 3.2, pos: [-12, 22, -6], bg: 0xb9cbd9, env: 0.45, exp: 1.0 },
+    dusk:  { sky: 0x8a86c9, gnd: 0x3a2a20, hemi: 0.6, sun: 0xffa168, si: 2.4, pos: [-22, 9, -4], bg: 0x3b3456, env: 0.25, exp: 1.05 },
+    dawn:  { sky: 0x9aa0d9, gnd: 0x3a2e28, hemi: 0.6, sun: 0xffb98a, si: 2.0, pos: [22, 9, -4], bg: 0x4a4466, env: 0.25, exp: 1.05 },
+    night: { sky: 0x22305e, gnd: 0x0c0d14, hemi: 0.42, sun: 0x8fa6ff, si: 0.45, pos: [-10, 20, -10], bg: 0x0b0e1a, env: 0.12, exp: 1.15 },
+  }[T];
+  hemi.color.setHex(cfg.sky); hemi.groundColor.setHex(cfg.gnd); hemi.intensity = cfg.hemi;
+  sun.color.setHex(cfg.sun); sun.intensity = cfg.si; sun.position.set(...cfg.pos);
+  scene.background = new THREE.Color(cfg.bg);
+  scene.fog = new THREE.Fog(cfg.bg, 38, 75);
+  scene.environmentIntensity = cfg.env;
+  renderer.toneMappingExposure = cfg.exp;
+}
+applyTime(); setInterval(applyTime, 60000);
+
+/* ---------- xonalarni joylash (joylari o'zgarmaydi) ---------- */
+const SLOTS = [[-7, -3], [0, -3], [7, -3], [-7, 3], [0, 3], [7, 3]];
+const sorted = [...O.rooms].sort((a, b) => Math.min(...a.agents.map(x => O.ORDER[x.state])) - Math.min(...b.agents.map(x => O.ORDER[x.state])));
+const R = sorted.map((r, i) => buildRoom(r, ...SLOTS[i], i));
+if (sorted.length < SLOTS.length) buildGarden(...SLOTS[sorted.length]);
+
+// Yorliqlar
+R.forEach(o => {
+  const b = document.createElement('button'); b.className = 'label3d';
+  b.onclick = () => focusRoom(o);
+  labelsEl.appendChild(b); o.label = b;
+});
+
+/* ---------- holatni sahnaga o'tkazish ---------- */
+// Robotlar doimiy: holat o'zgarsa yangi joyga yurib boradi, sakrab o'tmaydi
+const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
+const STAND_Y = 0.27;
+const SPOTS = [ // bo'sh robot ba'zan turib shu joylarga boradi
+  { pos: V3(1.4, STAND_Y, -1.7), rotY: PI },               // javon oldi
+  { pos: V3(-1.2, STAND_Y, 1.95), rotY: 0 },               // shisha oldi, tashqariga qaraydi
+  { pos: V3(-2.05, STAND_Y, 1.55), rotY: Math.atan2(-0.5, 0.5) }, // gul oldi
+];
+const lerpAngle = (a, b, k) => a + ((((b - a + PI) % (2 * PI)) + 2 * PI) % (2 * PI) - PI) * k;
+const clamp = (x, lo, hi) => Math.max(lo, Math.min(hi, x));
+
+function sync(visible) {
+  active = visible;
+  if (!visible) return;
+  const now = performance.now();
+  R.forEach(o => {
+    const r = o.r;
+    // stol band qilinadi: o'tirgan robot o'z stolida qoladi
+    const wantDesk = r.agents.filter(a => O.atDesk(a.state) && a.state !== 'waiting');
+    const deskOf = new Map(), used = new Set();
+    wantDesk.forEach(a => { const b = o.botMap.get(a); if (b && b.home.desk != null && !used.has(b.home.desk)) { deskOf.set(a, b.home.desk); used.add(b.home.desk); } });
+    wantDesk.forEach(a => { if (deskOf.has(a)) return; const k = o.desks.findIndex((_, k) => !used.has(k)); if (k >= 0) { deskOf.set(a, k); used.add(k); } });
+    // divanda ham o'z joyi saqlanadi
+    const lounge = r.agents.filter(a => !O.atDesk(a.state)), seatOf = new Map(), seats = new Set();
+    lounge.forEach(a => { const b = o.botMap.get(a); if (b && b.home.seat != null && !seats.has(b.home.seat)) { seatOf.set(a, b.home.seat); seats.add(b.home.seat); } });
+    lounge.forEach(a => { if (seatOf.has(a)) return; let k = 0; while (seats.has(k)) k++; seatOf.set(a, k); seats.add(k); });
+    let wi = 0;
+    const targetOf = a => {
+      if (deskOf.has(a)) { const k = deskOf.get(a); return { pose: 'desk', desk: k, pos: o.desks[k].seat.clone().setY(0.5), rotY: a.state === 'error' ? PI * 0.55 : PI }; }
+      if (seatOf.has(a)) { const k = seatOf.get(a); return { pose: 'sofa', seat: k, pos: V3(2.36, 0.53, 0.55 + k * 0.9), rotY: -PI / 2 }; }
+      return { pose: 'stand', pos: V3(-0.85 + wi++ * 0.7, STAND_Y, -0.2), rotY: 0 };
+    };
+    for (const [a, b] of o.botMap) if (!r.agents.includes(a)) { o.g.remove(b.g); o.botMap.delete(a); }
+    r.agents.forEach(a => {
+      const t = targetOf(a);
+      let b = o.botMap.get(a);
+      if (!b) {
+        b = makeBot(a); b.room = o; b.g.userData = { room: r.id, agent: a };
+        b.g.position.copy(t.pos); b.g.rotation.y = t.rotY; b.pose = t.pose; b.target = b.home = t;
+        o.g.add(b.g); o.botMap.set(a, b);
+      } else {
+        const same = b.home.pose === t.pose && b.home.pos.distanceTo(t.pos) < 0.05;
+        b.home = t;
+        if (!same) { b.wander = null; go(b, t); }
+        else if (!b.wander) b.target = t;
+      }
+      dress(o, b);
+    });
+    o.bots = [...o.botMap.values()];
+    // topshiriq va hisobot: yordamchi ishga tushsa — asosiy agentdan, tugatsa — unga qaytadi
+    const lead = o.bots.find(b => b.a.kind === 'main');
+    o.bots.forEach(b => {
+      const s = b.a.state, p = b.prev;
+      if (p !== undefined && p !== s) {
+        if (O.busy(p) && s === 'idle') b.mood = { emo: 'happy', t0: now, until: now + 2400, hop: true };
+        if (lead && b !== lead && !O.busy(p) && O.busy(s)) handoff(lead, b, 'cmd');
+        if (lead && b !== lead && O.busy(p) && s === 'idle') handoff(b, lead, 'done');
+      }
+      b.prev = s;
+    });
+    const deskAgent = k => [...deskOf].find(([, v]) => v === k)?.[0];
+    const lit = r.agents.some(a => a.state !== 'sleeping');
+    const waiting = r.agents.filter(a => a.state === 'waiting');
+    o.desks.forEach((d, k) => {
+      const a = deskAgent(k);
+      drawScreen(d.tex, a);
+      d.light.intensity = a ? (a.state === 'working' ? 1.4 : 0.9) : 0;
+      if (a) d.light.color.setHex(SCREEN[a.state][2]);
+    });
+    o.light.intensity = lit ? (night ? 14 : 6) : 0;
+    o.lamp.intensity = lit ? (night ? 3 : 1.2) : 0;
+    o.shadeMat.emissiveIntensity = lit ? 1.6 : 0;
+    o.outline.visible = waiting.length > 0;
+    const [cls, txt] = O.roomState(r);
+    const colr = { waiting: 'var(--warn)', error: 'var(--err)', working: 'var(--ok)', idle: 'var(--ink2)' }[cls];
+    o.label.className = 'label3d' + (cls === 'waiting' ? ' waiting' : '');
+    o.label.innerHTML = `<span class="avatar">${r.title[0].toUpperCase()}</span>${r.title}<span class="st" style="color:${colr}">· ${txt}</span>`;
+    o.label.setAttribute('aria-label', `${r.title} xonasi: ${txt}. Yaqinlashtirish`);
+  });
+}
+// Holat belgilari: «!», «×», «…», «z z», chiroq va krujka
+function dress(o, b) {
+  const s = b.a.state;
+  if (b.dressed === s) return;
+  b.dressed = s;
+  [b.badge, b.ring, ...(b.zz || [])].forEach(x => x && b.m.remove(x));
+  b.badge = b.ring = b.zz = null;
+  const dim = s === 'sleeping', top = 1.18;
+  b.chest.material = b.tip.material = glowOf(b.col, dim);
+  b.mug.visible = s === 'idle';
+  if (s === 'waiting') {
+    b.badge = sprite('waiting', 0.38); b.badge.position.set(0, top + 0.05, 0); b.m.add(b.badge);
+    b.ring = add(b.m, new THREE.RingGeometry(0.34, 0.4, 40), o.ringMat, 0, -0.26, 0, false); b.ring.rotation.x = -PI / 2;
+  }
+  if (s === 'error') { b.badge = sprite('error', 0.32); b.badge.position.set(0.28, top - 0.15, 0); b.m.add(b.badge); }
+  if (s === 'thinking') { b.badge = sprite('thinking', 0.42); b.badge.position.set(0, top, 0); b.m.add(b.badge); }
+  if (s === 'sleeping') b.zz = [0, 1, 2].map(() => { const z = sprite('z', 0.2); b.m.add(z); return z; });
+  if (b.badge) b.badgeY = b.badge.position.y;
+}
+
+// Yo'l: stol oldidagi yo'lak va divan oldi orqali, stolcha atrofidan aylanib
+function route(b, to) {
+  const p = b.g.position, pts = [];
+  const exit = b.pose === 'desk' ? V3(p.x, STAND_Y, -0.6) : b.pose === 'sofa' ? V3(1.9, STAND_Y, p.z) : null;
+  if (exit) pts.push(exit);
+  const entry = to.pose === 'desk' ? V3(to.pos.x, STAND_Y, -0.6) : to.pose === 'sofa' ? V3(1.9, STAND_Y, to.pos.z) : to.pos.clone();
+  const from = exit || p;
+  if ((from.x > 1.6) !== (entry.x > 1.6) && (from.z > -0.3 || entry.z > -0.3)) pts.push(V3(1.9, STAND_Y, -0.45));
+  pts.push(entry);
+  if (to.pose !== 'stand') pts.push(to.pos.clone());
+  return pts;
+}
+function go(b, t) {
+  b.target = t;
+  if (RM) { b.g.position.copy(t.pos); b.g.rotation.y = t.rotY; b.pose = t.pose; b.path = []; return; }
+  b.path = route(b, t); b.pose = 'walk';
+}
+function stepWalk(b, dt, now) {
+  const p = b.g.position, tgt = b.path[0];
+  v.subVectors(tgt, p);
+  const dist = v.length(), sp = 1.15 * dt;
+  const last = b.path.length === 1 && b.target.pose !== 'stand';
+  // o'tirishdan oldin orqasi bilan joyga keladi
+  b.g.rotation.y = lerpAngle(b.g.rotation.y, last ? b.target.rotY : Math.atan2(v.x, v.z), 1 - Math.exp(-dt * 10));
+  if (dist > sp) { p.addScaledVector(v, sp / dist); return; }
+  p.copy(tgt); b.path.shift();
+  if (b.path.length) return;
+  b.pose = b.target.pose;
+  if (b.wander) b.wander.until = now + 3500 + rnd() * 2500;
+}
+
+// Asosiy agent yordamchiga topshiriq kartasini uchiradi; yordamchi natijani qaytaradi
+const packets = [];
+const cardGeo = rbox(0.17, 0.11, 0.02, 0.02);
+function handoff(from, to, kind) {
+  const now = performance.now(), cmd = kind === 'cmd';
+  bubble(from, cmd ? `→ ${to.a.name}` : '✓ Tayyor', cmd ? '#8F82FF' : '#3DD68C');
+  if (cmd) from.cmd = { to, until: now + 1900 };
+  if (RM) return;
+  const col = cmd ? 0x8F82FF : 0x3DD68C;
+  const card = new THREE.Mesh(cardGeo, glowOf(col)); card.visible = false;
+  const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowTex(cmd ? '#8F82FF' : '#3DD68C'), depthWrite: false, transparent: true, blending: THREE.AdditiveBlending }));
+  halo.scale.set(0.55, 0.55, 1); card.add(halo);
+  scene.add(card);
+  packets.push({ card, from, to, kind, t0: now + 450, d: 1150 });
+}
+function bubble(b, text, col) {
+  if (b.bub) dropBubble(b);
+  b.bub = textBubble(text, col); b.bub.position.set(0, 1.5, 0); b.m.add(b.bub);
+  b.bubUntil = performance.now() + 2200;
+}
+function dropBubble(b) { b.m.remove(b.bub); b.bub.material.map.dispose(); b.bub.material.dispose(); b.bub = null; }
+
+/* ---------- Kuzatuvchi: e'tibor kerak bo'lgan xonaga uchib, nur tushiradi ---------- */
+const graphite = new THREE.MeshPhysicalMaterial({ color: 0x34353e, roughness: 0.35, clearcoat: 1, clearcoatRoughness: 0.25 });
+const drone = (() => {
+  const g = new THREE.Group(); g.position.set(0, 3.3, 0.3); scene.add(g);
+  const body = new THREE.Group(); body.scale.setScalar(1.35); g.add(body);
+  add(body, new THREE.SphereGeometry(0.3, 32, 24), robotWhite).scale.set(1, 0.78, 1);
+  const ringMat = new THREE.MeshBasicMaterial({ color: 0x4FC3D9, toneMapped: false });
+  add(body, new THREE.TorusGeometry(0.305, 0.03, 12, 48), ringMat, 0, -0.02, 0, false).rotation.x = PI / 2;
+  add(body, rbox(0.34, 0.2, 0.05, 0.06), visorMat, 0, 0.03, 0.28, false);
+  const face = canvasTex(128, 76, () => {});
+  add(body, new THREE.PlaneGeometry(0.31, 0.184), new THREE.MeshBasicMaterial({ map: face, transparent: true, toneMapped: false, depthWrite: false }), 0, 0.03, 0.307, false);
+  [PI / 4, -PI / 4].forEach(r => { add(body, new THREE.BoxGeometry(0.95, 0.03, 0.04), graphite, 0, 0.13, 0).rotation.y = r; });
+  const blurMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.14, depthWrite: false, side: THREE.DoubleSide });
+  const rotors = [[1, 1], [1, -1], [-1, 1], [-1, -1]].map(([sx, sz]) => {
+    const hub = new THREE.Group(); hub.position.set(sx * 0.335, 0.16, sz * 0.335); body.add(hub);
+    add(hub, cyl(0.035, 0.035, 0.05, 12), graphite);
+    add(hub, new THREE.CircleGeometry(0.19, 32), blurMat, 0, 0.03, 0, false).rotation.x = -PI / 2;
+    [0, PI / 2].forEach(r => { add(hub, new THREE.BoxGeometry(0.36, 0.008, 0.035), graphite, 0, 0.03, 0, false).rotation.y = r; });
+    return hub;
+  });
+  const coneGeo = new THREE.ConeGeometry(0.75, 1, 40, 1, true); coneGeo.translate(0, -0.5, 0);
+  const beamMat = new THREE.MeshBasicMaterial({ color: 0xF2B544, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, toneMapped: false,
+    map: canvasTex(4, 128, (c, w, h) => { const gr = c.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#fff'); gr.addColorStop(1, '#222'); c.fillStyle = gr; c.fillRect(0, 0, w, h); }) });
+  const beam = new THREE.Mesh(coneGeo, beamMat); beam.renderOrder = 5; scene.add(beam);
+  const spot = new THREE.SpotLight(0xF2B544, 0, 7, 0.34, 0.7, 1.5); scene.add(spot, spot.target);
+  g.traverse(n => n.userData.drone = true);
+  return { g, body, ringMat, rotors, beam, beamMat, spot, face, fctx: face.userData.canvas.getContext('2d'), fcol: '#8be6f5', eyeX: [0], eyeK: 1.45,
+    idx: -1, nextSwitch: 0, focus: null, prev: new THREE.Vector3(), nextBlink: 0, blinkUntil: 0 };
+})();
+const HEXS = { waiting: ['#F2B544', 0xF2B544], error: ['#FF6E61', 0xFF6E61], calm: ['#8be6f5', 0x4FC3D9] };
+function alerts() {
+  return R.flatMap(o => o.bots.filter(b => b.a.state === 'waiting' || b.a.state === 'error').map(b => ({ o, b })))
+    .sort((x, y) => O.ORDER[x.b.a.state] - O.ORDER[y.b.a.state]);
+}
+function animateDrone(t, dt, now) {
+  const list = alerts(), d = drone, p = d.g.position;
+  let goal;
+  if (list.length) {
+    // bir nechta xona bo'lsa — navbat bilan, har biriga 5 soniya
+    if (now > d.nextSwitch || !d.focus || !list.some(x => x.b === d.focus.b)) { d.idx = (d.idx + 1) % list.length; d.nextSwitch = now + 5000; }
+    d.focus = list[d.idx % list.length];
+    goal = d.focus.b.g.getWorldPosition(V3()).setY(2.9);
+  } else {
+    d.focus = null;
+    goal = V3(Math.sin(t * 0.11) * 8.6, 3.3, 0.3 + Math.sin(t * 0.22) * 1.4); // yo'lak ustida aylanib yuradi
+  }
+  d.prev.copy(p);
+  if (RM) p.copy(goal); else p.lerp(goal, 1 - Math.exp(-dt * 1.4));
+  const vx = (p.x - d.prev.x) / Math.max(dt, 1e-3), vz = (p.z - d.prev.z) / Math.max(dt, 1e-3);
+  d.body.position.y = RM ? 0 : Math.sin(now / 1000 * 2.1) * 0.05;
+  d.body.rotation.z = clamp(-vx * 0.07, -0.3, 0.3); d.body.rotation.x = clamp(vz * 0.07, -0.3, 0.3);
+  d.g.rotation.y = lerpAngle(d.g.rotation.y, Math.atan2(camera.position.x - p.x, camera.position.z - p.z), 1 - Math.exp(-dt * 3));
+  if (!RM) d.rotors.forEach((r, k) => r.rotation.y += dt * (k % 2 ? 22 : -22));
+  const kind = d.focus ? d.focus.b.a.state : 'calm', [css, hex] = HEXS[kind];
+  d.ringMat.color.setHex(hex).multiplyScalar(1.5);
+  const on = d.focus && p.distanceTo(goal) < 0.9 ? 0.5 : 0;
+  d.beamMat.opacity += (on - d.beamMat.opacity) * (1 - Math.exp(-dt * 5));
+  d.beamMat.color.setHex(hex);
+  d.beam.position.set(p.x, p.y + d.body.position.y - 0.22, p.z);
+  d.beam.scale.set(1, d.beam.position.y - 0.12, 1);
+  d.spot.position.copy(d.beam.position); d.spot.target.position.set(p.x, 0, p.z);
+  d.spot.color.setHex(hex); d.spot.intensity = d.beamMat.opacity * 18;
+  d.fcol = css;
+  if (now > d.nextBlink) { d.blinkUntil = now + 140; d.nextBlink = now + 2800 + rnd() * 2500; }
+  const emo = kind === 'waiting' ? 'wide' : kind === 'error' ? 'sad' : 'focus';
+  drawFace(d, emo, d.focus ? 0 : Math.sin(t * 0.7) * 0.8, d.focus ? 0.6 : 0, now < d.blinkUntil);
+}
+function droneTalk() {
+  const list = alerts();
+  const what = s => s === 'waiting' ? 'sizni kutyapti' : 'xato';
+  O.toast(list.length ? `Kuzatuvchi · ${[...new Map(list.map(x => [x.o, x])).values()].map(x => `${x.o.r.title} ${what(x.b.a.state)}`).join(', ')}` : 'Kuzatuvchi · hammasi joyida');
+  if (drone.focus) focusRoom(drone.focus.o);
+}
+
+/* ---------- kamera ---------- */
+const controls = new OrbitControls(camera, renderer.domElement);
+Object.assign(controls, { enableDamping: true, dampingFactor: 0.08, minDistance: 7, maxDistance: 46, minPolarAngle: 0.25, maxPolarAngle: 1.12, screenSpacePanning: false });
+let fly = null;
+function homeView() {
+  const aspect = camera.aspect;
+  if (aspect > 1.15) flyTo(new THREE.Vector3(0, 0, 0.4), aspect > 1.6 ? 21 : 26, 0.84, -0.3);
+  else flyTo(new THREE.Vector3(0, 0, 0), 40, 0.7, -1.25); // tor ekranda bino bo'yiga burilib turadi
+}
+function focusRoom(o) { flyTo(o.center.clone(), 11.5, 0.82, -0.35); }
+function flyTo(target, dist, polar, az) {
+  const end = new THREE.Vector3().setFromSphericalCoords(dist, polar, az).add(target);
+  fly = { t0: performance.now(), p0: camera.position.clone(), q0: controls.target.clone(), p1: end, q1: target, d: RM ? 1 : 700 };
+}
+document.getElementById('camReset').onclick = homeView;
+
+/* ---------- bosish ---------- */
+const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+let down = null;
+function pick(e) {
+  const r = renderer.domElement.getBoundingClientRect();
+  ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+  ray.setFromCamera(ndc, camera);
+  if (ray.intersectObject(drone.body, true).length) return { drone: true };
+  const bots = R.flatMap(o => o.bots.map(b => b.g));
+  const hit = ray.intersectObjects(bots, true)[0];
+  if (hit) { let n = hit.object; while (n && n.userData.room === undefined) n = n.parent; return { bot: n }; }
+  const fh = ray.intersectObjects(R.map(o => o.g.children[0]), false)[0];
+  return fh ? { room: R.find(o => o.r.id === fh.object.userData.room) } : {};
+}
+renderer.domElement.addEventListener('pointerdown', e => { down = [e.clientX, e.clientY]; });
+renderer.domElement.addEventListener('pointerup', e => {
+  if (!down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 5) return;
+  const p = pick(e);
+  if (p.bot) O.openAgent(p.bot.userData.room, R.find(o => o.r.id === p.bot.userData.room).r.agents.indexOf(p.bot.userData.agent));
+  else if (p.drone) droneTalk();
+  else if (p.room) focusRoom(p.room);
+});
+renderer.domElement.addEventListener('pointermove', e => { if (!e.buttons) renderer.domElement.style.cursor = (q => q.bot || q.drone)(pick(e)) ? 'pointer' : 'grab'; });
+
+/* ---------- chizish sikli ---------- */
+let composer, gtao;
+try {
+  composer = new EffectComposer(renderer);
+  composer.addPass(new RenderPass(scene, camera));
+  gtao = new GTAOPass(scene, camera, 800, 400);
+  gtao.updateGtaoMaterial({ radius: 0.45, distanceExponent: 1.5, thickness: 1.2, scale: 1.1 });
+  gtao.blendIntensity = 0.9;
+  composer.addPass(gtao);
+  composer.addPass(new OutputPass());
+} catch (e) { composer = null; }
+
+function resize() {
+  const w = host.clientWidth, h = host.clientHeight;
+  if (!w || !h) return;
+  renderer.setSize(w, h, false);
+  composer && composer.setSize(w, h);
+  const first = camera.aspect === 2 && !resize.done;
+  camera.aspect = w / h; camera.updateProjectionMatrix();
+  if (first) { resize.done = true; homeView(); fly.d = 0; }
+}
+new ResizeObserver(resize).observe(host);
+
+let active = false;
+const v = new THREE.Vector3(), v2 = new THREE.Vector3();
+const ease = t => 1 - Math.pow(1 - t, 3);
+
+function animateBot(b, o, t, dt, now) {
+  const s = b.a.state, ph = t + b.phase;
+  b.head.rotation.set(0, 0, 0); b.head.position.y = 0.52;
+  [b.armL, b.armR, b.legL, b.legR].forEach(x => x.rotation.set(0, 0, 0));
+  b.m.position.y = 0; b.m.rotation.z = 0; b.m.scale.setScalar(b.s0);
+  let lx = 0, ly = 0;
+  if (b.path.length) {
+    stepWalk(b, dt, now);
+    const w = Math.sin(now / 1000 * 9 + b.phase);
+    b.legL.rotation.x = w * 0.55; b.legR.rotation.x = -w * 0.55;
+    b.armL.rotation.x = -w * 0.4; b.armR.rotation.x = s === 'idle' ? -1.05 : w * 0.4;
+    b.m.position.y = Math.abs(w) * 0.025;
+  } else {
+    b.g.rotation.y = lerpAngle(b.g.rotation.y, b.target.rotY, 1 - Math.exp(-dt * 6));
+    if (b.pose === 'desk' || b.pose === 'sofa') b.legL.rotation.x = b.legR.rotation.x = -PI / 2;
+    if (b.pose === 'desk') {
+      b.armL.rotation.x = b.armR.rotation.x = -1.2;
+      if (s === 'working') {
+        b.armL.rotation.x = -1.2 + Math.sin(ph * 16) * 0.1; b.armR.rotation.x = -1.2 + Math.sin(ph * 16 + PI) * 0.1;
+        b.head.position.y = 0.52 + Math.sin(ph * 2) * 0.006; ly = 0.45;
+      }
+      if (s === 'thinking') { // qo'li iyagida, yuqoriga qarab o'ylaydi
+        b.head.rotation.y = Math.sin(ph * 0.8) * 0.25; b.head.rotation.x = -0.14; b.armR.rotation.x = -2.3;
+        lx = Math.sin(ph * 0.8) * 0.6; ly = -0.55;
+      }
+      if (s === 'error') { // stoldan o'girilib, boshini qashiydi
+        b.head.rotation.x = 0.28; b.head.rotation.z = Math.sin(ph * 1.4) * 0.12;
+        b.armR.rotation.x = -2.75; b.armR.rotation.z = -0.25 + Math.sin(ph * 9) * 0.08; b.armL.rotation.x = -0.4;
+        lx = Math.sin(ph * 1.4) * 0.3; ly = 0.35;
+      }
+    }
+    if (b.pose === 'sofa') {
+      b.armL.rotation.x = -0.3;
+      if (s === 'idle') { b.armR.rotation.x = -1.05 - 0.45 * Math.max(0, Math.sin(ph * 0.6)); lx = Math.sin(ph * 0.35) * 0.4; }
+      if (s === 'sleeping') { b.head.rotation.z = 0.38; b.head.rotation.x = 0.15; b.m.scale.y = b.s0 * (1 + Math.sin(ph * 1.3) * 0.015); }
+    }
+    if (b.pose === 'stand') {
+      if (s === 'waiting') { // sizga qaraydi va qo'l silkitadi
+        b.armR.rotation.z = 2.55 + Math.sin(ph * 6) * 0.35;
+        v.copy(camera.position); b.g.worldToLocal(v);
+        b.head.rotation.y = clamp(Math.atan2(v.x, v.z), -0.9, 0.9); b.head.rotation.x = -0.22; ly = -0.3;
+      } else if (s === 'idle') { // krujka bilan turib, atrofga qaraydi
+        b.armR.rotation.x = -1.05; b.head.rotation.x = -0.1; b.head.rotation.y = Math.sin(ph * 0.5) * 0.35;
+        b.m.rotation.z = Math.sin(ph * 0.9) * 0.02; lx = Math.sin(ph * 0.5) * 0.5;
+      }
+    }
+  }
+  // buyruq: asosiy agent yordamchiga o'girilib, qo'li bilan ko'rsatadi
+  if (b.cmd && now < b.cmd.until) {
+    b.cmd.to.g.getWorldPosition(v); b.g.worldToLocal(v);
+    const yaw = Math.atan2(v.x, v.z);
+    b.head.rotation.y = clamp(yaw, -1.1, 1.1); lx = clamp(yaw, -1, 1) * 0.6; ly = 0;
+    (v.x > 0 ? b.armR : b.armL).rotation.set(-PI / 2 - 0.15, clamp(yaw, -1.6, 1.6), 0);
+  }
+  // o'tkinchi kayfiyat: ish tugadi — xursand sakraydi
+  const mood = b.mood && now < b.mood.until ? b.mood : null;
+  if (mood && mood.hop && !RM) b.m.position.y += Math.max(0, Math.sin((now - mood.t0) / 1000 * 11)) * 0.07 * Math.max(0, 1 - (now - mood.t0) / 900);
+  if (now > b.nextBlink) { b.blinkUntil = now + 130; b.nextBlink = now + 2400 + rnd() * 3200; }
+  drawFace(b, mood ? mood.emo : EMO[s], lx, ly, now < b.blinkUntil);
+  // bo'sh robot ba'zan turib yuradi (xonada e'tibor kerak bo'lmasa)
+  if (!RM && s === 'idle' && !b.path.length) {
+    if (b.wander) { if (b.pose === 'stand' && b.wander.until && now > b.wander.until) { b.wander = null; go(b, b.home); } }
+    else if (b.pose === 'sofa' && !o.outline.visible) {
+      b.nextWander ||= now + 7000 + rnd() * 9000;
+      if (now > b.nextWander) {
+        const taken = o.bots.filter(x => x.wander).map(x => x.wander.spot);
+        const free = SPOTS.filter(sp => !taken.includes(sp));
+        if (free.length) { const sp = free[Math.floor(rnd() * free.length)]; b.wander = { spot: sp, until: 0 }; go(b, { pose: 'stand', pos: sp.pos.clone(), rotY: sp.rotY }); }
+        b.nextWander = 0;
+      }
+    }
+  }
+  if (b.badge) b.badge.position.y = b.badgeY + Math.sin(ph * 2.2) * 0.03;
+  if (b.ring) b.ring.scale.setScalar(1 + 0.12 * Math.sin(t * 3));
+  if (b.zz) b.zz.forEach((z, k) => { const q = ((ph * 0.35 + k / 3) % 1); z.position.set(0.15 + q * 0.25, 0.85 + q * 0.5, 0); z.material.opacity = Math.sin(q * PI) * 0.9; });
+  const flash = b.flash ? Math.max(0, 1 - (now - b.flash) / 600) : 0;
+  b.tip.scale.setScalar(1 + (O.busy(s) ? 0.25 * Math.sin(ph * 4) : 0) + flash);
+  if (b.bub) { const left = b.bubUntil - now; if (left < 0) dropBubble(b); else b.bub.material.opacity = Math.min(1, left / 350); }
+}
+
+function animatePackets(now) {
+  for (let i = packets.length - 1; i >= 0; i--) {
+    const pk = packets[i], k = (now - pk.t0) / pk.d;
+    pk.card.visible = k >= 0;
+    if (k < 0) continue;
+    pk.from.g.getWorldPosition(v); v.y += 0.95;
+    pk.to.g.getWorldPosition(v2); v2.y += 0.95;
+    const e = Math.min(1, k), s = e * e * (3 - 2 * e);
+    pk.card.position.lerpVectors(v, v2, s); pk.card.position.y += Math.sin(e * PI) * 0.9;
+    pk.card.rotation.set(0.4, e * PI * 2, 0);
+    if (k >= 1) {
+      scene.remove(pk.card); pk.card.children[0].material.dispose(); packets.splice(i, 1);
+      pk.to.flash = now;
+      pk.to.mood = pk.kind === 'cmd' ? { emo: 'wide', t0: now, until: now + 900 } : { emo: 'happy', t0: now, until: now + 1800 };
+    }
+  }
+}
+
+let last = 0;
+function frame(now) {
+  requestAnimationFrame(frame);
+  if (!active || !host.clientWidth) return;
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  const t = RM ? 0 : now / 1000;
+  if (fly) {
+    const k = fly.d ? Math.min(1, (now - fly.t0) / fly.d) : 1, e = ease(k);
+    camera.position.lerpVectors(fly.p0, fly.p1, e); controls.target.lerpVectors(fly.q0, fly.q1, e);
+    if (k >= 1) fly = null;
+  }
+  controls.update();
+  R.forEach(o => {
+    o.ringMat.opacity = 0.55 + 0.4 * Math.sin(t * 3);
+    o.bots.forEach(b => animateBot(b, o, t, dt, now));
+    v.copy(o.anchor).project(camera);
+    const vis = v.z < 1;
+    o.label.style.display = vis ? '' : 'none';
+    if (vis) o.label.style.transform = `translate(calc(${(v.x * 0.5 + 0.5) * host.clientWidth}px - 50%), calc(${(-v.y * 0.5 + 0.5) * host.clientHeight}px - 100%))`;
+  });
+  animatePackets(now);
+  animateDrone(t, dt, now);
+  composer ? composer.render() : renderer.render(scene, camera);
+}
+requestAnimationFrame(frame);
+
+window.office3d = { sync };
+sync(O.dir === 'D');
+</script>
+</body>
+</html>
