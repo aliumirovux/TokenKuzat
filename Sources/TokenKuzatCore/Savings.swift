@@ -127,7 +127,8 @@ public enum SavingsAdvisor {
         return results.filter { $0.date > c }
     }
 
-    public static func tips(for s: SessionSnap, now: Date = Date()) -> [SavingsTip] {
+    public static func tips(for s: SessionSnap, now: Date = Date(),
+                            instructions: (String) -> [InstructionFile] = { InstructionFiles.read($0) }) -> [SavingsTip] {
         var out: [SavingsTip] = []
         let main = s.main
 
@@ -252,17 +253,24 @@ public enum SavingsAdvisor {
             let used = (main.resources.first { $0.category == .mcp }?.items ?? [])
                 .filter { $0.id.range(of: #"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-"#, options: .regularExpression) == nil }
                 .prefix(6).map(\.name)
+            // InstructionsLoaded hook'i yozgan CLAUDE.md va qoida fayllari — kattasidan
+            let files = instructions(s.id).filter { $0.tokens > 0 }.sorted { $0.tokens > $1.tokens }
+            let listed = files.prefix(5).map { "\(InstructionFiles.shortName($0.path)) \(Fmt.tokens($0.tokens))" }.joined(separator: ", ")
+            let filesNote = files.isEmpty ? "" : tr(" Ko'rsatma fayllari (\(Fmt.tokens(files.reduce(0) { $0 + $1.tokens }))): \(listed) — "
+                                                    + "keraksiz qismini qisqartirsangiz, har sessiya yengilroq boshlanadi.",
+                                                    " Instruction files (\(Fmt.tokens(files.reduce(0) { $0 + $1.tokens }))): \(listed) — "
+                                                    + "trimming what's not needed makes every session start lighter.")
             out.append(SavingsTip(
                 kind: .heavyStart, level: main.calls >= 150 ? .notable : .info,
                 title: tr("Sessiya \(Fmt.tokens(start)) bilan boshlangan", "Session started at \(Fmt.tokens(start))"),
                 detail: tr("Bu — ish boshlanmasdan oldingi qism: tizim ko'rsatmalari, ulangan konnektorlar, pluginlar va skill'lar ro'yxati. "
                     + "Terminalda sessiyalar ~40–65K dan boshlanadi. Claude ilovasida shu ishga kerakmas konnektorlarni o'chirsangiz, "
                     + "har chaqiruv yengillashadi"
-                    + (used.isEmpty ? " — bu sessiyada birorta ham tashqi xizmat ishlatilmagan." : ". Bu sessiyada ishlatilganlari: \(used.joined(separator: ", ")).") ,
+                    + (used.isEmpty ? " — bu sessiyada birorta ham tashqi xizmat ishlatilmagan." : ". Bu sessiyada ishlatilganlari: \(used.joined(separator: ", ")).") + filesNote,
                     "This is what loads before any work: system instructions, connected connectors, the list of plugins and skills. "
                     + "In the terminal, sessions start at ~40–65K. Turning off connectors this task doesn't need in the Claude app "
                     + "makes every call lighter"
-                    + (used.isEmpty ? " — this session didn't use a single external service." : ". Used in this session: \(used.joined(separator: ", ")).")) ,
+                    + (used.isEmpty ? " — this session didn't use a single external service." : ". Used in this session: \(used.joined(separator: ", ")).") + filesNote),
                 tokens: extra, perCall: true))
         }
 

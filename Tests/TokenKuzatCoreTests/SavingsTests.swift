@@ -248,6 +248,39 @@ final class SavingsTests: XCTestCase {
         XCTAssertNil(SavingsAdvisor.tips(for: light, now: t0).first { $0.kind == .heavyStart })
     }
 
+    func testHeavyStartListsInstructionFiles() throws {
+        let heavy = session(context: 120_000, steps: [], calls: 40, usage: [point(0, context: 103_000)])
+        let files = [InstructionFile(path: "/Users/a/.claude/CLAUDE.md", type: "User", reason: "session_start", bytes: 4_000),
+                     InstructionFile(path: "/p/.claude/rules/swift.md", type: "Project", reason: "session_start", bytes: 36_000)]
+        let tip = try XCTUnwrap(Lang.with(english: false) {
+            SavingsAdvisor.tips(for: heavy, now: t0, instructions: { _ in files }).first { $0.kind == .heavyStart }
+        })
+        XCTAssertTrue(tip.detail.contains("Ko'rsatma fayllari (10,0K): rules/swift.md 9,0K, .claude/CLAUDE.md 1,0K"), tip.detail)
+    }
+
+    func testInstructionsLoadedIsRecordedPerSession() throws {
+        let fm = FileManager.default
+        let dir = fm.temporaryDirectory.appendingPathComponent("tk-instr-\(UUID().uuidString)")
+        defer { try? fm.removeItem(at: dir) }
+        let file = dir.appendingPathComponent("CLAUDE.md")
+        try fm.createDirectory(at: dir, withIntermediateDirectories: true)
+        try Data(repeating: 65, count: 800).write(to: file)
+        func input(_ reason: String) -> [String: Any] {
+            ["hook_event_name": "InstructionsLoaded", "session_id": "s1", "file_path": file.path,
+             "memory_type": "Project", "load_reason": reason]
+        }
+        XCTAssertFalse(InstructionFiles.record(["hook_event_name": "Notification", "session_id": "s1"], dir: dir))
+        XCTAssertTrue(InstructionFiles.record(input("session_start"), dir: dir))
+        // Qisqartirishdan keyin qayta yuklansa — takrorlanmaydi
+        XCTAssertTrue(InstructionFiles.record(input("compact"), dir: dir))
+        let all = InstructionFiles.read("s1", dir: dir)
+        XCTAssertEqual(all.count, 1)
+        XCTAssertEqual(all.first?.bytes, 800)
+        XCTAssertEqual(all.first?.tokens, 200)
+        XCTAssertEqual(InstructionFiles.shortName("/h/.claude/CLAUDE.md", home: "/h"), "~/.claude/CLAUDE.md")
+        XCTAssertEqual(InstructionFiles.shortName("/p/Demo/CLAUDE.md", home: "/h"), "Demo/CLAUDE.md")
+    }
+
     func testResultTokens() {
         XCTAssertEqual(TranscriptParser.resultTokens(String(repeating: "a", count: 4000)), 1000)
         let blocks: [[String: Any]] = [["type": "text", "text": String(repeating: "b", count: 400)], ["type": "image"]]

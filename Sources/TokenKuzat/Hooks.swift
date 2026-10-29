@@ -40,17 +40,17 @@ enum Hooks {
         return entries(s).contains { isOurs($0) }
     }
 
-    /// Bitta skript ikki hodisaga ulanadi: ruxsat so'rovi va API xatosi bilan uzilgan javob
-    private static let events = ["Notification", "StopFailure"]
+    /// Bitta skript uch hodisaga ulanadi: ruxsat so'rovi, API xatosi bilan uzilgan javob va yuklangan CLAUDE.md / qoida fayli
+    private static let events = ["Notification", "StopFailure", InstructionFiles.event]
 
     private static func entries(_ s: [String: Any], _ event: String = "Notification") -> [[String: Any]] {
         ((s["hooks"] as? [String: Any])?[event] as? [[String: Any]]) ?? []
     }
 
-    /// Eski versiya faqat Notification'ga ulagan — StopFailure yo'q bo'lsa qayta ulanadi
+    /// Eski versiya hodisalarning bir qismiga ulangan — birortasi yetishmasa qayta ulanadi
     static var needsUpgrade: Bool {
         guard let s = try? StatusLine.readSettings() else { return false }
-        return entries(s).contains { isOurs($0) } && !entries(s, "StopFailure").contains { isOurs($0) }
+        return entries(s).contains { isOurs($0) } && events.contains { e in !entries(s, e).contains { isOurs($0) } }
     }
 
     private static func isOurs(_ entry: [String: Any]) -> Bool {
@@ -92,6 +92,8 @@ enum Hooks {
         let data = FileHandle.standardInput.readDataToEndOfFile()
         guard var o = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
               let sid = o["session_id"] as? String, !sid.isEmpty, !sid.contains("/") else { exit(0) }
+        // Yuklangan fayl — alohida ro'yxatga; bildirishnoma holatini (hooks/<sid>.json) bosib ketmasin
+        if InstructionFiles.record(o) { exit(0) }
         o["received_at"] = Date().timeIntervalSince1970
         let dir = HookEvents.defaultDirectory
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)

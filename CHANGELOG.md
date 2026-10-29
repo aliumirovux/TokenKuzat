@@ -1,5 +1,9 @@
 # O'zgarishlar
 
+## 6.49.0 — 2026-10-29
+
+- «Og'ir boshlanish» maslahati endi aniq fayllarni ko'rsatadi: qaysi `CLAUDE.md` va `.claude/rules/` fayli sessiyaga yuklangani va qancha joy olgani («Ko'rsatma fayllari (10K): rules/swift.md 9K, ~/.claude/CLAUDE.md 1K»). Ma'lumot Claude Code'ning «InstructionsLoaded» hook'idan keladi: fayl sessiya boshida, ichki papkaga kirilganda yoki qoida mos kelganda yuklansa, ilova uni hajmi bilan yozib qo'yadi. Hook bildirishnoma hook'i bilan birga ulanadi, eski versiyadan yangilanganda ilova uni o'zi qo'shadi.
+
 ## 6.48.1 — 2026-10-29
 
 - Ko'chirish eslatmasi endi Claude ilovasida ko'rinmaydi. Avval u `<!-- … -->` izohi bo'lib yozilardi, Claude ilovasi esa uni yashirmay, javob oxirida chalkash matn qilib ko'rsatardi. Endi har qatori Markdown havola ta'rifi (`[tk-handoff]: <…>`), Markdown uni chizmaydi. Eski formatdagi eslatmalar ham o'qiladi.
