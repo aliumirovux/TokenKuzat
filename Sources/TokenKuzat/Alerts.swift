@@ -74,12 +74,12 @@ final class Alerts: NSObject, UNUserNotificationCenterDelegate {
             let ok = AutoHandoff.start(sess, target: target)
             let start = SavingsAdvisor.startContext(for: sess) ?? SavingsAdvisor.baseline
             post(tr("\(sess.project): yangi sessiya ochildi", "\(sess.project): new session opened"),
-                 ok ? tr("Kontekst \(Fmt.tokens(sess.contextTokens)) edi. Xulosa tayyor — yangi sessiyada birinchi xabarni yozing, "
-                         + "Claude ishni qayerda to'xtaganini o'zi oladi (kontekst ~\(Fmt.tokens(start)) dan boshlanadi).",
-                         "Context was \(Fmt.tokens(sess.contextTokens)). The summary is ready — send your first message in the new session "
-                         + "and Claude picks up where the work stopped (context starts at ~\(Fmt.tokens(start))).")
-                    : tr("Xulosani saqlab bo'lmadi — sessiyani oching va «Yangi sessiyada davom ettirish»ni bosing.",
-                         "Couldn't save the summary — open the session and click «Continue in a new session»."),
+                 ok ? tr("Kontekst \(Fmt.tokens(sess.contextTokens)) edi. Xulosa yangi sessiyaga yuborildi — Claude ishni o'zi davom ettiradi "
+                         + "(kontekst ~\(Fmt.tokens(start)) dan boshlanadi). Eski sessiyada davom etmang.",
+                         "Context was \(Fmt.tokens(sess.contextTokens)). The summary was sent to a new session — Claude continues the work itself "
+                         + "(context starts at ~\(Fmt.tokens(start))). Don't keep working in the old session.")
+                    : tr("Yangi sessiyani ochib bo'lmadi — sessiyani oching va «Yangi sessiyada davom ettirish»ni bosing.",
+                         "Couldn't open a new session — open the session and click «Continue in a new session»."),
                  session: sess.id)
         }
     }

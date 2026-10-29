@@ -14,6 +14,19 @@ public enum AutoHandoffRule {
         guard let previous, previous != .idle else { return false }
         return Double(context) >= thresholdK * 1000
     }
+
+    /// Yangi sessiyaning birinchi xabari — o'zi yuboriladi: nima uchun ko'chirilgani, xulosa va nima qilish kerakligi.
+    /// Ish tugagan bo'lsa — yangi ish boshlamaydi, holatni aytib kutadi
+    public static func firstMessage(summary: String, previousContext: Int, limit: Int = 8000) -> String {
+        let head = tr("Token Kuzatuv: oldingi sessiya konteksti \(Fmt.tokens(previousContext)) ga yetgani uchun ish shu yangi sessiyaga ko'chirildi "
+                      + "(har javobda butun suhbat qayta o'qilmasin). Quyidagi xulosaga tayan. Tugallanmagan ish bo'lsa — davom ettir. "
+                      + "Ish tugagan yoki keyingi qadam men qaror qilishim kerak bo'lsa — hech narsa boshlamay, 2–3 jumlada holatni ayt va kut.",
+                      "Token Kuzatuv: the previous session's context reached \(Fmt.tokens(previousContext)), so the work moved to this new session "
+                      + "(so the whole conversation isn't re-read on every reply). Rely on the summary below. If there's unfinished work, continue it. "
+                      + "If the work is done or the next step is my decision, don't start anything — state where things stand in 2–3 sentences and wait.")
+        let body = summary.count > limit ? String(summary.prefix(limit)) + "…" : summary
+        return head + "\n\n" + body
+    }
 }
 
 /// Yangi sessiya qayerda ochiladi

@@ -242,7 +242,10 @@ public enum SavingsAdvisor {
         if !turns.isEmpty {
             lines.append("")
             lines.append(tr("So'nggi vazifalar:", "Recent tasks:"))
-            for t in turns { lines.append("- #\(t.id): \(t.prompt)") }
+            for t in turns {
+                let p = t.prompt.replacingOccurrences(of: "\n", with: " ")
+                lines.append("- #\(t.id): " + (p.count > 400 ? String(p.prefix(400)) + "…" : p))
+            }
         }
         let changed = Array(Set(s.agents.flatMap(\.steps).filter { $0.category == .files && $0.access == .write }
             .map { $0.targetKey.replacingOccurrences(of: "files|", with: "") })).sorted()

@@ -89,8 +89,8 @@ struct SettingsView: View {
                 Toggle(tr("Isrof: kontekst 200K dan oshsa yoki loyiha bugun sarfining 40%+ ini isrof qilsa", "Waste: context passes 200K, or a project wastes 40%+ of today's usage"), isOn: $notifyWaste)
                 Toggle(isOn: $autoHandoff) {
                     Text(tr("Kontekst katta bo'lsa — avtomatik yangi sessiya", "Large context — open a new session automatically"))
-                    Text(tr("Claude javobni tugatgach xulosa saqlanadi va yangi sessiya ochiladi; ish o'rtasida to'xtatilmaydi",
-                            "After Claude finishes its reply, a summary is saved and a new session opens; work is never interrupted"))
+                    Text(tr("Claude javobni tugatgach yangi sessiya ochiladi va xulosa o'zi yuboriladi — Claude ishni o'zi davom ettiradi; ish o'rtasida to'xtatilmaydi",
+                            "After Claude finishes its reply, a new session opens and the summary is sent automatically — Claude continues the work itself; work is never interrupted"))
                 }
                 if autoHandoff {
                     Picker(tr("…kontekst oshganda", "…when context passes"), selection: $autoHandoffK) {

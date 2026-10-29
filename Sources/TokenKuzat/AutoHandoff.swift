@@ -2,8 +2,8 @@ import Foundation
 import AppKit
 import TokenKuzatCore
 
-/// Yangi sessiya ochish: xulosa saqlanadi (SessionStart hook uni yangi sessiyaga beradi) va
-/// Claude ilovasida yoki Terminalda yangi sessiya ochiladi. «Yangi sessiyada davom ettirish» tugmasi ham shundan foydalanadi.
+/// Yangi sessiya ochish. Avtomatik rejimda xulosa birinchi xabar bo'lib o'zi yuboriladi; «Yangi sessiyada davom ettirish»
+/// tugmasi esa xulosani saqlaydi (`arm`) — keyingi yangi sessiyaga SessionStart hook beradi.
 enum AutoHandoff {
     /// Xulosani saqlaydi. Muvaffaqiyatsiz bo'lsa — false
     @discardableResult
@@ -18,30 +18,34 @@ enum AutoHandoff {
         }
     }
 
-    /// Xulosani saqlab, yangi sessiyani ochadi. Xulosa saqlanmasa — hech narsa ochilmaydi
+    /// Yangi sessiyani ochib, xulosani birinchi xabar sifatida o'zi yuboradi — Claude ishni o'zi davom ettiradi.
+    /// Xabar havolada (ilova) yoki buyruq argumentida (Terminal) beriladi, shuning uchun papka mos kelmasa ham yetib boradi
     @discardableResult
     static func start(_ sess: SessionSnap, target: AutoHandoffTarget) -> Bool {
-        guard arm(sess) else { return false }
+        let message = AutoHandoffRule.firstMessage(summary: SavingsAdvisor.handoff(for: sess), previousContext: sess.contextTokens)
         switch target {
-        case .app: openInApp(cwd: sess.cwd)
-        case .terminal: openInTerminal(cwd: sess.cwd)
+        case .app: return openInApp(cwd: sess.cwd, message: message)
+        case .terminal: return openInTerminal(cwd: sess.cwd, message: message)
         }
-        return true
     }
 
     /// Claude ilovasida yangi Code sessiyasi — o'sha papkada (Finder'dagi «New Claude Code Session Here» bilan bir xil havola).
-    /// `folder`siz havola ilovani faqat oldinga chiqaradi, sessiya ochmaydi
-    static func openInApp(cwd: String?) {
+    /// `folder`siz havola ilovani faqat oldinga chiqaradi, sessiya ochmaydi; `q` — birinchi xabar, darhol yuboriladi
+    @discardableResult
+    static func openInApp(cwd: String?, message: String? = nil) -> Bool {
         var c = URLComponents()
         c.scheme = "claude"
         c.host = "code"
         c.path = "/new"
         var items: [URLQueryItem] = []
         if let dir = projectDir(cwd) { items.append(URLQueryItem(name: "folder", value: dir)) }
+        if let message { items.append(URLQueryItem(name: "q", value: message)) }
         items.append(URLQueryItem(name: "source", value: "services"))
         c.queryItems = items
-        guard let url = c.url else { return }
-        NSWorkspace.shared.open(url)
+        // «+» va «&» kabi belgilar so'rov qiymatida aniq kodlansin
+        c.percentEncodedQuery = c.percentEncodedQuery?.replacingOccurrences(of: "+", with: "%2B")
+        guard let url = c.url else { return false }
+        return NSWorkspace.shared.open(url)
     }
 
     /// Haqiqiy loyiha papkasi (Claude ilovasining vaqtinchalik papkasi yoki yo'q papka — nil)
@@ -51,19 +55,27 @@ enum AutoHandoff {
         return dir
     }
 
-    /// Terminal.app'da loyiha papkasida `claude`. Claude ilovasining vaqtinchalik papkasi bo'lsa — uy papkasida
-    static func openInTerminal(cwd: String?) {
+    /// Terminal.app'da loyiha papkasida `claude "<birinchi xabar>"`. Claude ilovasining vaqtinchalik papkasi bo'lsa — uy papkasida
+    @discardableResult
+    static func openInTerminal(cwd: String?, message: String? = nil) -> Bool {
         let home = FileManager.default.homeDirectoryForCurrentUser.path
         let dir = projectDir(cwd) ?? home
-        let quoted = "'" + dir.replacingOccurrences(of: "'", with: "'\\''") + "'"
-        let script = "#!/bin/zsh -l\ncd \(quoted) && exec claude\n"
-        let url = ProjectSavingsHistory.defaultURL.deletingLastPathComponent().appendingPathComponent("new-session.command")
+        func quote(_ s: String) -> String { "'" + s.replacingOccurrences(of: "'", with: "'\\''") + "'" }
+        let folder = ProjectSavingsHistory.defaultURL.deletingLastPathComponent()
+        let url = folder.appendingPathComponent("new-session.command")
+        let promptURL = folder.appendingPathComponent("new-session-prompt.txt")
         do {
-            try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
-            try script.write(to: url, atomically: true, encoding: .utf8)
+            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+            var run = "exec claude"
+            if let message {
+                try message.write(to: promptURL, atomically: true, encoding: .utf8)
+                run = "exec claude \"$(cat \(quote(promptURL.path)))\""
+            }
+            try "#!/bin/zsh -l\ncd \(quote(dir)) && \(run)\n".write(to: url, atomically: true, encoding: .utf8)
             try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: url.path)
-        } catch { return }
+        } catch { return false }
         let terminal = URL(fileURLWithPath: "/System/Applications/Utilities/Terminal.app")
         NSWorkspace.shared.open([url], withApplicationAt: terminal, configuration: NSWorkspace.OpenConfiguration())
+        return true
     }
 }
