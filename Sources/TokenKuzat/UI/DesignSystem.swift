@@ -138,6 +138,19 @@ extension View {
         }
     }
 
+    /// Apple Liquid Glass karta (macOS 26+); eskisida — shaffof material va ingichka yorug' chegara
+    @ViewBuilder
+    func glassCard(radius: CGFloat = 18) -> some View {
+        let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
+        if #available(macOS 26.0, *) {
+            glassEffect(.regular, in: shape)
+        } else {
+            background(.regularMaterial, in: shape)
+                .overlay(shape.strokeBorder(.white.opacity(0.12), lineWidth: 0.5))
+                .shadow(color: .black.opacity(0.18), radius: 18, y: 8)
+        }
+    }
+
     /// Hover'da biroz ko'tariladi — bosiladigan kartalar uchun
     func hoverLift(_ amount: CGFloat = 1.008) -> some View {
         modifier(HoverLift(amount: amount))

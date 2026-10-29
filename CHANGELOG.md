@@ -1,5 +1,9 @@
 # O'zgarishlar
 
+## 6.39.0 — 2026-10-29
+
+- Xulosa: chap tepa burchakdagi token kartasi Apple vidjetlari uslubida qayta chizildi. Endi u shisha fonda (macOS 26+ da Liquid Glass) turadi. Sarlavha bosh harflar o'rniga oddiy yozuvda va belgi bilan: «✦ Asosiy agent · shu so'rovda». Raqam kattaroq va yumaloq shriftda. Yordamchi agentlar bo'lsa, raqam ostida ulush chizig'i chiqadi va «Asosiy 5,0M · Yordamchilar 400K» deb yoziladi.
+
 ## 6.38.0 — 2026-10-29
 
 - Xulosa: kanvasning chap tepa burchagida agent sarflagan token katta raqam bilan («SHU SO'ROVDA · ASOSIY AGENT — 1,8M token»). Yordamchi agentlar bo'lsa — ularning sarfi pastida alohida. Boshqa agent tanlansa, raqam o'sha agentniki bo'ladi. To'liq ekran rejimida raqam Xarita/Xulosa tablari ostida turadi.

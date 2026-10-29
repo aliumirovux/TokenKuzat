@@ -814,7 +814,7 @@ private struct ResultNode: View {
     }
 }
 
-/// Chap tepa burchak: tanlangan agent (odatda asosiy) shu so'rovda qancha token sarflagani — katta raqam bilan
+/// Chap tepa burchak: tanlangan agent (odatda asosiy) shu so'rovda qancha token sarflagani — Apple vidjetlari uslubida
 private struct FlowTokenHUD: View {
     let model: FlowModel
     let agentId: String?
@@ -825,29 +825,77 @@ private struct FlowTokenHUD: View {
         if let lane = lanes.first(where: { $0.id == agentId }) ?? model.main ?? lanes.first {
             let spent = lane.tokens.value(mode)
             let others = lanes.filter { $0.id != lane.id }.reduce(0.0) { $0 + $1.tokens.value(mode) }
-            let name = lane.agent.isMain ? tr("asosiy agent", "main agent") : lane.agent.title
-            VStack(alignment: .leading, spacing: 2) {
-                Text((model.scoped ? tr("SHU SO'ROVDA", "THIS PROMPT") : tr("BUTUN SESSIYADA", "WHOLE SESSION")) + " · " + name.uppercased())
-                    .eyebrow().lineLimit(1)
-                HStack(alignment: .firstTextBaseline, spacing: 6) {
+            let isMain = lane.agent.isMain
+            let tint = isMain ? Palette.main : Palette.agents
+            VStack(alignment: .leading, spacing: 0) {
+                HStack(spacing: 6) {
+                    Image(systemName: isMain ? "sparkles" : "arrow.triangle.branch")
+                        .font(.system(size: 11, weight: .semibold))
+                    Text(isMain ? tr("Asosiy agent", "Main agent") : lane.agent.title)
+                        .fontWeight(.semibold)
+                    Text(model.scoped ? tr("· shu so'rovda", "· this prompt") : tr("· butun sessiya", "· whole session"))
+                        .foregroundStyle(Color.secondary)
+                }
+                .font(.system(size: 12.5)).foregroundStyle(tint).lineLimit(1)
+
+                HStack(alignment: .firstTextBaseline, spacing: 5) {
                     Text(Fmt.tokens(spent))
-                        .font(.system(size: 30, weight: .semibold, design: .rounded)).monospacedDigit()
+                        .font(.system(size: 38, weight: .bold, design: .rounded)).monospacedDigit()
+                        .tracking(-0.6)
                         .numericTransition(spent)
                     Text(mode == .weighted ? tr("token · narx bo'yicha", "tokens · by price") : tr("token", "tokens"))
-                        .font(.callout.weight(.medium)).foregroundStyle(.secondary)
+                        .font(.system(size: 15, weight: .semibold, design: .rounded))
+                        .foregroundStyle(.secondary)
                 }
+                .padding(.top, 2)
+
                 if others > 0 {
-                    Text(lane.agent.isMain
-                         ? tr("+ yordamchi agentlar \(Fmt.tokens(others))", "+ helper agents \(Fmt.tokens(others))")
-                         : tr("+ boshqa agentlar \(Fmt.tokens(others))", "+ other agents \(Fmt.tokens(others))"))
-                        .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+                    ShareBar(part: spent, rest: others, tint: tint)
+                        .padding(.top, 10)
+                    HStack(spacing: 12) {
+                        legend(tint, isMain ? tr("Asosiy", "Main") : tr("Shu agent", "This agent"), spent)
+                        legend(Color.secondary.opacity(0.45),
+                               isMain ? tr("Yordamchilar", "Helpers") : tr("Boshqalar", "Others"), others)
+                    }
+                    .padding(.top, 7)
                 }
             }
-            .padding(.horizontal, 14).padding(.vertical, 10)
-            .modifier(Surface(shape: RoundedRectangle(cornerRadius: 14, style: .continuous)))
+            .frame(minWidth: others > 0 ? 210 : 0, alignment: .leading)
+            .fixedSize()
+            .padding(.horizontal, 16).padding(.top, 12).padding(.bottom, 14)
+            .glassCard(radius: 20)
             .help(model.scoped ? tr("Bu agent shu so'rovda sarflagan token", "Tokens this agent used in this prompt")
                                : tr("Bu agent butun sessiyada sarflagan token", "Tokens this agent used in the whole session"))
         }
+    }
+
+    private func legend(_ color: Color, _ title: String, _ value: Double) -> some View {
+        HStack(spacing: 5) {
+            Circle().fill(color).frame(width: 6, height: 6)
+            Text(title).foregroundStyle(.secondary)
+            Text(Fmt.tokens(value)).fontWeight(.semibold).monospacedDigit()
+        }
+        .font(.system(size: 11))
+    }
+}
+
+/// Ingichka ulush chizig'i: tanlangan agent — rangli, qolganlari — xira
+private struct ShareBar: View {
+    let part: Double
+    let rest: Double
+    let tint: Color
+
+    var body: some View {
+        GeometryReader { g in
+            let total = max(part + rest, 1)
+            let w = max(g.size.width * part / total, 4)
+            HStack(spacing: 2) {
+                Capsule().fill(tint).frame(width: min(w, g.size.width - 6))
+                Capsule().fill(Color.secondary.opacity(0.28))
+            }
+        }
+        .frame(height: 5)
+        .animation(Motion.smooth, value: part)
     }
 }
 
