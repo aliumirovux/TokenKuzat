@@ -58,6 +58,19 @@ final class Alerts: NSObject, UNUserNotificationCenterDelegate {
     // MARK: - Avtomatik yangi sessiya
 
     private var autoPrevious: [String: AgentState] = [:]
+    /// Eslatma so'ralayotgan sessiyalar (faylga faqat to'plam o'zgarganda yoziladi; kontekst — 10K aniqlikda)
+    private var noteRequests: [String: NoteRequestStore.Request]?
+
+    private func updateNoteRequests(_ wanted: [String: NoteRequestStore.Request]) {
+        let rounded = wanted.mapValues { NoteRequestStore.Request(context: $0.context / 10_000 * 10_000, english: $0.english) }
+        guard rounded != noteRequests else { return }
+        let first = noteRequests == nil
+        noteRequests = rounded
+        // Ilova ishga tushganda fayl bo'lmasa — hech narsa qilinmaydi (keraksiz yozish va hook o'rnatish yo'q)
+        if first && rounded.isEmpty && !FileManager.default.fileExists(atPath: NoteRequestStore.defaultURL.path) { return }
+        NoteRequestStore.save(rounded)
+        if !rounded.isEmpty { try? PromptRedirectHook.install() }
+    }
     private var redirectArmed: Set<String> = []
 
     /// Eski sessiyaning keyingi xabari yangi sessiyaga ketsin: xulosa saqlanadi, hook ulanadi
@@ -83,8 +96,20 @@ final class Alerts: NSObject, UNUserNotificationCenterDelegate {
     private func evaluateAutoHandoff(_ s: Snapshot) {
         defer { autoPrevious = Dictionary(s.sessions.map { ($0.id, $0.state) }, uniquingKeysWith: { a, _ in a }) }
         let d = UserDefaults.standard
-        guard s.initialScanDone, d.bool(forKey: Pref.autoHandoff) else { return }
+        guard s.initialScanDone, d.bool(forKey: Pref.autoHandoff) else {
+            updateNoteRequests([:])
+            return
+        }
         let k = d.double(forKey: Pref.autoHandoffK)
+        // Chegaraga yaqin, hali ko'chirilmagan, so'nggi sutkada ishlagan sessiyalar — Claude javob oxirida eslatma yozsin
+        let askFrom = HandoffNote.askFrom(thresholdK: k)
+        let recent = Date().addingTimeInterval(-86400)
+        updateNoteRequests(Dictionary(s.sessions.filter {
+            $0.contextTokens >= askFrom && ($0.lastActivity ?? .distantPast) >= recent
+                && !AutoHandoffRule.alreadyDone(doneAt: autoDoneContext[$0.id], known: autoDone[$0.id] != nil,
+                                                context: $0.contextTokens, thresholdK: k)
+        }.map { ($0.id, NoteRequestStore.Request(context: $0.contextTokens, english: SavingsAdvisor.conversationEnglish($0))) },
+        uniquingKeysWith: { a, _ in a }))
         // Ko'chirilgan sessiyalar (shu jumladan ilova qayta ishga tushishidan oldingilari) — keyingi xabari yangi sessiyaga yo'naltiriladi
         if d.bool(forKey: Pref.autoHandoffRedirect) {
             let cutoff = Date().timeIntervalSince1970 - RedirectStore.lifetime

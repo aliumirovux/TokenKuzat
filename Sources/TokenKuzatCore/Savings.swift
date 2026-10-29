@@ -276,7 +276,7 @@ public enum SavingsAdvisor {
         for st in (s.main?.steps ?? []).reversed() where st.date >= since {
             if let input = st.input, let q = jsonField(input, ["ask", "question"]) { return q }
         }
-        let last = lastReply(s)?.text.split(separator: "\n")
+        let last = lastReply(s).map { HandoffNote.extract(from: $0.text)?.rest ?? $0.text }?.split(separator: "\n")
             .map { $0.trimmingCharacters(in: .whitespaces) }.last { !$0.isEmpty }
         return last.flatMap { $0.hasSuffix("?") ? $0 : nil }
     }
@@ -321,9 +321,19 @@ public enum SavingsAdvisor {
         }.map(\.element)
     }
 
-    /// Ish nomi: oldingi sessiya nomi, u yo'q bo'lsa — so'nggi ma'noli vazifa. 60 belgigacha, so'z chegarasida
-    static func handoffTask(_ s: SessionSnap) -> String? {
-        var name = s.title.hasPrefix("↪ ") ? String(s.title.dropFirst(2)) : s.title
+    /// Claude yozgan ko'chirish eslatmasi — faqat oxirgi so'rovga berilgan javobdan (eskisi ishning hozirgi holatini aytmaydi)
+    static func handoffNote(_ s: SessionSnap) -> (note: String, reply: NoteSnap)? {
+        let since = s.turns.last?.start ?? .distantPast
+        for n in s.notes.reversed() where n.kind == .reply && n.agent == nil && n.date >= since {
+            if let x = HandoffNote.extract(from: n.text) { return (x.note, n) }
+        }
+        return nil
+    }
+
+    /// Ish nomi: Claude eslatmasidagi «Ish», oldingi sessiya nomi, so'nggi ma'noli vazifa. 60 belgigacha, so'z chegarasida
+    static func handoffTask(_ s: SessionSnap, note: String? = nil) -> String? {
+        var name = note.flatMap { HandoffNote.field($0, ["Ish", "Task"]) }
+            ?? (s.title.hasPrefix("↪ ") ? String(s.title.dropFirst(2)) : s.title)
         // Nomsiz yoki eski usulda ko'chirilgan sessiyaning umumiy nomi — ish nomi emas
         let generic = ["Nomsiz sessiya", "Untitled session", "Oldingi sessiya davomi", "Continued session"]
         if name.trimmingCharacters(in: .whitespaces).isEmpty || generic.contains(name) || AutoHandoffRule.isHandoffPrompt(name) {
@@ -341,13 +351,20 @@ public enum SavingsAdvisor {
         var lines: [String] = []
         // Birinchi qator — «↪ Loyiha — ish»: Claude ilovasi sessiya nomini birinchi xabardan yasaydi
         let folder = projectFolder(for: s)
+        let note = handoffNote(s)
         let project = folder.map { URL(fileURLWithPath: $0).lastPathComponent }
             ?? (s.cwd.map(HandoffStore.isScratch) == true ? nil : s.project)
-        lines.append(AutoHandoffRule.headline(project: project, task: handoffTask(s)))
+        lines.append(AutoHandoffRule.headline(project: project, task: handoffTask(s, note: note?.note)))
         lines.append("")
         lines.append(tr("Bu — oldingi Claude Code sessiyasining davomi (\(project ?? s.project)). Quyidagi xulosaga tayanib ishni davom ettir.", "This continues a previous Claude Code session (\(project ?? s.project)). Continue the work based on the summary below."))
         if let folder {
             lines.append(tr("Loyiha papkasi: \(folder)", "Project folder: \(folder)"))
+        }
+        if let note {
+            lines.append("")
+            lines.append(tr("Claude'ning ko'chirish eslatmasi (oldingi sessiya oxirida o'zi yozgan — asosan shunga tayan):",
+                            "Claude's handoff note (written at the end of the previous session — rely on it first):"))
+            lines.append(note.note)
         }
         let turns = meaningfulTurns(s).suffix(lastTurns)
         if !turns.isEmpty {
@@ -379,9 +396,13 @@ public enum SavingsAdvisor {
             lines += git
         }
         if let reply = lastReply(s) {
-            lines.append("")
-            lines.append(tr("Oxirgi holat (oldingi javobdan):", "Last state (from the previous reply):"))
-            lines.append(tail(reply.text, max: 1500))
+            // Eslatma bor javobdan eslatmaning o'zi olib tashlanadi — yuqorida bor
+            let text = reply.id == note?.reply.id ? (HandoffNote.extract(from: reply.text)?.rest ?? reply.text) : reply.text
+            if !text.isEmpty {
+                lines.append("")
+                lines.append(tr("Oxirgi holat (oldingi javobdan):", "Last state (from the previous reply):"))
+                lines.append(tail(text, max: 1500))
+            }
         }
         if let q = pendingQuestion(s) {
             lines.append("")

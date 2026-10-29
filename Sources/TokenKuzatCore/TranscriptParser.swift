@@ -19,7 +19,8 @@ public struct TranscriptEvent {
     }
 
     /// Saqlanadigan matn uzunligi — uzun sessiyalarda xotira o'smasin
-    public static let noteLimit = 2000
+    /// Uzun javobning oxiri ko'chirish eslatmasi bilan birga sig'sin
+    public static let noteLimit = 3000
     /// Qadam kirishi va chiqishidan saqlanadigan qism (xaritadagi tafsilot uchun)
     public static let inputLimit = 1200
     public static let outputLimit = 1500

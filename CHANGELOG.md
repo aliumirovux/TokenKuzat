@@ -1,5 +1,12 @@
 # O'zgarishlar
 
+## 6.44.0 — 2026-10-29
+
+- Avtomatik yangi sessiya: kontekst chegaraga yaqinlashganda (chegaradan 15%, kamida 20K oldin) Claude javobining oxiriga ko'rinmaydigan ko'chirish eslatmasini yozadi — ish, nima bajarilgani, nima qolgani, kutilayotgan qaror va muhim jihatlar. Yangi sessiya xulosasi shu eslatmadan boshlanadi, sessiya nomi ham undagi «Ish:» qatoridan olinadi. Eslatma bo'lmasa, avvalgi xulosa ishlaydi. Eslatma so'raladigan sessiya bo'lmasa, hook ilovani umuman ishga tushirmaydi.
+- «Eski sessiyada yozsam — yo'naltirish» o'chirilsa, faqat yo'naltirish to'xtaydi; hook avtomatik ko'chirish o'chirilganda olib tashlanadi.
+- Yangi sessiyaning birinchi xabari «↪ Loyiha — ish» bilan boshlanadi, shuning uchun Claude ilovasi sessiyani shu nom bilan ataydi. Vaqtinchalik papkada ishlagan sessiya fayl yozgan git loyihasida ochiladi.
+- Xulosa muhimini saqlaydi: javobning oxiri jumla chegarasida, foydalanuvchidan kutilayotgan savol alohida qatorda, oxirgi ikki so'rov to'liq. Avvalgi ko'chirish xabarlari, yalang'och havolalar va qisqa javoblar vazifalar ro'yxatiga kirmaydi; scratchpad va /tmp fayllari o'zgargan fayllar ro'yxatida chiqmaydi.
+
 ## 6.43.0 — 2026-10-29
 
 - Claude Code plagini endi «Ofis» panelini beradi: chat yonida shu sessiyaning agenti va yordamchi agentlari robot bo'lib ishlaydi. Asbob ishlatayotgan robot monitorida belgi chiqadi (`>_` Bash, `✎` Edit, `⌕` Grep…), o'ylayotganining boshi ustida «…», ruxsat kutayotgani turib qo'l silkitadi (stol atrofi sariq, dron nur tushiradi), xatoda ko'zlari «x x» bo'ladi, bo'shi divanda qahva ichadi, 5 daqiqadan keyin uxlaydi («z z»).

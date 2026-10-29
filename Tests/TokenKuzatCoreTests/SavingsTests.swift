@@ -160,6 +160,18 @@ final class SavingsTests: XCTestCase {
         XCTAssertNil(SavingsAdvisor.pendingQuestion(none))
     }
 
+    func testHandoffLeadsWithClaudesNote() {
+        let reply = "Commit qilindi. Keyingisi nima bo'lsin?\n\n<!-- tk-handoff\nIsh: Claude yozadigan ko'chirish eslatmasi\n"
+            + "Qolgan: Settings'da yoqish\nKutilayotgan qaror: 6.44.0 relizi\n-->"
+        let s = handoffSession(title: "TokenKuzat uchun qilish kerak", prompts: ["2-bandni boshla, eslatma kerak"], cwd: nil, reply: reply)
+        let text = Lang.with(english: false) { SavingsAdvisor.handoff(for: s, gitLines: { _ in [] }) }
+        XCTAssertTrue(text.hasPrefix("↪ Demo — Claude yozadigan ko'chirish eslatmasi\n"))
+        XCTAssertTrue(text.contains("asosan shunga tayan):\nIsh: Claude yozadigan ko'chirish eslatmasi\nQolgan: Settings'da yoqish"))
+        XCTAssertFalse(text.contains("<!--"))
+        XCTAssertTrue(text.contains("Oxirgi holat (oldingi javobdan):\nCommit qilindi."))
+        XCTAssertEqual(SavingsAdvisor.pendingQuestion(s), "Commit qilindi. Keyingisi nima bo'lsin?")
+    }
+
     func testLastPromptsAreKeptInFullAndTempFilesDropped() {
         let long = "bir muammo bor ishlab turgan sessionda token ko'p ketishni boshlaganda yangi sessionga o'tishi yaxshi"
         let s = handoffSession(title: "t", prompts: ["Birinchi uzun vazifa matni", String(long.prefix(40))], cwd: nil,

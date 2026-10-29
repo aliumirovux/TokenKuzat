@@ -2,9 +2,10 @@ import Foundation
 import TokenKuzatCore
 
 /// Claude Code «UserPromptSubmit» hook'i: avtomatik yangi sessiya ochilgan eski sessiyada yozilgan birinchi xabarni
-/// to'xtatib, xulosa bilan birga yangi sessiyaga yuboradi.
+/// to'xtatib, xulosa bilan birga yangi sessiyaga yuboradi. Kontekst chegaraga yaqin sessiyada esa Claude'dan
+/// javob oxiriga ko'chirish eslatmasini yozishni so'raydi.
 ///
-/// Skript avval yo'naltirish fayli borligini tekshiradi — yo'q bo'lsa darhol chiqadi (oddiy xabarlarga ta'sir qilmaydi).
+/// Skript avval yo'naltirish yoki eslatma fayli borligini tekshiradi — yo'q bo'lsa darhol chiqadi (oddiy xabarlarga ta'sir qilmaydi).
 enum PromptRedirectHook {
     static let flag = "--prompt-submit"
     private static let event = "UserPromptSubmit"
@@ -18,8 +19,8 @@ enum PromptRedirectHook {
         let exe = Bundle.main.executablePath ?? CommandLine.arguments[0]
         let script = """
         #!/bin/sh
-        # Token Kuzatuv — Claude Code UserPromptSubmit hook (ilova yaratgan): faqat yangi sessiyaga ko'chirilgan sessiyada ishlaydi
-        [ -f "\(RedirectStore.defaultURL.path)" ] || exit 0
+        # Token Kuzatuv — Claude Code UserPromptSubmit hook (ilova yaratgan): faqat ko'chirilgan yoki chegaraga yaqin sessiyada ishlaydi
+        [ -f "\(RedirectStore.defaultURL.path)" ] || [ -f "\(NoteRequestStore.defaultURL.path)" ] || exit 0
         [ -x "\(exe)" ] || exit 0
         "\(exe)" \(flag) 2>/dev/null
         exit 0
@@ -66,10 +67,12 @@ enum PromptRedirectHook {
         try StatusLine.writeSettings(s)
         try? FileManager.default.removeItem(at: scriptURL)
         try? FileManager.default.removeItem(at: RedirectStore.defaultURL)
+        try? FileManager.default.removeItem(at: NoteRequestStore.defaultURL)
     }
 
     /// `--prompt-submit` rejimi (Claude Code chaqiradi): yo'naltirish kerak bo'lsa — yangi sessiyani ochadi va
-    /// xabarni to'xtatuvchi JSON chiqaradi, aks holda hech narsa (xabar odatdagidek ketadi)
+    /// xabarni to'xtatuvchi JSON chiqaradi; sessiya chegaraga yaqin bo'lsa — eslatma so'rovi; aks holda hech narsa
+    /// (xabar odatdagidek ketadi)
     static func runAndExit() -> Never {
         let data = FileHandle.standardInput.readDataToEndOfFile()
         Pref.register()
@@ -82,7 +85,13 @@ enum PromptRedirectHook {
             case .terminal: opened = AutoHandoff.openInTerminal(cwd: d.cwd, message: d.message)
             }
             // Ochib bo'lmasa — xabar to'xtatilmaydi, shu sessiyada odatdagidek ketadi
-            if opened { FileHandle.standardOutput.write(Data(d.output.utf8)) }
+            if opened {
+                FileHandle.standardOutput.write(Data(d.output.utf8))
+                exit(0)
+            }
+        }
+        if UserDefaults.standard.bool(forKey: Pref.autoHandoff), let out = NoteRequestStore.handlePrompt(input: data) {
+            FileHandle.standardOutput.write(Data(out.utf8))
         }
         exit(0)
     }

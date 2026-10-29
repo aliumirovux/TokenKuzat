@@ -127,6 +127,7 @@ struct SettingsView: View {
                                  "After Claude finishes its reply, a new session opens with the summary; work is never interrupted. In the Claude app the summary is filled in — you press Enter "
                                  + "(the app doesn't send outside messages by itself, for safety); in Terminal it's fully automatic"),
                               isOn: $autoHandoff)
+                .onChange(of: autoHandoff) { on in if !on { try? PromptRedirectHook.uninstall() } }
                 if autoHandoff {
                     Picker(tr("…kontekst oshganda", "…when context passes"), selection: $autoHandoffK) {
                         ForEach(AutoHandoffRule.thresholdOptionsK, id: \.self) { Text(Fmt.tokens($0 * 1000)).tag($0) }
@@ -139,7 +140,8 @@ struct SettingsView: View {
                                   help: tr("Birinchi xabar to'xtatilib, xulosa bilan yangi sessiyaga yuboriladi; qayta yuborsangiz — eski sessiyada qoladi",
                                      "The first message is stopped and sent to the new session with the summary; send it again to stay in the old session"),
                                   isOn: $autoHandoffRedirect)
-                    .onChange(of: autoHandoffRedirect) { on in if !on { try? PromptRedirectHook.uninstall() } }
+                    // Hook eslatma so'rovi uchun ham kerak — avtomatik ko'chirish yoqiq bo'lsa, faqat yo'naltirishlar o'chiriladi
+                    .onChange(of: autoHandoffRedirect) { on in if !on { try? FileManager.default.removeItem(at: RedirectStore.defaultURL) } }
                 }
                 if handoffHookInstalled {
                     HStack {
