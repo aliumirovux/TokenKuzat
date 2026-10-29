@@ -78,13 +78,16 @@ struct HandoffButton: View {
     }
 
     private func arm() {
-        let pb = NSPasteboard.general
-        pb.clearContents()
-        pb.setString(SavingsAdvisor.handoff(for: session), forType: .string)
-        if AutoHandoff.arm(session) {
-            withAnimation(Motion.snappy) { armed = true; delivered = false; failed = false }
-        } else {
-            withAnimation(Motion.snappy) { failed = true }
+        let session = session
+        AutoHandoff.summary(for: session) { summary in
+            let pb = NSPasteboard.general
+            pb.clearContents()
+            pb.setString(summary, forType: .string)
+            if AutoHandoff.arm(session, summary: summary) {
+                withAnimation(Motion.snappy) { armed = true; delivered = false; failed = false }
+            } else {
+                withAnimation(Motion.snappy) { failed = true }
+            }
         }
     }
 }

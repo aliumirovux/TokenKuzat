@@ -5,12 +5,22 @@ import TokenKuzatCore
 /// Yangi sessiya ochish. Avtomatik rejimda xulosa birinchi xabar bo'lib o'zi yuboriladi; «Yangi sessiyada davom ettirish»
 /// tugmasi esa xulosani saqlaydi (`arm`) — keyingi yangi sessiyaga SessionStart hook beradi.
 enum AutoHandoff {
+    private static let queue = DispatchQueue(label: "uz.ali.tokenkuzat.handoff", qos: .userInitiated)
+
+    /// Xulosa `git log` / `git status` ni chaqiradi — asosiy oqimda emas, fonda yasaladi; `done` asosiy oqimda, chaqiruv tartibida
+    static func summary(for sess: SessionSnap, _ done: @escaping (String) -> Void) {
+        queue.async {
+            let text = SavingsAdvisor.handoff(for: sess)
+            DispatchQueue.main.async { done(text) }
+        }
+    }
+
     /// Xulosani saqlaydi. Muvaffaqiyatsiz bo'lsa — false
     @discardableResult
-    static func arm(_ sess: SessionSnap) -> Bool {
+    static func arm(_ sess: SessionSnap, summary: String) -> Bool {
         do {
             try SessionStartHook.install()
-            try HandoffStore.arm(PendingHandoff(text: SavingsAdvisor.handoff(for: sess), sourceSession: sess.id,
+            try HandoffStore.arm(PendingHandoff(text: summary, sourceSession: sess.id,
                                                 cwd: sess.cwd, created: Date()))
             return true
         } catch {
@@ -21,8 +31,8 @@ enum AutoHandoff {
     /// Yangi sessiyani ochib, xulosani birinchi xabar sifatida o'zi yuboradi — Claude ishni o'zi davom ettiradi.
     /// Xabar havolada (ilova) yoki buyruq argumentida (Terminal) beriladi, shuning uchun papka mos kelmasa ham yetib boradi
     @discardableResult
-    static func start(_ sess: SessionSnap, target: AutoHandoffTarget) -> Bool {
-        let message = AutoHandoffRule.firstMessage(summary: SavingsAdvisor.handoff(for: sess), previousContext: sess.contextTokens,
+    static func start(_ sess: SessionSnap, target: AutoHandoffTarget, summary: String) -> Bool {
+        let message = AutoHandoffRule.firstMessage(summary: summary, previousContext: sess.contextTokens,
                                                    english: SavingsAdvisor.conversationEnglish(sess))
         switch target {
         case .app: return openInApp(cwd: sess.cwd, message: message)

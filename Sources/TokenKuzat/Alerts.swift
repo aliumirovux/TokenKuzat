@@ -61,8 +61,8 @@ final class Alerts: NSObject, UNUserNotificationCenterDelegate {
     private var redirectArmed: Set<String> = []
 
     /// Eski sessiyaning keyingi xabari yangi sessiyaga ketsin: xulosa saqlanadi, hook ulanadi
-    private static func armRedirect(_ sess: SessionSnap, replace: Bool = false) {
-        RedirectStore.add(session: sess.id, summary: SavingsAdvisor.handoff(for: sess), previousContext: sess.contextTokens,
+    private static func armRedirect(_ sess: SessionSnap, summary: String, replace: Bool = false) {
+        RedirectStore.add(session: sess.id, summary: summary, previousContext: sess.contextTokens,
                           english: SavingsAdvisor.conversationEnglish(sess), replace: replace)
         try? PromptRedirectHook.install()
     }
@@ -89,7 +89,7 @@ final class Alerts: NSObject, UNUserNotificationCenterDelegate {
             let cutoff = Date().timeIntervalSince1970 - RedirectStore.lifetime
             for sess in s.sessions where (autoDone[sess.id] ?? 0) >= cutoff && !redirectArmed.contains(sess.id) {
                 redirectArmed.insert(sess.id)
-                Self.armRedirect(sess)
+                AutoHandoff.summary(for: sess) { Self.armRedirect(sess, summary: $0) }
             }
         }
         for sess in s.sessions where AutoHandoffRule.shouldTrigger(
@@ -101,24 +101,28 @@ final class Alerts: NSObject, UNUserNotificationCenterDelegate {
             autoDoneContext[sess.id] = sess.contextTokens
             d.set(autoDone, forKey: autoDoneKey)
             d.set(autoDoneContext.filter { autoDone[$0.key] != nil }, forKey: autoDoneContextKey)
-            if d.bool(forKey: Pref.autoHandoffRedirect) { redirectArmed.insert(sess.id); Self.armRedirect(sess, replace: true) }
+            let redirect = d.bool(forKey: Pref.autoHandoffRedirect)
+            if redirect { redirectArmed.insert(sess.id) }
             let target = AutoHandoffTarget(rawValue: d.string(forKey: Pref.autoHandoffTarget) ?? "") ?? .app
-            let ok = AutoHandoff.start(sess, target: target)
-            let start = SavingsAdvisor.startContext(for: sess) ?? SavingsAdvisor.baseline
-            post(tr("\(sess.project): yangi sessiya ochildi", "\(sess.project): new session opened"),
-                 ok ? (target == .app
-                       // Claude ilovasi tashqi havoladagi xabarni xavfsizlik uchun o'zi yubormaydi — Enter foydalanuvchida
-                       ? tr("Kontekst \(Fmt.tokens(sess.contextTokens)) edi. Yangi sessiyada xulosa yozib qo'yildi — Enter bosing, Claude ishni davom ettiradi "
-                            + "(kontekst ~\(Fmt.tokens(start)) dan boshlanadi). Eski sessiyada davom etmang.",
-                            "Context was \(Fmt.tokens(sess.contextTokens)). The summary is filled in the new session — press Enter and Claude continues the work "
-                            + "(context starts at ~\(Fmt.tokens(start))). Don't keep working in the old session.")
-                       : tr("Kontekst \(Fmt.tokens(sess.contextTokens)) edi. Terminalda yangi sessiya xulosa bilan boshlandi — Claude ishni o'zi davom ettiradi "
-                            + "(kontekst ~\(Fmt.tokens(start)) dan boshlanadi). Eski sessiyada davom etmang.",
-                            "Context was \(Fmt.tokens(sess.contextTokens)). A new Terminal session started with the summary — Claude continues the work itself "
-                            + "(context starts at ~\(Fmt.tokens(start))). Don't keep working in the old session."))
-                    : tr("Yangi sessiyani ochib bo'lmadi — sessiyani oching va «Yangi sessiyada davom ettirish»ni bosing.",
-                         "Couldn't open a new session — open the session and click «Continue in a new session»."),
-                 session: sess.id)
+            AutoHandoff.summary(for: sess) { summary in
+                if redirect { Self.armRedirect(sess, summary: summary, replace: true) }
+                let ok = AutoHandoff.start(sess, target: target, summary: summary)
+                let start = SavingsAdvisor.startContext(for: sess) ?? SavingsAdvisor.baseline
+                self.post(tr("\(sess.project): yangi sessiya ochildi", "\(sess.project): new session opened"),
+                          ok ? (target == .app
+                                // Claude ilovasi tashqi havoladagi xabarni xavfsizlik uchun o'zi yubormaydi — Enter foydalanuvchida
+                                ? tr("Kontekst \(Fmt.tokens(sess.contextTokens)) edi. Yangi sessiyada xulosa yozib qo'yildi — Enter bosing, Claude ishni davom ettiradi "
+                                     + "(kontekst ~\(Fmt.tokens(start)) dan boshlanadi). Eski sessiyada davom etmang.",
+                                     "Context was \(Fmt.tokens(sess.contextTokens)). The summary is filled in the new session — press Enter and Claude continues the work "
+                                     + "(context starts at ~\(Fmt.tokens(start))). Don't keep working in the old session.")
+                                : tr("Kontekst \(Fmt.tokens(sess.contextTokens)) edi. Terminalda yangi sessiya xulosa bilan boshlandi — Claude ishni o'zi davom ettiradi "
+                                     + "(kontekst ~\(Fmt.tokens(start)) dan boshlanadi). Eski sessiyada davom etmang.",
+                                     "Context was \(Fmt.tokens(sess.contextTokens)). A new Terminal session started with the summary — Claude continues the work itself "
+                                     + "(context starts at ~\(Fmt.tokens(start))). Don't keep working in the old session."))
+                             : tr("Yangi sessiyani ochib bo'lmadi — sessiyani oching va «Yangi sessiyada davom ettirish»ni bosing.",
+                                  "Couldn't open a new session — open the session and click «Continue in a new session»."),
+                          session: sess.id)
+            }
         }
     }
 

@@ -29,20 +29,43 @@ public enum GitState {
         }
     }
 
-    static func git(_ dir: String, _ args: [String]) -> String? {
+    /// Sekin yoki osilib qolgan git (katta repo, tarmoq diski, qulf) chaqiruvchini `timeout` dan ortiq ushlab turmaydi — nil
+    static func git(_ dir: String, _ args: [String], timeout: TimeInterval = 3) -> String? {
         let p = Process()
         p.executableURL = URL(fileURLWithPath: "/usr/bin/git")
         p.arguments = ["-C", dir] + args
         let out = Pipe()
         p.standardOutput = out
         p.standardError = FileHandle.nullDevice
+        p.standardInput = FileHandle.nullDevice
         // waitUntilExit() run loop'ni aylantiradi: asosiy oqimda `Lang.with` ichida UI boshqa tilda chizilib qolardi
         let done = DispatchSemaphore(value: 0)
         p.terminationHandler = { _ in done.signal() }
         do { try p.run() } catch { return nil }
-        let data = out.fileHandleForReading.readDataToEndOfFile()
-        done.wait()
-        guard p.terminationStatus == 0 else { return nil }
+        // Pipe fonda o'qiladi: chiqish katta bo'lsa ham git yozishda to'xtab qolmaydi, kutish esa vaqt bilan cheklanadi
+        let reader = PipeReader(out.fileHandleForReading)
+        guard done.wait(timeout: .now() + timeout) == .success else {
+            p.terminate()
+            return nil
+        }
+        guard let data = reader.wait(timeout: 1), p.terminationStatus == 0 else { return nil }
         return String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+}
+
+/// Pipe'ni oxirigacha fondagi oqimda o'qiydi
+private final class PipeReader {
+    private var data = Data()
+    private let finished = DispatchSemaphore(value: 0)
+
+    init(_ handle: FileHandle) {
+        DispatchQueue.global(qos: .utility).async {
+            self.data = handle.readDataToEndOfFile()
+            self.finished.signal()
+        }
+    }
+
+    func wait(timeout: TimeInterval) -> Data? {
+        finished.wait(timeout: .now() + timeout) == .success ? data : nil
     }
 }

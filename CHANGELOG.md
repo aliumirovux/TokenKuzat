@@ -1,5 +1,9 @@
 # O'zgarishlar
 
+## 6.42.1 — 2026-10-29
+
+- Ilova ochilganda butun oyna bir daqiqagacha qotib qolishi tuzatildi. Avtomatik yangi sessiya xulosasi git holatini (`git log`, `git status`) o'qiydi — bu endi fonda bajariladi, oyna esa darhol javob beradi va loyihalar ro'yxati chiqadi. Sekin yoki osilib qolgan git 3 soniyadan keyin to'xtatiladi; bunday holda xulosa git qatorlarisiz yoziladi. «Yangi sessiyada davom ettirish» tugmasi ham endi oynani ushlab turmaydi.
+
 ## 6.42.0 — 2026-10-29
 
 - Yangi «Ofis» sahifasi (⌘6): loyihalar — xona, agentlar — robot bo'lib ishlaydigan 3D bino. Har bir harakat haqiqiy holatdan keladi: asbob ishlatayotgan robot stolda yozadi (monitorda terminal, fayl, veb belgisi), o'ylayotgani qo'lini iyagiga qo'yib yuqoriga qaraydi («…»), ruxsat kutayotgani turib sizga qo'l silkitadi (sariq «!», xona chegarasi sariq), xatoda stoldan o'girilib boshini qashiydi, bo'sh robot divanda qahva ichadi, uzoq tinch turgani uxlaydi («z z»).
