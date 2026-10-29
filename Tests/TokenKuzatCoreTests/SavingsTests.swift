@@ -228,4 +228,31 @@ final class SavingsTests: XCTestCase {
         let blocks: [[String: Any]] = [["type": "text", "text": String(repeating: "b", count: 400)], ["type": "image"]]
         XCTAssertEqual(TranscriptParser.resultTokens(blocks), 100 + 1_600)
     }
+
+    // Kesh sovishi: tanaffus kesh muddatidan uzun va keyingi chaqiruv eski kontekstni keshdan o'qimay, qayta yozgan
+    private func call(_ at: TimeInterval, read: Int, write: Int = 0, longCache: Bool? = nil) -> UsagePoint {
+        UsagePoint(date: t0.addingTimeInterval(at), tokens: TokenCounts(cacheWrite: write, cacheRead: read), longCache: longCache)
+    }
+
+    func testCacheMissAfterBreakCountsRewrittenOldContext() throws {
+        let s = session(context: 100_000, steps: [], usage: [call(0, read: 90_000, longCache: false), call(600, read: 2_000, write: 98_000)])
+        let m = try XCTUnwrap(SavingsAdvisor.cacheMisses(for: s).first)
+        XCTAssertEqual(m.tokens, 90_000) // yangi qo'shilgan qism emas, faqat eski kontekst
+        XCTAssertEqual(m.gap, 600)
+        XCTAssertEqual(m.weighted, 90_000 * (Pricing.cacheWrite5m - Pricing.cacheRead), accuracy: 0.01)
+        let tip = try XCTUnwrap(SavingsAdvisor.tips(for: s, now: t0).first { $0.kind == .cacheRebuilds })
+        XCTAssertEqual(tip.tokens, 90_000)
+    }
+
+    func testNoCacheMissWhenWarmLongOrCompacted() {
+        // 1 soatlik kesh: 10 daqiqa tanaffusda sovimaydi
+        let long = session(context: 100_000, steps: [], usage: [call(0, read: 90_000, longCache: true), call(600, read: 2_000, write: 98_000)])
+        XCTAssertTrue(SavingsAdvisor.cacheMisses(for: long).isEmpty)
+        // Tanaffus uzun, lekin kesh o'qilgan — sovimagan
+        let warm = session(context: 100_000, steps: [], usage: [call(0, read: 90_000), call(600, read: 90_000, write: 5_000)])
+        XCTAssertTrue(SavingsAdvisor.cacheMisses(for: warm).isEmpty)
+        // /compact: kontekst keskin kichraygan — bu isrof emas
+        let compact = session(context: 30_000, steps: [], usage: [call(0, read: 200_000), call(600, read: 0, write: 30_000)])
+        XCTAssertTrue(SavingsAdvisor.cacheMisses(for: compact).isEmpty)
+    }
 }

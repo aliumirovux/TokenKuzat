@@ -29,13 +29,46 @@ public struct ProjectDay: Codable, Equatable, Sendable {
     }
 }
 
+/// Bir kunda tanaffusdan keyin kesh sovib, qaytadan yozilgan kontekst — barcha loyihalar bo'yicha
+public struct CacheDay: Codable, Equatable, Sendable {
+    public var tokens: Int
+    public var count: Int
+    /// Ortiqcha narx vaznli tokenda (yozish − o'qish)
+    public var weighted: Double
+
+    public init(tokens: Int = 0, count: Int = 0, weighted: Double = 0) {
+        self.tokens = tokens
+        self.count = count
+        self.weighted = weighted
+    }
+
+    public static func + (a: CacheDay, b: CacheDay) -> CacheDay {
+        CacheDay(tokens: a.tokens + b.tokens, count: a.count + b.count, weighted: a.weighted + b.weighted)
+    }
+}
+
 public struct ProjectSavingsData: Codable, Equatable, Sendable {
     /// «yyyy-MM-dd» → loyiha → kun yakuni
     public var days: [String: [String: ProjectDay]] = [:]
     /// Loyiha → oxirgi tuzatish vaqti
     public var fixes: [String: Date] = [:]
+    /// «yyyy-MM-dd» → kesh sovishi. Optional — 6.46.0 dan oldingi faylda yo'q
+    public var cacheDays: [String: CacheDay]?
 
     public init() {}
+
+    /// `weeksBack` hafta oldingi 7 kunlik kesh sovishi (0 — bugun bilan tugaydigan 7 kun). Bironta kun yozilmagan bo'lsa — nil
+    public func cacheWeek(weeksBack: Int = 0, now: Date, calendar: Calendar = .current) -> CacheDay? {
+        let today = calendar.startOfDay(for: now)
+        var sum = CacheDay(), found = false
+        for back in (weeksBack * 7)..<(weeksBack * 7 + 7) {
+            guard let d = calendar.date(byAdding: .day, value: -back, to: today),
+                  let c = cacheDays?[HistoryStore.key(d, calendar: calendar)] else { continue }
+            sum = sum + c
+            found = true
+        }
+        return found ? sum : nil
+    }
 
     /// Oxirgi `count` kun (eskidan yangiga), bugun — oxirgisi; yozuv bo'lmagan kun — nil
     public func series(_ project: String, count: Int, now: Date, calendar: Calendar = .current) -> [ProjectDay?] {
@@ -96,16 +129,24 @@ public final class ProjectSavingsHistory {
 
     /// Bugungi loyiha yakunlarini yozadi (kun davomida yangilanib boradi). O'zgarmasa — yozmaydi
     @discardableResult
-    public func record(_ reports: [ProjectReport], now: Date = Date(), calendar: Calendar = .current) -> ProjectSavingsData {
+    /// `cache` — so'nggi kunlarning kesh sovishi (`ProjectSavings.cacheDays`). Eski kunning sessiyalari xotiradan chiqqan
+    /// bo'lishi mumkin, shuning uchun saqlangan qiymat kamaytirilmaydi
+    public func record(_ reports: [ProjectReport], cache: [String: CacheDay] = [:], now: Date = Date(),
+                       calendar: Calendar = .current) -> ProjectSavingsData {
         var data = load()
+        let before = data
         let key = HistoryStore.key(now, calendar: calendar)
         var today = data.days[key] ?? [:]
         for r in reports { today[r.project] = ProjectDay(r) }
-        guard today != data.days[key] else { return data }
         data.days[key] = today
+        var cacheDays = data.cacheDays ?? [:]
+        for (k, c) in cache where c.tokens >= (cacheDays[k]?.tokens ?? 0) { cacheDays[k] = c }
+        if !cacheDays.isEmpty { data.cacheDays = cacheDays }
+        guard data != before else { return data }
         if let cutoff = calendar.date(byAdding: .day, value: -keepDays, to: now) {
             let minKey = HistoryStore.key(cutoff, calendar: calendar)
             data.days = data.days.filter { $0.key >= minKey }
+            data.cacheDays = data.cacheDays?.filter { $0.key >= minKey }
         }
         write(data)
         return data

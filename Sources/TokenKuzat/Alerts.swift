@@ -47,6 +47,7 @@ final class Alerts: NSObject, UNUserNotificationCenterDelegate {
         evaluateBudget(s)
         evaluateActivity(s)
         evaluateRealLimits(s)
+        evaluateFailures(s)
         evaluatePermission(s)
         evaluateContext(s)
         evaluateSavings(s)
@@ -303,15 +304,82 @@ final class Alerts: NSObject, UNUserNotificationCenterDelegate {
         }
     }
 
+    // MARK: - API xatosi (StopFailure)
+
+    private var failureNotified: [String: Date] = [:]
+
+    /// Javob API xatosi bilan uzilgan sessiya — bir xato uchun bir xabar. Limit tugagan bo'lsa, tiklanish vaqti
+    /// hisob ma'lumotidan (hook uni bermaydi)
+    private func evaluateFailures(_ s: Snapshot) {
+        guard UserDefaults.standard.bool(forKey: Pref.notifyErrors) else { return }
+        for (id, n) in s.failures where failureNotified[id] != n.date {
+            failureNotified[id] = n.date
+            // Ilova qayta ishga tushganda eski xato qayta aytilmaydi; limit 100% bo'lsa — «limit tugadi» xabari allaqachon chiqqan
+            let exhausted = [s.limits?.fiveHour, s.limits?.sevenDay].contains { ($0?.usedPercentage ?? 0) >= 99.5 }
+            guard Date().timeIntervalSince(n.date) < 600, !(n.error == "rate_limit" && exhausted),
+                  let sess = s.sessions.first(where: { $0.id == id }) else { continue }
+            let (title, body) = Self.failureText(n, limits: s.limits)
+            post("\(sess.project): \(title)", body, session: id, id: "failure-" + id)
+        }
+    }
+
+    static func failureText(_ n: HookNotice, limits: RateLimits?) -> (String, String) {
+        switch n.error {
+        case "rate_limit":
+            // To'lib qolgan oyna: eng ko'p ishlatilgani; ma'lumot bo'lmasa — vaqtsiz
+            let w = [limits?.fiveHour, limits?.sevenDay].compactMap { $0 }.max { $0.usedPercentage < $1.usedPercentage }
+            guard let w, w.resetsAt > Date() else {
+                return (tr("Claude limiti tugadi", "Claude limit reached"),
+                        tr("Javob limit sababli to'xtadi. Tiklanish vaqtini Claude'dagi /usage ko'rsatadi.",
+                           "The reply stopped on the rate limit. /usage in Claude shows when it resets."))
+            }
+            return (tr("Claude limiti tugadi", "Claude limit reached"),
+                    tr("Javob to'xtadi. \(LimitText.dayTime(w.resetsAt)) da tiklanadi (\(duration(w.resetsAt.timeIntervalSinceNow)) qoldi) — keyin shu sessiyada davom eting.",
+                       "The reply stopped. Resets \(LimitText.dayTime(w.resetsAt)) (in \(duration(w.resetsAt.timeIntervalSinceNow))) — continue in this session then."))
+        case "overloaded", "server_error":
+            return (tr("Anthropic serverlari band", "Anthropic servers are busy"),
+                    tr("Javob uzildi. Bir necha daqiqadan keyin xabarni qayta yuboring.", "The reply was cut off. Send the message again in a few minutes."))
+        case "authentication_failed", "oauth_org_not_allowed":
+            return (tr("Hisobga qayta kirish kerak", "Sign in again"),
+                    tr("Claude hisobingizni tanimadi. Claude Code'da /login qiling.", "Claude didn't recognize your account. Run /login in Claude Code."))
+        case "billing_error", "account_on_hold":
+            return (tr("Hisob yoki to'lov muammosi", "Account or billing problem"),
+                    tr("Javob to'xtadi. claude.ai'dagi hisob sozlamalarini tekshiring.", "The reply stopped. Check your account settings on claude.ai."))
+        case "max_output_tokens":
+            return (tr("Javob juda uzun bo'lib uzildi", "Reply cut off for length"),
+                    tr("«Davom et» deb yozing yoki vazifani bo'laklang.", "Write \"continue\" or split the task."))
+        default:
+            return (tr("Javob xato bilan to'xtadi", "Reply stopped with an error"), n.message)
+        }
+    }
+
     // MARK: - Haqiqiy limit
 
-    /// Har bir oyna (5 soat / hafta) uchun 80% va 95% da bir martadan — oyna tiklanguncha
+    /// Har bir oyna (5 soat / hafta) uchun 80% va 95% da bir martadan — oyna tiklanguncha.
+    /// 100% da — «tugadi, qachon tiklanadi» va tiklanish paytiga oldindan rejalashtirilgan «tiklandi»
     private func evaluateRealLimits(_ s: Snapshot) {
         let d = UserDefaults.standard
         guard d.bool(forKey: Pref.notifyRealLimit), let l = s.limits else { return }
         var fired = d.dictionary(forKey: "realLimitFired") as? [String: Double] ?? [:]
         for (name, label, w) in [("5 soatlik", tr("5 soatlik", "5-hour"), l.fiveHour), ("Haftalik", tr("Haftalik", "Weekly"), l.sevenDay)] {
             guard let w else { continue }
+            if w.usedPercentage >= 99.5 {
+                let key = "\(name)-100"
+                guard fired[key] != w.resetsAt.timeIntervalSince1970 else { continue }
+                fired[key] = w.resetsAt.timeIntervalSince1970
+                // 95% xabari endi kerak emas — tugagani aytiladi
+                fired["\(name)-80"] = w.resetsAt.timeIntervalSince1970
+                fired["\(name)-95"] = w.resetsAt.timeIntervalSince1970
+                let reset = LimitText.dayTime(w.resetsAt)
+                post(tr("\(label) Claude limiti tugadi", "\(label) Claude limit reached"),
+                     tr("\(reset.prefix(1).uppercased() + reset.dropFirst()) da tiklanadi (\(Self.duration(w.resetsAt.timeIntervalSinceNow)) qoldi). Shu paytgacha Claude javob bermaydi — tiklanganda xabar beraman.",
+                        "Resets \(reset) (in \(Self.duration(w.resetsAt.timeIntervalSinceNow))). Claude won't answer until then — I'll let you know when it resets."),
+                     id: "limit-out-\(name)")
+                post(tr("\(label) Claude limiti tiklandi", "\(label) Claude limit reset"),
+                     tr("Claude'da yana ishlashingiz mumkin.", "You can use Claude again."),
+                     id: "limit-reset-\(name)", after: w.resetsAt.timeIntervalSinceNow)
+                continue
+            }
             for t in [80.0, 95.0] where w.usedPercentage >= t {
                 let key = "\(name)-\(Int(t))"
                 guard fired[key] != w.resetsAt.timeIntervalSince1970 else { continue }

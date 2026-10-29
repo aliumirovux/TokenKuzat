@@ -58,4 +58,17 @@ final class AccountUsageTests: XCTestCase {
         let calm = LimitWindow(usedPercentage: 20, resetsAt: now.addingTimeInterval(4 * 86400))
         XCTAssertEqual(WeeklyForecast.forecast(calm, now: now), .lasts)
     }
+
+    func testStopFailureParsesAsFailure() throws {
+        let json = #"{"session_id":"abc","hook_event_name":"StopFailure","error":"rate_limit","error_details":"429 Too Many Requests","last_assistant_message":"API Error: Rate limit reached"}"#
+        let t = Date(timeIntervalSince1970: 1_800_000_000)
+        let n = try XCTUnwrap(HookNotice.parse(Data(json.utf8), date: t))
+        XCTAssertEqual(n.kind, .failure)
+        XCTAssertEqual(n.error, "rate_limit")
+        XCTAssertEqual(n.message, "API Error: Rate limit reached")
+        XCTAssertTrue(n.isFreshFailure(lastActivity: t.addingTimeInterval(-5), now: t.addingTimeInterval(60)))
+        // Xatodan keyin sessiyada yozilgan — endi dolzarb emas; ruxsat kutish ham emas
+        XCTAssertFalse(n.isFreshFailure(lastActivity: t.addingTimeInterval(30), now: t.addingTimeInterval(60)))
+        XCTAssertFalse(n.isPending(lastActivity: nil, now: t))
+    }
 }

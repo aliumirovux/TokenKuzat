@@ -1,5 +1,12 @@
 # O'zgarishlar
 
+## 6.46.0 — 2026-10-29
+
+- Tejash sahifasidagi «Kesh» sababi endi transkriptdagi haqiqiy raqamlardan: tanaffus o'sha paytdagi kesh muddatidan (5 daqiqa yoki 1 soat) uzun bo'lgan va keyingi chaqiruv eski kontekstni keshdan o'qiy olmay qayta yozgan holatlar sanaladi. `/compact` isrof hisoblanmaydi, faqat qayta yozilgan eski kontekst olinadi, narxi — yozish va o'qish narxi farqi (1 soatlik kesh qimmatroq). «Bugun» / «7 kun» tanlansa, faqat shu davrdagi sovishlar. Izohda eng katta holat: «47 daq tanaffusdan keyin 330K qaytadan yozildi».
+- Haftalik o'lchov: Tejash sahifasida «Kesh sovib qayta yozildi · 7 kun» kartasi — shu hafta qancha token va necha marta, oldingi 7 kun bilan farqi. Kunlik qiymatlar tarixga yoziladi, so'nggi 7 kun xotiradagi sessiyalardan to'ldiriladi.
+- Claude limiti 100% ga yetsa — «limit tugadi, ertaga 01:50 da tiklanadi (3 soat 32 daq qoldi)» xabari, tiklanish paytiga esa oldindan rejalashtirilgan «limit tiklandi» xabari.
+- Javob API xatosi bilan uzilsa (Claude Code «StopFailure» hook'i) — sessiya nomi bilan aniq xabar: limit (tiklanish vaqti bilan), serverlar band, hisobga qayta kirish, to'lov muammosi, juda uzun javob. Hook mavjud bildirishnoma hook'i bilan birga ulanadi; eski versiyadan yangilanganda ilova uni o'zi qo'shadi.
+
 ## 6.45.0 — 2026-10-29
 
 - Kesh taymeri: menyu panelidagi «Hozir» kartasining pastki qatorida, Claude javob bergandan keyin promt keshi qancha vaqtdan keyin sovishi ko'rinadi («⏱ kesh 4:12»). Ogohlantirish vaqti kelganda sariq bo'ladi, sovigach «kesh sovigan» deb yozadi. Ustiga olib borilsa — sovigandan keyingi so'rov qancha kontekstni qayta yozishi va necha baravar qimmatligi chiqadi. Kesh muddati (5 daqiqa yoki 1 soat) transkriptdan olinadi, shuning uchun Claude ilovasidagi sessiyalarda ham ishlaydi.

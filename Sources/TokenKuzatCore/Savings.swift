@@ -54,6 +54,49 @@ public enum SavingsAdvisor {
         s.main?.usage.last(where: { $0.longCache != nil })?.longCache == true ? longCacheTTL : cacheTTL
     }
 
+    /// Kesh sovigani: tanaffusdan keyingi chaqiruv oldingi kontekstni keshdan o'qiy olmay, qaytadan yozgan
+    public struct CacheMiss: Equatable, Sendable {
+        public let date: Date
+        /// Oldingi chaqiruvdan beri o'tgan vaqt
+        public let gap: TimeInterval
+        /// Qaytadan yozilgan eski kontekst — kesh iliq bo'lganda arzon o'qilardi
+        public let tokens: Int
+        public let longCache: Bool
+        /// Ortiqcha narx vaznli tokenda: yozish narxi va o'qish narxi farqi
+        public var weighted: Double {
+            Double(tokens) * ((longCache ? Pricing.cacheWrite1h : Pricing.cacheWrite5m) - Pricing.cacheRead)
+        }
+    }
+
+    /// Tanaffus uzunligi: «47 daq», «2 soat 10 daq»
+    static func breakText(_ t: TimeInterval) -> String {
+        let m = Int(t) / 60
+        return m >= 60 ? tr("\(m / 60) soat \(m % 60) daq", "\(m / 60) h \(m % 60) min") : tr("\(m) daq", "\(m) min")
+    }
+
+    /// Shundan kichik qayta yozuv sanalmaydi — qisqa sessiya boshidagi shovqin
+    static let minCacheMiss = 20_000
+
+    /// Tanaffusdan keyin kesh sovigan chaqiruvlar — taxmin emas, transkriptdagi haqiqiy raqamlardan:
+    /// tanaffus o'sha paytdagi kesh muddatidan (5 daqiqa / 1 soat) uzun, keyingi chaqiruv eski kontekstning yarmini ham
+    /// keshdan o'qimagan va uni qaytadan yozgan. /compact (kontekst keskin kichraygan) sanalmaydi.
+    public static func cacheMisses(for s: SessionSnap, from: Date = .distantPast) -> [CacheMiss] {
+        guard let usage = s.main?.usage, usage.count > 1 else { return [] }
+        var out: [CacheMiss] = []
+        var long = false
+        for (a, b) in zip(usage, usage.dropFirst()) {
+            if let l = a.longCache { long = l }
+            let gap = b.date.timeIntervalSince(a.date)
+            guard b.date >= from, gap > (long ? longCacheTTL : cacheTTL),
+                  b.context >= a.context * 6 / 10, b.tokens.cacheRead < a.context / 2 else { continue }
+            let rewritten = min(b.tokens.cacheWrite, a.context)
+            if rewritten >= minCacheMiss {
+                out.append(CacheMiss(date: b.date, gap: gap, tokens: rewritten, longCache: b.longCache ?? long))
+            }
+        }
+        return out
+    }
+
     /// Birinchi chaqiruvdagi kontekst: tizim ko'rsatmalari, asboblar, CLAUDE.md, ulangan xizmatlar
     public static func startContext(for s: SessionSnap) -> Int? {
         s.main?.usage.first.map(\.context).flatMap { $0 > 0 ? $0 : nil }
@@ -108,23 +151,22 @@ public enum SavingsAdvisor {
         }
 
         // 2) Kesh qayta yozilishi: kesh muddatidan uzoq tanaffusdan keyin kontekst qaytadan keshlanadi
-        let ttl = cacheTTL(for: s)
-        let ttlText = ttl >= longCacheTTL ? tr("1 soat", "1 hour") : tr("5 daqiqa", "5 minutes")
-        if let usage = main?.usage, usage.count > 1 {
-            var rebuilt = 0, count = 0
-            for (a, b) in zip(usage, usage.dropFirst()) where b.date.timeIntervalSince(a.date) > ttl {
-                if b.tokens.cacheWrite > 50_000 { rebuilt += b.tokens.cacheWrite; count += 1 }
-            }
-            if count > 0 {
-                out.append(SavingsTip(
-                    kind: .cacheRebuilds, level: rebuilt > 500_000 ? .notable : .info,
-                    title: tr("Tanaffusdan keyin kesh \(count) marta qayta yozildi", count == 1 ? "Cache rewritten once after a break" : "Cache rewritten \(count) times after breaks"),
-                    detail: tr("\(ttlText)dan uzoq jim tursangiz, kesh o'chadi va keyingi so'rovda butun kontekst qimmatroq narxda qayta yoziladi. "
-                        + "Uzoq tanaffusdan oldin ishni yakunlang yoki qaytgach yangi sessiya oching.",
-                        "If you stay idle longer than \(ttlText), the cache expires and the next prompt rewrites the whole context at a higher price. "
-                        + "Wrap up before a long break, or start a new session when you're back."),
-                    tokens: rebuilt, perCall: false))
-            }
+        let misses = cacheMisses(for: s)
+        if !misses.isEmpty {
+            let rebuilt = misses.reduce(0) { $0 + $1.tokens }
+            let worst = misses.max { $0.tokens < $1.tokens }!
+            let ttlText = worst.longCache ? tr("1 soat", "1 hour") : tr("5 daqiqa", "5 minutes")
+            let count = misses.count
+            out.append(SavingsTip(
+                kind: .cacheRebuilds, level: rebuilt > 500_000 ? .notable : .info,
+                title: tr("Tanaffusdan keyin kesh \(count) marta qayta yozildi", count == 1 ? "Cache rewritten once after a break" : "Cache rewritten \(count) times after breaks"),
+                detail: tr("Eng kattasi: \(breakText(worst.gap)) tanaffusdan keyin \(Fmt.tokens(worst.tokens)) kontekst qaytadan yozildi. "
+                    + "\(ttlText)dan uzoq jim tursangiz, kesh o'chadi va keyingi so'rovda kontekst qimmatroq narxda qayta yoziladi. "
+                    + "Uzoq tanaffusdan oldin ishni yakunlang yoki qaytgach yangi sessiya oching.",
+                    "Largest: \(Fmt.tokens(worst.tokens)) of context rewritten after a \(breakText(worst.gap)) break. "
+                    + "If you stay idle longer than \(ttlText), the cache expires and the next prompt rewrites the context at a higher price. "
+                    + "Wrap up before a long break, or start a new session when you're back."),
+                tokens: rebuilt, perCall: false))
         }
 
         // 3) Bir faylni qayta-qayta o'qish (orada o'zgartirilmagan)

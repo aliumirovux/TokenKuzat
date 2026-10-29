@@ -92,13 +92,16 @@ final class Store: ObservableObject {
         for sess in s.sessions {
             if let n = notices[sess.id], n.isPending(lastActivity: sess.lastActivity, now: now) {
                 s.permissionWaits[sess.id] = n
+            } else if let n = notices[sess.id], n.isFreshFailure(lastActivity: sess.lastActivity, now: now) {
+                s.failures[sess.id] = n
             }
         }
         // Loyiha yakunlari 5 daqiqada bir marta diskka (bugungi kun ustiga yoziladi)
         var savings: ProjectSavingsData?
         if s.initialScanDone, now.timeIntervalSince(lastProjectRecord) >= 300 {
             lastProjectRecord = now
-            savings = projectHistory.record(ProjectSavings.reports(s, period: .today, now: now), now: now)
+            savings = projectHistory.record(ProjectSavings.reports(s, period: .today, now: now),
+                                             cache: ProjectSavings.cacheDays(s, now: now), now: now)
         }
         DispatchQueue.main.async {
             self.snap = s

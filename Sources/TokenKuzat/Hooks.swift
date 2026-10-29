@@ -1,7 +1,8 @@
 import Foundation
 import TokenKuzatCore
 
-/// Claude Code «Notification» hook'iga ulanish: Claude ruxsat so'raganda xabar shu yerga keladi.
+/// Claude Code «Notification» va «StopFailure» hook'lariga ulanish: Claude ruxsat so'raganda yoki javob API xatosi
+/// (limit, serverlar band) bilan uzilganda xabar shu yerga keladi.
 ///
 /// ~/.claude/settings.json → hooks.Notification ga bizning skript qo'shiladi (boshqa hook'lar tegilmaydi).
 /// Skript JSON'ni ilovaning `--hook` rejimiga beradi: u hooks/<session_id>.json ga yozadi va darhol chiqadi.
@@ -19,7 +20,7 @@ enum Hooks {
         let exe = Bundle.main.executablePath ?? CommandLine.arguments[0]
         let script = """
         #!/bin/sh
-        # Token Kuzatuv — Claude Code Notification hook (ilova yaratgan; Sozlamalarda o'chirilsa olib tashlanadi)
+        # Token Kuzatuv — Claude Code Notification/StopFailure hook (ilova yaratgan; Sozlamalarda o'chirilsa olib tashlanadi)
         T="${TMPDIR:-/tmp}/tokenkuzat-hook.$$"
         cat > "$T"
         if [ -x "\(exe)" ]; then "\(exe)" \(flag) < "$T" >/dev/null 2>&1; fi
@@ -39,8 +40,17 @@ enum Hooks {
         return entries(s).contains { isOurs($0) }
     }
 
-    private static func entries(_ s: [String: Any]) -> [[String: Any]] {
-        ((s["hooks"] as? [String: Any])?["Notification"] as? [[String: Any]]) ?? []
+    /// Bitta skript ikki hodisaga ulanadi: ruxsat so'rovi va API xatosi bilan uzilgan javob
+    private static let events = ["Notification", "StopFailure"]
+
+    private static func entries(_ s: [String: Any], _ event: String = "Notification") -> [[String: Any]] {
+        ((s["hooks"] as? [String: Any])?[event] as? [[String: Any]]) ?? []
+    }
+
+    /// Eski versiya faqat Notification'ga ulagan — StopFailure yo'q bo'lsa qayta ulanadi
+    static var needsUpgrade: Bool {
+        guard let s = try? StatusLine.readSettings() else { return false }
+        return entries(s).contains { isOurs($0) } && !entries(s, "StopFailure").contains { isOurs($0) }
     }
 
     private static func isOurs(_ entry: [String: Any]) -> Bool {
@@ -53,9 +63,11 @@ enum Hooks {
         var s = try StatusLine.readSettings()
         try writeScript()
         var hooks = s["hooks"] as? [String: Any] ?? [:]
-        var list = entries(s).filter { !isOurs($0) }
-        list.append(["matcher": "", "hooks": [["type": "command", "command": command]]])
-        hooks["Notification"] = list
+        for event in events {
+            var list = entries(s, event).filter { !isOurs($0) }
+            list.append(["matcher": "", "hooks": [["type": "command", "command": command]]])
+            hooks[event] = list
+        }
         s["hooks"] = hooks
         try StatusLine.backupOnce()
         try StatusLine.writeSettings(s)
@@ -64,8 +76,10 @@ enum Hooks {
     static func uninstall() throws {
         var s = try StatusLine.readSettings()
         var hooks = s["hooks"] as? [String: Any] ?? [:]
-        let list = entries(s).filter { !isOurs($0) }
-        if list.isEmpty { hooks.removeValue(forKey: "Notification") } else { hooks["Notification"] = list }
+        for event in events {
+            let list = entries(s, event).filter { !isOurs($0) }
+            if list.isEmpty { hooks.removeValue(forKey: event) } else { hooks[event] = list }
+        }
         if hooks.isEmpty { s.removeValue(forKey: "hooks") } else { s["hooks"] = hooks }
         try StatusLine.writeSettings(s)
         try? FileManager.default.removeItem(at: scriptURL)

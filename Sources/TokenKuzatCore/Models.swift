@@ -304,6 +304,8 @@ public struct Snapshot: Sendable {
     public var outside: OutsideUsage?
     /// Ruxsatingizni kutayotgan sessiyalar (Claude Code hook'idan): sessiya id → xabar
     public var permissionWaits: [String: HookNotice] = [:]
+    /// Javobi API xatosi bilan uzilgan sessiyalar (StopFailure), xatodan keyin hali harakat yo'q
+    public var failures: [String: HookNotice] = [:]
 
     public init() {}
 

@@ -33,7 +33,7 @@ public struct ProjectIssue: Identifiable, Sendable {
     public let sessions: Int
     /// Taxminiy isrof (xom token)
     public let waste: Int
-    /// Shu isrof vaznli tokenda (kesh o'qish ×0,1, kesh yozish ×1,25)
+    /// Shu isrof vaznli tokenda (qayta o'qish ×0,1; kesh qayta yozilishi — yozish va o'qish narxi farqi)
     public let weighted: Double
     /// Eng og'ir sessiyadagi aniq tafsilot (fayl nomlari, asboblar)
     public let detail: String
@@ -148,25 +148,52 @@ public enum ProjectSavings {
         .sorted { $0.tokens.value(mode) > $1.tokens.value(mode) }
     }
 
+    /// So'nggi `days` kunning (bugun bilan) kesh sovishi kunlar bo'yicha — haftalik o'lchov uchun.
+    /// Sovish bo'lmagan kun ham yoziladi (0), shunda «ma'lumot yo'q» va «sovish yo'q» farqlanadi
+    public static func cacheDays(_ snap: Snapshot, days: Int = 7, now: Date = Date(),
+                                 calendar: Calendar = .current) -> [String: CacheDay] {
+        let today = calendar.startOfDay(for: now)
+        let from = calendar.date(byAdding: .day, value: -(days - 1), to: today) ?? today
+        var out: [String: CacheDay] = [:]
+        for back in 0..<days {
+            if let d = calendar.date(byAdding: .day, value: -back, to: today) { out[HistoryStore.key(d, calendar: calendar)] = CacheDay() }
+        }
+        for s in snap.sessions {
+            for m in SavingsAdvisor.cacheMisses(for: s, from: from) {
+                let k = HistoryStore.key(m.date, calendar: calendar)
+                out[k] = (out[k] ?? CacheDay()) + CacheDay(tokens: m.tokens, count: 1, weighted: m.weighted)
+            }
+        }
+        return out
+    }
+
     /// Sessiya maslahatlari tur bo'yicha jamlanadi
     static func issues(_ sessions: [SessionSnap], from: Date, now: Date) -> [ProjectIssue] {
-        var acc: [SavingsTip.Kind: (level: SavingsTip.Level, sessions: Int, waste: Int, detail: String, worst: Int)] = [:]
-        // Kesh qayta yozilishi — kesh yozish narxida, qolganlari — qayta o'qish (kesh o'qish) narxida
+        var acc: [SavingsTip.Kind: (level: SavingsTip.Level, sessions: Int, waste: Int, weighted: Double, detail: String, worst: Int)] = [:]
         for s in sessions {
             for tip in SavingsAdvisor.tips(for: s, now: now) {
-                let w = waste(tip, session: s, from: from)
-                var a = acc[tip.kind] ?? (tip.level, 0, 0, tip.detail, -1)
+                // Kesh qayta yozilishi — davr ichidagi haqiqiy sovishlar, ortiqcha narxi (yozish − o'qish) bilan;
+                // qolganlari — qayta o'qish, kesh o'qish narxida
+                let (w, wv): (Int, Double)
+                if tip.kind == .cacheRebuilds {
+                    let misses = SavingsAdvisor.cacheMisses(for: s, from: from)
+                    guard !misses.isEmpty else { continue }
+                    (w, wv) = (misses.reduce(0) { $0 + $1.tokens }, misses.reduce(0) { $0 + $1.weighted })
+                } else {
+                    w = waste(tip, session: s, from: from)
+                    wv = Double(w) * Pricing.cacheRead
+                }
+                var a = acc[tip.kind] ?? (tip.level, 0, 0, 0, tip.detail, -1)
                 a.level = max(a.level, tip.level)
                 a.sessions += 1
                 a.waste += w
+                a.weighted += wv
                 if w > a.worst { a.worst = w; a.detail = tip.detail }
                 acc[tip.kind] = a
             }
         }
         return acc.map { k, v in
-            let price = k == .cacheRebuilds ? Pricing.cacheWrite5m : Pricing.cacheRead
-            return ProjectIssue(kind: k, level: v.level, sessions: v.sessions, waste: v.waste,
-                                weighted: Double(v.waste) * price, detail: v.detail)
+            ProjectIssue(kind: k, level: v.level, sessions: v.sessions, waste: v.waste, weighted: v.weighted, detail: v.detail)
         }
             .sorted { ($0.waste, $0.level) > ($1.waste, $1.level) }
     }

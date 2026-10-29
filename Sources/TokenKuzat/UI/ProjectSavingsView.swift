@@ -46,6 +46,10 @@ struct ProjectSavingsView: View {
                                    symbol: "flame.fill", tint: Brand.warn)
                     }
 
+                    if let week = store.savingsHistory.cacheWeek(now: store.snap.updatedAt) {
+                        CacheWeekCard(week: week, previous: store.savingsHistory.cacheWeek(weeksBack: 1, now: store.snap.updatedAt), mode: mode)
+                    }
+
                     VStack(alignment: .leading, spacing: 4) {
                         SectionHeader(title: tr("Loyihalar", "Projects"),
                                       subtitle: tr("sarf bo'yicha · bosing — sabablar va tuzatish", "by usage · click for causes and fixes"),
@@ -88,6 +92,47 @@ struct ProjectSavingsView: View {
             }
         }
         .font(.caption).foregroundStyle(.secondary)
+    }
+}
+
+/// Haftalik o'lchov: tanaffusdan keyin kesh sovib, qaytadan yozilgan kontekst — so'nggi 7 kun va undan oldingi 7 kun.
+/// Kesh taymeri va ogohlantirish foyda berayotganini shu raqam ko'rsatadi
+private struct CacheWeekCard: View {
+    let week: CacheDay
+    let previous: CacheDay?
+    let mode: CountMode
+
+    private func value(_ c: CacheDay) -> Double { mode == .weighted ? c.weighted : Double(c.tokens) }
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "clock.arrow.circlepath").font(.title3).foregroundStyle(Brand.warn).frame(width: 28)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(tr("Kesh sovib qayta yozildi · 7 kun", "Cache rewritten after going cold · 7 days")).font(.subheadline.weight(.semibold))
+                Text(week.count == 0
+                     ? tr("Bu hafta kesh sovimagan", "The cache didn't go cold this week")
+                     : tr("\(Fmt.tokens(value(week))) token · \(week.count) marta", "\(Fmt.tokens(value(week))) tokens · \(week.count == 1 ? "once" : "\(week.count) times")"))
+                    .font(.caption).foregroundStyle(.secondary).monospacedDigit()
+            }
+            Spacer()
+            if let p = previous {
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text(tr("oldingi 7 kun: \(Fmt.tokens(value(p)))", "previous 7 days: \(Fmt.tokens(value(p)))"))
+                        .font(.caption).foregroundStyle(.secondary).monospacedDigit()
+                    if value(p) > 0 {
+                        let change = (value(week) - value(p)) / value(p)
+                        Text("\(change <= 0 ? "−" : "+")\(Int((abs(change) * 100).rounded()))%")
+                            .font(.caption.weight(.semibold)).monospacedDigit()
+                            .foregroundStyle(change <= 0 ? Brand.ok : Brand.warn)
+                    }
+                }
+            } else {
+                Text(tr("oldingi hafta hali yozilmagan", "no previous week yet")).font(.caption).foregroundStyle(.tertiary)
+            }
+        }
+        .card()
+        .help(tr("Tanaffus kesh muddatidan (5 daqiqa yoki 1 soat) uzun bo'lsa, keyingi so'rov kontekstni qimmatroq narxda qaytadan yozadi. Raqam transkriptdan olinadi: keyingi chaqiruv eski kontekstni keshdan o'qiy olmagan va qayta yozgan.",
+                 "When a break outlasts the cache lifetime (5 minutes or 1 hour), the next prompt rewrites the context at a higher price. Measured from the transcript: the next call couldn't read the old context from cache and wrote it again."))
     }
 }
 

@@ -70,4 +70,28 @@ final class ProjectSavingsHistoryTests: XCTestCase {
         XCTAssertEqual(fixed!.timeIntervalSince1970, day(1).timeIntervalSince1970, accuracy: 1)
         XCTAssertEqual(h.load().series("A", count: 3, now: day(1), calendar: cal).count, 3)
     }
+
+    func testCacheWeekSumsSevenDaysAndKeepsLargerValue() throws {
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("tk-ps-\(UUID().uuidString).json")
+        defer { try? FileManager.default.removeItem(at: url) }
+        let h = ProjectSavingsHistory(url: url)
+        let k = { (n: Int) in HistoryStore.key(self.day(n), calendar: self.cal) }
+        // O'tgan hafta (8 va 10-kun) va shu hafta (14-kun) — 14-kun bilan tugaydigan 7 kun: 8…14
+        h.record([], cache: [k(5): CacheDay(tokens: 300, count: 1, weighted: 345), k(8): CacheDay(tokens: 100, count: 1, weighted: 115),
+                             k(14): CacheDay(tokens: 50, count: 1, weighted: 57.5)], now: day(14), calendar: cal)
+        // Sessiya xotiradan chiqqach kichikroq qiymat keladi — saqlangani kamaymaydi
+        let data = h.record([], cache: [k(8): CacheDay()], now: day(14), calendar: cal)
+        XCTAssertEqual(data.cacheWeek(now: day(14), calendar: cal), CacheDay(tokens: 150, count: 2, weighted: 172.5))
+        XCTAssertEqual(data.cacheWeek(weeksBack: 1, now: day(14), calendar: cal)?.tokens, 300)
+        XCTAssertNil(data.cacheWeek(weeksBack: 2, now: day(14), calendar: cal))
+    }
+
+    func testOldFileWithoutCacheDaysStillLoads() throws {
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("tk-ps-\(UUID().uuidString).json")
+        defer { try? FileManager.default.removeItem(at: url) }
+        try #"{"days":{},"fixes":{}}"#.write(to: url, atomically: true, encoding: .utf8)
+        let data = ProjectSavingsHistory(url: url).load()
+        XCTAssertNil(data.cacheDays)
+        XCTAssertNil(data.cacheWeek(now: day(0), calendar: cal))
+    }
 }

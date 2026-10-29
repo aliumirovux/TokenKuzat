@@ -34,6 +34,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // Menyu satri belgisi notch ortida yashirinib qolishi mumkin,
     // shuning uchun ilova ochilganda (Spotlight, Finder) katta oyna ham chiqadi.
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // 6.46.0 dan oldin hook faqat Notification'ga ulangan — StopFailure ham qo'shiladi (API xatosi haqida xabar uchun)
+        if !CommandLine.arguments.contains(where: { $0.hasPrefix("--snapshot") }), Hooks.needsUpgrade { try? Hooks.install() }
         // Ishlab chiquvchi uchun: `TokenKuzat --snapshot-panel fayl.png` — menyu panelini rasmga saqlab chiqadi
         if let i = CommandLine.arguments.firstIndex(of: "--snapshot-panel"), i + 1 < CommandLine.arguments.count {
             snapshotPanel(to: URL(fileURLWithPath: CommandLine.arguments[i + 1]))
