@@ -232,56 +232,6 @@ private struct LiveCard: View {
     }
 }
 
-/// Zamonaviy segment tanlagich: yumaloq trek ichida tanlangan bo'lak — urg'u rangidagi pill, bosganda siljib o'tadi
-struct PillSegments<ID: Hashable>: View {
-    struct Item: Identifiable {
-        let id: ID
-        let title: String
-        var symbol: String? = nil
-    }
-
-    @Binding var selection: ID
-    let items: [Item]
-    /// Ixcham: kichikroq shrift va oraliq (ikkinchi darajali tanlagichlar uchun)
-    var compact = false
-    @Namespace private var pill
-
-    var body: some View {
-        HStack(spacing: 2) {
-            ForEach(items) { item in
-                let on = item.id == selection
-                Button {
-                    withAnimation(Motion.spring) { selection = item.id }
-                } label: {
-                    HStack(spacing: 6) {
-                        if let s = item.symbol { Image(systemName: s).font(.system(size: compact ? 10.5 : 11.5, weight: .semibold)) }
-                        Text(item.title)
-                    }
-                    .font(.system(size: compact ? 12 : 13, weight: on ? .semibold : .medium))
-                    .foregroundStyle(on ? Brand.accent : Color.secondary)
-                    .padding(.horizontal, compact ? 10 : 12).frame(height: compact ? 26 : 30)
-                    .background {
-                        if on {
-                            RoundedRectangle(cornerRadius: compact ? 7 : 8, style: .continuous)
-                                .fill(Brand.accent.opacity(0.18))
-                                .overlay(RoundedRectangle(cornerRadius: compact ? 7 : 8, style: .continuous)
-                                    .stroke(Brand.accent.opacity(0.35), lineWidth: 1))
-                                .matchedGeometryEffect(id: "pill", in: pill)
-                        }
-                    }
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .noFocusRing()
-            }
-        }
-        .padding(3)
-        .background(RoundedRectangle(cornerRadius: compact ? 10 : 11, style: .continuous).fill(Brand.surface.opacity(0.7)))
-        .overlay(RoundedRectangle(cornerRadius: compact ? 10 : 11, style: .continuous).stroke(Brand.line))
-        .fixedSize()
-    }
-}
-
 /// Chat va boshqa joylar: Claude desktop Chat, claude.ai, telefon yoki boshqa kompyuter.
 /// Suhbat ichi ko'rinmaydi — faqat limit foizi qancha o'sgani (shu Mac'dagi sarf ayirilgan)
 private struct OutsideUsageCard: View {

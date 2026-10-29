@@ -260,12 +260,7 @@ struct CountModePicker: View {
     @AppStorage(Pref.countMode) private var mode = CountMode.raw
 
     var body: some View {
-        Picker(tr("Hisoblash", "Counting"), selection: $mode) {
-            ForEach(CountMode.allCases, id: \.self) { Text($0.title).tag($0) }
-        }
-        .pickerStyle(.segmented)
-        .labelsHidden()
-        .fixedSize()
+        PillSegments(selection: $mode, items: CountMode.allCases.map { .init(id: $0, title: $0.title) }, compact: true)
         .help(tr("Xom — hamma token teng. Vaznli — taxminiy narx: javob ×5, kesh o'qish ×0,1, kesh yozish ×1,25–2.", "Raw — every token counts the same. Weighted — approximate cost: output ×5, cache read ×0.1, cache write ×1.25–2."))
     }
 }

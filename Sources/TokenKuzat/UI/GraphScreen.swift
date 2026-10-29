@@ -46,7 +46,6 @@ struct GraphScreen: View {
     /// Tor oynada tafsilotlar paneli xarita ustida ochiladi (sukut bo'yicha yopiq) — xarita siqilmaydi
     @State private var narrowInspector = false
     @AppStorage(Pref.mapOnly) private var mapOnly = false
-    @Namespace private var focusTabNS
     /// «Faqat xarita» (Xulosa tabida — «Faqat sxema»): sarlavha, vaqt chizig'i, tablar va panel yashiriladi
     private var mapFocus: Bool { mapOnly && ["map", "summary"].contains(currentTab) }
     @State private var contentWidth: CGFloat = 1200
@@ -262,51 +261,26 @@ struct GraphScreen: View {
     /// Teng tablar: Xarita, Xulosa (ikkalasi Oqim'ning ko'rinishlari), Fayllar va Natijalar
     private var tabs: some View {
         HStack(spacing: 4) {
-            tab("map", tr("Xarita", "Map"), "point.3.connected.trianglepath.dotted",
-                help: tr("Butun sessiya: so'rovlar, asboblar va qadamlar zanjiri", "The whole session: chain of prompts, tools and steps"))
-            tab("summary", tr("Xulosa", "Summary"), "circle.hexagongrid",
-                help: tr("Tanlangan so'rovda qaysi agent va asboblar ishlatilgani", "Which agents and tools the selected prompt used"))
-            tab("files", tr("Fayllar", "Files"), "square.grid.3x3", help: tr("Qaysi fayllar o'qildi va o'zgartirildi", "Which files were read and changed"))
-            tab("outputs", tr("Natijalar", "Outputs"), "photo.on.rectangle.angled",
-                help: tr("Jarayonda yaratilgan yoki ko'rilgan rasm, HTML, PDF va videolar", "Images, HTML, PDFs and videos created or viewed during the process"))
+            PillSegments(selection: tabBinding, items: [
+                .init(id: "map", title: tr("Xarita", "Map"), symbol: "point.3.connected.trianglepath.dotted",
+                      help: tr("Butun sessiya: so'rovlar, asboblar va qadamlar zanjiri", "The whole session: chain of prompts, tools and steps")),
+                .init(id: "summary", title: tr("Xulosa", "Summary"), symbol: "circle.hexagongrid",
+                      help: tr("Tanlangan so'rovda qaysi agent va asboblar ishlatilgani", "Which agents and tools the selected prompt used")),
+                .init(id: "files", title: tr("Fayllar", "Files"), symbol: "square.grid.3x3",
+                      help: tr("Qaysi fayllar o'qildi va o'zgartirildi", "Which files were read and changed")),
+                .init(id: "outputs", title: tr("Natijalar", "Outputs"), symbol: "photo.on.rectangle.angled",
+                      help: tr("Jarayonda yaratilgan yoki ko'rilgan rasm, HTML, PDF va videolar", "Images, HTML, PDFs and videos created or viewed during the process")),
+            ])
             Spacer(minLength: 16)
             sessionsBar()
         }
     }
 
-    /// To'liq rejimdagi tablar: faqat Xarita va Xulosa (Fayllar va Natijalarda to'liq rejim yo'q) — shisha kapsulada,
-    /// tanlangani yorug' tabletka bilan, u tablar orasida suzib o'tadi
-    private var focusTabs: some View {
-        HStack(spacing: 2) {
-            focusTab("map", tr("Xarita", "Map"), "point.3.connected.trianglepath.dotted")
-            focusTab("summary", tr("Xulosa", "Summary"), "circle.hexagongrid")
-        }
-        .padding(4)
-        .glassCapsule()
-        .shadow(color: .black.opacity(0.35), radius: 18, y: 8)
-        .fixedSize()
-    }
-
-    private func focusTab(_ id: String, _ title: String, _ symbol: String) -> some View {
-        let on = currentTab == id
-        return Button {
-            withAnimation(.spring(response: 0.38, dampingFraction: 0.82)) { graphMode = "flow"; flowStyle = id }
-        } label: {
-            Label(title, systemImage: symbol)
-                .font(.system(size: 12.5, weight: on ? .semibold : .medium))
-                .foregroundStyle(on ? Color.primary : Color.secondary)
-                .padding(.horizontal, 14).frame(height: 30)
-                .background {
-                    if on {
-                        Capsule().fill(.white.opacity(0.13))
-                            .overlay(Capsule().strokeBorder(.white.opacity(0.18), lineWidth: 0.5))
-                            .shadow(color: .black.opacity(0.18), radius: 4, y: 1)
-                            .matchedGeometryEffect(id: "focusTab", in: focusTabNS)
-                    }
-                }
-                .contentShape(Capsule())
-        }
-        .buttonStyle(.plain)
+    /// Tablar: Xarita va Xulosa — Oqim'ning ko'rinishlari, Fayllar va Natijalar — alohida rejimlar
+    private var tabBinding: Binding<String> {
+        Binding(get: { currentTab }, set: { id in
+            if ["files", "outputs"].contains(id) { graphMode = id } else { graphMode = "flow"; flowStyle = id }
+        })
     }
 
     /// Ishlayotgan sessiyalar — tablar yonida, «Faqat xarita/sxema»da esa kanvas tepasida
@@ -317,27 +291,16 @@ struct GraphScreen: View {
         }
     }
 
-    private var currentTab: String {
-        ["files", "outputs"].contains(graphMode) ? graphMode : (flowStyle == "summary" ? "summary" : "map")
+    /// To'liq rejimdagi tablar: faqat Xarita va Xulosa (Fayllar va Natijalarda to'liq rejim yo'q)
+    private var focusTabs: some View {
+        PillSegments(selection: tabBinding, items: [
+            .init(id: "map", title: tr("Xarita", "Map"), symbol: "point.3.connected.trianglepath.dotted"),
+            .init(id: "summary", title: tr("Xulosa", "Summary"), symbol: "circle.hexagongrid"),
+        ], floating: true)
     }
 
-    private func tab(_ id: String, _ title: String, _ symbol: String, help: String) -> some View {
-        let on = currentTab == id
-        return Button {
-            withAnimation(Motion.spring) {
-                if ["files", "outputs"].contains(id) { graphMode = id } else { graphMode = "flow"; flowStyle = id }
-            }
-        } label: {
-            Label(title, systemImage: symbol)
-                .font(.callout.weight(on ? .semibold : .regular))
-                .foregroundStyle(on ? .primary : .secondary)
-                .padding(.horizontal, 12).padding(.vertical, 6)
-                .background(RoundedRectangle(cornerRadius: 9, style: .continuous).fill(on ? Brand.surface : .clear))
-                .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous).stroke(on ? Brand.line : .clear))
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .help(help)
+    private var currentTab: String {
+        ["files", "outputs"].contains(graphMode) ? graphMode : (flowStyle == "summary" ? "summary" : "map")
     }
 
     private func toggleReplay(_ session: SessionSnap) {
@@ -1427,10 +1390,7 @@ private struct ActiveSessionsBar: View {
             .background {
                 // Tanlangan — yorug' tabletka, sessiyalar orasida suzib o'tadi; hover — juda yengil
                 if on {
-                    Capsule().fill(.white.opacity(0.13))
-                        .overlay(Capsule().strokeBorder(.white.opacity(0.18), lineWidth: 0.5))
-                        .shadow(color: .black.opacity(0.18), radius: 4, y: 1)
-                        .matchedGeometryEffect(id: "selection", in: ns)
+                    SelectionPill().matchedGeometryEffect(id: "selection", in: ns)
                 } else if hover {
                     Capsule().fill(.white.opacity(0.06))
                 }

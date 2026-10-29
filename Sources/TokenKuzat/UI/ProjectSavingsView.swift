@@ -19,10 +19,7 @@ struct ProjectSavingsView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 HStack {
-                    Picker(tr("Davr", "Period"), selection: $period) {
-                        ForEach(SavingsPeriod.allCases) { Text($0.title).tag($0) }
-                    }
-                    .pickerStyle(.segmented).labelsHidden().fixedSize()
+                    PillSegments(selection: $period, items: SavingsPeriod.allCases.map { .init(id: $0, title: $0.title) })
                     Spacer()
                     Text(tr("model va sifat o'zgarmaydi", "model and quality stay the same")).font(.caption).foregroundStyle(.secondary)
                 }
@@ -58,7 +55,8 @@ struct ProjectSavingsView: View {
                                               share: total > 0 ? r.tokens.value(mode) / total : 0,
                                               session: r.latestSession.flatMap { id in store.snap.sessions.first { $0.id == id } },
                                               expanded: expanded.contains(r.id)) {
-                                withAnimation(Motion.snappy) {
+                                // Yumshoq prujina: balandlik ravon o'sadi, mazmun biroz kechikib paydo bo'ladi
+                                withAnimation(.spring(response: 0.42, dampingFraction: 0.9)) {
                                     if expanded.contains(r.id) { expanded.remove(r.id) } else { expanded.insert(r.id) }
                                 }
                             }
@@ -139,8 +137,14 @@ private struct ProjectSavingsRow: View {
             }
             .buttonStyle(.plain)
 
-            if expanded { details.transition(.opacity.combined(with: .move(edge: .top))) }
+            if expanded {
+                details.transition(.asymmetric(
+                    insertion: .opacity.combined(with: .offset(y: -6)).animation(.easeOut(duration: 0.28).delay(0.06)),
+                    removal: .opacity.animation(.easeOut(duration: 0.14))))
+            }
         }
+        // Yopilayotganda mazmun keyingi qator ustiga chiqmasin
+        .clipped()
     }
 
     @ViewBuilder

@@ -1,5 +1,10 @@
 # O'zgarishlar
 
+## 6.22.1 — 2026-10-29
+
+- Tablar yagona uslubda: sessiya tablari (Xarita / Xulosa / Fayllar / Natijalar), davr (Bugun / 7 kun, 7 / 14 / 30 kun), Xom / Vaznli va Jonli ko'rinishlari — bitta shisha kapsula komponenti (`PillSegments`), tanlangani yorug' tabletka bilan suzib o'tadi. Ishlayotgan sessiyalar qatori ham shu tabletkani ishlatadi; yorug' temada oq tabletka va yengil soya.
+- «Tejash» sahifasida loyihani ochish/yopish yumshoq: balandlik prujina bilan o'sadi, mazmun biroz kechikib paydo bo'ladi, yopilganda keyingi qator ustiga chiqmaydi.
+
 ## 6.22.0 — 2026-10-29
 
 - Yangi «Tejash» sahifasi (⌘5): loyihalar sarf bo'yicha (bugun / 7 kun), har birida ulush chizig'i, taxminiy isrof va sabablari — katta kontekst, og'ir boshlanish (konnektorlar, pluginlar), katta asbob natijalari, kesh qayta yozilishi, skrinshotlar, takroriy o'qish, ketma-ket xatolar. Har sababda qisqa yechim. Xom / Vaznli rejimga mos.

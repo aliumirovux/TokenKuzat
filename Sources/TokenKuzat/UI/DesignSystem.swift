@@ -220,3 +220,67 @@ struct MiniBars: View {
         .animation(Motion.smooth, value: values)
     }
 }
+
+// MARK: - Tablar
+
+/// Tanlangan bo'lak ostidagi yorug' «tabletka» — barcha tab va tanlagichlarda bir xil (Apple uslubi):
+/// to'q temada shaffof oq, yorug' temada oq va yengil soya
+struct SelectionPill: View {
+    var body: some View {
+        Capsule()
+            .fill(Color(nsColor: NSColor(name: nil) { a in
+                a.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua ? NSColor(white: 1, alpha: 0.13) : NSColor(white: 1, alpha: 1)
+            }))
+            .overlay(Capsule().strokeBorder(Color(nsColor: NSColor(name: nil) { a in
+                a.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua ? NSColor(white: 1, alpha: 0.18) : NSColor(white: 0, alpha: 0.06)
+            }), lineWidth: 0.5))
+            .shadow(color: .black.opacity(0.16), radius: 4, y: 1)
+    }
+}
+
+/// Ilovadagi yagona tab/segment tanlagich: shisha kapsula ichida tanlangan bo'lak — yorug' tabletka, bosganda suzib o'tadi.
+/// Sahifa tablari, davr (Bugun / 7 kun), Xom / Vaznli va Jonli ko'rinishlari shu bilan chiziladi.
+struct PillSegments<ID: Hashable>: View {
+    struct Item: Identifiable {
+        let id: ID
+        let title: String
+        var symbol: String? = nil
+        var help: String? = nil
+    }
+
+    @Binding var selection: ID
+    let items: [Item]
+    /// Ixcham: kichikroq shrift va balandlik (ikkinchi darajali tanlagichlar uchun)
+    var compact = false
+    /// Kanvas ustida suzib turganda — soya bilan
+    var floating = false
+    @Namespace private var pill
+
+    var body: some View {
+        HStack(spacing: 2) {
+            ForEach(items) { item in
+                let on = item.id == selection
+                Button {
+                    withAnimation(.spring(response: 0.36, dampingFraction: 0.84)) { selection = item.id }
+                } label: {
+                    HStack(spacing: 6) {
+                        if let s = item.symbol { Image(systemName: s).font(.system(size: compact ? 10.5 : 11.5, weight: .semibold)) }
+                        Text(item.title)
+                    }
+                    .font(.system(size: compact ? 12 : 12.5, weight: on ? .semibold : .medium))
+                    .foregroundStyle(on ? Color.primary : Color.secondary)
+                    .padding(.horizontal, compact ? 11 : 14).frame(height: compact ? 24 : 28)
+                    .background { if on { SelectionPill().matchedGeometryEffect(id: "pill", in: pill) } }
+                    .contentShape(Capsule())
+                }
+                .buttonStyle(.plain)
+                .noFocusRing()
+                .help(item.help ?? item.title)
+            }
+        }
+        .padding(3)
+        .glassCapsule()
+        .shadow(color: .black.opacity(floating ? 0.35 : 0), radius: 18, y: 8)
+        .fixedSize()
+    }
+}

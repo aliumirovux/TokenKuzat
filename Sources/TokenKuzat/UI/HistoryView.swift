@@ -19,12 +19,7 @@ struct HistoryView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 HStack {
-                    Picker(tr("Davr", "Period"), selection: $range) {
-                        Text(tr("7 kun", "7 days")).tag(7)
-                        Text(tr("14 kun", "14 days")).tag(14)
-                        Text(tr("30 kun", "30 days")).tag(30)
-                    }
-                    .pickerStyle(.segmented).labelsHidden().fixedSize()
+                    PillSegments(selection: $range, items: [7, 14, 30].map { .init(id: $0, title: tr("\($0) kun", "\($0) days")) })
                     Spacer()
                     Button { exportCSV() } label: { Label(tr("CSV eksport", "Export CSV"), systemImage: "square.and.arrow.up") }
                 }
