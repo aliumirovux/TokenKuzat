@@ -5,7 +5,7 @@ import TokenKuzatCore
 
 struct HistoryView: View {
     @EnvironmentObject var store: Store
-    @AppStorage(Pref.countMode) private var mode = CountMode.raw
+    @AppStorage(Pref.countMode) private var mode = CountMode.weighted
     @State private var range = 30
     @State private var selected: Date?
 

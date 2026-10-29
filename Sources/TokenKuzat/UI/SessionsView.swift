@@ -3,7 +3,7 @@ import TokenKuzatCore
 
 struct SessionsView: View {
     @EnvironmentObject var store: Store
-    @AppStorage(Pref.countMode) private var mode = CountMode.raw
+    @AppStorage(Pref.countMode) private var mode = CountMode.weighted
     @State private var query = ""
     @State private var expanded: Set<String> = []
     @State private var touched = false
@@ -40,20 +40,41 @@ struct SessionsView: View {
                         .card()
                     if all.isEmpty { SourcesList(sources: store.snap.sources).card() }
                 } else {
-                    ForEach(list) { sess in
-                        // Foydalanuvchi hech narsa bosmaguncha eng so'nggi sessiya ochiq turadi
-                        let isOpen = touched ? expanded.contains(sess.id) : sess.id == all.first?.id
-                        SessionCard(session: sess, mode: mode, expanded: isOpen,
-                                    costUSD: store.snap.limits?.costBySession[sess.id],
-                                    tokensPerPct: store.snap.outside?.tokensPerPct, top: top) {
-                            if !touched, let first = all.first?.id { expanded.insert(first); touched = true }
-                            if expanded.contains(sess.id) { expanded.remove(sess.id) } else { expanded.insert(sess.id) }
+                    // «Eng so'nggi» — kunlar bo'yicha guruhlar, «Eng qimmat» — bitta ro'yxat
+                    ForEach(sort == "recent" ? Self.byDay(list) : [("", list)], id: \.0) { day, items in
+                        if !day.isEmpty {
+                            Text(day).font(.subheadline.weight(.semibold)).foregroundStyle(.secondary)
+                                .padding(.top, 8).padding(.leading, 4)
+                        }
+                        ForEach(items) { sess in
+                            // Foydalanuvchi hech narsa bosmaguncha eng so'nggi sessiya ochiq turadi
+                            let isOpen = touched ? expanded.contains(sess.id) : sess.id == all.first?.id
+                            SessionCard(session: sess, mode: mode, expanded: isOpen,
+                                        costUSD: store.snap.limits?.costBySession[sess.id],
+                                        tokensPerPct: store.snap.outside?.tokensPerPct, top: top) {
+                                if !touched, let first = all.first?.id { expanded.insert(first); touched = true }
+                                if expanded.contains(sess.id) { expanded.remove(sess.id) } else { expanded.insert(sess.id) }
+                            }
                         }
                     }
                 }
             }
             .padding(20)
         }
+    }
+
+    /// Sessiyalar oxirgi faollik kuni bo'yicha: «Bugun», «Kecha», keyin sana
+    static func byDay(_ list: [SessionSnap], now: Date = Date()) -> [(String, [SessionSnap])] {
+        let cal = Calendar.current
+        var groups: [(String, [SessionSnap])] = []
+        for s in list {
+            let d = s.lastActivity ?? now
+            let name = cal.isDateInToday(d) ? tr("Bugun", "Today")
+                : cal.isDateInYesterday(d) ? tr("Kecha", "Yesterday")
+                : Fmt.longDay.string(from: d)
+            if groups.last?.0 == name { groups[groups.count - 1].1.append(s) } else { groups.append((name, [s])) }
+        }
+        return groups
     }
 }
 
@@ -76,7 +97,12 @@ struct SessionCard: View {
                 HStack(spacing: 12) {
                     StateDot(state: session.state)
                     VStack(alignment: .leading, spacing: 3) {
-                        Text(session.project).font(.headline).lineLimit(1)
+                        HStack(spacing: 6) {
+                            Text(session.project).font(.headline).lineLimit(1)
+                            if session.state != .idle {
+                                Text(tr("Ishlayapti", "Working")).font(.caption.weight(.semibold)).foregroundStyle(Brand.ok)
+                            }
+                        }
                         Text(session.title).font(.callout).foregroundStyle(.secondary).lineLimit(1)
                     }
                     Spacer(minLength: 10)
@@ -113,7 +139,9 @@ struct SessionCard: View {
                     if session.contextTokens > 0 {
                         Chip(text: tr("Kontekst \(Fmt.tokens(session.contextTokens))", "Context \(Fmt.tokens(session.contextTokens))"), symbol: "text.alignleft")
                     }
-                    Chip(text: tr("\(session.helperCount) yordamchi agent", session.helperCount == 1 ? "1 subagent" : "\(session.helperCount) subagents"), symbol: "person.2")
+                    if session.helperCount > 0 {
+                        Chip(text: tr("\(session.helperCount) yordamchi agent", session.helperCount == 1 ? "1 subagent" : "\(session.helperCount) subagents"), symbol: "person.2")
+                    }
                     if let cost = costUSD {
                         Chip(text: String(format: "$%.2f", cost).replacingOccurrences(of: ".", with: ","), symbol: "dollarsign.circle")
                             .help(tr("Claude Code hisoblagan taxminiy narx (API narxlarida)", "Estimated cost calculated by Claude Code (at API prices)"))
@@ -134,9 +162,12 @@ struct SessionCard: View {
                         .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(Palette.main.opacity(0.1)))
                 }
                 BreakdownLegend(slices: slices.filter { $0.id != "agents" || $0.value > 0 }, total: total, inlineHints: true)
-                Divider()
-                VStack(spacing: 12) {
-                    ForEach(session.agents) { AgentRow(agent: $0, sessionTotal: total, mode: mode) }
+                // Faqat asosiy agent bo'lsa — «100%» qatori hech narsa qo'shmaydi
+                if session.agents.count > 1 {
+                    Divider()
+                    VStack(spacing: 12) {
+                        ForEach(session.agents) { AgentRow(agent: $0, sessionTotal: total, mode: mode) }
+                    }
                 }
             }
         }

@@ -349,7 +349,11 @@ public final class Engine {
         let firstLine = String(first.split(separator: "\n").first ?? Substring(first))
         agent.lastStop = "prompt"
         if agent.isMain {
-            if session.firstPrompt.isEmpty { session.firstPrompt = String(firstLine.prefix(90)) }
+            if session.firstPrompt.isEmpty {
+                // Ko'chirilgan sessiya: sarlavha tizim matni emas, xulosadagi so'nggi vazifa
+                let title = AutoHandoffRule.continuationTitle(from: first).map { "↪ " + $0 } ?? firstLine
+                session.firstPrompt = String(title.prefix(90))
+            }
             if let ts = ev.timestamp { session.addTurn(start: ts, prompt: String(firstLine.prefix(160))) }
             agent.lastAction = tr("Yangi so'rov oldi", "Got a new prompt")
             if let ts = ev.timestamp, ts >= dayStart {

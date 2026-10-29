@@ -6,7 +6,7 @@ import TokenKuzatCore
 /// Model va sifat o'zgarmaydi — faqat behuda qayta o'qilayotgan kontekst va og'ir sozlamalar kamaytiriladi.
 struct ProjectSavingsView: View {
     @EnvironmentObject var store: Store
-    @AppStorage(Pref.countMode) private var mode = CountMode.raw
+    @AppStorage(Pref.countMode) private var mode = CountMode.weighted
     @AppStorage("savingsPeriod") private var period = SavingsPeriod.week
     @State private var expanded: Set<String> = []
 

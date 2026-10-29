@@ -257,11 +257,11 @@ struct EmptyStateView: View {
 }
 
 struct CountModePicker: View {
-    @AppStorage(Pref.countMode) private var mode = CountMode.raw
+    @AppStorage(Pref.countMode) private var mode = CountMode.weighted
 
     var body: some View {
         PillSegments(selection: $mode, items: CountMode.allCases.map { .init(id: $0, title: $0.title) }, compact: true)
-        .help(tr("Xom — hamma token teng. Vaznli — taxminiy narx: javob ×5, kesh o'qish ×0,1, kesh yozish ×1,25–2.", "Raw — every token counts the same. Weighted — approximate cost: output ×5, cache read ×0.1, cache write ×1.25–2."))
+        .help(tr("Token soni — hamma token teng. Narx bo'yicha — limitni nima ko'proq yeyishi: javob ×5, qayta o'qilgan kontekst ×0,1, kontekstni eslab qolish ×1,25–2.", "Token count — every token counts the same. By cost — what really eats your limit: replies ×5, re-read context ×0.1, saving context ×1.25–2."))
     }
 }
 

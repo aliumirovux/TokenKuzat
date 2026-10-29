@@ -8,7 +8,7 @@ import TokenKuzatCore
 
 struct OverviewView: View {
     @EnvironmentObject var store: Store
-    @AppStorage(Pref.countMode) private var mode = CountMode.raw
+    @AppStorage(Pref.countMode) private var mode = CountMode.weighted
     @AppStorage(Pref.budgetEnabled) private var budgetEnabled = false
 
     var body: some View {

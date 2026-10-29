@@ -6,7 +6,7 @@ import TokenKuzatCore
 /// ostida «Hozir», bugungi qisqa xulosa va so'nggi loyihalar.
 struct MenuPanel: View {
     @EnvironmentObject var store: Store
-    @AppStorage(Pref.countMode) private var mode = CountMode.raw
+    @AppStorage(Pref.countMode) private var mode = CountMode.weighted
     @ObservedObject private var updates = UpdateChecker.shared
 
     var body: some View {

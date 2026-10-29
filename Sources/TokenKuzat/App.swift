@@ -164,7 +164,7 @@ struct LanguageScope<Content: View>: View {
 /// Menyu satridagi yozuv: tinch paytda bugungi jami, agent ishlayotganda ⚡ va tezlik.
 struct MenuBarLabel: View {
     @EnvironmentObject var store: Store
-    @AppStorage(Pref.countMode) private var mode = CountMode.raw
+    @AppStorage(Pref.countMode) private var mode = CountMode.weighted
     @AppStorage(Pref.menuBarStyle) private var style = MenuBarStyle.tokens
 
     var body: some View {

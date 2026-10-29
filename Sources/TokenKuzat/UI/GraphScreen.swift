@@ -40,7 +40,7 @@ private enum Selection: Equatable {
 struct GraphScreen: View {
     static let selectedSessionKey = "graphSession"
     @EnvironmentObject var store: Store
-    @AppStorage(Pref.countMode) private var mode = CountMode.raw
+    @AppStorage(Pref.countMode) private var mode = CountMode.weighted
     @AppStorage(GraphScreen.selectedSessionKey) private var sessionId = ""
     @AppStorage("graphInspector") private var showInspector = true
     /// Tor oynada tafsilotlar paneli xarita ustida ochiladi (sukut bo'yicha yopiq) — xarita siqilmaydi

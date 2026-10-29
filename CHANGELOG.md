@@ -1,5 +1,13 @@
 # O'zgarishlar
 
+## 6.32.0 — 2026-10-29
+
+- Ko'chirilgan sessiya sarlavhasi endi tizim matni emas: «↪ so'nggi vazifa» (xulosadan olinadi).
+- Ishlayotgan sessiyada nomi yonida «Ishlayapti» yozuvi — holat faqat rang bilan berilmaydi.
+- «0 yordamchi agent» chipi va yolg'iz «Asosiy agent 100%» qatori yashirildi.
+- «Xom / Vaznli» o'rniga «Token soni / Narx bo'yicha»; yangi foydalanuvchida odatiy holat — «Narx bo'yicha».
+- «Eng so'nggi» saralashda sessiyalar kunlar bo'yicha guruhlangan: «Bugun», «Kecha», keyin sana.
+
 ## 6.31.0 — 2026-10-29
 
 - «Sessiyalar» birinchi kirgan odam uchun tushunarliroq: asosiy raqam endi «5 soatlik limitning N%» (o'rganilmagan bo'lsa — narx yoki token), token soni ostida birligi bilan.

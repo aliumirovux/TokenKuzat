@@ -40,4 +40,12 @@ final class AutoHandoffTests: XCTestCase {
         XCTAssertTrue(AutoHandoffRule.alreadyDone(doneAt: nil, known: true, context: 290_000, thresholdK: 200))
         XCTAssertFalse(AutoHandoffRule.alreadyDone(doneAt: nil, known: true, context: 395_000, thresholdK: 200))
     }
+
+    func testContinuationTitlePicksLastMeaningfulTask() {
+        let msg = AutoHandoffRule.firstMessage(summary: "Bu — davomi.\n\nSo'nggi vazifalar:\n- #3: kartalar joylashuvini tuzat\n- #4: Ha, chiqar\n\nO'zgartirilgan fayllar:\n- a.swift",
+                                           previousContext: 400_000, english: false)
+        XCTAssertEqual(AutoHandoffRule.continuationTitle(from: msg), "kartalar joylashuvini tuzat")
+        XCTAssertNil(AutoHandoffRule.continuationTitle(from: "oddiy so'rov"))
+        XCTAssertEqual(AutoHandoffRule.continuationTitle(from: "Token Kuzatuv: xulosasiz"), Lang.with(english: Lang.isEnglish) { tr("Oldingi sessiya davomi", "Continued session") })
+    }
 }

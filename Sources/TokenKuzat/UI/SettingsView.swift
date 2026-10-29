@@ -5,7 +5,7 @@ import TokenKuzatCore
 
 struct SettingsView: View {
     @EnvironmentObject var store: Store
-    @AppStorage(Pref.countMode) private var mode = CountMode.raw
+    @AppStorage(Pref.countMode) private var mode = CountMode.weighted
     @AppStorage(Pref.menuBarStyle) private var menuBarStyle = MenuBarStyle.tokens
     @AppStorage(Pref.budgetEnabled) private var budgetEnabled = false
     @AppStorage(Pref.budgetPeriod) private var budgetPeriod = BudgetPeriod.fiveHours
@@ -192,8 +192,8 @@ struct SettingsView: View {
 
             SwiftUI.Section {
                 Picker(tr("Hisoblash usuli", "Counting method"), selection: $mode) {
-                    Text(tr("Xom — hamma token teng", "Raw — every token counts the same")).tag(CountMode.raw)
-                    Text(tr("Vaznli — taxminiy narx bo'yicha", "Weighted — by estimated cost")).tag(CountMode.weighted)
+                    Text(tr("Token soni — hamma token teng", "Token count — every token counts the same")).tag(CountMode.raw)
+                    Text(tr("Narx bo'yicha — limitni nima ko'proq yeyishi", "By cost — what really eats your limit")).tag(CountMode.weighted)
                 }
                 .pickerStyle(.radioGroup)
             } header: {

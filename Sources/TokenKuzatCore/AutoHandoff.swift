@@ -41,6 +41,25 @@ public enum AutoHandoffRule {
     }
 }
 
+extension AutoHandoffRule {
+    /// Ko'chirilgan sessiyaning birinchi xabari — tizim matni, sarlavha bo'lib ko'rinmasin.
+    /// Xulosadagi so'nggi ma'noli vazifa olinadi («Ha, chiqar» kabi qisqa javoblar o'tkazib yuboriladi).
+    /// Ko'chirilgan sessiya bo'lmasa — nil
+    public static func continuationTitle(from prompt: String) -> String? {
+        guard prompt.hasPrefix("Token Kuzatuv:") else { return nil }
+        let lines = prompt.components(separatedBy: "\n")
+        guard let head = lines.firstIndex(where: { $0 == "So'nggi vazifalar:" || $0 == "Recent tasks:" }) else {
+            return tr("Oldingi sessiya davomi", "Continued session")
+        }
+        let tasks = lines[(head + 1)...].prefix { $0.hasPrefix("- #") }.map { line -> String in
+            guard let colon = line.range(of: ": ") else { return line }
+            return String(line[colon.upperBound...]).trimmingCharacters(in: .whitespaces)
+        }
+        let pick = tasks.last { $0.count >= 15 } ?? tasks.last
+        return pick.flatMap { $0.isEmpty ? nil : $0 } ?? tr("Oldingi sessiya davomi", "Continued session")
+    }
+}
+
 /// Yangi sessiya qayerda ochiladi
 public enum AutoHandoffTarget: String, CaseIterable, Identifiable, Sendable {
     case app, terminal
