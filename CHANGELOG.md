@@ -1,5 +1,10 @@
 # O'zgarishlar
 
+## 6.47.0 — 2026-10-29
+
+- Xaritada qisqartirish aniq ko'rinadi: Claude Code suhbatni qisqartirgan joyda karta «Avtomatik qisqartirildi» yoki «/compact bilan qisqartirildi» deb yozadi va kontekst qanchadan qanchaga tushganini ko'rsatadi («Kontekst 968K → 36K»). Bo'lim yorlig'i — «Qisqartirildi». Ma'lumot transkriptdagi «compact_boundary» qatoridan olinadi, shuning uchun Claude ilovasidagi sessiyalarda ham ishlaydi.
+- Avtomatik qisqartirish va avtomatik yangi sessiya endi to'qnashmaydi. Avvallari Claude Code kontekstni ko'chirish chegarasidan oldin qisqartirib qo'ysa, ko'chirish hech qachon ishlamasdi. Endi «PreCompact» hook'i hali ko'chirilmagan katta sessiyada avtomatik qisqartirishni bir marta to'xtatadi, javob tugagach esa ish xulosa bilan yangi sessiyaga ko'chiriladi (bildirishnomada sababi yoziladi). Xavfsizlik uchun `/compact`, jim turgan sessiyani qisqartirish va ikkinchi urinish to'xtatilmaydi, ilova yopiq bo'lsa ham to'xtatilmaydi. Hook kerak bo'lganda o'zi ulanadi va avtomatik ko'chirish o'chirilsa olib tashlanadi.
+
 ## 6.46.0 — 2026-10-29
 
 - Tejash sahifasidagi «Kesh» sababi endi transkriptdagi haqiqiy raqamlardan: tanaffus o'sha paytdagi kesh muddatidan (5 daqiqa yoki 1 soat) uzun bo'lgan va keyingi chaqiruv eski kontekstni keshdan o'qiy olmay qayta yozgan holatlar sanaladi. `/compact` isrof hisoblanmaydi, faqat qayta yozilgan eski kontekst olinadi, narxi — yozish va o'qish narxi farqi (1 soatlik kesh qimmatroq). «Bugun» / «7 kun» tanlansa, faqat shu davrdagi sovishlar. Izohda eng katta holat: «47 daq tanaffusdan keyin 330K qaytadan yozildi».

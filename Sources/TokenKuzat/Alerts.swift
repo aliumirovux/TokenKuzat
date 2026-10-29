@@ -111,6 +111,17 @@ final class Alerts: NSObject, UNUserNotificationCenterDelegate {
         if !rounded.isEmpty { try? PromptRedirectHook.install() }
     }
     private var redirectArmed: Set<String> = []
+    /// Avtomatik qisqartirishi to'xtatiladigan sessiyalar (faylga faqat to'plam o'zgarganda yoziladi)
+    private var compactGuarded: Set<String>?
+
+    private func updateCompactGuard(_ wanted: Set<String>) {
+        guard wanted != compactGuarded else { return }
+        let first = compactGuarded == nil
+        compactGuarded = wanted
+        if first && wanted.isEmpty && !FileManager.default.fileExists(atPath: CompactGuard.guardURL.path) { return }
+        CompactGuard.saveGuarded(wanted)
+        if !wanted.isEmpty { try? PreCompactHook.install() }
+    }
 
     /// Eski sessiyaning keyingi xabari yangi sessiyaga ketsin: xulosa saqlanadi, hook ulanadi
     private static func armRedirect(_ sess: SessionSnap, summary: String, replace: Bool = false) {
@@ -137,6 +148,7 @@ final class Alerts: NSObject, UNUserNotificationCenterDelegate {
         let d = UserDefaults.standard
         guard s.initialScanDone, d.bool(forKey: Pref.autoHandoff) else {
             updateNoteRequests([:])
+            updateCompactGuard([])
             return
         }
         let k = d.double(forKey: Pref.autoHandoffK)
@@ -149,6 +161,14 @@ final class Alerts: NSObject, UNUserNotificationCenterDelegate {
                                                 context: $0.contextTokens, thresholdK: k)
         }.map { ($0.id, NoteRequestStore.Request(context: $0.contextTokens, english: SavingsAdvisor.conversationEnglish($0))) },
         uniquingKeysWith: { a, _ in a }))
+        // Hali ko'chirilmagan katta sessiyalar: Claude Code ularni avtomatik qisqartirmoqchi bo'lsa — bir marta to'xtatiladi,
+        // o'rniga javob oxirida yangi sessiya ochiladi (aks holda qisqartirish ko'chirishdan oldin kelib, uni yo'qqa chiqarardi)
+        updateCompactGuard(Set(s.sessions.filter {
+            $0.contextTokens >= AutoHandoffRule.compactGuardFloor && ($0.lastActivity ?? .distantPast) >= recent
+                && !AutoHandoffRule.alreadyDone(doneAt: autoDoneContext[$0.id], known: autoDone[$0.id] != nil,
+                                                context: $0.contextTokens, thresholdK: k)
+        }.map(\.id)))
+        let compactBlocked = compactGuarded?.isEmpty == false ? CompactGuard.loadBlocked() : [:]
         // Ko'chirilgan sessiyalar (shu jumladan ilova qayta ishga tushishidan oldingilari) — keyingi xabari yangi sessiyaga yo'naltiriladi
         if d.bool(forKey: Pref.autoHandoffRedirect) {
             let cutoff = Date().timeIntervalSince1970 - RedirectStore.lifetime
@@ -161,7 +181,9 @@ final class Alerts: NSObject, UNUserNotificationCenterDelegate {
             previous: autoPrevious[sess.id], state: sess.state, context: sess.contextTokens, thresholdK: k,
             waitingPermission: s.permissionWaits[sess.id] != nil,
             alreadyDone: AutoHandoffRule.alreadyDone(doneAt: autoDoneContext[sess.id], known: autoDone[sess.id] != nil,
-                                                     context: sess.contextTokens, thresholdK: k)) {
+                                                     context: sess.contextTokens, thresholdK: k),
+            compactBlocked: compactBlocked[sess.id].map { $0.timeIntervalSince1970 > (autoDone[sess.id] ?? 0) } ?? false) {
+            let byCompact = Double(sess.contextTokens) < k * 1000
             autoDone[sess.id] = Date().timeIntervalSince1970
             autoDoneContext[sess.id] = sess.contextTokens
             d.set(autoDone, forKey: autoDoneKey)
@@ -173,8 +195,10 @@ final class Alerts: NSObject, UNUserNotificationCenterDelegate {
                 if redirect { Self.armRedirect(sess, summary: summary, replace: true) }
                 let ok = AutoHandoff.start(sess, target: target, summary: summary)
                 let start = SavingsAdvisor.startContext(for: sess) ?? SavingsAdvisor.baseline
+                let why = byCompact ? tr("Claude Code suhbatni avtomatik qisqartirmoqchi edi — o'rniga ish yangi sessiyaga ko'chirildi. ",
+                                         "Claude Code was about to auto-compact the conversation — the work moved to a new session instead. ") : ""
                 self.post(tr("\(sess.project): yangi sessiya ochildi", "\(sess.project): new session opened"),
-                          ok ? (target == .app
+                          why + (ok ? (target == .app
                                 // Claude ilovasi tashqi havoladagi xabarni xavfsizlik uchun o'zi yubormaydi — Enter foydalanuvchida
                                 ? tr("Kontekst \(Fmt.tokens(sess.contextTokens)) edi. Yangi sessiyada xulosa yozib qo'yildi — Enter bosing, Claude ishni davom ettiradi "
                                      + "(kontekst ~\(Fmt.tokens(start)) dan boshlanadi). Eski sessiyada davom etmang.",
@@ -185,7 +209,7 @@ final class Alerts: NSObject, UNUserNotificationCenterDelegate {
                                      "Context was \(Fmt.tokens(sess.contextTokens)). A new Terminal session started with the summary — Claude continues the work itself "
                                      + "(context starts at ~\(Fmt.tokens(start))). Don't keep working in the old session."))
                              : tr("Yangi sessiyani ochib bo'lmadi — sessiyani oching va «Yangi sessiyada davom ettirish»ni bosing.",
-                                  "Couldn't open a new session — open the session and click «Continue in a new session»."),
+                                  "Couldn't open a new session — open the session and click «Continue in a new session».")),
                           session: sess.id)
             }
         }

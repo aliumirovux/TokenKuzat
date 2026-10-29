@@ -129,7 +129,9 @@ struct SettingsView: View {
                                  "After Claude finishes its reply, a new session opens with the summary; work is never interrupted. In the Claude app the summary is filled in — you press Enter "
                                  + "(the app doesn't send outside messages by itself, for safety); in Terminal it's fully automatic"),
                               isOn: $autoHandoff)
-                .onChange(of: autoHandoff) { on in if !on { try? PromptRedirectHook.uninstall() } }
+                .onChange(of: autoHandoff) { on in
+                    if !on { try? PromptRedirectHook.uninstall(); try? PreCompactHook.uninstall() }
+                }
                 if autoHandoff {
                     Picker(tr("…kontekst oshganda", "…when context passes"), selection: $autoHandoffK) {
                         ForEach(AutoHandoffRule.thresholdOptionsK, id: \.self) { Text(Fmt.tokens($0 * 1000)).tag($0) }

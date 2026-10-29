@@ -219,6 +219,14 @@ public final class Engine {
             session.customTitle = t
             return
         }
+        if case .compact(let auto, let before, let after) = ev.kind {
+            // Faqat asosiy suhbat; bir qator ikki marta o'qilsa — takrorlanmaydi
+            if fs.agentKey == nil, ev.sidechainAgentId == nil, let ts = ev.timestamp,
+               !session.compactions.contains(where: { $0.date == ts }) {
+                session.compactions.append(Compaction(date: ts, auto: auto, before: before, after: after))
+            }
+            return
+        }
 
         let agent = session.agent(fs.agentKey ?? ev.sidechainAgentId ?? "main")
         if !agent.isMain && !agent.metaFound && agent.metaAttempts < 30 { loadMeta(agent, fs) }
@@ -233,7 +241,7 @@ public final class Engine {
         switch ev.kind {
         case .assistant(let a): apply(a, ev, fs, session, agent, prev: prevActivity)
         case .user(let u): apply(u, ev, session, agent)
-        case .title: break
+        case .title, .compact: break
         }
     }
 
@@ -542,8 +550,16 @@ public final class Engine {
                          TurnTool(category: cat, calls: v.calls, errors: v.errors,
                                   top: v.targets.max { $0.value < $1.value }?.key ?? "", busy: v.busy)
                      }.sorted { $0.calls > $1.calls },
-                     helpers: helpers[i])
+                     helpers: helpers[i],
+                     compaction: TurnSnap.isContinuation(s.turns[i].prompt)
+                        ? Engine.compaction(before: s.turns[i].start, in: s.compactions) : nil)
         }
+    }
+
+    /// Xulosa bilan davom etgan so'rovdan oldingi oxirgi qisqartirish (10 daqiqa ichida)
+    static func compaction(before start: Date, in list: [Compaction]) -> Compaction? {
+        list.filter { $0.date <= start.addingTimeInterval(5) && start.timeIntervalSince($0.date) < 600 }
+            .max { $0.date < $1.date }
     }
 
     /// `ts` qaysi so'rovga tegishli: boshlanishi `ts` dan oldin bo'lgan oxirgi so'rov
@@ -742,6 +758,7 @@ private final class SessionAcc {
     var allSteps: [(StepAcc, String?)] = []
     var notes: [NoteAcc] = []
     var noteIds: Set<String> = []
+    var compactions: [Compaction] = []
 
     init(id: String) { self.id = id }
 

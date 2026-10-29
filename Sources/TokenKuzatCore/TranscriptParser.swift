@@ -7,6 +7,8 @@ public struct TranscriptEvent {
         case user(User)
         /// Sessiyaga foydalanuvchi bergan nom («custom-title»)
         case title(String)
+        /// Suhbat qisqartirildi («compact_boundary»): trigger va oldingi/keyingi kontekst
+        case compact(auto: Bool, before: Int, after: Int)
     }
 
     public enum Item: Equatable {
@@ -69,6 +71,10 @@ public enum TranscriptParser {
         case "custom-title":
             guard let t = obj["customTitle"] as? String, !t.isEmpty else { return nil }
             kind = .title(t)
+        case "system":
+            guard obj["subtype"] as? String == "compact_boundary" else { return nil }
+            let m = obj["compactMetadata"] as? [String: Any] ?? [:]
+            kind = .compact(auto: m["trigger"] as? String != "manual", before: int(m["preTokens"]), after: int(m["postTokens"]))
         default:
             return nil
         }

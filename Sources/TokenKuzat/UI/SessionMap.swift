@@ -50,6 +50,23 @@ extension ToolCategory {
 extension TurnSnap {
     /// Ro'yxat va chiplarda ko'rinadigan matn: xulosa matni o'rniga tushunarli yozuv
     var shownPrompt: String { isContinuation ? tr("Kontekst yangilandi — ish davom etdi", "Context refreshed — work continued") : prompt }
+
+    /// Qisqartirish yorlig'i: «Avtomatik qisqartirildi» yoki «/compact bilan qisqartirildi»; ma'lumot bo'lmasa — eski yozuv
+    var compactionTitle: String {
+        guard let c = compaction else { return tr("Ish davom etdi", "Work continued") }
+        return c.auto ? tr("Avtomatik qisqartirildi", "Auto-compacted") : tr("/compact bilan qisqartirildi", "Compacted with /compact")
+    }
+
+    var compactionHelp: String {
+        guard let c = compaction else {
+            return tr("Kontekst tugab, suhbat xulosa bilan davom ettirildi", "Context ran out; the conversation continued from a summary")
+        }
+        return c.auto
+            ? tr("Kontekst \(Fmt.tokens(c.before)) ga yetib, Claude Code suhbatni o'zi qisqartirdi — endi \(Fmt.tokens(c.after)). Oldingi tafsilotlar xulosaga aylandi.",
+                 "Context reached \(Fmt.tokens(c.before)) and Claude Code compacted the conversation itself — now \(Fmt.tokens(c.after)). Earlier details became a summary.")
+            : tr("Suhbat /compact bilan qisqartirildi: \(Fmt.tokens(c.before)) → \(Fmt.tokens(c.after)).",
+                 "The conversation was compacted with /compact: \(Fmt.tokens(c.before)) → \(Fmt.tokens(c.after)).")
+    }
 }
 
 /// Xaritada ochilgan so'rov zanjirining bir bo'g'ini: asbob qadami, o'ylash, javob yoki «hozir o'ylayapti».
@@ -207,7 +224,9 @@ private struct MapSection: Identifiable {
         for (si, s) in chain.enumerated() {
             for t in s.turns {
                 let newSession = si > 0 && t.id == s.turns.first?.id
-                let reason: String? = t.isContinuation ? tr("Kontekst yangilandi", "Context refreshed") : (newSession ? tr("Yangi sessiya", "New session") : nil)
+                let reason: String? = t.isContinuation
+                    ? (t.compaction != nil ? tr("Qisqartirildi", "Compacted") : tr("Kontekst yangilandi", "Context refreshed"))
+                    : (newSession ? tr("Yangi sessiya", "New session") : nil)
                 let gap = prevEnd.map { t.start.timeIntervalSince($0) > M.sectionBreak } ?? true
                 let follow = reason == nil && !gap && !t.isContinuation && isFollowUp(t.prompt)
                     && !(out.last?.cards.isEmpty ?? true)
@@ -1192,7 +1211,7 @@ private struct TurnCard: View {
                 Spacer()
                 if turn.errors > 0 { Circle().fill(Brand.err).frame(width: 8 * k, height: 8 * k) }
             }
-            Text(turn.isContinuation ? tr("↻ Davom etdi", "↻ Continued") : turn.prompt)
+            Text(turn.isContinuation ? (turn.compaction.map { "↻ " + $0.change } ?? tr("↻ Davom etdi", "↻ Continued")) : turn.prompt)
                 .font(.system(size: 12.5 * k, weight: .semibold)).lineLimit(3)
                 .foregroundStyle(turn.isContinuation ? Brand.warn : .primary)
             Spacer(minLength: 0)
@@ -1221,10 +1240,13 @@ private struct TurnCard: View {
             }
             VStack(alignment: .leading, spacing: 2) {
                 if turn.isContinuation {
-                    Label(tr("Ish davom etdi", "Work continued"), systemImage: "arrow.triangle.2.circlepath")
+                    Label(turn.compactionTitle, systemImage: turn.compaction == nil ? "arrow.triangle.2.circlepath" : "arrow.down.right.and.arrow.up.left")
                         .font(.callout.weight(.semibold)).foregroundStyle(Brand.warn)
+                    if let c = turn.compaction {
+                        Text(tr("Kontekst \(c.change)", "Context \(c.change)")).font(.caption.weight(.medium).monospacedDigit())
+                    }
                     if let previousPrompt {
-                        Text(previousPrompt).font(.caption).foregroundStyle(.secondary).lineLimit(2)
+                        Text(previousPrompt).font(.caption).foregroundStyle(.secondary).lineLimit(turn.compaction == nil ? 2 : 1)
                     }
                 } else {
                     Text(turn.prompt).font(.callout.weight(.medium)).lineLimit(3)
@@ -1263,7 +1285,7 @@ private struct TurnCard: View {
         }
         .shadow(color: .black.opacity(0.16), radius: 4, y: 2)
         .contentShape(shape)
-        .help(turn.isContinuation ? tr("Kontekst tugab, suhbat xulosa bilan davom ettirildi", "Context ran out; the conversation continued from a summary") : turn.prompt)
+        .help(turn.isContinuation ? turn.compactionHelp : turn.prompt)
     }
 
     /// «↳ Bosdim · 20 s · 2 qadam» — bosilsa, qadamlari karta ostida ochiladi

@@ -137,9 +137,11 @@ public struct TurnSnap: Identifiable, Sendable {
     public var tools: [TurnTool] = []
     /// So'rov ichida ishlagan yordamchi agentlar
     public var helpers: [String] = []
+    /// Suhbat qisqartirilgan joy (`isContinuation` so'rovida): qancha kontekst qancha bo'ldi
+    public var compaction: Compaction? = nil
 
     public init(id: Int, prompt: String, text: String? = nil, start: Date, end: Date, tokens: TokenCounts, steps: Int, errors: Int,
-                active: Bool, tools: [TurnTool] = [], helpers: [String] = []) {
+                active: Bool, tools: [TurnTool] = [], helpers: [String] = [], compaction: Compaction? = nil) {
         self.id = id
         self.prompt = prompt
         self.text = text ?? prompt
@@ -151,6 +153,7 @@ public struct TurnSnap: Identifiable, Sendable {
         self.active = active
         self.tools = tools
         self.helpers = helpers
+        self.compaction = compaction
     }
 
     public var duration: TimeInterval { max(0, end.timeIntervalSince(start)) }
@@ -161,6 +164,25 @@ public struct TurnSnap: Identifiable, Sendable {
     public static func isContinuation(_ prompt: String) -> Bool {
         prompt.hasPrefix("This session is being continued from a previous conversation")
     }
+}
+
+/// Claude Code suhbatni qisqartirgani (transkriptdagi «compact_boundary»)
+public struct Compaction: Equatable, Sendable {
+    public let date: Date
+    /// true — kontekst to'lib, Claude Code o'zi qisqartirdi; false — /compact
+    public let auto: Bool
+    public let before: Int
+    public let after: Int
+
+    public init(date: Date, auto: Bool, before: Int, after: Int) {
+        self.date = date
+        self.auto = auto
+        self.before = before
+        self.after = after
+    }
+
+    /// «968K → 36K»
+    public var change: String { Fmt.tokens(before) + " → " + Fmt.tokens(after) }
 }
 
 /// So'rov ichidagi bitta asbob turi: nechta chaqiruv, xato va eng ko'p ishlatilgan nishon

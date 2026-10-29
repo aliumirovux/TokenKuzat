@@ -19,12 +19,16 @@ public enum AutoHandoffRule {
     }
 
     /// Shu yangilanishda yangi sessiya ochilsinmi
+    /// `compactBlocked` — Claude Code shu sessiyani avtomatik qisqartirmoqchi edi va hook to'xtatdi: chegara kutilmaydi
     public static func shouldTrigger(previous: AgentState?, state: AgentState, context: Int, thresholdK: Double,
-                                     waitingPermission: Bool, alreadyDone: Bool) -> Bool {
+                                     waitingPermission: Bool, alreadyDone: Bool, compactBlocked: Bool = false) -> Bool {
         guard !alreadyDone, !waitingPermission, state == .idle else { return false }
         guard let previous, previous != .idle else { return false }
-        return Double(context) >= thresholdK * 1000
+        return compactBlocked || Double(context) >= thresholdK * 1000
     }
+
+    /// Avtomatik qisqartirish shundan kichik kontekstda bo'lmaydi (eng kichik «auto-compact window»)
+    public static let compactGuardFloor = 100_000
 
     /// Yangi sessiyaning birinchi xabari — o'zi yuboriladi: nima uchun ko'chirilgani, xulosa va nima qilish kerakligi.
     /// Ish tugagan bo'lsa — yangi ish boshlamaydi, holatni aytib kutadi
