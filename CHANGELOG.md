@@ -1,5 +1,11 @@
 # O'zgarishlar
 
+## 6.27.0 — 2026-10-29
+
+- Tarqatish: `bash scripts/release.sh` — universal (Apple Silicon + Intel) ilova bilan DMG (`dist/TokenKuzatuv-<versiya>.dmg`, «Applications» yorlig'i, `.sha256`). `TK_SIGN_IDENTITY` (Developer ID) va `TK_NOTARY_PROFILE` berilsa — imzolanadi va notarizatsiyadan o'tadi; bo'lmasa vaqtinchalik imzo.
+- Yangilanishni tekshirish: kuniga bir marta GitHub'dagi so'nggi reliz o'qiladi; yangisi bo'lsa menyu panelida va Sozlamalarda «yuklab olish» havolasi (DMG). Sozlamalar → «Yangi versiyani tekshirish» (sukut bo'yicha yoqilgan), «Hozir tekshirish».
+- README: DMG'dan o'rnatish va imzolanmagan ilovani birinchi marta ochish («Open Anyway»).
+
 ## 6.26.1 — 2026-10-29
 
 - Aniqlik: Claude ilovasi tashqi havola (`claude://code/new?q=…`) bilan kelgan xabarni xavfsizlik uchun o'zi yubormaydi — faqat yozish maydoniga qo'yadi, yangi papka uchun esa «Trust workspace» so'raydi. Bildirishnoma va Sozlamalar matni shunga moslandi: ilovada — «Enter bosing», Terminalda (`claude "<xabar>"`) — to'liq avtomatik.

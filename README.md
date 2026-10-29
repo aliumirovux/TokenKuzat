@@ -10,7 +10,20 @@ Ilova ikki tilda: O'zbekcha va English — Sozlamalar → «Til / Language» (su
 
 ## O'rnatish
 
-### Claude Code orqali (eng oson)
+### Tayyor ilova (DMG)
+
+[Releases](https://github.com/aliumirovux/TokenKuzat/releases/latest) sahifasidan `TokenKuzatuv-<versiya>.dmg` ni yuklab oling, oching va **Token Kuzatuv**ni **Applications** papkasiga sudrang. Apple Silicon va Intel Mac'larda ishlaydi, macOS 13+.
+
+Ilova hozircha Apple Developer ID bilan imzolanmagan (test rejimi), shuning uchun birinchi ochishda macOS «ochib bo'lmaydi» deydi. Bir marta shunday qiling:
+
+1. Ilovani oching → ogohlantirishda **Done** (yoki **OK**).
+2. **System Settings → Privacy & Security** → pastda «Token Kuzatuv was blocked…» yonidagi **Open Anyway** → parol.
+
+Yoki Terminal'da: `xattr -dr com.apple.quarantine "/Applications/Token Kuzatuv.app"`.
+
+Ilova kuniga bir marta GitHub'da yangi versiya borligini tekshiradi (faqat ochiq reliz ma'lumoti o'qiladi, hech narsa yuborilmaydi). Yangisi chiqsa, menyu panelida va Sozlamalarda «yuklab olish» havolasi paydo bo'ladi. O'chirish: Sozlamalar → «Yangi versiyani tekshirish».
+
+### Claude Code orqali
 
 Claude Code'da:
 
@@ -42,6 +55,7 @@ Loyiha papkasida yurgizing — ilova `~/Applications/Token Kuzatuv.app` ga o'rna
 | `bash build.sh --no-open` | o'rnatadi, lekin ochmaydi |
 | `swift test` | faqat testlar |
 | `swift scripts/make-icon.swift .` | ikonkani qayta chizadi |
+| `bash scripts/release.sh` | tarqatish uchun universal DMG: `dist/TokenKuzatuv-<versiya>.dmg` (+ `.sha256`) |
 
 Talab: macOS 13+, Xcode yoki Command Line Tools. `xcrun: error` chiqsa — bir marta `sudo xcodebuild -license accept`.
 
@@ -128,11 +142,13 @@ Tests/                   parser, engine, tarix, formatlash testlari
 
 Token Kuzatuv ("token watch" in Uzbek) is a macOS menu bar app that shows, live, where your tokens go in Claude Code and Cowork sessions: which agents are running, which tools and files they touch, how close you are to the 5-hour and weekly limits. It keeps a daily history and notifies you when a task finishes, a step gets stuck, Claude asks for permission or a limit is near.
 
-The app speaks **English and Uzbek** — Settings → "Til / Language" (defaults to your Mac's language: English if it's English, Uzbek otherwise). It reads only local `~/.claude/projects` files and chat transcripts you add yourself; nothing is uploaded (the optional account limit check talks only to `api.anthropic.com` with Claude Code's own key).
+The app speaks **English and Uzbek** — Settings → "Til / Language" (defaults to your Mac's language: English if it's English, Uzbek otherwise). It reads only local `~/.claude/projects` files and chat transcripts you add yourself; nothing is uploaded (the optional account limit check talks only to `api.anthropic.com` with Claude Code's own key; the update check reads public release info from `api.github.com`).
 
 ### Install
 
-From Claude Code (easiest):
+**Ready-made app:** download `TokenKuzatuv-<version>.dmg` from [Releases](https://github.com/aliumirovux/TokenKuzat/releases/latest), open it and drag **Token Kuzatuv** to **Applications** (Apple Silicon and Intel, macOS 13+). It isn't signed with an Apple Developer ID yet (test phase), so the first launch is blocked: open it once, then **System Settings → Privacy & Security → Open Anyway** (or `xattr -dr com.apple.quarantine "/Applications/Token Kuzatuv.app"`). The app checks GitHub once a day for a newer release (it only reads public release info) and shows a download link in the menu bar panel and Settings; turn it off in Settings → "Check for updates".
+
+From Claude Code:
 
 ```
 /plugin install tokenkuzat --marketplace aliumirovux/TokenKuzat

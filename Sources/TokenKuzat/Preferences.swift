@@ -29,6 +29,8 @@ enum Pref {
     static let notifyWaste = "notifyWaste"
     /// Avtomatik yangi sessiya: kontekst chegaradan oshgan sessiya javobni tugatganda xulosa bilan yangi sessiya ochiladi
     static let autoHandoff = "autoHandoff"
+    /// Kuniga bir marta GitHub'da yangi versiya borligini tekshirish
+    static let checkUpdates = "checkUpdates"
     static let autoHandoffK = "autoHandoffK"
     static let autoHandoffTarget = "autoHandoffTarget"
     /// Yengil rejim: bezak animatsiyalari (robot, aylanuvchi chegaralar, oqim nuqtalari) to'xtaydi — protsessor tejaladi
@@ -56,6 +58,7 @@ enum Pref {
             notifySavings: true,
             notifyWaste: true,
             autoHandoff: true,
+            checkUpdates: true,
             autoHandoffK: AutoHandoffRule.defaultThresholdK,
             autoHandoffTarget: AutoHandoffTarget.app.rawValue,
         ])

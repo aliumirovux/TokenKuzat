@@ -67,6 +67,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         Alerts.shared.start()
         AccountUsage.shared.start()
+        UpdateChecker.shared.start()
         DispatchQueue.main.async { WindowManager.shared.show() }
     }
 

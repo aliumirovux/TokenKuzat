@@ -7,6 +7,7 @@ import TokenKuzatCore
 struct MenuPanel: View {
     @EnvironmentObject var store: Store
     @AppStorage(Pref.countMode) private var mode = CountMode.raw
+    @ObservedObject private var updates = UpdateChecker.shared
 
     var body: some View {
         let s = store.snap
@@ -291,6 +292,11 @@ struct MenuPanel: View {
             Button(tr("Token Kuzatuv'ni ochish", "Open Token Kuzatuv")) { WindowManager.shared.show() }
                 .buttonStyle(.link).tint(Brand.accent).font(.callout.weight(.semibold))
             Spacer()
+            if let r = updates.available {
+                Button { updates.download() } label: { Label("v\(r.version)", systemImage: "arrow.down.circle.fill") }
+                    .buttonStyle(.link).tint(Brand.ok).font(.caption.weight(.semibold))
+                    .help(tr("Yangi versiya chiqdi — bosing, DMG yuklanadi", "A new version is out — click to download the DMG"))
+            }
             Button { WindowManager.shared.show(.settings) } label: { Image(systemName: "gearshape") }.help(tr("Sozlamalar", "Settings"))
             Button { NSApp.terminate(nil) } label: { Image(systemName: "power") }.help(tr("Chiqish", "Quit"))
         }

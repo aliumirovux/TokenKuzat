@@ -34,8 +34,20 @@ struct SettingsView: View {
     @State private var accountStatus: AccountUsage.Status = .off
     @State private var statusLineError: String?
     @State private var launchAtLogin = LaunchAtLogin.isEnabled
+    @AppStorage(Pref.checkUpdates) private var checkUpdates = true
+    @ObservedObject private var updates = UpdateChecker.shared
     @State private var notifyDenied = false
     @State private var confirmClear = false
+
+    private var updateCaption: String {
+        let current = tr("Hozirgi: v\(AppInfo.version)", "Current: v\(AppInfo.version)")
+        switch updates.status {
+        case .checking: return current + tr(" · tekshirilmoqda…", " · checking…")
+        case .failed: return current + tr(" · tekshirib bo'lmadi (internet?)", " · couldn't check (internet?)")
+        case .upToDate: return current + tr(" · eng so'nggi versiya", " · up to date")
+        case .idle: return current + tr(" · kuniga bir marta GitHub'dan tekshiriladi", " · checked on GitHub once a day")
+        }
+    }
 
     var body: some View {
         Form {
@@ -53,6 +65,26 @@ struct SettingsView: View {
                 Toggle(tr("Mac yoqilganda ishga tushsin", "Launch at login"), isOn: $launchAtLogin)
                     .onChange(of: launchAtLogin) { LaunchAtLogin.set($0) }
                     .disabled(!AppInfo.isBundled)
+                Toggle(isOn: $checkUpdates) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(tr("Yangi versiyani tekshirish", "Check for updates"))
+                        Text(updateCaption).font(.caption).foregroundStyle(.secondary)
+                    }
+                }
+                .onChange(of: checkUpdates) { on in if on { updates.start() } else { updates.stop() } }
+                if let r = updates.available {
+                    HStack {
+                        Label(tr("v\(r.version) chiqdi", "v\(r.version) is out"), systemImage: "arrow.down.circle.fill").foregroundStyle(Brand.accent)
+                        Spacer()
+                        Button(tr("Reliz sahifasi", "Release page")) { NSWorkspace.shared.open(r.pageURL) }.buttonStyle(.link)
+                        Button(tr("Yuklab olish", "Download")) { updates.download() }
+                    }
+                } else if checkUpdates {
+                    HStack {
+                        Spacer()
+                        Button(tr("Hozir tekshirish", "Check now")) { updates.check() }.disabled(updates.status == .checking)
+                    }
+                }
                 Picker(tr("Menyu satrida", "Menu bar"), selection: $menuBarStyle) {
                     ForEach(MenuBarStyle.allCases) { Text($0.title).tag($0) }
                 }
