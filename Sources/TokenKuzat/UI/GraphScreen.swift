@@ -46,8 +46,8 @@ struct GraphScreen: View {
     /// Tor oynada tafsilotlar paneli xarita ustida ochiladi (sukut bo'yicha yopiq) — xarita siqilmaydi
     @State private var narrowInspector = false
     @AppStorage(Pref.mapOnly) private var mapOnly = false
-    /// «Faqat xarita»: sarlavha, vaqt chizig'i, tablar va panel yashiriladi
-    private var mapFocus: Bool { mapOnly && currentTab == "map" }
+    /// «Faqat xarita» (Xulosa tabida — «Faqat sxema»): sarlavha, vaqt chizig'i, tablar va panel yashiriladi
+    private var mapFocus: Bool { mapOnly && ["map", "summary"].contains(currentTab) }
     @State private var contentWidth: CGFloat = 1200
     private var isNarrow: Bool { contentWidth < 1000 }
     private var inspectorVisible: Bool { isNarrow ? narrowInspector : showInspector }

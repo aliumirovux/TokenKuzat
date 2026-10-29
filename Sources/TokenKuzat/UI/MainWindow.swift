@@ -5,14 +5,13 @@ struct MainWindow: View {
     @EnvironmentObject var store: Store
     @AppStorage(Pref.section) private var section = Section.overview
     @AppStorage(Pref.mapOnly) private var mapOnly = false
-    @AppStorage("flowStyle") private var flowStyle = "map"
     @AppStorage("graphMode") private var graphMode = "flow"
     @State private var columns = NavigationSplitViewVisibility.all
     /// Foydalanuvchi yon menyuni yopgan (eslab qolinadi)
     @AppStorage("sidebarCollapsed") private var collapsed = false
 
-    /// «Faqat xarita» faqat sessiya sahifasining Xarita tabida amal qiladi
-    private var mapFocus: Bool { mapOnly && section == .graph && graphMode == "flow" && flowStyle != "summary" }
+    /// «Faqat xarita» sessiya sahifasining Xarita va Xulosa tablarida amal qiladi
+    private var mapFocus: Bool { mapOnly && section == .graph && graphMode == "flow" }
 
     var body: some View {
         NavigationSplitView(columnVisibility: $columns) {

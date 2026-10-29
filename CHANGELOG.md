@@ -1,5 +1,10 @@
 # O'zgarishlar
 
+## 6.20.2 — 2026-10-29
+
+- Sessiya → Xulosa: yuqori o'ng burchakda xaritadagidek «Faqat sxema» tugmasi (⇧⌘F, chiqish — Esc): sarlavha, tablar, yon menyu va panel yashirinadi, sxema oynaga qayta sig'diriladi.
+- Xulosadagi «Oynaga sig'dirish» belgisi xaritadagidek ⛶ ga almashdi — endi to'liq ekran tugmasi bilan adashmaydi.
+
 ## 6.20.1 — 2026-10-28
 
 - «Xulosa» sxemasi xaritadagidek boshqariladi: sichqoncha/trackpad bilan surish, pinch yoki ⌘/⌥ + aylantirish bilan kursor atrofida zoom; − / + ekran markazi atrofida, ⤢ — oynaga sig'dirib markazga qaytaradi. Surilmaguncha sxema oynaga sig'dirilib markazda turadi (yangi qadamlar qo'shilganda ham); ochilganda yuqori qismi ekrandan chiqib qolishi tuzatildi.

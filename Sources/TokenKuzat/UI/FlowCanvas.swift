@@ -257,6 +257,7 @@ struct FlowCanvas: View {
     @StateObject private var wheel = WheelMonitor()
     @State private var appearedAt = Date.distantPast
     @State private var entered = false
+    @AppStorage(Pref.mapOnly) private var mapOnly = false
 
     var body: some View {
         let layout = FlowLayout(model)
@@ -298,6 +299,7 @@ struct FlowCanvas: View {
                 }
                 .overlay(alignment: .bottomTrailing) { zoomControls(layout, vs).padding(12) }
                 .overlay(alignment: .bottomLeading) { FlowLegend().padding(12) }
+                .overlay(alignment: .topTrailing) { focusButton.padding(12) }
                 .onAppear {
                     viewport = vs
                     wheel.onWheel = { e in handleWheel(e, layout: FlowLayout(model)) }
@@ -479,7 +481,7 @@ struct FlowCanvas: View {
         return HStack(spacing: 0) {
             zoomButton("minus", tr("Kichraytirish", "Zoom out")) { zoomTo(zoom / 1.25, around: mid, l, vs) }
             Divider().frame(height: 16)
-            zoomButton("arrow.up.left.and.arrow.down.right", tr("Oynaga sig'dirish", "Fit to window")) {
+            zoomButton("viewfinder", tr("Oynaga sig'dirish", "Fit to window")) {
                 zoom = 1
                 auto = true
                 center(l, vs, scale: clampScale(fitScale(l, vs)))
@@ -488,6 +490,26 @@ struct FlowCanvas: View {
             zoomButton("plus", tr("Kattalashtirish", "Zoom in")) { zoomTo(zoom * 1.25, around: mid, l, vs) }
         }
         .surface(radius: 10, interactive: true)
+    }
+
+    /// «Faqat sxema» — xaritadagidek yuqori o'ng burchakda: sarlavha, tablar va panel yashiriladi
+    private var focusButton: some View {
+        Button {
+            withAnimation(Motion.spring) { mapOnly.toggle() }
+            // Oyna o'lchami o'zgaradi — sxema yangi joyga qayta sig'diriladi
+            zoom = 1
+            auto = true
+        } label: {
+            Image(systemName: mapOnly ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(mapOnly ? Brand.accent : Color.primary)
+                .frame(width: 32, height: 32)
+                .surface(radius: 10, interactive: true)
+        }
+        .buttonStyle(.plain)
+        .keyboardShortcut(mapOnly ? .cancelAction : KeyboardShortcut("f", modifiers: [.command, .shift]))
+        .help(mapOnly ? tr("Oddiy ko'rinishga qaytish (Esc)", "Back to normal view (Esc)")
+                      : tr("Faqat sxema — qolgan hamma narsa yashiriladi (⇧⌘F)", "Diagram only — hides everything else (⇧⌘F)"))
     }
 
     private func zoomButton(_ symbol: String, _ help: String, _ action: @escaping () -> Void) -> some View {
