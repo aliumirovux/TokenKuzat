@@ -7,17 +7,26 @@ struct SessionsView: View {
     @State private var query = ""
     @State private var expanded: Set<String> = []
     @State private var touched = false
+    /// «recent» — eng so'nggisi tepada, «cost» — eng ko'p sarflagani tepada
+    @AppStorage("sessions.sort") private var sort = "recent"
 
     var body: some View {
         let all = store.snap.sessions
-        let list = query.isEmpty ? all : all.filter {
+        let found = query.isEmpty ? all : all.filter {
             $0.project.localizedCaseInsensitiveContains(query) || $0.title.localizedCaseInsensitiveContains(query)
         }
+        // Saralash va chiziq uzunligi narx bo'yicha — limitni aynan shu yeydi
+        let list = sort == "cost" ? found.sorted { $0.tokens.weighted > $1.tokens.weighted } : found
+        let top = all.map { $0.tokens.value(mode) }.max() ?? 0
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
                     Text(tr("Oxirgi 7 kun · \(all.count) ta sessiya", "Last 7 days · \(all.count == 1 ? "1 session" : "\(all.count) sessions")")).font(.callout).foregroundStyle(.secondary)
                     Spacer()
+                    PillSegments(selection: $sort, items: [
+                        .init(id: "recent", title: tr("Eng so'nggi", "Most recent")),
+                        .init(id: "cost", title: tr("Eng qimmat", "Most expensive")),
+                    ], compact: true)
                     TextField(tr("Loyiha yoki so'rov bo'yicha qidirish", "Search by project or prompt"), text: $query)
                         .textFieldStyle(.roundedBorder)
                         .frame(maxWidth: 280)
@@ -35,7 +44,8 @@ struct SessionsView: View {
                         // Foydalanuvchi hech narsa bosmaguncha eng so'nggi sessiya ochiq turadi
                         let isOpen = touched ? expanded.contains(sess.id) : sess.id == all.first?.id
                         SessionCard(session: sess, mode: mode, expanded: isOpen,
-                                    costUSD: store.snap.limits?.costBySession[sess.id]) {
+                                    costUSD: store.snap.limits?.costBySession[sess.id],
+                                    tokensPerPct: store.snap.outside?.tokensPerPct, top: top) {
                             if !touched, let first = all.first?.id { expanded.insert(first); touched = true }
                             if expanded.contains(sess.id) { expanded.remove(sess.id) } else { expanded.insert(sess.id) }
                         }
@@ -52,11 +62,15 @@ struct SessionCard: View {
     let mode: CountMode
     let expanded: Bool
     var costUSD: Double? = nil
+    /// 1% 5 soatlik limit ≈ shuncha vaznli token (o'rganilgan bo'lsa)
+    var tokensPerPct: Double? = nil
+    /// Ro'yxatdagi eng katta sessiya — yig'iq chiziq shunga nisbatan
+    var top: Double = 0
     let onToggle: () -> Void
 
     var body: some View {
         let total = session.tokens.value(mode)
-        let slices = Composition.session(session, mode)
+        let slices = Composition.plain(Composition.session(session, mode))
         VStack(alignment: .leading, spacing: 12) {
             Button(action: { withAnimation(.easeInOut(duration: 0.18)) { onToggle() } }) {
                 HStack(spacing: 12) {
@@ -67,9 +81,10 @@ struct SessionCard: View {
                     }
                     Spacer(minLength: 10)
                     VStack(alignment: .trailing, spacing: 3) {
-                        Text(Fmt.tokens(total)).font(.system(.title3, design: .rounded).weight(.semibold)).monospacedDigit()
-                        Text(Fmt.ago(session.lastActivity)).font(.caption).foregroundStyle(.secondary)
+                        Text(headline).font(.system(.title3, design: .rounded).weight(.semibold)).monospacedDigit()
+                        Text(subline(total)).font(.caption).foregroundStyle(.secondary).monospacedDigit()
                     }
+                    .help(tr("Sessiya 5 soatlik limitning qanchasiga teng (o'tgan sarfdan o'rganilgan taxmin). Token soni pastda.", "How much of a 5-hour limit this session equals (estimated from past usage). Token count below."))
                     Image(systemName: "chevron.right")
                         .font(.caption.weight(.semibold)).foregroundStyle(.tertiary)
                         .rotationEffect(.degrees(expanded ? 90 : 0))
@@ -78,7 +93,19 @@ struct SessionCard: View {
             }
             .buttonStyle(.plain)
 
-            BreakdownBar(slices: slices, height: expanded ? 10 : 6)
+            if expanded {
+                BreakdownBar(slices: slices, height: 10)
+            } else {
+                // Yig'iq holatda tarkib emas, hajm: sessiyalarni bir qarashda solishtirish uchun
+                GeometryReader { geo in
+                    Capsule().fill(Color.primary.opacity(0.06))
+                        .overlay(alignment: .leading) {
+                            Capsule().fill(Palette.main.opacity(session.state == .running ? 1 : 0.7))
+                                .frame(width: max(6, geo.size.width * (top > 0 ? total / top : 0)))
+                        }
+                }
+                .frame(height: 6)
+            }
 
             if expanded {
                 HStack(spacing: 6) {
@@ -100,7 +127,13 @@ struct SessionCard: View {
                     }
                     .buttonStyle(.link).font(.caption)
                 }
-                BreakdownLegend(slices: slices, total: total)
+                if let insight = Self.insight(session) {
+                    Label(insight, systemImage: "lightbulb")
+                        .font(.callout).fixedSize(horizontal: false, vertical: true)
+                        .padding(10).frame(maxWidth: .infinity, alignment: .leading)
+                        .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(Palette.main.opacity(0.1)))
+                }
+                BreakdownLegend(slices: slices.filter { $0.id != "agents" || $0.value > 0 }, total: total, inlineHints: true)
                 Divider()
                 VStack(spacing: 12) {
                     ForEach(session.agents) { AgentRow(agent: $0, sessionTotal: total, mode: mode) }
@@ -108,6 +141,49 @@ struct SessionCard: View {
             }
         }
         .card(padding: 16, highlight: session.state == .running ? .green : nil)
+    }
+
+    /// Asosiy raqam: limit ulushi → narx → token (nima ma'lum bo'lsa)
+    private var headline: String {
+        if let per = tokensPerPct, per > 0 {
+            let pct = session.tokens.weighted / per
+            return pct < 1 ? tr("5 soatlik limitning <1%", "<1% of 5-h limit") : tr("5 soatlik limitning \(Int(pct.rounded()))%", "\(Int(pct.rounded()))% of 5-h limit")
+        }
+        if let c = costUSD { return String(format: "$%.2f", c).replacingOccurrences(of: ".", with: ",") }
+        return tr("\(Fmt.tokens(session.tokens.value(mode))) token", "\(Fmt.tokens(session.tokens.value(mode))) tokens")
+    }
+
+    private func subline(_ total: Double) -> String {
+        let ago = Fmt.ago(session.lastActivity)
+        guard tokensPerPct != nil || costUSD != nil else { return ago }
+        let unit = mode == .weighted ? tr("vaznli token", "weighted tokens") : tr("token", "tokens")
+        return "\(Fmt.tokens(total)) \(unit) · \(ago)"
+    }
+
+    /// Bitta xulosa: limit asosan nimaga ketgani va nima qilsa bo'ladi (narx bo'yicha hisoblanadi)
+    static func insight(_ s: SessionSnap) -> String? {
+        let w = Composition.session(s, .weighted)
+        let sum = w.reduce(0) { $0 + $1.value }
+        guard sum > 0 else { return nil }
+        func share(_ id: String) -> Double { (w.first { $0.id == id }?.value ?? 0) / sum }
+        let read = share("read"), agents = share("agents"), out = share("out")
+        if read >= 0.4 && s.contextTokens >= 150_000 {
+            return tr("Limitning \(Int((read * 100).rounded()))% i suhbatni qayta o'qishga ketdi: kontekst \(Fmt.tokens(Double(s.contextTokens))) ga yetgan va har javobda butun suhbat qayta o'qiladi. Yangi sessiyada davom etsangiz, har javob arzonlashadi.",
+                      "\(Int((read * 100).rounded()))% went to re-reading the conversation: the context reached \(Fmt.tokens(Double(s.contextTokens))) and the whole conversation is re-read on every reply. Continuing in a new session makes each reply cheaper.")
+        }
+        if agents >= 0.4 {
+            return tr("Limitning \(Int((agents * 100).rounded()))% i yordamchi agentlarga ketdi. Kichik vazifalar uchun ularsiz ishlash arzonroq.",
+                      "\(Int((agents * 100).rounded()))% went to subagents. Small tasks are cheaper without them.")
+        }
+        if out >= 0.4 {
+            return tr("Limitning \(Int((out * 100).rounded()))% i Claude javobi va fikrlashiga ketdi — bu eng qimmat qism. Qisqaroq javob so'rash yoki fikrlash darajasini pasaytirish tejaydi.",
+                      "\(Int((out * 100).rounded()))% went to Claude's replies and thinking — the most expensive part. Asking for shorter replies or lowering the thinking level saves the most.")
+        }
+        if read >= 0.4 {
+            return tr("Limitning \(Int((read * 100).rounded()))% i suhbatni qayta o'qishga ketdi. Suhbat uzaygan sari bu ulush o'sadi.",
+                      "\(Int((read * 100).rounded()))% went to re-reading the conversation. This share grows as the conversation gets longer.")
+        }
+        return nil
     }
 }
 

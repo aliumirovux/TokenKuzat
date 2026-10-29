@@ -84,6 +84,21 @@ enum Composition {
         [Slice(id: "agents", label: tr("Yordamchi agentlar", "Subagents"), value: s.agentTokens.value(mode), color: Palette.agents)]
             + slices(s.mainTokens, mode)
     }
+
+    /// Birinchi marta ko'rgan odam uchun: texnik nomlar o'rniga oddiy so'zlar, izoh qatorning o'zida
+    static func plain(_ slices: [Slice]) -> [Slice] {
+        slices.map { sl in
+            let (label, hint): (String, String?) = switch sl.id {
+            case "agents": (tr("Yordamchi agentlar", "Subagents"), tr("Claude ishni bo'lib bergan alohida agentlar", "Separate agents Claude handed parts of the work to"))
+            case "read": (tr("Qayta o'qilgan kontekst", "Re-read context"), tr("Har javobda butun suhbat qayta o'qiladi — arzon, lekin suhbat uzaygan sari ko'payadi", "The whole conversation is re-read on every reply — cheap, but it grows with the conversation"))
+            case "write": (tr("Kontekstni eslab qolish", "Saving context"), tr("Yangi matn va fayllar keyingi javoblar uchun saqlanadi", "New text and files are saved for the next replies"))
+            case "in": (tr("Yangi kiritilgan matn", "New input"), tr("Saqlanmasdan yuborilgan matn", "Text sent without being saved"))
+            case "out": (tr("Claude javobi va fikrlashi", "Claude's replies and thinking"), tr("Eng qimmat qism", "The most expensive part"))
+            default: (sl.label, sl.hint)
+            }
+            return Slice(id: sl.id, label: label, value: sl.value, color: sl.color, hint: hint)
+        }
+    }
 }
 
 struct BreakdownBar: View {
@@ -115,15 +130,24 @@ struct BreakdownBar: View {
 struct BreakdownLegend: View {
     let slices: [Slice]
     let total: Double
+    /// Izohni (i) belgisi ichida emas, nom ostida ko'rsatish
+    var inlineHints = false
 
     var body: some View {
         VStack(spacing: 6) {
             ForEach(slices) { sl in
                 HStack(spacing: 8) {
                     RoundedRectangle(cornerRadius: 2).fill(sl.color).frame(width: 9, height: 9)
-                    Text(sl.label).font(.caption)
-                    if let hint = sl.hint {
-                        Image(systemName: "info.circle").font(.caption2).foregroundStyle(.tertiary).help(hint)
+                    if inlineHints {
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(sl.label).font(.caption)
+                            if let hint = sl.hint { Text(hint).font(.caption2).foregroundStyle(.secondary).lineLimit(2) }
+                        }
+                    } else {
+                        Text(sl.label).font(.caption)
+                        if let hint = sl.hint {
+                            Image(systemName: "info.circle").font(.caption2).foregroundStyle(.tertiary).help(hint)
+                        }
                     }
                     Spacer()
                     Text(Fmt.tokens(sl.value)).font(.caption).monospacedDigit()

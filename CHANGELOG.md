@@ -1,5 +1,13 @@
 # O'zgarishlar
 
+## 6.31.0 — 2026-10-29
+
+- «Sessiyalar» birinchi kirgan odam uchun tushunarliroq: asosiy raqam endi «5 soatlik limitning N%» (o'rganilmagan bo'lsa — narx yoki token), token soni ostida birligi bilan.
+- Yig'iq kartadagi chiziq endi sessiya hajmini eng kattasiga nisbatan ko'rsatadi; tarkib faqat ochilganda.
+- «Eng so'nggi / Eng qimmat» saralash.
+- Tarkib oddiy so'zlar bilan, izoh qatorning o'zida («Qayta o'qilgan kontekst», «Claude javobi va fikrlashi» …).
+- Ochilgan kartada bitta xulosa: limit asosan nimaga ketgani va nima qilsa tejaladi.
+
 ## 6.30.1 — 2026-10-29
 
 - «Jonli» kartalari tartibga keltirildi: bir qatordagi kartalar endi bir xil balandlikda, pastki qatori (kontekst, vaqt, tokenlar) bir chiziqda turadi. Avval kartalar har xil balandlikda bo'lib, ostida bo'sh joylar qolardi.
