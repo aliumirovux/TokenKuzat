@@ -7,6 +7,9 @@ struct MainWindow: View {
     @AppStorage(Pref.mapOnly) private var mapOnly = false
     @AppStorage("graphMode") private var graphMode = "flow"
     @State private var columns = NavigationSplitViewVisibility.all
+    /// Ko'rsatilayotgan sahifa — `section` dan animatsiyasiz ko'chiriladi
+    @State private var page: Section?
+    private var shown: Section { page ?? section }
     /// Foydalanuvchi yon menyuni yopgan (eslab qolinadi)
     @AppStorage("sidebarCollapsed") private var collapsed = false
 
@@ -19,14 +22,12 @@ struct MainWindow: View {
                 .navigationSplitViewColumnWidth(min: 200, ideal: 220, max: 260)
         } detail: {
             VStack(spacing: 0) {
-                if section != .graph { header }
+                if shown != .graph { header }
                 detail
-                    .id(section)
-                    // Eski sahifa darhol ketadi — yangisi ustiga chiqib, ikkalasi aralashib ko'rinmasin
-                    .transition(.asymmetric(insertion: .opacity.combined(with: .offset(y: 6)), removal: .identity))
+                    .id(shown)
+                    .modifier(PageFadeIn())
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            .animation(Motion.snappy, value: section)
             .background(Brand.canvas)
             // Chat yozuvi (.jsonl) oynaga tashlansa — qo'shiladi
             .dropDestination(for: URL.self) { urls, _ in
@@ -44,6 +45,12 @@ struct MainWindow: View {
             .frame(minWidth: 520, minHeight: 520)
         }
         .onAppear { columns = (mapFocus || collapsed) ? .detailOnly : .all }
+        // Sahifa almashishi animatsiyasiz: animatsiya ichida eski sahifa yangisi bilan ustma-ust qolib ketardi
+        .onChange(of: section) { s in
+            var t = Transaction(animation: nil)
+            t.disablesAnimations = true
+            withTransaction(t) { page = s }
+        }
         .onChange(of: mapFocus) { on in withAnimation(Motion.spring) { columns = (on || collapsed) ? .detailOnly : .all } }
         // Yon menyu tortib yopilsa/ochilsa ham eslab qolinadi
         .onChange(of: columns) { c in if !mapFocus { collapsed = c == .detailOnly } }
@@ -67,7 +74,7 @@ struct MainWindow: View {
 
     @ViewBuilder
     private var detail: some View {
-        switch section {
+        switch shown {
         case .overview: OverviewView()
         case .live: LiveView()
         case .graph: GraphScreen()
@@ -82,22 +89,22 @@ struct MainWindow: View {
     /// Sahifa sarlavhasi: nom (yumaloq displey shrift), sana, jonli holat va hisoblash usuli
     private var header: some View {
         HStack(alignment: .firstTextBaseline, spacing: 10) {
-            Text(section == .overview ? tr("Bugun", "Today") : section.title)
+            Text(shown == .overview ? tr("Bugun", "Today") : shown.title)
                 .font(.system(size: 24, weight: .semibold, design: .rounded))
-            if section == .overview {
+            if shown == .overview {
                 Text(Fmt.longDay.string(from: store.snap.updatedAt)).foregroundStyle(.secondary)
             }
             Spacer()
             // Bosilsa — Jonli sahifasiga (u yerda o'zida bosish kerak emas)
             Button { withAnimation(Motion.snappy) { section = .live } } label: {
                 StatusPill(running: store.snap.runningAgents, active: store.snap.activeSessions,
-                           hint: section == .live ? nil : tr("Bosing — Jonli sahifasi", "Click to open Live"))
+                           hint: shown == .live ? nil : tr("Bosing — Jonli sahifasi", "Click to open Live"))
                     .contentShape(Capsule())
             }
             .buttonStyle(.plain)
             .noFocusRing()
-            .allowsHitTesting(section != .live)
-            if section == .history || section == .sessions || section == .savings { CountModePicker() }
+            .allowsHitTesting(shown != .live)
+            if shown == .history || shown == .sessions || shown == .savings { CountModePicker() }
         }
         // Sarlavha almashganda eski va yangi matn ustma-ust chiqmasin
         .transaction { $0.animation = nil }
@@ -305,4 +312,13 @@ private struct Sidebar: View {
     }
 }
 
+/// Yangi sahifa qisqa fade bilan chiqadi; eski sahifa esa darhol yo'qoladi (ustma-ust ko'rinmaydi)
+private struct PageFadeIn: ViewModifier {
+    @State private var visible = false
 
+    func body(content: Content) -> some View {
+        content
+            .opacity(visible ? 1 : 0)
+            .onAppear { withAnimation(.easeOut(duration: 0.16)) { visible = true } }
+    }
+}

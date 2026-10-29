@@ -1,5 +1,9 @@
 # O'zgarishlar
 
+## 6.33.1 — 2026-10-29
+
+- Tuzatildi: sahifa almashganda eski va yangi sahifa bir lahza ustma-ust ko'rinardi. Endi eski sahifa darhol yo'qoladi, yangisi qisqa fade bilan chiqadi.
+
 ## 6.33.0 — 2026-10-29
 
 - Sarlavhadagi «Jonli · N agent» belgisi endi bosiladi: istalgan sahifadan Jonli sahifasini ochadi.
