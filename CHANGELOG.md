@@ -1,5 +1,10 @@
 # O'zgarishlar
 
+## 6.48.0 — 2026-10-29
+
+- Yangi sessiya oldingi suhbatdan hech narsani yo'qotmaydi. Xulosaga sig'maydigan narsalar uchun (ancha oldin muhokama qilingan jadval, taklif yoki qaror) xulosaning boshida oldingi sessiya yozuvi (.jsonl) yo'li beriladi. Foydalanuvchi xulosada yo'q narsani eslasa, Claude faylni butunlay o'qimaydi, grep bilan kerakli joyini topadi, shuning uchun kontekst kichik qoladi. Sessiya bir necha marta ko'chirilgan bo'lsa, oldingi yozuvlar ham olib o'tiladi (4 tagacha).
+- Claude'ning ko'chirish eslatmasida yangi «Ochiq takliflar» qatori: butun suhbatda muhokama qilingan, lekin hali qilinmagan takliflar va rejalar. Avval eslatma faqat hozirgi ishni yozardi va oldinroq kelishilgan rejalar yangi sessiyaga yetib bormasdi.
+
 ## 6.47.1 — 2026-10-29
 
 - Xaritadagi qisqartirish kartasi oldindan tayyorlangan xulosada ham ishlaydi. Claude Code endi xulosani qisqartirishdan ancha oldin tayyorlab qo'yishi mumkin. Shunda xulosa qatori ertaroq vaqt bilan yoziladi va karta «Kontekst yangilandi» deb qolib ketardi. Endi xulosa so'rovi transkriptda o'zidan oldin turgan qisqartirish vaqtini oladi: karta «Avtomatik qisqartirildi» deb yozadi va Xaritada to'g'ri joyda turadi. O'sha oraliqdagi qadamlar ham oldingi so'rovga tegishli bo'lib qoladi.

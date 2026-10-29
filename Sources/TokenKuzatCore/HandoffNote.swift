@@ -22,14 +22,18 @@ public enum HandoffNote {
                + "Javobingning eng oxiriga foydalanuvchiga ko'rinmaydigan izoh qo'sh, yangi sessiya shundan davom etadi:\n"
                + "\(open)\nIsh: <asosiy ish, bitta qator>\nBajarildi: <nima qilindi, nima commit/push qilindi>\n"
                + "Qolgan: <tugallanmagan qadamlar>\nKutilayotgan qaror: <foydalanuvchidan nima kutilyapti; yo'q bo'lsa — yo'q>\n"
+               + "Ochiq takliflar: <butun suhbatda muhokama qilingan, lekin hali qilinmagan takliflar, rejalar, ro'yxat bandlari — "
+               + "har biri qisqa, «; » bilan; yo'q bo'lsa — yo'q>\n"
                + "Muhim: <yangi sessiya bilishi shart bo'lgan qaror, cheklov, fayl yoki buyruq>\n\(close)\n"
-               + "10 qatorgacha, aniq va qisqa. Javobingning qolgan qismini o'zgartirma, izoh haqida gapirma.",
+               + "12 qatorgacha, aniq va qisqa. Javobingning qolgan qismini o'zgartirma, izoh haqida gapirma.",
                "Token Kuzatuv: this session's context is large (\(Fmt.tokens(context))) — the work will move to a new session soon. "
                + "At the very end of your reply, add a comment the user won't see; the new session continues from it:\n"
                + "\(open)\nTask: <the main task, one line>\nDone: <what was done, what was committed/pushed>\n"
                + "Remaining: <unfinished steps>\nPending decision: <what the user needs to decide; none if nothing>\n"
+               + "Open proposals: <proposals, plans or list items discussed anywhere in the conversation but not done yet — "
+               + "each short, separated by «; »; none if nothing>\n"
                + "Important: <decisions, constraints, files or commands the new session must know>\n\(close)\n"
-               + "Up to 10 lines, specific and short. Don't change the rest of your reply or mention the comment.")
+               + "Up to 12 lines, specific and short. Don't change the rest of your reply or mention the comment.")
         }
     }
 

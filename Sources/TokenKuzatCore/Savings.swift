@@ -279,8 +279,44 @@ public enum SavingsAdvisor {
     /// Yangi sessiyada sifat tushmasligi uchun «davom etish xulosasi»: so'nggi vazifalar, o'zgargan fayllar, oxirgi holat
     /// Xulosa suhbat tilida yoziladi (ilova tilida emas) — Claude javoblarni ham shu tilda beradi
     public static func handoff(for s: SessionSnap, lastTurns: Int = 6,
-                               gitLines: ([String]) -> [String] = GitState.lines) -> String {
-        Lang.with(english: conversationEnglish(s)) { handoffText(s, lastTurns: lastTurns, gitLines: gitLines) }
+                               gitLines: ([String]) -> [String] = GitState.lines,
+                               transcripts: (SessionSnap) -> [String] = { transcriptPaths(for: $0) }) -> String {
+        Lang.with(english: conversationEnglish(s)) {
+            handoffText(s, lastTurns: lastTurns, gitLines: gitLines, transcripts: transcripts(s))
+        }
+    }
+
+    /// Xulosadagi yozuvlar bo'limining sarlavhasi — keyingi ko'chirishda shu bo'yicha oldingi yozuvlar olib o'tiladi
+    static let transcriptsHeader = ["Oldingi sessiya yozuvlari", "Previous session transcripts"]
+
+    /// Sessiya yozuvlari (.jsonl): shu sessiyaniki va u davom ettirgan oldingi sessiyalarniki (ko'chirish xabaridan).
+    /// Xulosaga hammasi sig'maydi — yangi sessiya undan tushib qolgan jadval, taklif yoki qarorni shu fayllardan grep bilan topadi
+    public static func transcriptPaths(for s: SessionSnap, roots: [URL] = Engine.defaultRoots(), fm: FileManager = .default) -> [String] {
+        var paths: [String] = []
+        for root in roots {
+            guard let dirs = try? fm.contentsOfDirectory(at: root, includingPropertiesForKeys: nil),
+                  let f = dirs.lazy.map({ $0.appendingPathComponent(s.id + ".jsonl") })
+                    .first(where: { fm.fileExists(atPath: $0.path) }) else { continue }
+            paths.append(f.path)
+            break
+        }
+        if let first = s.turns.first(where: { AutoHandoffRule.isHandoffPrompt($0.prompt) }) {
+            paths += carriedTranscripts(first.prompt).filter { !paths.contains($0) }
+        }
+        return Array(paths.prefix(4))
+    }
+
+    /// Ko'chirish xabaridagi oldingi yozuvlar ro'yxati
+    static func carriedTranscripts(_ prompt: String) -> [String] {
+        var out: [String] = []
+        var inside = false
+        for line in prompt.components(separatedBy: "\n") {
+            if transcriptsHeader.contains(where: { line.hasPrefix($0) }) { inside = true; continue }
+            guard inside else { continue }
+            guard line.hasPrefix("- "), line.hasSuffix(".jsonl") else { break }
+            out.append(String(line.dropFirst(2)))
+        }
+        return out
     }
 
     /// Foydalanuvchi xabarlarining tili; aniqlanmasa — ilova tili
@@ -389,7 +425,8 @@ public enum SavingsAdvisor {
         return (word.count >= 30 ? word : cut) + "…"
     }
 
-    private static func handoffText(_ s: SessionSnap, lastTurns: Int, gitLines: ([String]) -> [String]) -> String {
+    private static func handoffText(_ s: SessionSnap, lastTurns: Int, gitLines: ([String]) -> [String],
+                                    transcripts: [String]) -> String {
         var lines: [String] = []
         // Birinchi qator — «↪ Loyiha — ish»: Claude ilovasi sessiya nomini birinchi xabardan yasaydi
         let folder = projectFolder(for: s)
@@ -401,6 +438,15 @@ public enum SavingsAdvisor {
         lines.append(tr("Bu — oldingi Claude Code sessiyasining davomi (\(project ?? s.project)). Quyidagi xulosaga tayanib ishni davom ettir.", "This continues a previous Claude Code session (\(project ?? s.project)). Continue the work based on the summary below."))
         if let folder {
             lines.append(tr("Loyiha papkasi: \(folder)", "Project folder: \(folder)"))
+        }
+        // Boshida: xulosa 8000 belgida kesiladi, yo'l esa kesilmasin
+        if !transcripts.isEmpty {
+            lines.append("")
+            lines.append(tr(transcriptsHeader[0] + " (butun suhbat shu yerda). Foydalanuvchi xulosada yo'q narsani eslasa — oldingi jadval, "
+                            + "taklif, qaror yoki muhokama — faylni butunlay o'qima, grep bilan kerakli joyini top:",
+                            transcriptsHeader[1] + " (the whole conversation is there). If the user mentions something missing here — an earlier "
+                            + "table, proposal, decision or discussion — don't read the whole file, grep for the relevant part:"))
+            for p in transcripts { lines.append("- \(p)") }
         }
         if let note {
             lines.append("")

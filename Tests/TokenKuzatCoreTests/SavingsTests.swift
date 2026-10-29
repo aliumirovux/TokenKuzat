@@ -172,6 +172,31 @@ final class SavingsTests: XCTestCase {
         XCTAssertEqual(SavingsAdvisor.pendingQuestion(s), "Commit qilindi. Keyingisi nima bo'lsin?")
     }
 
+    func testHandoffListsTranscriptsAndCarriesEarlierOnes() throws {
+        let fm = FileManager.default
+        let root = fm.temporaryDirectory.appendingPathComponent("tk-transcripts-\(UUID().uuidString)")
+        defer { try? fm.removeItem(at: root) }
+        let dir = root.appendingPathComponent("-Users-ali-Demo")
+        try fm.createDirectory(at: dir, withIntermediateDirectories: true)
+        try Data().write(to: dir.appendingPathComponent("s.jsonl"))
+        // Vaqtinchalik papka /var → /private/var: yo'l katalog ro'yxatidagidek bo'ladi
+        let own = try XCTUnwrap(fm.contentsOfDirectory(at: root, includingPropertiesForKeys: nil).first)
+            .appendingPathComponent("s.jsonl")
+        // Bu sessiya o'zi ko'chirilgan: birinchi xabarida oldingi yozuvlar bor
+        let first = "↪ Demo — ish\n\nToken Kuzatuv: …\n\nOldingi sessiya yozuvlari (butun suhbat shu yerda). …:\n"
+            + "- /old/b.jsonl\n- /old/a.jsonl\n\nClaude'ning ko'chirish eslatmasi …:\nIsh: x"
+        let s = handoffSession(title: "↪ Demo — ish", prompts: [first, "Keyingi vazifani bajar iltimos"], cwd: nil)
+        let paths = SavingsAdvisor.transcriptPaths(for: s, roots: [root])
+        XCTAssertEqual(paths, [own.path, "/old/b.jsonl", "/old/a.jsonl"])
+
+        let text = Lang.with(english: false) { SavingsAdvisor.handoff(for: s, gitLines: { _ in [] }, transcripts: { _ in paths }) }
+        XCTAssertTrue(text.contains("grep bilan kerakli joyini top:\n- \(own.path)\n- /old/b.jsonl\n- /old/a.jsonl\n"))
+        // Keyingi ko'chirishda ham zanjir uziladi emas
+        XCTAssertEqual(SavingsAdvisor.carriedTranscripts(text), paths)
+        XCTAssertEqual(SavingsAdvisor.transcriptPaths(for: handoffSession(title: "t", prompts: ["oddiy"], cwd: nil), roots: [root]),
+                       [own.path])
+    }
+
     func testLastPromptsAreKeptInFullAndTempFilesDropped() {
         let long = "bir muammo bor ishlab turgan sessionda token ko'p ketishni boshlaganda yangi sessionga o'tishi yaxshi"
         let s = handoffSession(title: "t", prompts: ["Birinchi uzun vazifa matni", String(long.prefix(40))], cwd: nil,
