@@ -72,6 +72,7 @@ struct MainWindow: View {
         case .graph: GraphScreen()
         case .sessions: SessionsView()
         case .history: HistoryView()
+        case .savings: ProjectSavingsView()
         case .activity: ActivityView()
         case .settings: SettingsView()
         }
@@ -87,7 +88,7 @@ struct MainWindow: View {
             }
             Spacer()
             StatusPill(running: store.snap.runningAgents, active: store.snap.activeSessions)
-            if section == .history || section == .sessions { CountModePicker() }
+            if section == .history || section == .sessions || section == .savings { CountModePicker() }
         }
         .padding(.horizontal, 24)
         .padding(.top, 12)
@@ -115,6 +116,8 @@ private struct Sidebar: View {
                         live: snap.runningAgents > 0 ? snap.activeSessions : 0)
                 navItem(.sessions, tr("Sessiyalar", "Sessions"), "rectangle.stack", key: "3")
                 navItem(.history, tr("Tarix", "History"), "chart.bar", key: "4")
+                // Loyihalar bo'yicha sarf va isrof — tuzatishni Claude'ga topshirish
+                navItem(.savings, tr("Tejash", "Savings"), "leaf", key: "5")
             }
 
             Text(tr("Loyihalar", "Projects"))

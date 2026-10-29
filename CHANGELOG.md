@@ -1,5 +1,13 @@
 # O'zgarishlar
 
+## 6.22.0 — 2026-10-29
+
+- Yangi «Tejash» sahifasi (⌘5): loyihalar sarf bo'yicha (bugun / 7 kun), har birida ulush chizig'i, taxminiy isrof va sabablari — katta kontekst, og'ir boshlanish (konnektorlar, pluginlar), katta asbob natijalari, kesh qayta yozilishi, skrinshotlar, takroriy o'qish, ketma-ket xatolar. Har sababda qisqa yechim. Xom / Vaznli rejimga mos.
+- Isrof — faqat oldini olsa bo'ladigan qism: har chaqiruvda 150K dan ortiq qayta o'qilgan kontekst, 80K dan og'ir boshlanish, takroriy o'qish va kontekstda qolgan natijalar. Vaznli rejimda kesh o'qish arzonligi hisobga olinadi.
+- «Claude'ga topshirish» — loyiha hisoboti va aniq topshiriqni nusxalaydi: Claude CLAUDE.md va sozlamalarga o'zgarish taklif qiladi va har birini tasdiqlagandan keyin qo'llaydi. «Terminalda ochish» va katta kontekstda «Yangi sessiyada davom ettirish».
+- Plagin: MCP `savings_report` asbobi va `/tokenkuzat:optimize` buyrug'i — Claude joriy loyiha hisobotini o'zi olib, tuzatishni boshlaydi.
+- Og'ir boshlanish maslahatida ishlatilgan konnektorlar ro'yxatidan ichki ID'lar olib tashlandi.
+
 ## 6.21.3 — 2026-10-29
 
 - To'liq rejimda (⇧⌘F) tepada chapda Xarita / Xulosa tablari — shisha kapsulada, tanlangani yorug' tabletka bilan suzib o'tadi; o'ngda ishlayotgan sessiyalar. Endi to'liq rejimdan chiqmasdan ko'rinish almashtiriladi.

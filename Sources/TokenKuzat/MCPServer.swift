@@ -97,6 +97,17 @@ enum MCPServer {
                 ],
             ],
         ],
+        [
+            "name": "savings_report",
+            "description": "Where tokens go by project and where they are wasted. Ranks projects by usage for the period and, for one project (the given one, or the one with the most waste), lists waste causes with estimated wasted tokens, the number of sessions affected, a remedy and the fix type (new_session, claude_rules = add rules to CLAUDE.md, connectors = disable unused MCP servers/plugins, habit). Also returns a ready task text for fixing it. Use it to reduce token usage without changing the model or quality; apply file changes only after the user approves them.",
+            "inputSchema": [
+                "type": "object",
+                "properties": [
+                    "project": ["type": "string", "description": "Project folder name or path (e.g. the current working directory). Default: the project with the most waste"],
+                    "period": ["type": "string", "enum": ["today", "week"], "description": "today or week (last 7 days, default)"],
+                ],
+            ],
+        ],
     ]
 
     private static func call(_ name: String, _ args: [String: Any]) -> [String: Any]? {
@@ -116,6 +127,7 @@ enum MCPServer {
         case "usage_summary": return summary(snap, now: now)
         case "list_sessions": return sessions(snap, args, now: now)
         case "session_details": return details(snap, args, now: now)
+        case "savings_report": return savingsReport(snap, args, now: now)
         default: return nil
         }
     }
@@ -153,6 +165,54 @@ enum MCPServer {
             if let k = x.tokensPerPct { d["weighted_tokens_per_percent"] = Int(k) }
             o["chat_and_cloud"] = d
         }
+        return o
+    }
+
+    private static func savingsReport(_ s: Snapshot, _ args: [String: Any], now: Date) -> [String: Any] {
+        let period = SavingsPeriod(rawValue: (args["period"] as? String) ?? "") ?? .week
+        let reports = ProjectSavings.reports(s, period: period, now: now)
+        guard !reports.isEmpty else { return ["error": "No Claude usage in this period"] }
+        // Loyiha nomi yoki yo'li (joriy papka) bo'yicha; berilmasa — isrofi eng katta loyiha
+        let want = (args["project"] as? String)?.trimmingCharacters(in: .whitespaces)
+        let chosen = want.flatMap { w -> ProjectReport? in
+            let name = (w as NSString).lastPathComponent.lowercased()
+            return reports.first { $0.cwd == w || $0.project.lowercased() == w.lowercased() || $0.project.lowercased() == name }
+        } ?? reports.max { $0.waste < $1.waste }!
+        let total = reports.reduce(0) { $0 + $1.tokens.total }
+        func fix(_ f: ProjectIssue.Fix) -> String {
+            switch f {
+            case .newSession: return "new_session"
+            case .claudeRules: return "claude_rules"
+            case .connectors: return "connectors"
+            case .habit: return "habit"
+            }
+        }
+        var o: [String: Any] = [
+            "period": period.rawValue,
+            "note": "Waste is an estimate of avoidable tokens: context above 150K re-read on every call, session starts above 80K, repeated reads, large results kept in context. Most of it is cache reads, so estimated_waste_weighted (by price) is much smaller than the raw number. Fixing it doesn't change the model or quality.",
+            "projects": reports.map { r -> [String: Any] in
+                ["project": r.project, "tokens": r.tokens.total, "share_percent": total > 0 ? Int((Double(r.tokens.total) / Double(total) * 100).rounded()) : 0,
+                 "estimated_waste": r.waste, "estimated_waste_weighted": Int(r.waste(.weighted)), "sessions": r.sessions, "prompts": r.prompts, "active": r.active]
+            },
+        ]
+        var p: [String: Any] = [
+            "project": chosen.project,
+            "tokens": tokens(chosen.tokens),
+            "estimated_waste": chosen.waste,
+            "estimated_waste_weighted": Int(chosen.waste(.weighted)),
+            "waste_share_by_price_percent": Int((chosen.wasteShare(.weighted) * 100).rounded()),
+            "issues": chosen.issues.map { i -> [String: Any] in
+                ["kind": i.kind.rawValue, "title": i.title, "estimated_waste": i.waste, "estimated_waste_weighted": Int(i.weighted), "sessions": i.sessions,
+                 "remedy": i.remedy, "detail": i.detail, "fix": fix(i.fix)]
+            },
+            "task": ProjectSavings.prompt(for: chosen, period: period),
+        ]
+        if let cwd = chosen.cwd { p["cwd"] = cwd }
+        if want != nil, chosen.cwd != want, chosen.project.lowercased() != want?.lowercased(),
+           chosen.project.lowercased() != (want.map { ($0 as NSString).lastPathComponent.lowercased() }) {
+            p["note"] = "Requested project not found in this period; showing the project with the most waste"
+        }
+        o["project_report"] = p
         return o
     }
 

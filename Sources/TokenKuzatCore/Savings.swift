@@ -206,7 +206,10 @@ public enum SavingsAdvisor {
         // 7) Og'ir boshlanish: ish boshlanmasdan kontekst katta — har chaqiruvda takrorlanadi
         if let start, start >= heavyStart, let main, main.calls >= 10 {
             let extra = start - baseline
-            let used = main.resources.first { $0.category == .mcp }?.items.prefix(6).map(\.name) ?? []
+            // Nomi o'rnida faqat ID (UUID) bo'lgan konnektorlar ro'yxatga kirmaydi — o'qib bo'lmaydi
+            let used = (main.resources.first { $0.category == .mcp }?.items.map(\.name) ?? [])
+                .filter { $0.range(of: #"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-"#, options: .regularExpression) == nil }
+                .prefix(6).map { $0 }
             out.append(SavingsTip(
                 kind: .heavyStart, level: main.calls >= 150 ? .notable : .info,
                 title: tr("Sessiya \(Fmt.tokens(start)) bilan boshlangan", "Session started at \(Fmt.tokens(start))"),

@@ -21,7 +21,9 @@ Claude Code'da:
 
 Birinchisi plaginni qo'shadi, ikkinchisida Claude talablarni tekshiradi, ilovani yig'adi va `~/Applications/Token Kuzatuv.app` ga o'rnatib ochadi. Eski Claude Code'da (2.1.275 dan oldingi) birinchi qator o'rniga `/plugin marketplace add aliumirovux/TokenKuzat`, keyin `/plugin install tokenkuzat@tokenkuzat`.
 
-Plagin Claude'ga MCP asboblarini ham beradi — sarfni to'g'ridan-to'g'ri so'rash mumkin: «bugun qancha token ketdi?», «qaysi sessiya ko'p sarflayapti?», «limitim qancha qoldi?» (`usage_summary`, `list_sessions`, `session_details`). Asboblar ilovaning `--mcp` rejimida ishlaydi, shuning uchun avval `/tokenkuzat:install`; keyin `/mcp` da `tokenkuzat` ni qayta ulang.
+Plagin Claude'ga MCP asboblarini ham beradi — sarfni to'g'ridan-to'g'ri so'rash mumkin: «bugun qancha token ketdi?», «qaysi sessiya ko'p sarflayapti?», «limitim qancha qoldi?» (`usage_summary`, `list_sessions`, `session_details`, `savings_report`). Asboblar ilovaning `--mcp` rejimida ishlaydi, shuning uchun avval `/tokenkuzat:install`; keyin `/mcp` da `tokenkuzat` ni qayta ulang.
+
+Tokenni tejash bir buyruq bilan: loyihada Claude Code'ni oching va `/tokenkuzat:optimize` yozing — Claude shu loyiha bo'yicha isrof sabablarini oladi, tushuntiradi va tuzatishlarni (CLAUDE.md qoidalari, ishlatilmaydigan MCP serverlar) har birini siz tasdiqlagandan keyin qo'llaydi.
 
 Yangilash: `/plugin marketplace update tokenkuzat`, keyin yana `/tokenkuzat:install`.
 
@@ -53,6 +55,7 @@ Talab: macOS 13+, Xcode yoki Command Line Tools. `xcrun: error` chiqsa — bir m
 - **Agentlar sxemasi** — n8n uslubidagi jarayon oqimi: So'rov → Asosiy agent → Natija; agent ostida Model va ishlatilish tartibidagi asboblar (Fayllar, Terminal, Internet, MCP), yordamchi agentlar tarmoq bo'lib. So'rovlar orasida ‹ › bilan yuriladi, zoom bor. «Fayllar» ko'rinishida — issiqlik xaritasi: qaysi fayl qachon va necha marta o'qilgan/o'zgartirilgan. «Vaqt» ko'rinishida — vaqt chizig'i: agentlar qatorlari, qadamlar davomiyligi bo'yicha, parallel ishlar va «vaqt qayerga ketdi» (model / asboblar). «Replay» — tanlangan so'rovni boshidan qayta ijro etish (slayder, tezlik, qadamma-qadam): uchala ko'rinish o'sha paytdagi holatni ko'rsatadi. O'ng panelda so'rovlar bo'yicha jarayon lentasi: har bir qadam, davomiyligi va natijasi. Qadamni bosing — n8n'dagi node bajarilishi kabi: **Chiqish** (asbob nima qaytardi, kontekstga necha token qo'shdi), **Kirish** (asbobga berilgan parametrlar) va **Tafsilot**.
 - **Sessiyalar** — oxirgi 7 kun, qidiruv bilan; har bir sessiya tarkibi va agentlari.
 - **Tarix** — 7/14/30 kunlik grafik, kunni bosib tarkibini ko'rish, jadval, CSV eksport.
+- **Tejash** — loyihalar sarf bo'yicha (bugun / 7 kun), har birida taxminiy isrof va sabablari: katta kontekst, og'ir boshlanish, katta natijalar, takroriy o'qish, skrinshotlar, kesh. «Claude'ga topshirish» — tayyor topshiriqni nusxalaydi, «Terminalda ochish», «Yangi sessiyada davom ettirish».
 - **Jonli lenta** — har bir asbob chaqiruvi va so'rovlaringiz; loyiha bo'yicha filtr.
 - **Sozlamalar** — avto-ishga tushish, menyu satri ko'rinishi, hisoblash usuli, limit va bildirishnomalar, manbalar, tarixni tozalash.
 
@@ -136,7 +139,7 @@ From Claude Code (easiest):
 /tokenkuzat:install
 ```
 
-The plugin also gives Claude read-only MCP tools (`usage_summary`, `list_sessions`, `session_details`), so you can ask "how many tokens today?" or "how much of my limit is left?".
+The plugin also gives Claude read-only MCP tools (`usage_summary`, `list_sessions`, `session_details`, `savings_report`), so you can ask "how many tokens today?" or "how much of my limit is left?". To cut waste in a project, open Claude Code there and run `/tokenkuzat:optimize`: Claude pulls that project's waste report and proposes fixes (CLAUDE.md rules, unused MCP servers), applying each only after you approve.
 
 Or by hand, in the repo folder (requires macOS 13+ and Xcode or Command Line Tools):
 
@@ -153,6 +156,7 @@ It builds, installs to `~/Applications/Token Kuzatuv.app` and opens it. `bash bu
 - **Live** — every running session as a card or as parallel lanes, plus "Chat & elsewhere" (claude.ai, desktop chat, cloud work that never reaches your disk).
 - **Session map** — an n8n-style flow of prompt → main agent → tools and subagents, a file heatmap, a timeline and Replay; click a step to see its input, output and tokens.
 - **Sessions / History / Activity feed** — search, 7/14/30-day history with CSV export, every tool call.
+- **Savings** — projects ranked by usage (today / 7 days) with estimated waste and its causes; one click copies a ready task for Claude.
 - **Settings** — language, launch at login, menu bar style, raw vs. weighted counting, limits and notifications.
 
 ### Adding translations

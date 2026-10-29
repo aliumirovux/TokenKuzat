@@ -5,17 +5,7 @@ import TokenKuzatCore
 // Tejash maslahatlari: model va sifat o'zgarmaydi — qayerda token behuda ketayotgani va nima qilish kerakligi.
 
 extension SavingsTip {
-    var symbol: String {
-        switch kind {
-        case .bigContext: return "text.alignleft"
-        case .cacheRebuilds: return "clock.arrow.circlepath"
-        case .repeatedReads: return "doc.on.doc"
-        case .screenshots: return "camera.viewfinder"
-        case .errorLoop: return "arrow.triangle.2.circlepath"
-        case .bigResults: return "shippingbox"
-        case .heavyStart: return "powerplug"
-        }
-    }
+    var symbol: String { kind.symbol }
 
     var color: Color {
         switch level {
@@ -29,6 +19,20 @@ extension SavingsTip {
     var amount: String? {
         guard tokens > 0 else { return nil }
         return perCall ? tr("har javobda ~\(Fmt.tokens(tokens)) tejaladi", "saves ~\(Fmt.tokens(tokens)) per response") : tr("~\(Fmt.tokens(tokens)) token ketgan", "~\(Fmt.tokens(tokens)) tokens spent")
+    }
+}
+
+extension SavingsTip.Kind {
+    var symbol: String {
+        switch self {
+        case .bigContext: return "text.alignleft"
+        case .cacheRebuilds: return "clock.arrow.circlepath"
+        case .repeatedReads: return "doc.on.doc"
+        case .screenshots: return "camera.viewfinder"
+        case .errorLoop: return "arrow.triangle.2.circlepath"
+        case .bigResults: return "shippingbox"
+        case .heavyStart: return "powerplug"
+        }
     }
 }
 

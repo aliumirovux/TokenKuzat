@@ -1,0 +1,43 @@
+import XCTest
+@testable import TokenKuzatCore
+
+final class ProjectSavingsTests: XCTestCase {
+    private let now = Date(timeIntervalSince1970: 1_800_000_000)
+
+    private func session(_ id: String, project: String, context: Int, tokens: Int, ago: TimeInterval) -> SessionSnap {
+        let t = now.addingTimeInterval(-ago)
+        // 10 ta chaqiruv, har biri `context` hajmdagi kontekstni o'qiydi
+        let usage = (0..<10).map { UsagePoint(date: t.addingTimeInterval(Double($0)), tokens: TokenCounts(cacheRead: context)) }
+        let main = AgentSnap(id: "\(id)/main", title: "Asosiy agent", subtitle: "Opus", kind: "", isMain: true,
+                             tokens: TokenCounts(), calls: 10, topTools: [], lastAction: "", state: .idle,
+                             lastActivity: t, firstActivity: t, steps: [], resources: [], usage: usage, bigResults: [])
+        let turn = TurnSnap(id: 1, prompt: "Ishla", start: t, end: t.addingTimeInterval(10),
+                            tokens: TokenCounts(cacheRead: tokens), steps: 0, errors: 0, active: false)
+        return SessionSnap(id: id, project: project, title: "t", model: "Opus", contextTokens: context,
+                           tokens: TokenCounts(cacheRead: tokens), mainTokens: TokenCounts(), agentTokens: TokenCounts(),
+                           agents: [main], lastActivity: t, state: .idle, turns: [turn], contextWindow: 1_000_000, cwd: "/p/\(project)")
+    }
+
+    func testRankingAndPeriod() {
+        var snap = Snapshot()
+        snap.sessions = [session("a", project: "Kichik", context: 50_000, tokens: 1_000_000, ago: 3600),
+                         session("b", project: "Katta", context: 50_000, tokens: 5_000_000, ago: 3600),
+                         session("c", project: "Eski", context: 50_000, tokens: 9_000_000, ago: 3 * 86_400)]
+        let today = ProjectSavings.reports(snap, period: .today, now: now)
+        XCTAssertEqual(today.map(\.project), ["Katta", "Kichik"])
+        let week = ProjectSavings.reports(snap, period: .week, now: now)
+        XCTAssertEqual(week.first?.project, "Eski")
+        XCTAssertEqual(week.first?.cwd, "/p/Eski")
+    }
+
+    func testBigContextWasteCountsEveryCall() throws {
+        var snap = Snapshot()
+        snap.sessions = [session("a", project: "Demo", context: 400_000, tokens: 4_000_000, ago: 600)]
+        let r = try XCTUnwrap(ProjectSavings.reports(snap, period: .today, now: now).first)
+        let issue = try XCTUnwrap(r.issues.first { $0.kind == .bigContext })
+        // Boshlang'ich kontekst ham 400K — og'ir boshlanish emas, katta kontekstda isrof boshlanishdan ortiqcha qism
+        XCTAssertEqual(issue.fix, .newSession)
+        XCTAssertGreaterThanOrEqual(r.waste, 0)
+        XCTAssertTrue(ProjectSavings.prompt(for: r, period: .today).contains("«Demo»"))
+    }
+}
