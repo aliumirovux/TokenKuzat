@@ -483,6 +483,19 @@ enum LimitText {
         return tr("Shu sur'atda \(dayPart(at)) tugaydi — \(date(week.resetsAt)) tiklanishidan oldin.", "At this pace, runs out \(dayPart(at)) — before the \(date(week.resetsAt)) reset.")
     }
 
+    /// Bashorat tinch, lekin limitning 75%+ qismi ishlatilgan — «me'yorida» emas, holatni aytamiz.
+    /// Rangi uchun foiz ham qaytadi (`Palette.limit`).
+    static func highUse(_ five: LimitWindow?, week: LimitWindow?) -> (text: String, pct: Double)? {
+        let shown = [(five, true), (week, false)].compactMap { w, isFive in w.map { ($0, isFive) } }.filter { !$0.0.isNotStarted }
+        guard let (w, isFive) = shown.max(by: { $0.0.usedPercentage < $1.0.usedPercentage }), w.usedPercentage >= 75 else { return nil }
+        let p = Int(w.usedPercentage.rounded())
+        if isFive {
+            let at = Fmt.hourMinute.string(from: w.resetsAt)
+            return (tr("5 soatlik limitning \(p)% ishlatildi — tiklanish \(at) da", "\(p)% of the 5-hour limit used — resets at \(at)"), w.usedPercentage)
+        }
+        return (tr("Haftalik limitning \(p)% ishlatildi — tiklanish \(date(w.resetsAt))", "\(p)% of the weekly limit used — resets \(date(w.resetsAt))"), w.usedPercentage)
+    }
+
     /// Ma'lumot eskirgan bo'lsa — ogohlantirish (status line faqat terminaldagi Claude Code'da yangilanadi)
     static func staleNote(_ l: RateLimits, now: Date = Date()) -> String? {
         let age = now.timeIntervalSince(l.updatedAt)

@@ -1,5 +1,11 @@
 # O'zgarishlar
 
+## 6.37.1 — 2026-10-29
+
+- Kontrast: yorug' mavzuda sariq, qizil va yashil holat matnlari to'qroq — oq va kulrang fonda ham o'qiladi (≥ 4,5:1). Menyu panelidagi «kontekst 92%» endi to'liq rangda (avval kulrang bilan aralashib xiralashardi).
+- To'q siyoh kartalarda burchakdagi binafsha nur kuchsizroq, qorong'i mavzuda gradient to'qroq — yuqori o'ng burchakdagi xira matn va qizil foiz endi aniq o'qiladi.
+- Limit 75% dan oshganda yashil «Sur'at me'yorida» chiqmaydi: o'rniga «5 soatlik limitning 93% ishlatildi — tiklanish 20:50 da» — sariq yoki qizil rangda.
+
 ## 6.37.0 — 2026-10-29
 
 - Bitta palitra: hamma rang dizayn tizimi tokenlaridan olinadi. macOS tizim ranglari (`.purple .teal .green .red .accentColor` …) kodda qolmadi, shuning uchun Mac'dagi urg'u rangi o'zgarsa ham ilova ranglari o'zgarmaydi.

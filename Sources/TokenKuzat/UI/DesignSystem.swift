@@ -26,17 +26,18 @@ enum Brand {
     /// Qahramon blok (limit) — to'q siyoh
     static let ink = Color(light: 0x17152B, dark: 0x24204A)
     /// Qahramon blok gradientining yuqori-o'ng uchi
-    static let ink2 = Color(light: 0x2E2870, dark: 0x3A3290)
+    static let ink2 = Color(light: 0x2E2870, dark: 0x2C2670)
     static let inkDim = Color(light: 0xA9A6C9, dark: 0xB3AEE0)
     static let inkFill = Color(light: 0x8F82FF, dark: 0xA79CFF)
     static let surface = Color(light: 0xFFFFFF, dark: 0x1F1F23)
     static let sunken = Color(light: 0xF4F4F6, dark: 0x18181B)
     static let canvas = Color(light: 0xF2F2F4, dark: 0x111113)
     static let line = Color(light: 0xE8E8EC, dark: 0x2C2C31)
-    static let ok = Color(light: 0x17A35A, dark: 0x3DD68C)
-    static let warn = Color(light: 0xC27C0E, dark: 0xF2B544)
-    static let err = Color(light: 0xD93A2B, dark: 0xFF6E61)
-    /// To'q siyoh blok ustidagi ogohlantirish va xato (≥ 5,5:1)
+    /// Holat ranglari matn sifatida ham ishlatiladi: yorug' mavzuda oq va kulrang fonda ≥ 4,5:1
+    static let ok = Color(light: 0x0F7F45, dark: 0x3DD68C)
+    static let warn = Color(light: 0x9A5E00, dark: 0xF2B544)
+    static let err = Color(light: 0xC8321F, dark: 0xFF6E61)
+    /// To'q siyoh blok ustidagi ogohlantirish va xato (nurli burchakda ham ≥ 4,5:1)
     static let onInkWarn = Color(light: 0xFFC46B, dark: 0xFFC46B)
     static let onInkErr = Color(light: 0xFF8A7D, dark: 0xFF8A7D)
     static let onInkOk = Color(light: 0x7CF0B6, dark: 0x7CF0B6)
@@ -65,13 +66,14 @@ enum Hue {
     static let write = Color(light: 0xE0731C, dark: 0xEC8432)
 }
 
-/// Qahramon blok foni: siyoh diagonal gradient va burchakda urg'u rangidagi yumshoq nur
+/// Qahramon blok foni: siyoh diagonal gradient va burchakda urg'u rangidagi yumshoq nur.
+/// Nur kuchsiz tutiladi — yuqori-o'ng burchakda ham inkDim va onInk* matnlari ≥ 4,5:1 qoladi.
 struct InkBackdrop<S: Shape>: View {
     let shape: S
 
     var body: some View {
         shape.fill(LinearGradient(colors: [Brand.ink, Brand.ink2], startPoint: .bottomLeading, endPoint: .topTrailing))
-            .overlay(shape.fill(RadialGradient(colors: [Brand.accent.opacity(0.22), .clear], center: .topTrailing,
+            .overlay(shape.fill(RadialGradient(colors: [Brand.accent.opacity(0.14), .clear], center: .topTrailing,
                                                startRadius: 0, endRadius: 260)))
     }
 }

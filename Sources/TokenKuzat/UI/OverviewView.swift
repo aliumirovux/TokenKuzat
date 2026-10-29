@@ -125,6 +125,9 @@ struct LimitHero: View {
             }
             if let week, let w = LimitText.weekWarning(weekForecast, week: week) { return ("exclamationmark.triangle.fill", w, warn) }
             if let stale { return ("clock.arrow.circlepath", stale, Brand.inkDim) }
+            if let h = LimitText.highUse(window, week: week) {
+                return ("exclamationmark.circle.fill", h.text, Palette.limit(h.pct, onInk: true))
+            }
             return ("checkmark.circle.fill", tr("Sur'at me'yorida — limit tiklanguncha yetadi", "Pace is fine — the limit will last until reset"), ok)
         }()
         return HStack(spacing: 7) {

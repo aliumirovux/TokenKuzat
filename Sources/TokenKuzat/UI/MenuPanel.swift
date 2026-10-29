@@ -87,6 +87,9 @@ struct MenuPanel: View {
                 return ("exclamationmark.triangle.fill", w, warnColor)
             }
             if let stale = LimitText.staleNote(l, now: s.updatedAt) { return ("clock.arrow.circlepath", stale, Brand.inkDim) }
+            if let h = LimitText.highUse(l.fiveHour, week: l.sevenDay) {
+                return ("exclamationmark.circle.fill", h.text, Palette.limit(h.pct, onInk: true))
+            }
             return ("checkmark.circle.fill", tr("Sur'at me'yorida — limit tiklanguncha yetadi", "Pace is fine — the limit will last until reset"), okColor)
         }()
         return HStack(alignment: .top, spacing: 8) {
@@ -158,8 +161,8 @@ struct MenuPanel: View {
                         Spacer()
                         if sess.contextTokens > 0 {
                             let f = sess.contextFraction
-                            meta("text.alignleft", tr("kontekst \(Int((f * 100).rounded()))%", "context \(Int((f * 100).rounded()))%"))
-                                .foregroundStyle(f >= 0.8 ? Brand.warn : .secondary)
+                            meta("text.alignleft", tr("kontekst \(Int((f * 100).rounded()))%", "context \(Int((f * 100).rounded()))%"),
+                                 tint: f >= 0.8 ? Brand.warn : nil)
                         }
                     }
                 }
@@ -193,9 +196,10 @@ struct MenuPanel: View {
         return turn.shownPrompt
     }
 
-    private func meta(_ symbol: String, _ text: String) -> some View {
+    /// `tint` — holat rangi to'liq kuchda (`.secondary` ustiga qo'yilsa xiralashib, kontrast yo'qoladi)
+    private func meta(_ symbol: String, _ text: String, tint: Color? = nil) -> some View {
         HStack(spacing: 4) { Image(systemName: symbol); Text(text) }
-            .font(.caption2.monospacedDigit()).foregroundStyle(.secondary)
+            .font(.caption2.monospacedDigit()).foregroundStyle(tint.map(AnyShapeStyle.init) ?? AnyShapeStyle(.secondary))
     }
 
     // MARK: Bugun
