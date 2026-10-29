@@ -1,5 +1,9 @@
 # O'zgarishlar
 
+## 6.36.0 — 2026-10-29
+
+- Xulosa: agent kartasida endi shu so'rovda sarflagan tokeni ko'rsatiladi («8,3M token · Opus 5.5 · 49 qadam»). Raqam qadamlar soni bilan bir davr uchun hisoblanadi va sarlavhadagi so'rov raqami bilan mos keladi; yordamchi agentlarda ham shunday.
+
 ## 6.35.0 — 2026-10-29
 
 - «Sessiya» endi faqat suhbat ma'nosida: 5 soatlik oyna hamma joyda «5 soatlik limit» («Joriy sessiya» → «5 soatlik limit · har 5 soatda yangilanadi», «Bu hafta» → «Haftalik limit»).

@@ -31,6 +31,8 @@ struct FlowLane: Identifiable {
     let agent: AgentSnap
     let steps: [StepSnap]
     let bubbles: [FlowBubble]
+    /// Shu agentning shu so'rovdagi sarfi (so'rov tanlanmagan bo'lsa — butun sessiya)
+    var tokens = TokenCounts()
 }
 
 struct FlowResult {
@@ -58,6 +60,12 @@ struct FlowModel {
             guard let d else { return false }
             return d >= turn.start && (nextStart.map { d < $0 } ?? true)
         }
+        func spent(_ a: AgentSnap) -> TokenCounts {
+            guard turn != nil else { return a.tokens }
+            var t = TokenCounts()
+            for u in a.usage where inRange(u.date) { t.add(u.tokens) }
+            return t
+        }
 
         prompt = turn?.prompt ?? session.title
 
@@ -67,7 +75,7 @@ struct FlowModel {
                                    detail: session.model.isEmpty ? "model" : session.model,
                                    calls: m.calls, errors: 0, busy: m.state == .running && steps.last?.status != .running,
                                    recent: m.state != .idle)
-            main = FlowLane(agent: m, steps: steps, bubbles: [model] + FlowModel.bubbles(steps, owner: m.id, now: now))
+            main = FlowLane(agent: m, steps: steps, bubbles: [model] + FlowModel.bubbles(steps, owner: m.id, now: now), tokens: spent(m))
         } else {
             main = nil
         }
@@ -75,7 +83,7 @@ struct FlowModel {
         helpers = session.agents.filter { !$0.isMain }.compactMap { a in
             let steps = a.steps.filter(inTurn)
             guard !steps.isEmpty || inRange(a.firstActivity) else { return nil }
-            return FlowLane(agent: a, steps: steps, bubbles: FlowModel.bubbles(steps, owner: a.id, now: now))
+            return FlowLane(agent: a, steps: steps, bubbles: FlowModel.bubbles(steps, owner: a.id, now: now), tokens: spent(a))
         }
         .sorted { ($0.agent.firstActivity ?? .distantPast) < ($1.agent.firstActivity ?? .distantPast) }
 
@@ -120,9 +128,9 @@ struct FlowModel {
 private enum F {
     static let pad: CGFloat = 56
     static let trig: CGFloat = 104
-    static let mainW: CGFloat = 300
+    static let mainW: CGFloat = 320
     static let mainH: CGFloat = 104
-    static let helperW: CGFloat = 270
+    static let helperW: CGFloat = 290
     static let helperH: CGFloat = 84
     static let resultW: CGFloat = 104
     static let bubble: CGFloat = 70
@@ -378,7 +386,7 @@ struct FlowCanvas: View {
                 .onTapGesture { if let m = model.main { onSelectAgent(m.agent.id) } }
 
             if let lane = model.main {
-                FlowAgentNode(agent: lane.agent, steps: lane.steps.count, big: true,
+                FlowAgentNode(agent: lane.agent, steps: lane.steps.count, tokens: lane.tokens, big: true, mode: mode,
                               selected: selectedAgent == lane.agent.id && selectedBubble == nil)
                     .position(l.main)
                     .modifier(Enter(on: entered, delay: 0.08))
@@ -388,7 +396,7 @@ struct FlowCanvas: View {
 
             ForEach(model.helpers) { lane in
                 if let p = l.helpers[lane.agent.id] {
-                    FlowAgentNode(agent: lane.agent, steps: lane.steps.count, big: false,
+                    FlowAgentNode(agent: lane.agent, steps: lane.steps.count, tokens: lane.tokens, big: false, mode: mode,
                                   selected: selectedAgent == lane.agent.id && selectedBubble == nil)
                         .position(p)
                         .transition(.scale(scale: 0.85).combined(with: .opacity))
@@ -650,7 +658,9 @@ private struct UnevenRoundedShape: Shape {
 private struct FlowAgentNode: View {
     let agent: AgentSnap
     let steps: Int
+    let tokens: TokenCounts
     let big: Bool
+    let mode: CountMode
     let selected: Bool
 
     var body: some View {
@@ -668,8 +678,17 @@ private struct FlowAgentNode: View {
                     StateDot(state: agent.state, size: 7)
                 }
                 Text(agent.lastAction).font(.caption).foregroundStyle(agent.state == .idle ? .secondary : .primary).lineLimit(2)
-                Text([agent.subtitle, steps > 0 ? tr("\(steps) qadam", steps == 1 ? "1 step" : "\(steps) steps") : ""].filter { !$0.isEmpty }.joined(separator: " · "))
+                // Bu agent sarflagan token — birinchi, ajralib turadi; qolgani ikkinchi darajali
+                let spent = tokens.value(mode)
+                let meta = [agent.subtitle, steps > 0 ? tr("\(steps) qadam", steps == 1 ? "1 step" : "\(steps) steps") : ""].filter { !$0.isEmpty }.joined(separator: " · ")
+                (spent > 0
+                    ? Text("\(Fmt.tokens(spent)) \(tr("token", "tokens"))").foregroundColor(.primary).fontWeight(.semibold)
+                        + Text(meta.isEmpty ? "" : " · " + meta)
+                    : Text(meta))
                     .font(.caption2.monospaced()).foregroundStyle(.secondary).lineLimit(1)
+                    .help(spent > 0 ? (mode == .weighted
+                        ? tr("Bu agent shu so'rovda sarflagan token (narx bo'yicha)", "Tokens this agent used in this prompt (by price)")
+                        : tr("Bu agent shu so'rovda sarflagan token", "Tokens this agent used in this prompt")) : "")
             }
             Spacer(minLength: 0)
         }
