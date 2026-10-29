@@ -91,7 +91,7 @@ struct SettingsView: View {
                 }
                 Toggle(isOn: $lightMode) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(tr("Yengil rejim", "Light mode"))
+                        Text(tr("Kam animatsiya", "Reduce motion"))
                         Text(tr("Robot, aylanuvchi chegaralar va oqim animatsiyalari to'xtaydi — oyna ochiq turganda protsessor taxminan ikki baravar kam ishlaydi", "Stops the robot, spinning borders and flow animations — uses about half the CPU while the window is open"))
                             .font(.caption).foregroundStyle(.secondary)
                     }
@@ -120,13 +120,13 @@ struct SettingsView: View {
                 Toggle(tr("Kontekst 85% to'lganda (tez orada avtomatik xulosa)", "When context is 85% full (auto-summary coming soon)"), isOn: $notifyContext)
                 Toggle(tr("Katta kontekstda yangi mavzu boshlansa — yangi sessiya taklifi (token tejash)", "New topic in a large context — suggest a new session (saves tokens)"), isOn: $notifySavings)
                 Toggle(tr("Isrof: kontekst 200K dan oshsa yoki loyiha bugun sarfining 40%+ ini isrof qilsa", "Waste: context passes 200K, or a project wastes 40%+ of today's usage"), isOn: $notifyWaste)
-                Toggle(isOn: $autoHandoff) {
-                    Text(tr("Kontekst katta bo'lsa — avtomatik yangi sessiya", "Large context — open a new session automatically"))
-                    Text(tr("Claude javobni tugatgach yangi sessiya xulosa bilan ochiladi; ish o'rtasida to'xtatilmaydi. Claude ilovasida xulosa yozib qo'yiladi — Enter bosasiz "
-                            + "(ilova tashqaridan kelgan xabarni xavfsizlik uchun o'zi yubormaydi); Terminalda to'liq avtomatik",
-                            "After Claude finishes its reply, a new session opens with the summary; work is never interrupted. In the Claude app the summary is filled in — you press Enter "
-                            + "(the app doesn't send outside messages by itself, for safety); in Terminal it's fully automatic"))
-                }
+                captionToggle(tr("Kontekst katta bo'lsa — avtomatik yangi sessiya", "Large context — open a new session automatically"),
+                              tr("Javob tugagach xulosa bilan yangi sessiya ochiladi — ish to'xtatilmaydi", "Opens a new session with the summary after Claude's reply — work isn't interrupted"),
+                              help: tr("Claude javobni tugatgach yangi sessiya xulosa bilan ochiladi; ish o'rtasida to'xtatilmaydi. Claude ilovasida xulosa yozib qo'yiladi — Enter bosasiz "
+                                 + "(ilova tashqaridan kelgan xabarni xavfsizlik uchun o'zi yubormaydi); Terminalda to'liq avtomatik",
+                                 "After Claude finishes its reply, a new session opens with the summary; work is never interrupted. In the Claude app the summary is filled in — you press Enter "
+                                 + "(the app doesn't send outside messages by itself, for safety); in Terminal it's fully automatic"),
+                              isOn: $autoHandoff)
                 if autoHandoff {
                     Picker(tr("…kontekst oshganda", "…when context passes"), selection: $autoHandoffK) {
                         ForEach(AutoHandoffRule.thresholdOptionsK, id: \.self) { Text(Fmt.tokens($0 * 1000)).tag($0) }
@@ -134,11 +134,11 @@ struct SettingsView: View {
                     Picker(tr("…ochiladi", "…opens"), selection: $autoHandoffTarget) {
                         ForEach(AutoHandoffTarget.allCases) { Text($0.title).tag($0.rawValue) }
                     }
-                    Toggle(isOn: $autoHandoffRedirect) {
-                        Text(tr("…eski sessiyada yozsam — yangi sessiyaga yo'naltirish", "…if I type in the old session — redirect to the new one"))
-                        Text(tr("Birinchi xabar to'xtatilib, xulosa bilan yangi sessiyaga yuboriladi; qayta yuborsangiz — eski sessiyada qoladi",
-                                "The first message is stopped and sent to the new session with the summary; send it again to stay in the old session"))
-                    }
+                    captionToggle(tr("…eski sessiyada yozsam — yangi sessiyaga yo'naltirish", "…if I type in the old session — redirect to the new one"),
+                                  tr("Keyingi xabaringiz xulosa bilan yangi sessiyaga ketadi", "Your next message goes to the new session with the summary"),
+                                  help: tr("Birinchi xabar to'xtatilib, xulosa bilan yangi sessiyaga yuboriladi; qayta yuborsangiz — eski sessiyada qoladi",
+                                     "The first message is stopped and sent to the new session with the summary; send it again to stay in the old session"),
+                                  isOn: $autoHandoffRedirect)
                     .onChange(of: autoHandoffRedirect) { on in if !on { try? PromptRedirectHook.uninstall() } }
                 }
                 if handoffHookInstalled {
@@ -192,14 +192,14 @@ struct SettingsView: View {
 
             SwiftUI.Section {
                 Picker(tr("Hisoblash usuli", "Counting method"), selection: $mode) {
-                    Text(tr("Token soni — hamma token teng", "Token count — every token counts the same")).tag(CountMode.raw)
-                    Text(tr("Narx bo'yicha — limitni nima ko'proq yeyishi", "By cost — what really eats your limit")).tag(CountMode.weighted)
+                    Text(tr("Token soni", "Token count")).tag(CountMode.raw)
+                    Text(tr("Narx bo'yicha", "By cost")).tag(CountMode.weighted)
                 }
                 .pickerStyle(.radioGroup)
             } header: {
                 Text(tr("Hisoblash", "Counting"))
             } footer: {
-                Text(tr("Vaznli rejim kiritish narxiga nisbatan: javob ×\(fmt(Pricing.output)), kesh o'qish ×\(fmt(Pricing.cacheRead)), kesh yozish ×\(fmt(Pricing.cacheWrite5m)) (1 soatlik kesh ×\(fmt(Pricing.cacheWrite1h))). Limitni nima ko'proq «yeyayotgani»ni shu rejim yaxshiroq ko'rsatadi.", "Weighted mode, relative to input price: output ×\(fmt(Pricing.output)), cache read ×\(fmt(Pricing.cacheRead)), cache write ×\(fmt(Pricing.cacheWrite5m)) (1-hour cache ×\(fmt(Pricing.cacheWrite1h))). This mode better shows what is really «eating» your limit."))
+                Text(tr("Token soni — har bir token teng sanaladi. Narx bo'yicha — kiritish narxiga nisbatan: javob ×\(fmt(Pricing.output)), kesh o'qish ×\(fmt(Pricing.cacheRead)), kesh yozish ×\(fmt(Pricing.cacheWrite5m)) (1 soatlik kesh ×\(fmt(Pricing.cacheWrite1h))). Limitni nima ko'proq «yeyayotgani»ni shu usul yaxshiroq ko'rsatadi.", "Token count — every token counts the same. By cost — relative to input price: output ×\(fmt(Pricing.output)), cache read ×\(fmt(Pricing.cacheRead)), cache write ×\(fmt(Pricing.cacheWrite5m)) (1-hour cache ×\(fmt(Pricing.cacheWrite1h))). This shows better what really «eats» your limit."))
                     .font(.caption).foregroundStyle(.secondary)
             }
 
@@ -372,6 +372,20 @@ struct SettingsView: View {
         case .throttled(let until):
             return tr("Anthropic so'rovni cheklab turibdi — \(Fmt.hourMinute.string(from: until)) da qayta urinadi (oxirgi raqamlar ko'rsatilyapti)", "Anthropic is rate-limiting — retrying at \(Fmt.hourMinute.string(from: until)) (showing last numbers)")
         }
+    }
+
+    /// Izohli toggle. Izoh bir satrga sig'sin: Form o'ralgan matnli qator balandligini kam hisoblab, qo'shni qator ustiga chizadi —
+    /// to'liq tushuntirish maslahatda (help)
+    private func captionToggle(_ title: String, _ caption: String, help: String, isOn: Binding<Bool>) -> some View {
+        HStack(alignment: .center, spacing: 12) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                Text(caption).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+            }
+            Spacer(minLength: 8)
+            Toggle(title, isOn: isOn).labelsHidden().toggleStyle(.switch)
+        }
+        .help(help)
     }
 
     private func toggleStatusLine(_ on: Bool) {

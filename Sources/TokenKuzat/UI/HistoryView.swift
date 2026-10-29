@@ -6,10 +6,24 @@ import TokenKuzatCore
 struct HistoryView: View {
     @EnvironmentObject var store: Store
     @AppStorage(Pref.countMode) private var mode = CountMode.weighted
-    @State private var range = 30
+    /// Foydalanuvchi tanlagan davr; tanlanmagan bo'lsa — yig'ilgan tarixga mos eng qisqa davr
+    @State private var picked: Int?
     @State private var selected: Date?
 
+    /// Tarix yozila boshlagan kun (birinchi sarfli kun)
+    private var firstDay: Date? { store.snap.days.first { !$0.tokens.isEmpty }?.date }
+
+    /// Birinchi sarfli kundan bugungacha necha kun
+    private var collectedDays: Int? {
+        guard let firstDay else { return nil }
+        let cal = Calendar.current
+        return (cal.dateComponents([.day], from: cal.startOfDay(for: firstDay), to: cal.startOfDay(for: store.snap.updatedAt)).day ?? 0) + 1
+    }
+
+    private var range: Int { picked ?? [7, 14, 30].first { $0 >= (collectedDays ?? 30) } ?? 30 }
+
     var body: some View {
+        let range = self.range
         let days = Array(store.snap.days.suffix(range))
         let total = days.reduce(TokenCounts()) { $0 + $1.tokens }
         let active = days.filter { !$0.tokens.isEmpty }
@@ -19,7 +33,14 @@ struct HistoryView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 HStack {
-                    PillSegments(selection: $range, items: [7, 14, 30].map { .init(id: $0, title: tr("\($0) kun", "\($0) days")) })
+                    PillSegments(selection: Binding(get: { range }, set: { picked = $0 }),
+                                 items: [7, 14, 30].map { .init(id: $0, title: tr("\($0) kun", "\($0) days")) })
+                    // Davr tarixdan uzun bo'lsa — bo'sh kunlar nega bo'shligi aytiladi
+                    if let firstDay, let collectedDays, collectedDays < range {
+                        Text(tr("Tarix \(Fmt.shortDay.string(from: firstDay)) dan yig'ilyapti", "History since \(Fmt.shortDay.string(from: firstDay))"))
+                            .font(.caption).foregroundStyle(.secondary)
+                            .padding(.leading, 6)
+                    }
                     Spacer()
                     Button { exportCSV() } label: { Label(tr("CSV eksport", "Export CSV"), systemImage: "square.and.arrow.up") }
                 }

@@ -208,7 +208,7 @@ struct MenuPanel: View {
             Divider().frame(height: 26)
             todayItem(tr("Faol", "Active"), Alerts.duration(Double(s.activeMinutesToday) * 60), tr("vaqt", "time"))
             Divider().frame(height: 26)
-            todayItem(tr("Sessiya", "Sessions"), "\(todaySessions)", s.runningAgents > 0 ? tr("\(s.runningAgents) ishlayapti", "\(s.runningAgents) working") : tr("bugun", "today"))
+            todayItem(tr("Sessiya", "Sessions"), "\(todaySessions)", s.runningSessions > 0 ? tr("\(s.runningSessions) ishlayapti", "\(s.runningSessions) working") : tr("bugun", "today"))
         }
         .padding(.vertical, 10)
         .surface(radius: 12)

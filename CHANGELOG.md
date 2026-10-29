@@ -1,5 +1,14 @@
 # O'zgarishlar
 
+## 6.34.0 — 2026-10-29
+
+- Tuzatildi: Sozlamalarda «Isrof…» va «Kontekst katta bo'lsa — avtomatik yangi sessiya» qatorlari ustma-ust chizilardi. Uzun izohlar bir satrga qisqardi, to'liq tushuntirish — maslahatda.
+- «Yengil rejim» → «Kam animatsiya» (macOS'dagi «Light mode» — yorug' mavzu bilan adashtirilmasin).
+- Hisoblash usuli: qisqa yorliqlar («Token soni» / «Narx bo'yicha»), izohdagi eski «Vaznli rejim» atamasi olib tashlandi.
+- Holat bitta ot bilan: sarlavhadagi belgi, yon menyu, Jonli belgisi va menyu paneli — hammasi ishlayotgan sessiyalar sonini ko'rsatadi; agentlar soni maslahatda.
+- Tarix: davr yig'ilgan tarixga moslanadi (3 kunlik tarixga 30 kunlik bo'sh grafik ochilmaydi), davr uzun bo'lsa «Tarix … dan yig'ilyapti» yozuvi.
+- Bugun → HOZIR kartasidagi taymer ustida «Joriy qadam» yorlig'i.
+
 ## 6.33.1 — 2026-10-29
 
 - Tuzatildi: sahifa almashganda eski va yangi sahifa bir lahza ustma-ust ko'rinardi. Endi eski sahifa darhol yo'qoladi, yangisi qisqa fade bilan chiqadi.

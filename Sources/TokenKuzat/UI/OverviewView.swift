@@ -388,6 +388,10 @@ struct NowRow: View {
                 }
                 Spacer(minLength: 12)
                 VStack(alignment: .trailing, spacing: 2) {
+                    // Taymer — ishlayotgan qadam qancha davom etyapti (yorliqsiz «0:00» tushunarsiz edi)
+                    if running?.duration != nil {
+                        Text(tr("Joriy qadam", "Current step")).font(.caption2).foregroundStyle(.secondary)
+                    }
                     Text(running?.duration.map { clock($0) } ?? Fmt.ago(sess.lastActivity))
                         .font(.system(size: 22, weight: .semibold, design: .monospaced))
                         .contentTransition(.numericText())

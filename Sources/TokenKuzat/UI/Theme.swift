@@ -129,14 +129,17 @@ struct StateDot: View {
 }
 
 struct StatusPill: View {
+    /// Ishlayotgan sessiyalar
     let running: Int
     let active: Int
+    /// Ishlayotgan agentlar (yordamchilar bilan) — faqat maslahatda
+    var agents = 0
     /// Maslahatga qo'shiladigan izoh (masalan, bosilsa nima bo'lishi)
     var hint: String? = nil
 
     private var state: AgentState { running > 0 ? .running : (active > 0 ? .waiting : .idle) }
     private var text: String {
-        if running > 0 { return tr("Jonli · \(running) agent", running == 1 ? "Live · 1 agent" : "Live · \(running) agents") }
+        if running > 0 { return tr("Jonli · \(running) sessiya", running == 1 ? "Live · 1 session" : "Live · \(running) sessions") }
         if active > 0 { return tr("Kutyapti", "Waiting") }
         return tr("Tinch", "Idle")
     }
@@ -155,7 +158,8 @@ struct StatusPill: View {
     }
 
     private var tooltip: String {
-        running > 0 ? tr("\(running) ta agent hozir ishlayapti", running == 1 ? "1 agent is working now" : "\(running) agents are working now")
+        running > 0 ? tr("\(running) sessiyada \(max(agents, running)) agent ishlayapti",
+                         "\(max(agents, running)) \(max(agents, running) == 1 ? "agent" : "agents") working in \(running) \(running == 1 ? "session" : "sessions")")
             : (active > 0 ? tr("Agent asbob natijasini kutyapti (masalan, terminal buyrug'i)", "Agent is waiting for a tool result (e.g. a terminal command)") : tr("Hech qanday agent ishlamayapti", "No agents are working"))
     }
 }

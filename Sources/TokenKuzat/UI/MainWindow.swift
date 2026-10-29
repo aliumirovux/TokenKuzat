@@ -97,7 +97,7 @@ struct MainWindow: View {
             Spacer()
             // Bosilsa — Jonli sahifasiga (u yerda o'zida bosish kerak emas)
             Button { withAnimation(Motion.snappy) { section = .live } } label: {
-                StatusPill(running: store.snap.runningAgents, active: store.snap.activeSessions,
+                StatusPill(running: store.snap.runningSessions, active: store.snap.activeSessions, agents: store.snap.runningAgents,
                            hint: shown == .live ? nil : tr("Bosing — Jonli sahifasi", "Click to open Live"))
                     .contentShape(Capsule())
             }
@@ -131,7 +131,7 @@ private struct Sidebar: View {
                 navItem(.overview, tr("Bugun", "Today"), "sun.max", key: "1")
                 // Bir vaqtda ishlayotgan sessiyalar — yonma-yon kartalarda
                 navItem(.live, tr("Jonli", "Live"), "rectangle.grid.2x2", key: "2",
-                        live: snap.runningAgents > 0 ? snap.activeSessions : 0)
+                        live: snap.runningSessions)
                 navItem(.sessions, tr("Sessiyalar", "Sessions"), "rectangle.stack", key: "3")
                 navItem(.history, tr("Tarix", "History"), "chart.bar", key: "4")
                 // Loyihalar bo'yicha sarf va isrof — tuzatishni Claude'ga topshirish
@@ -164,7 +164,7 @@ private struct Sidebar: View {
     // MARK: Brend
 
     private func brand(_ snap: Snapshot) -> some View {
-        let waiting = !snap.permissionWaits.isEmpty, running = snap.runningAgents > 0
+        let waiting = !snap.permissionWaits.isEmpty, running = snap.runningSessions > 0
         let color: Color = waiting ? Brand.warn : (running ? Brand.ok : .secondary)
         return HStack(spacing: 10) {
             Image(nsImage: NSApp.applicationIconImage).resizable().frame(width: 30, height: 30)
@@ -173,7 +173,7 @@ private struct Sidebar: View {
                 HStack(spacing: 5) {
                     if running && !waiting { StateDot(state: .running, size: 6) }
                     else { Circle().fill(color.opacity(waiting ? 1 : 0.6)).frame(width: 6, height: 6) }
-                    Text(waiting ? tr("Ruxsat kutyapti", "Waiting for permission") : (running ? tr("\(snap.activeSessions) sessiya ishlayapti", snap.activeSessions == 1 ? "1 session working" : "\(snap.activeSessions) sessions working") : tr("Tinch", "Idle")))
+                    Text(waiting ? tr("Ruxsat kutyapti", "Waiting for permission") : (running ? tr("\(snap.runningSessions) sessiya ishlayapti", snap.runningSessions == 1 ? "1 session working" : "\(snap.runningSessions) sessions working") : tr("Tinch", "Idle")))
                 }
                 .font(.system(size: 11, weight: .medium)).foregroundStyle(color)
             }

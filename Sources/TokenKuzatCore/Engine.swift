@@ -426,6 +426,7 @@ public final class Engine {
                     usage: a.usage, bigResults: a.bigResults, outputs: a.outputs))
             }
             if best != .idle { snap.activeSessions += 1 }
+            if best == .running { snap.runningSessions += 1 }
             // Ishlayotgan sessiya eski bo'lsa ham ko'rinadi
             guard la >= sessionStart || best != .idle else { continue }
             // Barqaror tartib: asosiy agent tepada, keyin eng oxirgi ishga tushgan yordamchi

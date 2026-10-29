@@ -284,6 +284,8 @@ public struct Snapshot: Sendable {
     public var rateWeighted: Double = 0
     public var runningAgents = 0
     public var activeSessions = 0
+    /// Hozir ishlayotgan (kamida bitta agenti ishlayotgan) sessiyalar — «N sessiya ishlayapti» shu son
+    public var runningSessions = 0
     public var filesWatched = 0
     public var sources: [SourceInfo] = []
     public var updatedAt = Date()
