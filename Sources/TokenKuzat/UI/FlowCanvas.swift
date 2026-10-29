@@ -311,10 +311,11 @@ struct FlowCanvas: View {
                 .overlay(alignment: .bottomTrailing) { zoomControls(layout, vs).padding(12) }
                 .overlay(alignment: .bottomLeading) { FlowLegend().padding(12) }
                 .overlay(alignment: .topTrailing) { focusButton.padding(12) }
-                // To'liq rejimda kanvas tepasida Xarita/Xulosa tablari turadi — raqam ularning ostiga tushadi
+                // To'liq rejimda kanvas tepasida Xarita/Xulosa tablari turadi — karta ularning chap cheti bilan
+                // bir chiziqda, 12 pt pastda (tablar: oynada 84 pt chapdan, 12 pt tepadan, balandligi 34; kanvas 6 pt ichkarida)
                 .overlay(alignment: .topLeading) {
-                    FlowTokenHUD(model: model, agentId: selectedAgent, mode: mode)
-                        .padding(.leading, 14).padding(.top, mapOnly ? 72 : 14)
+                    FlowTokenHUD(model: model, agentId: selectedAgent, mode: mode, floating: mapOnly)
+                        .padding(.leading, mapOnly ? 78 : 12).padding(.top, mapOnly ? 52 : 12)
                 }
                 .onAppear {
                     viewport = vs
@@ -819,6 +820,8 @@ private struct FlowTokenHUD: View {
     let model: FlowModel
     let agentId: String?
     let mode: CountMode
+    /// To'liq rejimda tablar kabi suzib turadi — soyasi ham ularniki
+    var floating = false
 
     var body: some View {
         let lanes = [model.main].compactMap { $0 } + model.helpers
@@ -836,18 +839,18 @@ private struct FlowTokenHUD: View {
                     Text(model.scoped ? tr("· shu so'rovda", "· this prompt") : tr("· butun sessiya", "· whole session"))
                         .foregroundStyle(Color.secondary)
                 }
-                .font(.system(size: 12.5)).foregroundStyle(tint).lineLimit(1)
+                .font(.system(size: 12)).foregroundStyle(tint).lineLimit(1)
 
                 HStack(alignment: .firstTextBaseline, spacing: 5) {
                     Text(Fmt.tokens(spent))
-                        .font(.system(size: 38, weight: .bold, design: .rounded)).monospacedDigit()
-                        .tracking(-0.6)
+                        .font(.system(size: 30, weight: .bold, design: .rounded)).monospacedDigit()
+                        .tracking(-0.4)
                         .numericTransition(spent)
                     Text(mode == .weighted ? tr("token · narx bo'yicha", "tokens · by price") : tr("token", "tokens"))
-                        .font(.system(size: 15, weight: .semibold, design: .rounded))
+                        .font(.system(size: 13, weight: .semibold, design: .rounded))
                         .foregroundStyle(.secondary)
                 }
-                .padding(.top, 2)
+                .padding(.top, 1)
 
                 if others > 0 {
                     ShareBar(part: spent, rest: others, tint: tint)
@@ -860,10 +863,11 @@ private struct FlowTokenHUD: View {
                     .padding(.top, 7)
                 }
             }
-            .frame(minWidth: others > 0 ? 210 : 0, alignment: .leading)
+            .frame(minWidth: others > 0 ? 200 : 0, alignment: .leading)
             .fixedSize()
-            .padding(.horizontal, 16).padding(.top, 12).padding(.bottom, 14)
-            .glassCard(radius: 20)
+            .padding(.horizontal, 14).padding(.top, 10).padding(.bottom, 11)
+            .glassCard(radius: 16)
+            .shadow(color: .black.opacity(floating ? 0.35 : 0), radius: 18, y: 8)
             .help(model.scoped ? tr("Bu agent shu so'rovda sarflagan token", "Tokens this agent used in this prompt")
                                : tr("Bu agent butun sessiyada sarflagan token", "Tokens this agent used in the whole session"))
         }

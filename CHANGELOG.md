@@ -1,5 +1,9 @@
 # O'zgarishlar
 
+## 6.39.1 — 2026-10-29
+
+- Xulosa: token kartasining joylashuvi tuzatildi. To'liq rejimda karta Xarita/Xulosa tablari bilan bir chiziqda turadi: chap cheti tablarnikiga to'g'ri keladi, ulardan 12 pt pastda joylashgan, soyasi ham tablarniki bilan bir xil. Oddiy rejimda karta kanvas chetidan 12 pt ichkarida, xuddi o'ng burchakdagi tugma kabi. Karta ixchamroq bo'ldi: raqam 38 dan 30 pt ga kichraydi, burchaklar 16 pt — endi u tablardan og'ir ko'rinmaydi.
+
 ## 6.39.0 — 2026-10-29
 
 - Xulosa: chap tepa burchakdagi token kartasi Apple vidjetlari uslubida qayta chizildi. Endi u shisha fonda (macOS 26+ da Liquid Glass) turadi. Sarlavha bosh harflar o'rniga oddiy yozuvda va belgi bilan: «✦ Asosiy agent · shu so'rovda». Raqam kattaroq va yumaloq shriftda. Yordamchi agentlar bo'lsa, raqam ostida ulush chizig'i chiqadi va «Asosiy 5,0M · Yordamchilar 400K» deb yoziladi.
