@@ -1,5 +1,9 @@
 # O'zgarishlar
 
+## 6.41.0 — 2026-10-29
+
+- Token kartasi (Xarita va Xulosa): asosiy agent uchun pastda kontekst chizig'i qo'shildi — «Kontekst ▬▬▬ 168K / 200K». Oddiy holatda xira, 80% dan sariq, 92% dan qizil bo'ladi; ustiga olib borilsa foizi va nima uchun muhimligi chiqadi. Kontekst — sessiyaning hozirgi holati, eski so'rov tanlansa ham o'zgarmaydi.
+
 ## 6.40.0 — 2026-10-29
 
 - Xarita: chap tepa burchakda ham token kartasi chiqadi — Xulosadagi bilan bir xil: «✦ Asosiy agent · shu so'rovda», raqam va yordamchilar bo'lsa ulush chizig'i. To'liq rejimda Xarita/Xulosa tablari ostida, oddiy rejimda kanvas chetidan 12 pt ichkarida turadi. So'rovsiz sessiyada karta chiqmaydi.

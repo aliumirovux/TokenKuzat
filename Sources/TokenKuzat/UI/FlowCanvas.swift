@@ -312,7 +312,7 @@ struct FlowCanvas: View {
                 .overlay(alignment: .bottomLeading) { FlowLegend().padding(12) }
                 .overlay(alignment: .topTrailing) { focusButton.padding(12) }
                 .overlay(alignment: .topLeading) {
-                    FlowTokenHUD(model: model, agentId: selectedAgent, mode: mode, floating: mapOnly)
+                    FlowTokenHUD(model: model, session: session, agentId: selectedAgent, mode: mode, floating: mapOnly)
                 }
                 .onAppear {
                     viewport = vs
@@ -816,6 +816,8 @@ private struct ResultNode: View {
 /// Xulosa va Xarita kanvaslarida bir xil turadi
 struct FlowTokenHUD: View {
     let model: FlowModel
+    /// Kontekst — sessiyaning hozirgi holati (tanlangan so'rovdan qat'i nazar)
+    let session: SessionSnap
     let agentId: String?
     let mode: CountMode
     /// To'liq rejimda tablar kabi suzib turadi — soyasi ham ularniki
@@ -860,6 +862,10 @@ struct FlowTokenHUD: View {
                     }
                     .padding(.top, 7)
                 }
+
+                if isMain && session.contextTokens > 0 {
+                    contextRow.padding(.top, 10)
+                }
             }
             .frame(minWidth: others > 0 ? 200 : 0, alignment: .leading)
             .fixedSize()
@@ -872,6 +878,30 @@ struct FlowTokenHUD: View {
             .help(model.scoped ? tr("Bu agent shu so'rovda sarflagan token", "Tokens this agent used in this prompt")
                                : tr("Bu agent butun sessiyada sarflagan token", "Tokens this agent used in the whole session"))
         }
+    }
+
+    /// Kontekst oynasi qanchalik to'lgan: oddiy holatda xira, 80% dan sariq, 92% dan qizil (ContextGauge bilan bir xil)
+    private var contextRow: some View {
+        let f = session.contextFraction
+        let color = f >= 0.92 ? Brand.err : (f >= 0.8 ? Brand.warn : Color.primary.opacity(0.55))
+        return HStack(spacing: 8) {
+            Text(tr("Kontekst", "Context")).foregroundStyle(.secondary).fixedSize()
+            ZStack(alignment: .leading) {
+                Capsule().fill(Color.secondary.opacity(0.28))
+                GeometryReader { g in
+                    Capsule().fill(color).frame(width: max(4, g.size.width * f))
+                }
+            }
+            .frame(minWidth: 40, maxWidth: .infinity).frame(height: 4)
+            // Raqam hech qachon qirqilmaydi — joy yetmasa karta kengayadi
+            Text("\(Fmt.tokens(Double(session.contextTokens))) / \(Fmt.tokens(Double(session.contextWindow)))")
+                .fontWeight(.semibold).monospacedDigit().fixedSize()
+                .foregroundStyle(f >= 0.8 ? color : Color.secondary)
+        }
+        .font(.system(size: 11))
+        .animation(Motion.smooth, value: f)
+        .help(tr("Kontekst: \(Int((f * 100).rounded()))% to'ldi. Har javobda shuncha token qayta o'qiladi; chegaraga yetganda ish yangi sessiyaga ko'chiriladi.",
+                 "Context: \(Int((f * 100).rounded()))% full. This many tokens are re-read on every reply; at the limit the work moves to a new session."))
     }
 
     private func legend(_ color: Color, _ title: String, _ value: Double) -> some View {
