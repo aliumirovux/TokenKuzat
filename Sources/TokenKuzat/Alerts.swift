@@ -58,7 +58,13 @@ final class Alerts: NSObject, UNUserNotificationCenterDelegate {
     // MARK: - Avtomatik yangi sessiya
 
     private var autoPrevious: [String: AgentState] = [:]
-    private var autoDone: Set<String> = []
+    /// Yangi sessiya ochilgan sessiyalar — diskda (ilova qayta ishga tushsa yoki yangilansa ham qayta ochilmasin), 7 kun
+    private let autoDoneKey = "autoHandoffDone"
+    private lazy var autoDone: [String: Double] = {
+        let all = UserDefaults.standard.dictionary(forKey: autoDoneKey) as? [String: Double] ?? [:]
+        let cutoff = Date().timeIntervalSince1970 - 7 * 86400
+        return all.filter { $0.value >= cutoff }
+    }()
 
     /// Kontekst chegaradan oshgan sessiya javobini tugatdi — xulosa saqlanadi va yangi sessiya ochiladi (har sessiyada bir marta)
     private func evaluateAutoHandoff(_ s: Snapshot) {
@@ -68,8 +74,9 @@ final class Alerts: NSObject, UNUserNotificationCenterDelegate {
         let k = d.double(forKey: Pref.autoHandoffK)
         for sess in s.sessions where AutoHandoffRule.shouldTrigger(
             previous: autoPrevious[sess.id], state: sess.state, context: sess.contextTokens, thresholdK: k,
-            waitingPermission: s.permissionWaits[sess.id] != nil, alreadyDone: autoDone.contains(sess.id)) {
-            autoDone.insert(sess.id)
+            waitingPermission: s.permissionWaits[sess.id] != nil, alreadyDone: autoDone[sess.id] != nil) {
+            autoDone[sess.id] = Date().timeIntervalSince1970
+            d.set(autoDone, forKey: autoDoneKey)
             let target = AutoHandoffTarget(rawValue: d.string(forKey: Pref.autoHandoffTarget) ?? "") ?? .app
             let ok = AutoHandoff.start(sess, target: target)
             let start = SavingsAdvisor.startContext(for: sess) ?? SavingsAdvisor.baseline

@@ -1,5 +1,9 @@
 # O'zgarishlar
 
+## 6.27.1 — 2026-10-29
+
+- Tuzatildi: avtomatik yangi sessiya bir sessiya uchun ikki marta ochilishi mumkin edi — «ochildi» belgisi faqat xotirada turardi, ilova qayta ishga tushganda (masalan, yangilangandan keyin) yo'qolardi. Endi diskda saqlanadi (7 kun).
+
 ## 6.27.0 — 2026-10-29
 
 - Tarqatish: `bash scripts/release.sh` — universal (Apple Silicon + Intel) ilova bilan DMG (`dist/TokenKuzatuv-<versiya>.dmg`, «Applications» yorlig'i, `.sha256`). `TK_SIGN_IDENTITY` (Developer ID) va `TK_NOTARY_PROFILE` berilsa — imzolanadi va notarizatsiyadan o'tadi; bo'lmasa vaqtinchalik imzo.
