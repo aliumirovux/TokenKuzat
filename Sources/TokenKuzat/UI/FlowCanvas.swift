@@ -49,6 +49,8 @@ struct FlowModel {
     let main: FlowLane?
     let helpers: [FlowLane]
     let result: FlowResult
+    /// Tokenlar bitta so'rov uchunmi (aks holda — butun sessiya)
+    let scoped: Bool
 
     /// `turnId` — nil bo'lsa butun sessiya
     init(session: SessionSnap, turnId: Int?, now: Date) {
@@ -68,6 +70,7 @@ struct FlowModel {
         }
 
         prompt = turn?.prompt ?? session.title
+        scoped = turn != nil
 
         if let m = session.main {
             let steps = m.steps.filter(inTurn)
@@ -308,6 +311,11 @@ struct FlowCanvas: View {
                 .overlay(alignment: .bottomTrailing) { zoomControls(layout, vs).padding(12) }
                 .overlay(alignment: .bottomLeading) { FlowLegend().padding(12) }
                 .overlay(alignment: .topTrailing) { focusButton.padding(12) }
+                // To'liq rejimda kanvas tepasida Xarita/Xulosa tablari turadi — raqam ularning ostiga tushadi
+                .overlay(alignment: .topLeading) {
+                    FlowTokenHUD(model: model, agentId: selectedAgent, mode: mode)
+                        .padding(.leading, 14).padding(.top, mapOnly ? 72 : 14)
+                }
                 .onAppear {
                     viewport = vs
                     wheel.onWheel = { e in handleWheel(e, layout: FlowLayout(model)) }
@@ -803,6 +811,43 @@ private struct ResultNode: View {
         .offset(y: 38)
         .shadow(color: .black.opacity(0.18), radius: 4, y: 2)
         .contentShape(Rectangle())
+    }
+}
+
+/// Chap tepa burchak: tanlangan agent (odatda asosiy) shu so'rovda qancha token sarflagani — katta raqam bilan
+private struct FlowTokenHUD: View {
+    let model: FlowModel
+    let agentId: String?
+    let mode: CountMode
+
+    var body: some View {
+        let lanes = [model.main].compactMap { $0 } + model.helpers
+        if let lane = lanes.first(where: { $0.id == agentId }) ?? model.main ?? lanes.first {
+            let spent = lane.tokens.value(mode)
+            let others = lanes.filter { $0.id != lane.id }.reduce(0.0) { $0 + $1.tokens.value(mode) }
+            let name = lane.agent.isMain ? tr("asosiy agent", "main agent") : lane.agent.title
+            VStack(alignment: .leading, spacing: 2) {
+                Text((model.scoped ? tr("SHU SO'ROVDA", "THIS PROMPT") : tr("BUTUN SESSIYADA", "WHOLE SESSION")) + " · " + name.uppercased())
+                    .eyebrow().lineLimit(1)
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Text(Fmt.tokens(spent))
+                        .font(.system(size: 30, weight: .semibold, design: .rounded)).monospacedDigit()
+                        .numericTransition(spent)
+                    Text(mode == .weighted ? tr("token · narx bo'yicha", "tokens · by price") : tr("token", "tokens"))
+                        .font(.callout.weight(.medium)).foregroundStyle(.secondary)
+                }
+                if others > 0 {
+                    Text(lane.agent.isMain
+                         ? tr("+ yordamchi agentlar \(Fmt.tokens(others))", "+ helper agents \(Fmt.tokens(others))")
+                         : tr("+ boshqa agentlar \(Fmt.tokens(others))", "+ other agents \(Fmt.tokens(others))"))
+                        .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+                }
+            }
+            .padding(.horizontal, 14).padding(.vertical, 10)
+            .modifier(Surface(shape: RoundedRectangle(cornerRadius: 14, style: .continuous)))
+            .help(model.scoped ? tr("Bu agent shu so'rovda sarflagan token", "Tokens this agent used in this prompt")
+                               : tr("Bu agent butun sessiyada sarflagan token", "Tokens this agent used in the whole session"))
+        }
     }
 }
 

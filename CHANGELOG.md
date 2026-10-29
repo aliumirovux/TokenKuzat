@@ -1,5 +1,9 @@
 # O'zgarishlar
 
+## 6.38.0 — 2026-10-29
+
+- Xulosa: kanvasning chap tepa burchagida agent sarflagan token katta raqam bilan («SHU SO'ROVDA · ASOSIY AGENT — 1,8M token»). Yordamchi agentlar bo'lsa — ularning sarfi pastida alohida. Boshqa agent tanlansa, raqam o'sha agentniki bo'ladi. To'liq ekran rejimida raqam Xarita/Xulosa tablari ostida turadi.
+
 ## 6.37.1 — 2026-10-29
 
 - Kontrast: yorug' mavzuda sariq, qizil va yashil holat matnlari to'qroq — oq va kulrang fonda ham o'qiladi (≥ 4,5:1). Menyu panelidagi «kontekst 92%» endi to'liq rangda (avval kulrang bilan aralashib xiralashardi).
