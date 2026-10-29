@@ -41,4 +41,15 @@ final class RedirectTests: XCTestCase {
         XCTAssertTrue(d!.message.contains("Yangi so'rovim"))
         XCTAssertTrue(d!.output.contains("yangi sessiyaga"))
     }
+
+    func testSystemRemindersAreStrippedFromForwardedPrompt() {
+        let now = Date()
+        RedirectStore.add(session: "old", summary: "S", previousContext: 1, at: url, now: now)
+        let d = RedirectStore.handlePrompt(input: input("old", "<system-reminder>\nLinked sessions…\n</system-reminder>\n\nyana nima qilamiz"), at: url, now: now)
+        XCTAssertTrue(d!.message.hasSuffix("yana nima qilamiz"))
+        XCTAssertFalse(d!.message.contains("system-reminder"))
+        // Faqat tizim matni bo'lsa — yo'naltirilmaydi
+        RedirectStore.add(session: "old2", summary: "S", previousContext: 1, at: url, now: now)
+        XCTAssertNil(RedirectStore.handlePrompt(input: input("old2", "<system-reminder>x</system-reminder>"), at: url, now: now))
+    }
 }

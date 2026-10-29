@@ -1,5 +1,9 @@
 # O'zgarishlar
 
+## 6.29.1 — 2026-10-29
+
+- Tuzatildi: eski sessiyadan yo'naltirilgan xabar bilan birga Claude ilovasi qo'shadigan `<system-reminder>` matni ham yangi sessiyaga o'tib ketardi. Endi olib tashlanadi; faqat tizim matnidan iborat xabar yo'naltirilmaydi.
+
 ## 6.29.0 — 2026-10-29
 
 - Yangi sessiya xulosasi suhbat tilida: foydalanuvchi xabarlari qaysi tilda bo'lsa (o'zbekcha / English), xulosa, birinchi xabar va eski sessiyadagi yo'naltirish sababi shu tilda — ilova tili boshqa bo'lsa ham. Aniqlab bo'lmasa — ilova tili.

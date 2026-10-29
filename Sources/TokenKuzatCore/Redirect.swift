@@ -68,7 +68,10 @@ public enum RedirectStore {
               let sid = o["session_id"] as? String else { return nil }
         var all = load(at: url)
         guard var r = all[sid], !r.used, now.timeIntervalSince(r.created) < lifetime else { return nil }
-        let prompt = (o["prompt"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        // Claude ilovasi xabarga qo'shadigan «<system-reminder>» bloklari yangi sessiyaga o'tkazilmaydi
+        let prompt = (o["prompt"] as? String ?? "")
+            .replacingOccurrences(of: #"<system-reminder>[\s\S]*?</system-reminder>"#, with: "", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
         // Slash-buyruqlar (/compact, /clear…) shu sessiyaga tegishli — to'xtatilmaydi
         guard !prompt.isEmpty, !prompt.hasPrefix("/") else { return nil }
         r.used = true
