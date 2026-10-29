@@ -418,8 +418,15 @@ public enum SavingsAdvisor {
 
     /// Ish nomi: Claude eslatmasidagi «Ish», oldingi sessiya nomi, so'nggi ma'noli vazifa. 60 belgigacha, so'z chegarasida
     static func handoffTask(_ s: SessionSnap, note: String? = nil) -> String? {
-        var name = note.flatMap { HandoffNote.field($0, ["Ish", "Task"]) }
-            ?? (s.title.hasPrefix("↪ ") ? String(s.title.dropFirst(2)) : s.title)
+        var found = note.flatMap { HandoffNote.field($0, ["Ish", "Task"]) }
+        if found == nil, s.title.hasPrefix("↪ ") {
+            // Ko'chirilgan sessiyada yangi mavzu boshlangan bo'lsa, meros nom eskiradi — o'zidagi so'nggi uzun so'rov olinadi
+            let own = meaningfulTurns(s).filter { $0.prompt.count >= topicLength }
+            if own.count >= 2 { found = own.last?.prompt }
+        }
+        // Meros nom «↪ Loyiha — ish»: loyiha nomi kartada va sarlavhada alohida turadi, takrorlanmasin
+        if found == nil, s.title.hasPrefix("↪ ") { found = dropProject(String(s.title.dropFirst(2)), s) }
+        var name = found ?? s.title
         // Nomsiz yoki eski usulda ko'chirilgan sessiyaning umumiy nomi — ish nomi emas
         let generic = ["Nomsiz sessiya", "Untitled session", "Oldingi sessiya davomi", "Continued session"]
         if name.trimmingCharacters(in: .whitespaces).isEmpty || generic.contains(name) || AutoHandoffRule.isHandoffPrompt(name) {
@@ -431,6 +438,18 @@ public enum SavingsAdvisor {
         let cut = String(name.prefix(60))
         let word = cut.range(of: " ", options: .backwards).map { String(cut[..<$0.lowerBound]) } ?? cut
         return (word.count >= 30 ? word : cut) + "…"
+    }
+
+    /// Ko'chirilgan sessiyada shundan uzun so'rov — yangi mavzu belgisi
+    static let topicLength = 40
+
+    /// «Loyiha — ish» → «ish» (loyiha — sessiya papkasi yoki loyiha nomi)
+    static func dropProject(_ title: String, _ s: SessionSnap) -> String {
+        var t = title
+        for p in Set([s.project] + [s.cwd.map { URL(fileURLWithPath: $0).lastPathComponent }].compactMap { $0 }) where !p.isEmpty {
+            while t.hasPrefix(p + " — ") { t = String(t.dropFirst(p.count + 3)) }
+        }
+        return t
     }
 
     private static func handoffText(_ s: SessionSnap, lastTurns: Int, gitLines: ([String]) -> [String],

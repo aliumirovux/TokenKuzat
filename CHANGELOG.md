@@ -1,5 +1,12 @@
 # O'zgarishlar
 
+## 6.58.1 — 2026-10-30
+
+- Loyiha kartasidagi ish nomi eskirib qolmaydi: sessiya yangisiga ko'chgach unda yangi mavzu boshlansa, eski nom o'rniga shu mavzu ko'rsatiladi.
+- Loyiha nomi takrorlanmaydi («ytbot — ytbot — …» o'rniga «ytbot — …»).
+- Chap paneldagi ro'yxat «So'nggi» deb nomlandi va vaqtinchalik papkalarni (/tmp, ilovaning papkasiz sessiyalari) ko'rsatmaydi.
+- Avtomatik davom loyihaning ichki papkasida ham ishlaydi (masalan, `ytbot/src` da ochilgan `claude` — `ytbot` xulosasini oladi; faqat bitta git loyihasi ichida).
+
 ## 6.58.0 — 2026-10-30
 
 - Yangi «Loyihalar» sahifasi (⌘7): har loyiha (papka) — bitta karta. Unda oxirgi ish, qachon va qayerda (Terminal yoki Claude ilovasi) ishlangani, qolgan ish, javobsiz savol va git'da saqlanmagan yoki yuborilmagan o'zgarishlar ko'rinadi. Javobingizni kutayotgan loyiha ajralib turadi. Hammasi sessiya yozuvlari va git'dan olinadi — Claude'ga token sarflanmaydi.

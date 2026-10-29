@@ -144,7 +144,8 @@ private struct Sidebar: View {
                 navItem(.savings, tr("Tejash", "Savings"), "leaf", key: "5")
             }
 
-            Text(tr("Loyihalar", "Projects"))
+            // «Loyihalar» sahifasidan farqi: bu — so'nggi sessiyalarga tez o'tish
+            Text(tr("So'nggi", "Recent"))
                 .font(.system(size: 11, weight: .semibold)).foregroundStyle(.tertiary)
                 .padding(.horizontal, 10).padding(.top, 22).padding(.bottom, 6)
 
@@ -222,6 +223,8 @@ private struct Sidebar: View {
         var seen = Set<String>()
         return store.snap.sessions
             .sorted { ($0.state != .idle ? 1 : 0, $0.lastActivity ?? .distantPast) > ($1.state != .idle ? 1 : 0, $1.lastActivity ?? .distantPast) }
+            // Vaqtinchalik papkalar (/tmp, scratchpad) — ishlayotgan bo'lmasa ko'rsatilmaydi
+            .filter { $0.state != .idle || !($0.cwd.map(ProjectBoard.isTemporaryFolder) ?? false) }
             .filter { seen.insert($0.project).inserted }
             .prefix(8).map { $0 }
     }

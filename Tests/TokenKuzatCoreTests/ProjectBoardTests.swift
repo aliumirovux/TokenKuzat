@@ -88,6 +88,26 @@ final class ProjectBoardTests: XCTestCase {
         XCTAssertNil(ResumeStore.handleSessionStart(input: input("new", cwd: "/p/app"), in: dir, now: now + ResumeStore.lifetime + 1))
     }
 
+    func testResumeFoundFromSubfolderInsideSameGitProject() throws {
+        let repo = dir.appendingPathComponent("repo").standardizedFileURL
+        let sub = repo.appendingPathComponent("src/ui")
+        try FileManager.default.createDirectory(at: sub, withIntermediateDirectories: true)
+        _ = GitState.git(repo.path, ["init", "-q"])
+        try ResumeStore.save(PendingHandoff(text: "XULOSA", sourceSession: "old", cwd: repo.path, created: now), in: dir)
+        XCTAssertEqual(ResumeStore.find(from: sub.path, in: dir)?.text, "XULOSA")
+        // Git loyihasidan tashqaridagi papka — ota papka xulosasi berilmaydi
+        let outside = dir.appendingPathComponent("plain/child")
+        try FileManager.default.createDirectory(at: outside, withIntermediateDirectories: true)
+        try ResumeStore.save(PendingHandoff(text: "B", sourceSession: "b", cwd: dir.appendingPathComponent("plain").path, created: now), in: dir)
+        XCTAssertNil(ResumeStore.find(from: outside.path, in: dir))
+    }
+
+    func testTemporaryFolders() {
+        XCTAssertTrue(ProjectBoard.isTemporaryFolder("/private/tmp/claude-501"))
+        XCTAssertTrue(ProjectBoard.isTemporaryFolder("/Users/a/Library/Application Support/Claude/scratch-workspaces/x/y"))
+        XCTAssertFalse(ProjectBoard.isTemporaryFolder("/Users/a/Developer/ytbot"))
+    }
+
     func testPruneRemovesExpiredAndUnknownFolders() throws {
         try ResumeStore.save(PendingHandoff(text: "A", sourceSession: "a", cwd: "/p/app", created: now), in: dir)
         try ResumeStore.save(PendingHandoff(text: "B", sourceSession: "b", cwd: "/p/web", created: now), in: dir)

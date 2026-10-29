@@ -77,6 +77,11 @@ public enum ProjectBoard {
         .sorted { $0.lastActivity > $1.lastActivity }
     }
 
+    /// Vaqtinchalik papka (/tmp, scratchpad, Claude ilovasining papkasiz sessiyasi) — loyiha emas
+    public static func isTemporaryFolder(_ path: String) -> Bool {
+        SavingsAdvisor.isTemporary(path + "/")
+    }
+
     /// «yo'q» / «none» — bo'sh
     static func nonEmpty(_ v: String) -> String? {
         let l = v.lowercased().trimmingCharacters(in: CharacterSet(charactersIn: " .—-"))
@@ -125,6 +130,21 @@ public enum ResumeStore {
         dec.dateDecodingStrategy = .secondsSince1970
         guard let d = try? Data(contentsOf: url(for: folder, in: dir)) else { return nil }
         return try? dec.decode(PendingHandoff.self, from: d)
+    }
+
+    /// Papkaning o'zi, bo'lmasa — shu git loyihasi ichidagi ota papka (loyihaning ichki papkasida ochilgan sessiya)
+    public static func find(from folder: String, in dir: URL = directory) -> PendingHandoff? {
+        var url = URL(fileURLWithPath: folder).standardizedFileURL
+        if let h = load(folder: url.path, in: dir) { return h }
+        guard let root = GitState.git(url.path, ["rev-parse", "--show-toplevel"])?
+            .trimmingCharacters(in: .whitespacesAndNewlines), !root.isEmpty else { return nil }
+        // git yo'lni symlink'larsiz qaytaradi (/var → /private/var)
+        let top = URL(fileURLWithPath: root).resolvingSymlinksInPath().path
+        while url.resolvingSymlinksInPath().path.hasPrefix(top + "/") {
+            url.deleteLastPathComponent()
+            if let h = load(folder: url.path, in: dir) { return h }
+        }
+        return nil
     }
 
     /// Muddati o'tgan (yoki `keep` da yo'q papkalarning) xulosalarini o'chiradi
@@ -183,7 +203,7 @@ public enum ResumeStore {
     public static func handleSessionStart(input: Data, in dir: URL = directory, now: Date = Date()) -> String? {
         guard let o = (try? JSONSerialization.jsonObject(with: input)) as? [String: Any],
               let sid = o["session_id"] as? String, let cwd = o["cwd"] as? String,
-              let h = load(folder: cwd, in: dir),
+              let h = find(from: cwd, in: dir),
               shouldDeliver(h, sessionId: sid, source: o["source"] as? String, now: now) else { return nil }
         let out: [String: Any] = ["hookSpecificOutput": ["hookEventName": "SessionStart",
                                                          "additionalContext": context(for: h, now: now)]]

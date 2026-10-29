@@ -120,6 +120,21 @@ final class SavingsTests: XCTestCase {
         XCTAssertTrue(text.contains("#5: Ha, push qil"))       // oxirgi javob — qaror shunda bo'lishi mumkin
     }
 
+    func testHandoffTaskDropsRepeatedProjectName() {
+        let s = handoffSession(title: "↪ Demo — Demo — 4K videoni tezlashtirish", prompts: ["Ha"], cwd: nil)
+        XCTAssertEqual(SavingsAdvisor.handoffTask(s), "4K videoni tezlashtirish")
+        XCTAssertEqual(AutoHandoffRule.headline(project: "ytbot", task: "ytbot — 4K"), "↪ ytbot — 4K")
+    }
+
+    func testHandoffTaskFollowsNewTopicInContinuedSession() {
+        // Ko'chirilgan sessiyada yangi mavzu boshlangan — meros nom eskirgan
+        let s = handoffSession(title: "↪ Demo — eski Terminal oynasini yopish",
+                               prompts: ["menga yangi sessiyada ham davom ettiradigan avtomatik jarayon kerak",
+                                         "loyihalar ko'p, qachon nima qilganimni qanday ajrataman?", "ha, boshla"],
+                               cwd: nil)
+        XCTAssertEqual(SavingsAdvisor.handoffTask(s), "loyihalar ko'p, qachon nima qilganimni qanday ajrataman?")
+    }
+
     func testHandoffTaskFallsBackToLastMeaningfulPrompt() {
         let s = handoffSession(title: "Nomsiz sessiya", prompts: ["kartalar joylashuvini tuzat", "Ha, chiqar"], cwd: nil)
         XCTAssertEqual(SavingsAdvisor.handoffTask(s), "kartalar joylashuvini tuzat")

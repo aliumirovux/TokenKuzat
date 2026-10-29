@@ -57,6 +57,8 @@ public enum AutoHandoffRule {
 
     /// Xulosaning birinchi qatori: «↪ TokenKuzat — Ofis paneli»
     public static func headline(project: String?, task: String?) -> String {
+        // Ish nomi loyiha nomi bilan boshlansa — takrorlanmasin («ytbot — ytbot — …»)
+        let task = project.flatMap { p in task.map { $0.hasPrefix(p + " — ") ? String($0.dropFirst(p.count + 3)) : $0 } } ?? task
         let parts = [project, task].compactMap { $0 }.filter { !$0.isEmpty }
         return "↪ " + (parts.isEmpty ? tr("Oldingi sessiya davomi", "Continued session") : parts.joined(separator: " — "))
     }
