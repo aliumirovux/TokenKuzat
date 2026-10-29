@@ -146,10 +146,16 @@ enum MCPServer {
         req.httpBody = body
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.setValue("Bearer \(c.key)", forHTTPHeaderField: "Authorization")
-        var out: (Data?, URLResponse?, Error?) = (nil, nil, nil)
-        let done = DispatchSemaphore(value: 0)
-        URLSession.shared.dataTask(with: req) { out = ($0, $1, $2); done.signal() }.resume()
-        done.wait()
+        func send() -> (Data?, URLResponse?, Error?) {
+            var out: (Data?, URLResponse?, Error?) = (nil, nil, nil)
+            let done = DispatchSemaphore(value: 0)
+            URLSession.shared.dataTask(with: req) { out = ($0, $1, $2); done.signal() }.resume()
+            done.wait()
+            return out
+        }
+        var out = send()
+        // FreeLLMAPI ilovasi yopiq — ochib, bir marta qayta urinadi
+        if (out.2 as? URLError)?.code == .cannotConnectToHost, FreeFallback.launchIfNeeded(c) { out = send() }
         if let err = out.2 { return ("FreeLLMAPI is not reachable at \(c.url): \(err.localizedDescription)", true) }
         let http = out.1 as? HTTPURLResponse
         guard let data = out.0, http?.statusCode == 200, let reply = FreeModels.chatReply(data) else {

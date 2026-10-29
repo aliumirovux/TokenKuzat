@@ -46,7 +46,7 @@ struct FreeModelsSection: View {
             Text(tr("Bepul modellar (FreeLLMAPI)", "Free models (FreeLLMAPI)"))
         } footer: {
             Text(tr("FreeLLMAPI — bepul tariflarni (Gemini, DeepSeek, Qwen, Llama…) bitta manzilga yig'adigan dastur; uni o'zingiz o'rnatasiz "
-                    + "(Mac ilovasi — manzil http://127.0.0.1:31415, server versiyasi — http://localhost:3001), "
+                    + "(Mac ilovasi — manzil http://127.0.0.1:31415, server versiyasi — http://localhost:3001; Mac ilovasi yopiq bo'lsa, Token Kuzatuv uni o'zi orqa fonda ochadi), "
                     + "provayder kalitlarini uning Keys sahifasida qo'shasiz va «Unified API key» ni shu yerga yozasiz. "
                     + "Limit tugaganda bildirishnomadagi tugma ishni xulosa bilan Terminal'dagi claude'da bepul modelga o'tkazadi; limit tiklanganda «Claude'da davom etish» uni qaytaradi. "
                     + "Claude Code uchun katta kontekstli va asboblarni chaqira oladigan model kerak (masalan, Google AI Studio — Gemini): faqat Groq kaliti bilan ishlamaydi. "
@@ -55,7 +55,7 @@ struct FreeModelsSection: View {
                     + "maxfiy kod va ma'lumotda ehtiyot bo'ling. Kalit faqat shu Mac'da (0600 fayl) saqlanadi va faqat shu manzilga yuboriladi; "
                     + "bepul model sarfi Claude limitiga qo'shilmaydi.",
                     "FreeLLMAPI is an app that pools free tiers (Gemini, DeepSeek, Qwen, Llama…) behind one address; you install it yourself "
-                    + "(Mac app — address http://127.0.0.1:31415, server version — http://localhost:3001), "
+                    + "(Mac app — address http://127.0.0.1:31415, server version — http://localhost:3001; if the Mac app is closed, Token Kuzatuv opens it in the background), "
                     + "add provider keys on its Keys page and paste its «Unified API key» here. "
                     + "When the limit runs out, the notification button moves the work with a summary to claude in Terminal on a free model; when the limit resets, «Continue in Claude» moves it back. "
                     + "Claude Code needs a model with a large context that can call tools (e.g. Google AI Studio — Gemini): a Groq key alone won't do. "

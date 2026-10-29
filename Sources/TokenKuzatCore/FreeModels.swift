@@ -8,6 +8,8 @@ import Foundation
 public enum FreeModels {
     /// FreeLLMAPI Mac ilovasining manzili (Docker/server versiyasi — http://localhost:3001)
     public static let defaultURL = "http://127.0.0.1:31415"
+    /// FreeLLMAPI Mac ilovasi: manzil shu Mac'da bo'lsa, yopiq ilovani Token Kuzatuv o'zi orqa fonda ochadi
+    public static let desktopBundleID = "com.freellmapi.desktop"
     /// Model nomi o'rniga — server o'zi eng yaxshi bo'sh modelni tanlaydi
     public static let autoModel = "auto"
     /// Bepul modellarning ko'pi 128K kontekstli: Claude Code shundan oldin qisqartirsin (eng kichik ruxsat etilgan qiymat)
@@ -57,6 +59,12 @@ public enum FreeModels {
         while u.hasSuffix("/") { u.removeLast() }
         if u.hasSuffix("/v1") { u.removeLast(3) }
         return u
+    }
+
+    /// Manzil shu Mac'dami (localhost, 127.0.0.1, ::1) — faqat shunda yopiq FreeLLMAPI ilovasini ochish ma'noli
+    public static func isLocal(_ s: String) -> Bool {
+        guard let host = URL(string: rootURL(s))?.host?.lowercased() else { return false }
+        return ["localhost", "127.0.0.1", "::1", "[::1]"].contains(host)
     }
 
     /// Terminal skriptining qatorlari: Claude Code shu server orqali ishlaydi. Kalit skriptga yozilmaydi —

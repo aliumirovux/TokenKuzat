@@ -1,5 +1,9 @@
 # O'zgarishlar
 
+## 6.53.0 — 2026-10-30
+
+- FreeLLMAPI Mac ilovasi yopiq bo'lsa, Token Kuzatuv uni o'zi orqa fonda ochadi: ilova ishga tushganda (kompyuter qayta yoqilgandan keyin ham), `ask_free_model` serverga ulana olmaganda (ochib, bir marta qayta uradi), ish bepul modelga ko'chayotganda va Sozlamalardagi tekshiruvda. Faqat manzil shu Mac'da bo'lsa (localhost, 127.0.0.1) va ilova o'rnatilgan bo'lsa ishlaydi; boshqa kompyuterdagi server ochilmaydi.
+
 ## 6.52.1 — 2026-10-30
 
 - `ask_free_model` tuzatildi: o'ylaydigan bepul model (masalan, gpt-oss) javob uzunligi chegarasini o'ylashga sarflab qo'ysa, endi uning o'ylash matni javob sifatida qaytmaydi — «max_tokens ni oshiring» degan aniq xato chiqadi. Javob chegarada uzilsa, oxirida «javob to'liq emas» deb yoziladi.

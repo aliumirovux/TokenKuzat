@@ -72,6 +72,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         Alerts.shared.start()
         AccountUsage.shared.start()
         UpdateChecker.shared.start()
+        // Kompyuter qayta yoqilganda FreeLLMAPI yopiq qoladi — bepul modellar sozlangan bo'lsa, orqa fonda ochiladi
+        FreeFallback.wake()
         DispatchQueue.main.async { WindowManager.shared.show() }
     }
 

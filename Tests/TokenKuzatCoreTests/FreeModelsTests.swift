@@ -15,6 +15,11 @@ final class FreeModelsTests: XCTestCase {
         XCTAssertEqual(FreeModels.rootURL(" http://localhost:3001/v1/ "), "http://localhost:3001")
         XCTAssertEqual(FreeModels.rootURL("http://127.0.0.1:31415"), "http://127.0.0.1:31415")
         XCTAssertEqual(FreeModels.rootURL(""), FreeModels.defaultURL)
+        XCTAssertTrue(FreeModels.isLocal(FreeModels.defaultURL))
+        XCTAssertTrue(FreeModels.isLocal("http://localhost:3001/v1"))
+        XCTAssertTrue(FreeModels.isLocal("http://[::1]:31415"))
+        XCTAssertFalse(FreeModels.isLocal("https://gateway.example.com"))
+        XCTAssertFalse(FreeModels.isLocal("http://192.168.1.20:31415"))
     }
 
     func testConfigIsSavedPrivately() throws {
