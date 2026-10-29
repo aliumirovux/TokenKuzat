@@ -1,5 +1,11 @@
 # O'zgarishlar
 
+## 6.43.0 — 2026-10-29
+
+- Claude Code plagini endi «Ofis» panelini beradi: chat yonida shu sessiyaning agenti va yordamchi agentlari robot bo'lib ishlaydi. Asbob ishlatayotgan robot monitorida belgi chiqadi (`>_` Bash, `✎` Edit, `⌕` Grep…), o'ylayotganining boshi ustida «…», ruxsat kutayotgani turib qo'l silkitadi (stol atrofi sariq, dron nur tushiradi), xatoda ko'zlari «x x» bo'ladi, bo'shi divanda qahva ichadi, 5 daqiqadan keyin uxlaydi («z z»).
+- Yordamchi agent ishga tushsa, bo'sh stolga yangi rangli robot o'tiradi; asosiy agentdan unga vazifa kartasi uchib boradi, ish tugaganda «✓» kartasi qaytadi. Stollar 6 ta, bo'sh stol o'rnida gulzor.
+- Panel sessiya boshida o'zi ochiladi, yopilsa — `/ofis`. Panel tepasida qisqa xulosa («2 ta robot ishlayapti»), pastida robotlar ro'yxati. Terminalda rasm o'rniga faqat ro'yxat chiqadi. Panel uchun Mac ilovasi shart emas.
+
 ## 6.42.1 — 2026-10-29
 
 - Ilova ochilganda butun oyna bir daqiqagacha qotib qolishi tuzatildi. Avtomatik yangi sessiya xulosasi git holatini (`git log`, `git status`) o'qiydi — bu endi fonda bajariladi, oyna esa darhol javob beradi va loyihalar ro'yxati chiqadi. Sekin yoki osilib qolgan git 3 soniyadan keyin to'xtatiladi; bunday holda xulosa git qatorlarisiz yoziladi. «Yangi sessiyada davom ettirish» tugmasi ham endi oynani ushlab turmaydi.

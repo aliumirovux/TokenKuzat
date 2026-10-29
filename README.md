@@ -38,6 +38,8 @@ Plagin Claude'ga MCP asboblarini ham beradi — sarfni to'g'ridan-to'g'ri so'ras
 
 Tokenni tejash bir buyruq bilan: loyihada Claude Code'ni oching va `/tokenkuzat:optimize` yozing — Claude shu loyiha bo'yicha isrof sabablarini oladi, tushuntiradi va tuzatishlarni (CLAUDE.md qoidalari, ishlatilmaydigan MCP serverlar) har birini siz tasdiqlagandan keyin qo'llaydi.
 
+«Ofis» paneli: plagin Claude Code'da chat yonida panel ochadi. Unda shu sessiyaning agenti va yordamchi agentlari robot bo'lib ishlaydi: asbob ishlatayotgani monitorida belgi chiqadi, ruxsat kutayotgani qo'l silkitadi, bo'shi divanda dam oladi. Panel sessiya boshida o'zi ochiladi, yopilsa — `/ofis`. Terminalda rasm o'rniga ro'yxat chiqadi. Ilova o'rnatilishi shart emas.
+
 Yangilash: `/plugin marketplace update tokenkuzat`, keyin yana `/tokenkuzat:install`.
 
 ### Qo'lda
@@ -157,6 +159,8 @@ From Claude Code:
 ```
 
 The plugin also gives Claude read-only MCP tools (`usage_summary`, `list_sessions`, `session_details`, `savings_report`), so you can ask "how many tokens today?" or "how much of my limit is left?". To cut waste in a project, open Claude Code there and run `/tokenkuzat:optimize`: Claude pulls that project's waste report and proposes fixes (CLAUDE.md rules, unused MCP servers), applying each only after you approve.
+
+The plugin also adds an "Office" pane beside the chat in Claude Code: the session's agent and its helper agents work as robots — a busy one shows its tool on the monitor, one waiting for permission waves, an idle one rests on the sofa. It opens when the session starts; reopen it with `/ofis`. In a terminal it shows a list instead of the drawing. The Mac app is not needed for it.
 
 Or by hand, in the repo folder (requires macOS 13+ and Xcode or Command Line Tools):
 
