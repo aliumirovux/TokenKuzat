@@ -74,10 +74,16 @@ final class Alerts: NSObject, UNUserNotificationCenterDelegate {
             let ok = AutoHandoff.start(sess, target: target)
             let start = SavingsAdvisor.startContext(for: sess) ?? SavingsAdvisor.baseline
             post(tr("\(sess.project): yangi sessiya ochildi", "\(sess.project): new session opened"),
-                 ok ? tr("Kontekst \(Fmt.tokens(sess.contextTokens)) edi. Xulosa yangi sessiyaga yuborildi — Claude ishni o'zi davom ettiradi "
-                         + "(kontekst ~\(Fmt.tokens(start)) dan boshlanadi). Eski sessiyada davom etmang.",
-                         "Context was \(Fmt.tokens(sess.contextTokens)). The summary was sent to a new session — Claude continues the work itself "
-                         + "(context starts at ~\(Fmt.tokens(start))). Don't keep working in the old session.")
+                 ok ? (target == .app
+                       // Claude ilovasi tashqi havoladagi xabarni xavfsizlik uchun o'zi yubormaydi — Enter foydalanuvchida
+                       ? tr("Kontekst \(Fmt.tokens(sess.contextTokens)) edi. Yangi sessiyada xulosa yozib qo'yildi — Enter bosing, Claude ishni davom ettiradi "
+                            + "(kontekst ~\(Fmt.tokens(start)) dan boshlanadi). Eski sessiyada davom etmang.",
+                            "Context was \(Fmt.tokens(sess.contextTokens)). The summary is filled in the new session — press Enter and Claude continues the work "
+                            + "(context starts at ~\(Fmt.tokens(start))). Don't keep working in the old session.")
+                       : tr("Kontekst \(Fmt.tokens(sess.contextTokens)) edi. Terminalda yangi sessiya xulosa bilan boshlandi — Claude ishni o'zi davom ettiradi "
+                            + "(kontekst ~\(Fmt.tokens(start)) dan boshlanadi). Eski sessiyada davom etmang.",
+                            "Context was \(Fmt.tokens(sess.contextTokens)). A new Terminal session started with the summary — Claude continues the work itself "
+                            + "(context starts at ~\(Fmt.tokens(start))). Don't keep working in the old session."))
                     : tr("Yangi sessiyani ochib bo'lmadi — sessiyani oching va «Yangi sessiyada davom ettirish»ni bosing.",
                          "Couldn't open a new session — open the session and click «Continue in a new session»."),
                  session: sess.id)

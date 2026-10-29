@@ -1,5 +1,9 @@
 # O'zgarishlar
 
+## 6.26.1 — 2026-10-29
+
+- Aniqlik: Claude ilovasi tashqi havola (`claude://code/new?q=…`) bilan kelgan xabarni xavfsizlik uchun o'zi yubormaydi — faqat yozish maydoniga qo'yadi, yangi papka uchun esa «Trust workspace» so'raydi. Bildirishnoma va Sozlamalar matni shunga moslandi: ilovada — «Enter bosing», Terminalda (`claude "<xabar>"`) — to'liq avtomatik.
+
 ## 6.26.0 — 2026-10-29
 
 - Avtomatik yangi sessiya endi ishni o'zi davom ettiradi: xulosa yangi sessiyaning birinchi xabari bo'lib o'zi yuboriladi (Claude ilovasida — `claude://code/new?folder=…&q=…`, Terminalda — `claude "<xabar>"`). Claude tugallanmagan ishni davom ettiradi; ish tugagan yoki keyingi qadam foydalanuvchi qarori bo'lsa — holatni aytib kutadi. Xabar havolada berilgani uchun papka mos kelmasa ham yetib boradi (SessionStart hook kerak emas). Xulosa ~8000 belgi bilan cheklanadi, har so'rov — 400 belgi.
