@@ -60,15 +60,50 @@ struct LiveView: View {
                 Spacer()
             }
         } else {
-            ScrollView {
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 300), spacing: 14, alignment: .top)], spacing: 14) {
-                    if let other { OutsideUsageCard(usage: other, now: snap.updatedAt) }
-                    ForEach(shown, id: \.id) { s in
-                        LiveCard(session: s, waiting: snap.permissionWaits[s.id], now: snap.updatedAt) { open(s) }
+            let items: [LiveItem] = (other.map { [.other($0)] } ?? []) + shown.map { .session($0) }
+            GeometryReader { geo in
+                let cols = max(1, Int((geo.size.width - 48 + Self.gap) / (Self.minCard + Self.gap)))
+                let rows = stride(from: 0, to: items.count, by: cols).map { Array(items[$0..<min($0 + cols, items.count)]) }
+                ScrollView {
+                    // Qatordagi kartalar bir xil balandlikda, pastki qatori (kontekst) bir chiziqda
+                    VStack(spacing: Self.gap) {
+                        ForEach(rows.indices, id: \.self) { r in
+                            HStack(alignment: .top, spacing: Self.gap) {
+                                ForEach(rows[r]) { card($0, snap: snap) }
+                                ForEach(0..<(cols - rows[r].count), id: \.self) { _ in
+                                    Color.clear.frame(maxWidth: .infinity, maxHeight: 0)
+                                }
+                            }
+                            .fixedSize(horizontal: false, vertical: true)
+                        }
                     }
+                    .padding(.horizontal, 24).padding(.bottom, 24)
                 }
-                .padding(.horizontal, 24).padding(.bottom, 24)
             }
+        }
+    }
+
+    private static let minCard: CGFloat = 300
+    private static let gap: CGFloat = 14
+
+    private enum LiveItem: Identifiable {
+        case other(OutsideUsage)
+        case session(SessionSnap)
+        var id: String {
+            switch self {
+            case .other: return "outside"
+            case .session(let s): return s.id
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func card(_ item: LiveItem, snap: Snapshot) -> some View {
+        switch item {
+        case .other(let o):
+            OutsideUsageCard(usage: o, now: snap.updatedAt)
+        case .session(let s):
+            LiveCard(session: s, waiting: snap.permissionWaits[s.id], now: snap.updatedAt) { open(s) }
         }
     }
 
@@ -113,16 +148,18 @@ private struct LiveCard: View {
                 current(running: running)
                 steps
                 helpers
+                Spacer(minLength: 0)
                 Divider()
                 footer(turn: turn)
             }
             .padding(16)
-            .frame(maxWidth: .infinity, alignment: .topLeading)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .surface(radius: 16, tint: waiting != nil ? Brand.warn : nil,
                      interactive: true, stroke: waiting != nil ? Brand.warn.opacity(0.6) : nil)
             .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         }
         .buttonStyle(.plain)
+        .frame(maxHeight: .infinity)
         .help(tr("Bosing — \(session.project) xaritasini ochish", "Click to open the \(session.project) map"))
     }
 
@@ -263,12 +300,13 @@ private struct OutsideUsageCard: View {
                 Text(tr("so'nggi 30 daqiqada 5 soatlik limitdan", "of the 5-hour limit in the last 30 min")).font(.callout).foregroundStyle(.secondary)
             }
             bars
+            Spacer(minLength: 0)
             Divider()
             Text(tr("Claude desktop Chat, claude.ai yoki boshqa qurilma. Suhbat ichi ko'rinmaydi — limit o'zgarishidan taxmin (bir necha daqiqa kechikishi mumkin).", "Claude desktop Chat, claude.ai or another device. Conversation content isn't visible — estimated from limit changes (may lag a few minutes)."))
                 .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
         }
         .padding(16)
-        .frame(maxWidth: .infinity, alignment: .topLeading)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .surface(radius: 16)
         .help(tr("Limit o'sgan, lekin shu Mac'dagi Claude Code sessiyalari buni tushuntirmagan qismi", "Limit growth not explained by Claude Code sessions on this Mac"))
     }

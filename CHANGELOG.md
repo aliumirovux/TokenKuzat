@@ -1,5 +1,9 @@
 # O'zgarishlar
 
+## 6.30.1 — 2026-10-29
+
+- «Jonli» kartalari tartibga keltirildi: bir qatordagi kartalar endi bir xil balandlikda, pastki qatori (kontekst, vaqt, tokenlar) bir chiziqda turadi. Avval kartalar har xil balandlikda bo'lib, ostida bo'sh joylar qolardi.
+
 ## 6.30.0 — 2026-10-29
 
 - Avtomatik yangi sessiya endi takrorlanadi: ko'chirilgandan keyin ham eski sessiyada yozishda davom etilsa va kontekst yana +100K o'ssa — sessiya qayta ko'chiriladi va eski sessiyadagi yo'naltirish qaytadan yoqiladi. Avval har sessiyada faqat bir marta ko'chirilardi, foydalanuvchi qaytib kelgach esa katta kontekst o'sishda davom etardi.
