@@ -41,6 +41,8 @@ enum Pref {
     static let freeFallback = "freeFallback"
     /// Ish yangi Terminal sessiyasiga ko'chgach, eski sessiyaning Terminal oynasi yopiladi
     static let closeOldTerminal = "closeOldTerminal"
+    /// Avtomatik davom: shu papkada yangi sessiya ochilsa, oldingi sessiya (24 soat ichida) xulosasi o'zi beriladi
+    static let autoResume = "autoResume"
     /// Yengil rejim: bezak animatsiyalari (robot, aylanuvchi chegaralar, oqim nuqtalari) to'xtaydi — protsessor tejaladi
     static let lightMode = "lightMode"
     /// «Faqat xarita»: sessiya sahifasida yon menyu, sarlavha va tablar yashiriladi — oynada faqat xarita
@@ -73,6 +75,7 @@ enum Pref {
             autoHandoffTarget: AutoHandoffTarget.app.rawValue,
             freeFallback: false,
             closeOldTerminal: true,
+            autoResume: true,
         ])
     }
 }

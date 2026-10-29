@@ -71,6 +71,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
         Alerts.shared.start()
+        // Avtomatik davom SessionStart hook'iga tayanadi; skript har ishga tushganda yangilanadi (yangi shart bilan)
+        if UserDefaults.standard.bool(forKey: Pref.autoResume) || SessionStartHook.isInstalled { try? SessionStartHook.install() }
         AccountUsage.shared.start()
         UpdateChecker.shared.start()
         // Kompyuter qayta yoqilganda FreeLLMAPI yopiq qoladi — bepul modellar sozlangan bo'lsa, orqa fonda ochiladi

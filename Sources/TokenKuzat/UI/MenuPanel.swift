@@ -8,6 +8,7 @@ struct MenuPanel: View {
     @EnvironmentObject var store: Store
     @AppStorage(Pref.countMode) private var mode = CountMode.weighted
     @ObservedObject private var updates = UpdateChecker.shared
+    @ObservedObject private var tracker = ProjectTracker.shared
 
     var body: some View {
         let s = store.snap
@@ -22,6 +23,7 @@ struct MenuPanel: View {
                     savings
                 }
                 .padding(12)
+                unfinished
                 Divider()
                 projects(s)
             }
@@ -284,6 +286,36 @@ struct MenuPanel: View {
             Text("\(k) · \(sub)").font(.caption2).foregroundStyle(.secondary).lineLimit(1)
         }
         .frame(maxWidth: .infinity)
+    }
+
+    /// Chala qolgan loyihalar: javobingiz kutilyapti yoki saqlanmagan ish bor — bosilsa «Loyihalar» sahifasi
+    @ViewBuilder
+    private var unfinished: some View {
+        let list = tracker.cards.filter { $0.status == .waiting || $0.status == .unsaved }.prefix(3)
+        if !list.isEmpty {
+            Divider()
+            VStack(alignment: .leading, spacing: 0) {
+                Text(tr("Chala qolgan", "Unfinished")).font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                    .padding(.horizontal, 18).padding(.top, 8).padding(.bottom, 2)
+                ForEach(Array(list)) { c in
+                    Button { WindowManager.shared.show(.projects) } label: {
+                        HStack(spacing: 10) {
+                            Image(systemName: c.status == .waiting ? "questionmark.bubble.fill" : "tray.full.fill")
+                                .foregroundStyle(c.status == .waiting ? Brand.warn : Brand.accent).frame(width: 22)
+                            Text(c.name).font(.callout.weight(.medium)).lineLimit(1)
+                            Text(c.task ?? "").font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                            Spacer()
+                            Text(Fmt.ago(c.lastActivity)).font(.caption).foregroundStyle(.tertiary)
+                        }
+                        .padding(.horizontal, 18).padding(.vertical, 6)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(RowButtonStyle())
+                    .help(c.status == .waiting ? tr("Javobingiz kutilyapti", "Waiting for your answer") : tr("Saqlanmagan ish bor", "Unsaved work"))
+                }
+            }
+            .padding(.bottom, 4)
+        }
     }
 
     private func projects(_ s: Snapshot) -> some View {

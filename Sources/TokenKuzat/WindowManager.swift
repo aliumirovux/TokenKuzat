@@ -3,7 +3,7 @@ import AppKit
 import TokenKuzatCore
 
 enum Section: String, CaseIterable, Identifiable {
-    case overview, live, office, graph, sessions, history, savings, activity, settings
+    case overview, live, office, graph, sessions, projects, history, savings, activity, settings
     var id: String { rawValue }
 
     var title: String {
@@ -13,6 +13,7 @@ enum Section: String, CaseIterable, Identifiable {
         case .office: return tr("Ofis", "Office")
         case .graph: return tr("Sessiya", "Session")
         case .sessions: return tr("Sessiyalar", "Sessions")
+        case .projects: return tr("Loyihalar", "Projects")
         case .history: return tr("Tarix", "History")
         case .savings: return tr("Tejash", "Savings")
         case .activity: return tr("Jonli lenta", "Activity feed")
@@ -27,6 +28,7 @@ enum Section: String, CaseIterable, Identifiable {
         case .office: return "building.2"
         case .graph: return "point.3.connected.trianglepath.dotted"
         case .sessions: return "rectangle.stack"
+        case .projects: return "folder"
         case .history: return "calendar"
         case .savings: return "leaf"
         case .activity: return "waveform.path.ecg"

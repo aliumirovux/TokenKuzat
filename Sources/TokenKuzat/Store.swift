@@ -109,6 +109,7 @@ final class Store: ObservableObject {
             self.snap = s
             if let savings, savings != self.savingsHistory { self.savingsHistory = savings }
             Alerts.shared.evaluate(s)
+            ProjectTracker.shared.update(s)
         }
     }
 

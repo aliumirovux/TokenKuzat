@@ -253,6 +253,8 @@ public struct SessionSnap: Identifiable, Sendable {
     public var isClaude = true
     /// Asosiy agent javobni tugatgan: oxirgi qadam asbob chaqiruvi, asbob natijasi yoki yangi so'rov emas
     public var turnEnded = true
+    /// Qayerda ochilgan: «cli» (Terminal), «claude-desktop» (Claude ilovasi), «sdk-cli» (dastur ichidan) …
+    public var origin: String? = nil
 
     public var main: AgentSnap? { agents.first(where: \.isMain) }
     /// Kontekst qanchalik to'lgan (0…1)

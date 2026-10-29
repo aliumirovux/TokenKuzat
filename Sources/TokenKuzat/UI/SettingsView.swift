@@ -36,6 +36,7 @@ struct SettingsView: View {
     @AppStorage(Pref.autoHandoffTarget) private var autoHandoffTarget = AutoHandoffTarget.app.rawValue
     @AppStorage(Pref.autoHandoffRedirect) private var autoHandoffRedirect = true
     @AppStorage(Pref.closeOldTerminal) private var closeOldTerminal = true
+    @AppStorage(Pref.autoResume) private var autoResume = true
     @AppStorage(Pref.lightMode) private var lightMode = false
     @AppStorage(Lang.prefKey) private var language = AppLanguage.system.rawValue
     @State private var hookInstalled = Hooks.isInstalled
@@ -178,6 +179,23 @@ struct SettingsView: View {
                                            + "The first time, macOS asks for permission to control Terminal"),
                                   isOn: $closeOldTerminal)
                 }
+                captionToggle(tr("Yopilgan sessiyani avtomatik davom ettirish", "Auto-resume a closed session"),
+                              tr("Shu papkada yangi sessiya ochsangiz, Claude qayerda qolganini o'zi biladi", "Open a new session in the same folder and Claude knows where things stopped"),
+                              help: tr("Oyna yopilgan yoki tashlab ketilgan sessiyaning xulosasi (24 soat ichida) shu papkada ochilgan keyingi yangi sessiyaga "
+                                       + "o'zi beriladi — har loyiha o'z papkasi bo'yicha. Boshqa mavzuda boshlasangiz, Claude uni e'tiborsiz qoldiradi. "
+                                       + "Har yangi sessiya boshida ~2–3K token",
+                                       "The summary of a session whose window was closed or left (within 24 hours) is passed to the next new session "
+                                       + "opened in the same folder — each project by its own folder. Start on another topic and Claude ignores it. "
+                                       + "~2–3K tokens at the start of each new session"),
+                              isOn: $autoResume)
+                .onChange(of: autoResume) { on in
+                    if on {
+                        try? SessionStartHook.install()
+                        handoffHookInstalled = SessionStartHook.isInstalled
+                    } else {
+                        ProjectTracker.shared.disableResume()
+                    }
+                }
                 if handoffHookInstalled {
                     HStack {
                         Text(tr("Yangi sessiyada davom ettirish (xulosa avtomatik beriladi)", "Continue in a new session (summary passed automatically)"))
@@ -186,6 +204,8 @@ struct SettingsView: View {
                         Button(tr("Uzish", "Disconnect")) {
                             try? SessionStartHook.uninstall()
                             handoffHookInstalled = SessionStartHook.isInstalled
+                            // Avtomatik davom ham shu hook'da — keyingi ishga tushishda qayta ulanmasin
+                            autoResume = false
                         }.buttonStyle(.link)
                     }
                 }

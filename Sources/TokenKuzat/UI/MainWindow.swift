@@ -80,6 +80,7 @@ struct MainWindow: View {
         case .office: OfficeView()
         case .graph: GraphScreen()
         case .sessions: SessionsView()
+        case .projects: ProjectsView()
         case .history: HistoryView()
         case .savings: ProjectSavingsView()
         case .activity: ActivityView()
@@ -136,6 +137,8 @@ private struct Sidebar: View {
                 // Loyihalar — xona, agentlar — robot: kim ishlayapti, kim kutyapti
                 navItem(.office, tr("Ofis", "Office"), "building.2", key: "6")
                 navItem(.sessions, tr("Sessiyalar", "Sessions"), "rectangle.stack", key: "3")
+                // Har loyiha qayerda qolgani — yopilgan Terminal'dan keyin davom ettirish uchun
+                navItem(.projects, tr("Loyihalar", "Projects"), "folder", key: "7")
                 navItem(.history, tr("Tarix", "History"), "chart.bar", key: "4")
                 // Loyihalar bo'yicha sarf va isrof — tuzatishni Claude'ga topshirish
                 navItem(.savings, tr("Tejash", "Savings"), "leaf", key: "5")

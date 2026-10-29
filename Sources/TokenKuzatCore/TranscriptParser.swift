@@ -49,6 +49,8 @@ public struct TranscriptEvent {
     public var kind: Kind
     public var timestamp: Date?
     public var cwd: String?
+    /// Sessiya qayerdan ochilgan: «cli», «claude-desktop», «sdk-cli» …
+    public var entrypoint: String?
     public var uuid: String?
     /// Asosiy fayl ichidagi yordamchi agent qatori (eski formatlar)
     public var sidechainAgentId: String?
@@ -82,6 +84,7 @@ public enum TranscriptParser {
         ev.timestamp = date(obj["timestamp"])
         if let cwd = obj["cwd"] as? String, !cwd.isEmpty { ev.cwd = cwd }
         ev.uuid = obj["uuid"] as? String
+        if let e = obj["entrypoint"] as? String, !e.isEmpty { ev.entrypoint = e }
         if (obj["isSidechain"] as? Bool) == true, let aid = obj["agentId"] as? String, !aid.isEmpty {
             ev.sidechainAgentId = aid
         }

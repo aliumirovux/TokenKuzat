@@ -1,5 +1,12 @@
 # O'zgarishlar
 
+## 6.58.0 — 2026-10-30
+
+- Yangi «Loyihalar» sahifasi (⌘7): har loyiha (papka) — bitta karta. Unda oxirgi ish, qachon va qayerda (Terminal yoki Claude ilovasi) ishlangani, qolgan ish, javobsiz savol va git'da saqlanmagan yoki yuborilmagan o'zgarishlar ko'rinadi. Javobingizni kutayotgan loyiha ajralib turadi. Hammasi sessiya yozuvlari va git'dan olinadi — Claude'ga token sarflanmaydi.
+- «Davom ettirish» tugmasi: shu papkada yangi Terminal sessiyasi xulosa bilan ochiladi, Claude 2–3 jumlada qayerda qolganini aytib, javobingizni kutadi.
+- Avtomatik davom: Terminal oynasi yopilgan yoki tashlab ketilgan bo'lsa (24 soat ichida), shu papkada ochilgan keyingi yangi `claude` oldingi sessiya xulosasini o'zi oladi va qayerda qolganini birinchi javobda aytadi. Har loyiha o'z papkasi bo'yicha — loyihalar aralashmaydi. Boshqa mavzuda boshlasangiz, Claude xulosani e'tiborsiz qoldiradi. Sozlamalar → «Yopilgan sessiyani avtomatik davom ettirish» (standart — yoqilgan).
+- Menyu panelida «Chala qolgan» loyihalar (javob kutilayotgan yoki saqlanmagan ish bor) qisqa ko'rinadi.
+
 ## 6.57.0 — 2026-10-30
 
 - Ish yangi Terminal sessiyasiga ko'chgach (kontekst to'lganda, eski sessiyada yozilgan xabar yo'naltirilganda yoki limit tugab bepul modelga o'tilganda), eski sessiyaning Terminal oynasi o'zi yopiladi: yangi sessiya ishga tushgach, eski `claude` to'xtatiladi va oynasi yopiladi. Ekran eski oynalar bilan to'lmaydi. Suhbat saqlanadi — `claude --resume` bilan qaytariladi.

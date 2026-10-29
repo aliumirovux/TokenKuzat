@@ -59,7 +59,11 @@ enum AutoHandoff {
         c.path = "/new"
         var items: [URLQueryItem] = []
         if let dir = projectDir(cwd) { items.append(URLQueryItem(name: "folder", value: dir)) }
-        if let message { items.append(URLQueryItem(name: "q", value: message)) }
+        if let message {
+            items.append(URLQueryItem(name: "q", value: message))
+            // Xulosa birinchi xabarda bor — avtomatik davom uni ikkinchi marta qo'shmasin
+            if let dir = projectDir(cwd) { ResumeStore.remove(folder: dir) }
+        }
         items.append(URLQueryItem(name: "source", value: "services"))
         c.queryItems = items
         // «+» va «&» kabi belgilar so'rov qiymatida aniq kodlansin
@@ -99,7 +103,8 @@ enum AutoHandoff {
             var run = "exec claude"
             if let message {
                 try message.write(to: promptURL, atomically: true, encoding: .utf8)
-                read = "P=\"$(cat \(quote(promptURL.path)))\"\n"
+                // Xulosa birinchi xabarda bor — avtomatik davom uni SessionStart'da ikkinchi marta qo'shmasin
+                read = "P=\"$(cat \(quote(promptURL.path)))\"\nexport \(ResumeStore.skipVariable)=1\n"
                 run = "exec claude \"$P\""
             }
             // `claude` topilmasa — Terminal jim yopilmasin, nima qilish kerakligini aytsin

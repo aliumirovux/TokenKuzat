@@ -215,6 +215,7 @@ public final class Engine {
         let session = sessionAcc(fs.sessionId)
         // Sessiya boshqa papkaga ko'chsa — oxirgi papka nomi olinadi
         if let cwd = ev.cwd { session.project = URL(fileURLWithPath: cwd).lastPathComponent; session.cwd = cwd }
+        if session.origin == nil, let e = ev.entrypoint { session.origin = e }
         if case .title(let t) = ev.kind {
             session.customTitle = t
             return
@@ -475,7 +476,7 @@ public final class Engine {
                     NoteSnap(id: $0.id, date: $0.date, kind: $0.kind, text: $0.text, duration: $0.duration,
                              turn: Engine.turnIndex(starts, $0.date).map { $0 + 1 }, agent: $0.agent)
                 }, cwd: s.cwd, isClaude: FreeModels.isClaude(s.model),
-                turnEnded: Engine.turnEnded(lastStop: s.agents.values.first(where: \.isMain)?.lastStop)))
+                turnEnded: Engine.turnEnded(lastStop: s.agents.values.first(where: \.isMain)?.lastStop), origin: s.origin))
         }
         sessSnaps.sort { ($0.lastActivity ?? .distantPast) > ($1.lastActivity ?? .distantPast) }
         snap.sessions = sessSnaps
@@ -766,6 +767,7 @@ private final class SessionAcc {
     let id: String
     var project = ""
     var cwd: String?
+    var origin: String?
     var customTitle = ""
     var firstPrompt = ""
     var model = ""

@@ -121,8 +121,8 @@ enum SessionStartHook {
         let exe = Bundle.main.executablePath ?? CommandLine.arguments[0]
         let script = """
         #!/bin/sh
-        # Token Kuzatuv — Claude Code SessionStart hook (ilova yaratgan): faqat «Yangi sessiyada davom ettirish» bosilganda ishlaydi
-        [ -f "\(HandoffStore.defaultURL.path)" ] || exit 0
+        # Token Kuzatuv — Claude Code SessionStart hook (ilova yaratgan): «Yangi sessiyada davom ettirish» yoki avtomatik davom
+        [ -f "\(HandoffStore.defaultURL.path)" ] || { [ -z "$\(ResumeStore.skipVariable)" ] && [ -n "$(ls -A "\(ResumeStore.directory.path)" 2>/dev/null)" ]; } || exit 0
         [ -x "\(exe)" ] || exit 0
         "\(exe)" \(flag) 2>/dev/null
         exit 0
@@ -174,7 +174,10 @@ enum SessionStartHook {
     /// `--session-start` rejimi (Claude Code chaqiradi): xulosa bo'lsa — JSON chiqaradi, aks holda hech narsa
     static func runAndExit() -> Never {
         let data = FileHandle.standardInput.readDataToEndOfFile()
-        if let out = HandoffStore.handleSessionStart(input: data) {
+        Pref.register()
+        if let out = HandoffStore.handleSessionStart(input: data)
+            ?? (UserDefaults.standard.bool(forKey: Pref.autoResume)
+                && ProcessInfo.processInfo.environment[ResumeStore.skipVariable] == nil ? ResumeStore.handleSessionStart(input: data) : nil) {
             FileHandle.standardOutput.write(Data(out.utf8))
         }
         exit(0)
