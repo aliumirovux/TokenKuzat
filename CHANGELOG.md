@@ -1,5 +1,10 @@
 # O'zgarishlar
 
+## 6.21.2 — 2026-10-29
+
+- Ishlayotgan sessiyalar qatori — Apple Liquid Glass uslubida (macOS 26+ da haqiqiy shisha, eskisida shaffof material): bitta kapsula, dumaloq loyiha belgilari, tanlangan sessiya ichida yorug' «tabletka» va u bosilganda sessiyalar orasida suzib o'tadi; hover — yengil yoritish. «Ishlayapti» so'zi o'rnida yonib turgan yashil nuqta.
+- Holat o'rnida ichki ID (UUID) chiqib qolsa — sessiya nomi ko'rsatiladi.
+
 ## 6.21.1 — 2026-10-29
 
 - «Faqat xarita / sxema» (to'liq) rejimida ham ishlayotgan sessiyalar ko'rinadi — kanvas tepasida, o'rtada, o'z foni bilan; bosib yoki ⌘[ / ⌘] bilan almashtiriladi.

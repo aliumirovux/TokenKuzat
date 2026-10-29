@@ -1268,14 +1268,17 @@ private struct StepInspector: View {
 // MARK: - Ishlayotgan sessiyalar
 
 /// Tablar qatorining o'ng tomonida: hozir ishlayotgan (yoki ruxsat kutayotgan) boshqa sessiyalar — bir bosishda o'tiladi.
+/// Ko'rinishi — Apple Liquid Glass kapsula: tanlangan sessiya ichida yorug' «tabletka», u sessiyalar orasida suzib o'tadi.
 /// Ko'p bo'lsa, birinchi to'rttasi ko'rinadi, qolgani «+N» menyusida. ⌘[ va ⌘] — oldingi/keyingisiga o'tish.
 private struct ActiveSessionsBar: View {
     let snap: Snapshot
     let current: String?
-    /// Kanvas ustida turganda — o'z foni bilan
+    /// Kanvas ustida (to'liq rejimda) — biroz kattaroq soya bilan
     var framed = false
     let onSelect: (String) -> Void
     private let visible = 4
+    @Namespace private var ns
+    @State private var hovered: String?
 
     /// Ishlayotganlar va ruxsat kutayotganlar; tanlangan sessiya ham ro'yxatda qoladi.
     /// Tartib boshlangan vaqt bo'yicha va o'zgarmaydi — kartochkalar bosish paytida o'rin almashmaydi
@@ -1292,15 +1295,15 @@ private struct ActiveSessionsBar: View {
         let all = items
         // Faqat tanlangan sessiyaning o'zi bo'lsa — almashtiradigan narsa yo'q
         if all.count >= 2 {
-            // Keng oynada — nomli kartochkalar, torroqda — faqat belgilar, juda torda — bitta menyu
+            // Keng oynada — nom va holat, torroqda — faqat holat, undan torda — faqat belgi, oxiri — bitta menyu
             ViewThatFits(in: .horizontal) {
                 row(all, density: 2)
                 row(all, density: 1)
                 row(all, density: 0)
-                more(all, title: tr("Ishlayapti: \(all.count)", "Working: \(all.count)"))
+                more(all, title: tr("Ishlayapti · \(all.count)", "Working · \(all.count)")).glassCapsule(interactive: true)
             }
-            .padding(framed ? 5 : 0)
-            .background { if framed { Color.clear.surface(radius: 13) } }
+            .shadow(color: .black.opacity(framed ? 0.35 : 0), radius: 18, y: 8)
+            .animation(.spring(response: 0.38, dampingFraction: 0.82), value: current)
             .background {
                 // Klaviatura: ⌘[ — oldingi, ⌘] — keyingi ishlayotgan sessiya
                 HStack {
@@ -1316,14 +1319,19 @@ private struct ActiveSessionsBar: View {
     private func row(_ all: [SessionSnap], density: Int) -> some View {
         let shown = Array(all.prefix(visible))
         let rest = Array(all.dropFirst(visible))
-        return HStack(spacing: 6) {
+        return HStack(spacing: 2) {
             if density == 2 {
-                Text(tr("Ishlayapti", "Working"))
-                    .font(.system(size: 11, weight: .semibold)).foregroundStyle(.tertiary)
+                // Ishlayotganini bildiruvchi yashil nuqta — «Ishlayapti» so'zi o'rniga
+                Circle().fill(Brand.ok).frame(width: 6, height: 6)
+                    .shadow(color: Brand.ok.opacity(0.8), radius: 4)
+                    .padding(.leading, 10).padding(.trailing, 6)
+                    .help(tr("Hozir ishlayotgan sessiyalar (⌘[ / ⌘])", "Sessions working now (⌘[ / ⌘])"))
             }
             ForEach(shown, id: \.id) { chip($0, density: density) }
-            if !rest.isEmpty { more(rest, title: "+\(rest.count)") }
+            if !rest.isEmpty { more(rest, title: "+\(rest.count)").padding(.trailing, 4) }
         }
+        .padding(4)
+        .glassCapsule()
         .fixedSize()
     }
 
@@ -1337,8 +1345,7 @@ private struct ActiveSessionsBar: View {
             Text(title).font(.system(size: 12, weight: .semibold)).monospacedDigit()
         }
         .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
-        .padding(.horizontal, 9).frame(height: 28)
-        .background(RoundedRectangle(cornerRadius: 8, style: .continuous).stroke(Brand.line))
+        .padding(.horizontal, 11).frame(height: 32)
         .help(tr("Ishlayotgan sessiyalar (⌘[ / ⌘])", "Working sessions (⌘[ / ⌘])"))
     }
 
@@ -1346,36 +1353,51 @@ private struct ActiveSessionsBar: View {
         let on = sess.id == current
         let waiting = snap.permissionWaits[sess.id] != nil
         let running = sess.state != .idle
+        let hover = hovered == sess.id && !on
         return Button { onSelect(sess.id) } label: {
-            HStack(spacing: 7) {
-                ProjectAvatar(name: sess.project, size: 16)
+            HStack(spacing: 8) {
+                ProjectAvatar(name: sess.project, size: density == 2 ? 22 : 20)
+                    .clipShape(Circle())
                     .overlay(alignment: .bottomTrailing) {
                         if running || waiting {
                             Circle().fill(waiting ? Brand.warn : Brand.ok)
                                 .frame(width: 7, height: 7)
-                                .overlay(Circle().stroke(Brand.canvas, lineWidth: 1.5))
-                                .offset(x: 2.5, y: 2.5)
+                                .overlay(Circle().stroke(.black.opacity(0.35), lineWidth: 1))
+                                .offset(x: 1, y: 1)
                         }
                     }
                 if density == 2 {
-                    VStack(alignment: .leading, spacing: 0) {
-                        Text(sess.project).font(.system(size: 11.5, weight: on ? .semibold : .medium)).lineLimit(1)
-                        Text(label(sess)).font(.system(size: 10)).foregroundStyle(waiting ? Brand.warn : .secondary).lineLimit(1)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(sess.project).font(.system(size: 12, weight: .semibold)).lineLimit(1)
+                            .foregroundStyle(on ? Color.primary : Color.primary.opacity(0.8))
+                        Text(label(sess)).font(.system(size: 10.5)).lineLimit(1)
+                            .foregroundStyle(waiting ? AnyShapeStyle(Brand.warn) : AnyShapeStyle(.secondary))
                     }
-                    .frame(maxWidth: 150, alignment: .leading)
+                    .frame(maxWidth: 140, alignment: .leading)
                 } else if density == 1 {
                     // Bir loyihadagi bir nechta sessiya ham farqlansin — holat matni qisqa ko'rinishda
-                    Text(label(sess)).font(.system(size: 11, weight: on ? .semibold : .regular))
-                        .foregroundStyle(waiting ? Brand.warn : (on ? .primary : .secondary)).lineLimit(1)
+                    Text(label(sess)).font(.system(size: 11.5, weight: on ? .semibold : .medium)).lineLimit(1)
+                        .foregroundStyle(waiting ? AnyShapeStyle(Brand.warn) : (on ? AnyShapeStyle(.primary) : AnyShapeStyle(.secondary)))
                         .frame(maxWidth: 84, alignment: .leading)
                 }
             }
-            .padding(.leading, 7).padding(.trailing, density == 0 ? 7 : 10).frame(height: 32)
-            .background(RoundedRectangle(cornerRadius: 9, style: .continuous).fill(on ? Brand.surface : .clear))
-            .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous).stroke(on ? Brand.accent.opacity(0.6) : Brand.line))
-            .contentShape(Rectangle())
+            .padding(.leading, 5).padding(.trailing, density == 0 ? 5 : 14)
+            .frame(height: density == 2 ? 36 : 30)
+            .background {
+                // Tanlangan — yorug' tabletka, sessiyalar orasida suzib o'tadi; hover — juda yengil
+                if on {
+                    Capsule().fill(.white.opacity(0.13))
+                        .overlay(Capsule().strokeBorder(.white.opacity(0.18), lineWidth: 0.5))
+                        .shadow(color: .black.opacity(0.18), radius: 4, y: 1)
+                        .matchedGeometryEffect(id: "selection", in: ns)
+                } else if hover {
+                    Capsule().fill(.white.opacity(0.06))
+                }
+            }
+            .contentShape(Capsule())
         }
         .buttonStyle(.plain)
+        .onHover { h in withAnimation(.easeOut(duration: 0.12)) { hovered = h ? sess.id : (hovered == sess.id ? nil : hovered) } }
         .help(sess.project + " — " + sess.title + (running ? "\n" + (sess.main?.lastAction ?? "") : ""))
         .accessibilityLabel(sess.project + " — " + label(sess))
     }
@@ -1383,7 +1405,9 @@ private struct ActiveSessionsBar: View {
     /// Ikkinchi qator: ruxsat kutayotgani, ishlayotgan bo'lsa — asosiy agent hozir nima qilyapti, aks holda sessiya nomi
     private func label(_ sess: SessionSnap) -> String {
         if snap.permissionWaits[sess.id] != nil { return tr("Ruxsat kutyapti", "Waiting for permission") }
-        if sess.state != .idle, let a = sess.main?.lastAction, !a.isEmpty { return a }
+        // Ba'zan oxirgi harakat o'rnida ichki ID (UUID) bo'ladi — u o'qilmaydi, sessiya nomi ko'rsatiladi
+        if sess.state != .idle, let a = sess.main?.lastAction, !a.isEmpty,
+           a.range(of: #"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-"#, options: .regularExpression) == nil { return a }
         return sess.title.isEmpty ? Fmt.model(sess.model) : sess.title
     }
 
@@ -1393,4 +1417,3 @@ private struct ActiveSessionsBar: View {
         onSelect(all[(i + d + all.count) % all.count].id)
     }
 }
-

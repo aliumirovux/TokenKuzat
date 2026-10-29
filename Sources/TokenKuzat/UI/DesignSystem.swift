@@ -94,6 +94,18 @@ extension View {
         modifier(Surface(shape: Circle(), tint: tint, interactive: interactive, stroke: stroke))
     }
 
+    /// Apple Liquid Glass kapsula (macOS 26+); eskisida — shaffof material va ingichka yorug' chegara
+    @ViewBuilder
+    func glassCapsule(interactive: Bool = false) -> some View {
+        if #available(macOS 26.0, *) {
+            glassEffect(interactive ? .regular.interactive() : .regular, in: Capsule())
+        } else {
+            background(.ultraThinMaterial, in: Capsule())
+                .overlay(Capsule().strokeBorder(.white.opacity(0.14), lineWidth: 0.5))
+                .shadow(color: .black.opacity(0.25), radius: 14, y: 6)
+        }
+    }
+
     /// Hover'da biroz ko'tariladi — bosiladigan kartalar uchun
     func hoverLift(_ amount: CGFloat = 1.008) -> some View {
         modifier(HoverLift(amount: amount))
