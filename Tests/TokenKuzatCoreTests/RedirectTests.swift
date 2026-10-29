@@ -26,6 +26,12 @@ final class RedirectTests: XCTestCase {
         XCTAssertNil(RedirectStore.handlePrompt(input: input("old", "keyingi ishni qil"), at: url, now: now))
     }
 
+    func testRedirectOpensInStoredProjectFolder() {
+        let now = Date()
+        RedirectStore.add(session: "old", summary: "S", previousContext: 1, folder: "/Users/a/MyApp", at: url, now: now)
+        XCTAssertEqual(RedirectStore.handlePrompt(input: input("old", "davom et"), at: url, now: now)?.cwd, "/Users/a/MyApp")
+    }
+
     func testOtherSessionsSlashCommandsAndStaleAreUntouched() {
         let now = Date()
         RedirectStore.add(session: "old", summary: "S", previousContext: 1, at: url, now: now)

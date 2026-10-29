@@ -11,13 +11,16 @@ public struct PendingRedirect: Codable, Equatable, Sendable {
     public var used: Bool
     /// Suhbat tili (eski yozuvlarda yo'q — ilova tili ishlatiladi)
     public var english: Bool?
+    /// Yangi sessiya ochiladigan loyiha papkasi (eski yozuvlarda yo'q — hook bergan papka ishlatiladi)
+    public var folder: String?
 
-    public init(summary: String, previousContext: Int, created: Date, used: Bool = false, english: Bool? = nil) {
+    public init(summary: String, previousContext: Int, created: Date, used: Bool = false, english: Bool? = nil, folder: String? = nil) {
         self.summary = summary
         self.previousContext = previousContext
         self.created = created
         self.used = used
         self.english = english
+        self.folder = folder
     }
 }
 
@@ -45,11 +48,11 @@ public enum RedirectStore {
 
     /// Sessiya yangi sessiyaga ko'chirildi — keyingi xabari yo'naltiriladi (eskirganlari tozalanadi)
     /// `replace` — sessiya qayta ko'chirilganda: avvalgi (ishlatilgan) yo'naltirish yangisi bilan almashtiriladi
-    public static func add(session: String, summary: String, previousContext: Int, english: Bool? = nil, replace: Bool = false,
-                           at url: URL = defaultURL, now: Date = Date()) {
+    public static func add(session: String, summary: String, previousContext: Int, english: Bool? = nil, folder: String? = nil,
+                           replace: Bool = false, at url: URL = defaultURL, now: Date = Date()) {
         var all = load(at: url).filter { now.timeIntervalSince($0.value.created) < lifetime }
         guard replace || all[session] == nil else { return }
-        all[session] = PendingRedirect(summary: summary, previousContext: previousContext, created: now, english: english)
+        all[session] = PendingRedirect(summary: summary, previousContext: previousContext, created: now, english: english, folder: folder)
         save(all, at: url)
     }
 
@@ -93,6 +96,6 @@ public enum RedirectStore {
                         + "To stay here, send the message again.")
         let out: [String: Any] = ["decision": "block", "reason": reason]
         guard let d = try? JSONSerialization.data(withJSONObject: out), let s = String(data: d, encoding: .utf8) else { return nil }
-        return Decision(output: s, message: message, cwd: cwd)
+        return Decision(output: s, message: message, cwd: r.folder ?? cwd)
     }
 }

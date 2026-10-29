@@ -246,10 +246,62 @@ public enum SavingsAdvisor {
         Lang.detectEnglish(s.turns.suffix(10).map(\.prompt)) ?? Lang.isEnglish
     }
 
+    /// Yangi sessiya ochiladigan loyiha papkasi: sessiya papkasi, u Claude ilovasining vaqtinchalik papkasi bo'lsa —
+    /// eng ko'p fayl yozilgan git repo (ish aslida o'sha yerda bo'lgan). Topilmasa — nil
+    public static func projectFolder(for s: SessionSnap, fm: FileManager = .default) -> String? {
+        if let dir = s.cwd, !HandoffStore.isScratch(dir), fm.fileExists(atPath: dir) { return dir }
+        let files = changedFiles(s)
+        let roots = GitState.roots(for: files, fm: fm).filter { !HandoffStore.isScratch($0) }
+        func count(_ root: String) -> Int { files.filter { $0.hasPrefix(root + "/") }.count }
+        return roots.max { count($0) < count($1) }
+    }
+
+    /// Sessiyada yozilgan fayllar (tartiblangan)
+    static func changedFiles(_ s: SessionSnap) -> [String] {
+        Array(Set(s.agents.flatMap(\.steps).filter { $0.category == .files && $0.access == .write }
+            .map { $0.targetKey.replacingOccurrences(of: "files|", with: "") })).sorted()
+    }
+
+    /// Xulosaga kiradigan so'rovlar: oldingi ko'chirish xabarlari, yolg'iz havolalar va «Ha, yasa» kabi qisqa javoblar
+    /// tushib qoladi (oxirgisi bundan mustasno — kutilayotgan qaror shunda bo'lishi mumkin)
+    static func meaningfulTurns(_ s: SessionSnap) -> [TurnSnap] {
+        let turns = s.turns.filter { !$0.isContinuation && !AutoHandoffRule.isHandoffPrompt($0.prompt) }
+        return turns.enumerated().filter { i, t in
+            let p = t.prompt.trimmingCharacters(in: .whitespacesAndNewlines)
+            if p.isEmpty || p.range(of: #"^https?://\S+$"#, options: .regularExpression) != nil { return false }
+            return i == turns.count - 1 || p.count >= AutoHandoffRule.meaningfulLength
+        }.map(\.element)
+    }
+
+    /// Ish nomi: oldingi sessiya nomi, u yo'q bo'lsa — so'nggi ma'noli vazifa. 60 belgigacha, so'z chegarasida
+    static func handoffTask(_ s: SessionSnap) -> String? {
+        var name = s.title.hasPrefix("↪ ") ? String(s.title.dropFirst(2)) : s.title
+        // Nomsiz yoki eski usulda ko'chirilgan sessiyaning umumiy nomi — ish nomi emas
+        let generic = ["Nomsiz sessiya", "Untitled session", "Oldingi sessiya davomi", "Continued session"]
+        if name.trimmingCharacters(in: .whitespaces).isEmpty || generic.contains(name) || AutoHandoffRule.isHandoffPrompt(name) {
+            name = meaningfulTurns(s).last { $0.prompt.count >= AutoHandoffRule.meaningfulLength }?.prompt ?? ""
+        }
+        name = name.replacingOccurrences(of: "\n", with: " ").trimmingCharacters(in: .whitespaces)
+        guard !name.isEmpty else { return nil }
+        guard name.count > 60 else { return name }
+        let cut = String(name.prefix(60))
+        let word = cut.range(of: " ", options: .backwards).map { String(cut[..<$0.lowerBound]) } ?? cut
+        return (word.count >= 30 ? word : cut) + "…"
+    }
+
     private static func handoffText(_ s: SessionSnap, lastTurns: Int, gitLines: ([String]) -> [String]) -> String {
         var lines: [String] = []
-        lines.append(tr("Bu — oldingi Claude Code sessiyasining davomi (\(s.project)). Quyidagi xulosaga tayanib ishni davom ettir.", "This continues a previous Claude Code session (\(s.project)). Continue the work based on the summary below."))
-        let turns = s.turns.filter { !$0.isContinuation }.suffix(lastTurns)
+        // Birinchi qator — «↪ Loyiha — ish»: Claude ilovasi sessiya nomini birinchi xabardan yasaydi
+        let folder = projectFolder(for: s)
+        let project = folder.map { URL(fileURLWithPath: $0).lastPathComponent }
+            ?? (s.cwd.map(HandoffStore.isScratch) == true ? nil : s.project)
+        lines.append(AutoHandoffRule.headline(project: project, task: handoffTask(s)))
+        lines.append("")
+        lines.append(tr("Bu — oldingi Claude Code sessiyasining davomi (\(project ?? s.project)). Quyidagi xulosaga tayanib ishni davom ettir.", "This continues a previous Claude Code session (\(project ?? s.project)). Continue the work based on the summary below."))
+        if let folder {
+            lines.append(tr("Loyiha papkasi: \(folder)", "Project folder: \(folder)"))
+        }
+        let turns = meaningfulTurns(s).suffix(lastTurns)
         if !turns.isEmpty {
             lines.append("")
             lines.append(tr("So'nggi vazifalar:", "Recent tasks:"))
@@ -258,8 +310,7 @@ public enum SavingsAdvisor {
                 lines.append("- #\(t.id): " + (p.count > 400 ? String(p.prefix(400)) + "…" : p))
             }
         }
-        let changed = Array(Set(s.agents.flatMap(\.steps).filter { $0.category == .files && $0.access == .write }
-            .map { $0.targetKey.replacingOccurrences(of: "files|", with: "") })).sorted()
+        let changed = changedFiles(s)
         if !changed.isEmpty {
             lines.append("")
             lines.append(tr("O'zgartirilgan fayllar:", "Changed files:"))

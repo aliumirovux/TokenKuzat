@@ -21,7 +21,7 @@ enum AutoHandoff {
         do {
             try SessionStartHook.install()
             try HandoffStore.arm(PendingHandoff(text: summary, sourceSession: sess.id,
-                                                cwd: sess.cwd, created: Date()))
+                                                cwd: SavingsAdvisor.projectFolder(for: sess) ?? sess.cwd, created: Date()))
             return true
         } catch {
             return false
@@ -29,14 +29,16 @@ enum AutoHandoff {
     }
 
     /// Yangi sessiyani ochib, xulosani birinchi xabar sifatida o'zi yuboradi — Claude ishni o'zi davom ettiradi.
-    /// Xabar havolada (ilova) yoki buyruq argumentida (Terminal) beriladi, shuning uchun papka mos kelmasa ham yetib boradi
+    /// Xabar havolada (ilova) yoki buyruq argumentida (Terminal) beriladi, shuning uchun papka mos kelmasa ham yetib boradi.
+    /// Eski sessiya vaqtinchalik papkada ishlagan bo'lsa ham, yangisi fayllar yozilgan loyiha papkasida ochiladi
     @discardableResult
     static func start(_ sess: SessionSnap, target: AutoHandoffTarget, summary: String) -> Bool {
         let message = AutoHandoffRule.firstMessage(summary: summary, previousContext: sess.contextTokens,
                                                    english: SavingsAdvisor.conversationEnglish(sess))
+        let dir = SavingsAdvisor.projectFolder(for: sess) ?? sess.cwd
         switch target {
-        case .app: return openInApp(cwd: sess.cwd, message: message)
-        case .terminal: return openInTerminal(cwd: sess.cwd, message: message)
+        case .app: return openInApp(cwd: dir, message: message)
+        case .terminal: return openInTerminal(cwd: dir, message: message)
         }
     }
 

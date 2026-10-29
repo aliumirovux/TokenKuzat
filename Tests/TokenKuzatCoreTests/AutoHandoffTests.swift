@@ -48,4 +48,15 @@ final class AutoHandoffTests: XCTestCase {
         XCTAssertNil(AutoHandoffRule.continuationTitle(from: "oddiy so'rov"))
         XCTAssertEqual(AutoHandoffRule.continuationTitle(from: "Token Kuzatuv: xulosasiz"), Lang.with(english: Lang.isEnglish) { tr("Oldingi sessiya davomi", "Continued session") })
     }
+
+    func testHeadlineLeadsTheMessageAndBecomesTheTitle() {
+        let msg = AutoHandoffRule.firstMessage(summary: "↪ TokenKuzat — Ofis paneli\n\nBu — davomi.", previousContext: 210_000, english: false)
+        XCTAssertTrue(msg.hasPrefix("↪ TokenKuzat — Ofis paneli\n\nToken Kuzatuv:"))
+        XCTAssertTrue(msg.hasSuffix("Bu — davomi."))
+        XCTAssertEqual(AutoHandoffRule.continuationTitle(from: msg), "Ofis paneli")
+        XCTAssertEqual(AutoHandoffRule.headline(project: nil, task: "Ofis paneli"), "↪ Ofis paneli")
+        XCTAssertTrue(AutoHandoffRule.isHandoffPrompt("↪ TokenKuzat — Ofis paneli"))
+        // Foydalanuvchi o'zi «↪» bilan boshlagan oddiy xabar — ko'chirilgan sessiya emas
+        XCTAssertNil(AutoHandoffRule.continuationTitle(from: "↪ shu yerdan davom et"))
+    }
 }

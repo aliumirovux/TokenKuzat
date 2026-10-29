@@ -36,8 +36,30 @@ public enum AutoHandoffRule {
                       "Token Kuzatuv: the previous session's context reached \(Fmt.tokens(previousContext)), so the work moved to this new session "
                       + "(so the whole conversation isn't re-read on every reply). Rely on the summary below. If there's unfinished work, continue it. "
                       + "If the work is done or the next step is my decision, don't start anything — state where things stand in 2–3 sentences and wait.")
-        let body = summary.count > limit ? String(summary.prefix(limit)) + "…" : summary
-        return head + "\n\n" + body
+        // Xulosa «↪ Loyiha — ish» qatori bilan boshlansa — u xabarning eng boshiga chiqadi (sessiya nomi shundan yasaladi)
+        var headline: String?
+        var rest = summary
+        if summary.hasPrefix("↪ ") {
+            let parts = summary.split(separator: "\n", maxSplits: 1, omittingEmptySubsequences: false)
+            headline = String(parts[0])
+            rest = parts.count > 1 ? String(parts[1]).trimmingCharacters(in: .newlines) : ""
+        }
+        let body = rest.count > limit ? String(rest.prefix(limit)) + "…" : rest
+        return (headline.map { $0 + "\n\n" } ?? "") + head + "\n\n" + body
+    }
+
+    /// Xulosaning birinchi qatori: «↪ TokenKuzat — Ofis paneli»
+    public static func headline(project: String?, task: String?) -> String {
+        let parts = [project, task].compactMap { $0 }.filter { !$0.isEmpty }
+        return "↪ " + (parts.isEmpty ? tr("Oldingi sessiya davomi", "Continued session") : parts.joined(separator: " — "))
+    }
+
+    /// Bundan qisqa so'rov («Ha, chiqar», «Ha, push qil») vazifa nomi bo'lolmaydi
+    public static let meaningfulLength = 15
+
+    /// Token Kuzatuv yuborgan ko'chirish xabari (birinchi qatori ham) — foydalanuvchi so'rovi emas
+    public static func isHandoffPrompt(_ prompt: String) -> Bool {
+        prompt.hasPrefix("Token Kuzatuv:") || prompt.hasPrefix("↪ ")
     }
 }
 
@@ -46,8 +68,14 @@ extension AutoHandoffRule {
     /// Xulosadagi so'nggi ma'noli vazifa olinadi («Ha, chiqar» kabi qisqa javoblar o'tkazib yuboriladi).
     /// Ko'chirilgan sessiya bo'lmasa — nil
     public static func continuationTitle(from prompt: String) -> String? {
-        guard prompt.hasPrefix("Token Kuzatuv:") else { return nil }
         let lines = prompt.components(separatedBy: "\n")
+        // Yangi usul: «↪ Loyiha — ish» qatori, keyin tizim matni. Loyiha nomi alohida ko'rinadi — faqat ish olinadi
+        if let first = lines.first, first.hasPrefix("↪ "), lines.count > 2, lines[2].hasPrefix("Token Kuzatuv:") {
+            let name = String(first.dropFirst(2))
+            let task = name.range(of: " — ").map { String(name[$0.upperBound...]) } ?? name
+            return task.isEmpty ? tr("Oldingi sessiya davomi", "Continued session") : task
+        }
+        guard prompt.hasPrefix("Token Kuzatuv:") else { return nil }
         guard let head = lines.firstIndex(where: { $0 == "So'nggi vazifalar:" || $0 == "Recent tasks:" }) else {
             return tr("Oldingi sessiya davomi", "Continued session")
         }
@@ -55,7 +83,7 @@ extension AutoHandoffRule {
             guard let colon = line.range(of: ": ") else { return line }
             return String(line[colon.upperBound...]).trimmingCharacters(in: .whitespaces)
         }
-        let pick = tasks.last { $0.count >= 15 } ?? tasks.last
+        let pick = tasks.last { $0.count >= meaningfulLength } ?? tasks.last
         return pick.flatMap { $0.isEmpty ? nil : $0 } ?? tr("Oldingi sessiya davomi", "Continued session")
     }
 }

@@ -67,6 +67,64 @@ final class SavingsTests: XCTestCase {
         XCTAssertTrue(text.contains("check first"))
     }
 
+    private func handoffSession(title: String, prompts: [String], cwd: String?, files: [String] = []) -> SessionSnap {
+        let steps = files.enumerated().map { i, f in
+            StepSnap(id: "w\(i)", date: t0, symbol: "doc", text: "Yozyapti", category: .files, targetName: f,
+                     targetKey: "files|\(f)", targetDetail: "", access: .write, duration: 1, status: .done, turn: 1)
+        }
+        let main = AgentSnap(id: "s/main", title: "Asosiy agent", subtitle: "Opus", kind: "", isMain: true,
+                             tokens: TokenCounts(), calls: 10, topTools: [], lastAction: "", state: .idle,
+                             lastActivity: t0, firstActivity: t0, steps: steps, resources: [], usage: [], bigResults: [])
+        let turns = prompts.enumerated().map { i, p in
+            TurnSnap(id: i + 1, prompt: p, start: t0, end: t0, tokens: TokenCounts(), steps: 0, errors: 0, active: false)
+        }
+        var s = SessionSnap(id: "s", project: "Demo", title: title, model: "Opus", contextTokens: 300_000,
+                            tokens: TokenCounts(), mainTokens: TokenCounts(), agentTokens: TokenCounts(), agents: [main],
+                            lastActivity: t0, state: .idle, turns: turns)
+        s.cwd = cwd
+        return s
+    }
+
+    func testHandoffStartsWithProjectAndTaskAndDropsNoise() {
+        let s = handoffSession(title: "↪ Ofis modini plaginga qo'shish",
+                               prompts: ["Token Kuzatuv: oldingi sessiya konteksti 204K ga yetgani uchun",
+                                         "https://www.instagram.com/reel/abc", "Ha, yasa",
+                                         "Ofis panelini Claude Code ichida ko'rsat", "Ha, push qil"],
+                               cwd: "/nonexistent/TokenKuzat")
+        let text = Lang.with(english: false) { SavingsAdvisor.handoff(for: s, gitLines: { _ in [] }) }
+        XCTAssertTrue(text.hasPrefix("↪ Demo — Ofis modini plaginga qo'shish\n"))
+        XCTAssertFalse(text.contains("Token Kuzatuv:"))
+        XCTAssertFalse(text.contains("instagram"))
+        XCTAssertFalse(text.contains("Ha, yasa"))
+        XCTAssertTrue(text.contains("#4: Ofis panelini Claude Code ichida ko'rsat"))
+        XCTAssertTrue(text.contains("#5: Ha, push qil"))       // oxirgi javob — qaror shunda bo'lishi mumkin
+    }
+
+    func testHandoffTaskFallsBackToLastMeaningfulPrompt() {
+        let s = handoffSession(title: "Nomsiz sessiya", prompts: ["kartalar joylashuvini tuzat", "Ha, chiqar"], cwd: nil)
+        XCTAssertEqual(SavingsAdvisor.handoffTask(s), "kartalar joylashuvini tuzat")
+        let long = handoffSession(title: String(repeating: "uzun so'z ", count: 20), prompts: [], cwd: nil)
+        XCTAssertLessThanOrEqual(SavingsAdvisor.handoffTask(long)!.count, 61)
+    }
+
+    func testProjectFolderComesFromWrittenFilesWhenSessionRanInScratch() throws {
+        let fm = FileManager.default
+        let repo = fm.temporaryDirectory.appendingPathComponent("tk-\(UUID().uuidString)/MyApp")
+        try fm.createDirectory(at: repo.appendingPathComponent(".git"), withIntermediateDirectories: true)
+        defer { try? fm.removeItem(at: repo.deletingLastPathComponent()) }
+        let scratch = "/Users/x/Library/Application Support/Claude/scratch-workspaces/abc"
+        let s = handoffSession(title: "Ofis paneli", prompts: [], cwd: scratch,
+                               files: [repo.appendingPathComponent("a.swift").path, "/private/tmp/scratchpad/notes.md"])
+        XCTAssertEqual(SavingsAdvisor.projectFolder(for: s), repo.path)
+        let text = Lang.with(english: false) { SavingsAdvisor.handoff(for: s, gitLines: { _ in [] }) }
+        XCTAssertTrue(text.hasPrefix("↪ MyApp — Ofis paneli\n"))
+        XCTAssertTrue(text.contains("Loyiha papkasi: \(repo.path)"))
+        // Loyiha topilmasa — vaqtinchalik papka nomi sarlavhaga chiqmaydi
+        let bare = handoffSession(title: "Ofis paneli", prompts: [], cwd: scratch)
+        XCTAssertNil(SavingsAdvisor.projectFolder(for: bare))
+        XCTAssertTrue(SavingsAdvisor.handoff(for: bare, gitLines: { _ in [] }).hasPrefix("↪ Ofis paneli\n"))
+    }
+
     func testCacheTTLFollowsLastWrite() {
         XCTAssertEqual(SavingsAdvisor.cacheTTL(for: session(context: 60_000, steps: [])), 300)
         let long = session(context: 60_000, steps: [], usage: [point(0, context: 50_000, longCache: true), point(1, context: 51_000)])
