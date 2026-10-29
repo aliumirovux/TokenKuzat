@@ -58,6 +58,7 @@ Loyiha papkasida yurgizing — ilova `~/Applications/Token Kuzatuv.app` ga o'rna
 | `swift test` | faqat testlar |
 | `swift scripts/make-icon.swift .` | ikonkani qayta chizadi |
 | `bash scripts/release.sh` | tarqatish uchun universal DMG: `dist/TokenKuzatuv-<versiya>.dmg` (+ `.sha256`) |
+| `bash scripts/publish.sh` | testlar, DMG, teg va GitHub relizi bir buyruqda (o'zgarishlar CHANGELOG'dan; `--notes FAYL`, `--dry-run`) |
 
 Talab: macOS 13+, Xcode yoki Command Line Tools. `xcrun: error` chiqsa — bir marta `sudo xcodebuild -license accept`.
 
