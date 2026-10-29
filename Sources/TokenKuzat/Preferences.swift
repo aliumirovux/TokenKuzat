@@ -27,6 +27,8 @@ enum Pref {
     static let notifySavings = "notifySavings"
     /// Isrof ogohlantirishlari: sessiya konteksti 200K dan oshsa va loyiha bugun ko'p isrof qilsa
     static let notifyWaste = "notifyWaste"
+    /// Kutib turgan sessiyaning keshi sovishidan oldin (5 daqiqalikda — 1 daqiqa, 1 soatlikda — 5 daqiqa)
+    static let notifyCache = "notifyCache"
     /// Avtomatik yangi sessiya: kontekst chegaradan oshgan sessiya javobni tugatganda xulosa bilan yangi sessiya ochiladi
     static let autoHandoff = "autoHandoff"
     /// Kuniga bir marta GitHub'da yangi versiya borligini tekshirish
@@ -59,6 +61,7 @@ enum Pref {
             notifyContext: true,
             notifySavings: true,
             notifyWaste: true,
+            notifyCache: true,
             autoHandoff: true,
             checkUpdates: true,
             autoHandoffRedirect: true,

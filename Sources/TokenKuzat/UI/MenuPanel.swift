@@ -154,15 +154,20 @@ struct MenuPanel: View {
                     // Jarayon izi — yo'lak nomlari bilan
                     MiniTrace(steps: Array(steps.suffix(14)), notes: notes, live: live)
                         .frame(height: 58)
-                    HStack(spacing: 12) {
+                    HStack(spacing: 10) {
                         meta("list.bullet", tr("\(turn.steps) qadam", turn.steps == 1 ? "1 step" : "\(turn.steps) steps"))
                         meta("clock", Alerts.duration(turn.duration))
                         meta("circle.hexagongrid", Fmt.tokens(turn.tokens.value(mode)))
                         Spacer()
+                        // O'ngdagilar kesilmasin: kesh taymeri bilan qator tor, shuning uchun kontekst — faqat foiz, izohi tooltipda
+                        if !live, let clock = CacheClock.of(sess) { cacheMeta(clock).fixedSize() }
                         if sess.contextTokens > 0 {
                             let f = sess.contextFraction
-                            meta("text.alignleft", tr("kontekst \(Int((f * 100).rounded()))%", "context \(Int((f * 100).rounded()))%"),
-                                 tint: f >= 0.8 ? Brand.warn : nil)
+                            let pct = Int((f * 100).rounded())
+                            meta("text.alignleft", "\(pct)%", tint: f >= 0.8 ? Brand.warn : nil)
+                                .fixedSize()
+                                .help(tr("Kontekst oynasi \(pct)% to'lgan (\(Fmt.tokens(sess.contextTokens)))",
+                                         "Context window \(pct)% full (\(Fmt.tokens(sess.contextTokens)))"))
                         }
                     }
                 }
@@ -196,9 +201,25 @@ struct MenuPanel: View {
         return turn.shownPrompt
     }
 
+    /// Kesh taymeri: iliq bo'lsa — sovishgacha qolgan vaqt (oxirida sariq), sovigan bo'lsa — shuni aytadi
+    private func cacheMeta(_ c: CacheClock) -> some View {
+        TimelineView(.periodic(from: .now, by: 1)) { ctx in
+            let warm = c.isWarm(at: ctx.date)
+            meta(warm ? "timer" : "snowflake",
+                 warm ? tr("kesh \(CacheClock.countdown(c.remaining(at: ctx.date)))", "cache \(CacheClock.countdown(c.remaining(at: ctx.date)))")
+                      : tr("kesh sovigan", "cache cold"),
+                 tint: c.isEnding(at: ctx.date) ? Brand.warn : nil)
+                .help(warm
+                      ? tr("Kesh shuncha vaqtdan keyin soviydi. Undan keyingi so'rov \(Fmt.tokens(c.tokens)) kontekstni qaytadan yozadi — iliq keshdagidan ~\(c.coldMultiplier)× qimmat. Davom etsangiz — hozir yozing.",
+                           "The cache cools down after this. The next prompt after that rewrites the \(Fmt.tokens(c.tokens)) context — ~\(c.coldMultiplier)× the warm price. If you're continuing, write now.")
+                      : tr("Keyingi so'rov \(Fmt.tokens(c.tokens)) kontekstni qaytadan yozadi (~\(c.coldMultiplier)× qimmat). Yangi mavzu bo'lsa — yangi sessiya arzonroq.",
+                           "The next prompt rewrites the \(Fmt.tokens(c.tokens)) context (~\(c.coldMultiplier)× the price). For a new topic, a new session is cheaper."))
+        }
+    }
+
     /// `tint` — holat rangi to'liq kuchda (`.secondary` ustiga qo'yilsa xiralashib, kontrast yo'qoladi)
     private func meta(_ symbol: String, _ text: String, tint: Color? = nil) -> some View {
-        HStack(spacing: 4) { Image(systemName: symbol); Text(text) }
+        HStack(spacing: 4) { Image(systemName: symbol); Text(text).lineLimit(1) }
             .font(.caption2.monospacedDigit()).foregroundStyle(tint.map(AnyShapeStyle.init) ?? AnyShapeStyle(.secondary))
     }
 

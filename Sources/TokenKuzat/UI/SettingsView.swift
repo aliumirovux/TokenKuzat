@@ -21,6 +21,7 @@ struct SettingsView: View {
     @AppStorage(Pref.notifyContext) private var notifyContext = true
     @AppStorage(Pref.notifySavings) private var notifySavings = true
     @AppStorage(Pref.notifyWaste) private var notifyWaste = true
+    @AppStorage(Pref.notifyCache) private var notifyCache = true
     @AppStorage(Pref.autoHandoff) private var autoHandoff = true
     @AppStorage(Pref.autoHandoffK) private var autoHandoffK = AutoHandoffRule.defaultThresholdK
     @AppStorage(Pref.autoHandoffTarget) private var autoHandoffTarget = AutoHandoffTarget.app.rawValue
@@ -120,6 +121,7 @@ struct SettingsView: View {
                 Toggle(tr("Kontekst 85% to'lganda (tez orada avtomatik xulosa)", "When context is 85% full (auto-summary coming soon)"), isOn: $notifyContext)
                 Toggle(tr("Katta kontekstda yangi mavzu boshlansa — yangi sessiya taklifi (token tejash)", "New topic in a large context — suggest a new session (saves tokens)"), isOn: $notifySavings)
                 Toggle(tr("Isrof: kontekst 200K dan oshsa yoki loyiha bugun sarfining 40%+ ini isrof qilsa", "Waste: context passes 200K, or a project wastes 40%+ of today's usage"), isOn: $notifyWaste)
+                Toggle(tr("Kesh sovishidan oldin — javobingizni kutayotgan katta sessiyada", "Before the cache cools — in a large session waiting for your reply"), isOn: $notifyCache)
                 captionToggle(tr("Kontekst katta bo'lsa — avtomatik yangi sessiya", "Large context — open a new session automatically"),
                               tr("Javob tugagach xulosa bilan yangi sessiya ochiladi — ish to'xtatilmaydi", "Opens a new session with the summary after Claude's reply — work isn't interrupted"),
                               help: tr("Claude javobni tugatgach yangi sessiya xulosa bilan ochiladi; ish o'rtasida to'xtatilmaydi. Claude ilovasida xulosa yozib qo'yiladi — Enter bosasiz "

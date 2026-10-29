@@ -1,5 +1,11 @@
 # O'zgarishlar
 
+## 6.45.0 — 2026-10-29
+
+- Kesh taymeri: menyu panelidagi «Hozir» kartasining pastki qatorida, Claude javob bergandan keyin promt keshi qancha vaqtdan keyin sovishi ko'rinadi («⏱ kesh 4:12»). Ogohlantirish vaqti kelganda sariq bo'ladi, sovigach «kesh sovigan» deb yozadi. Ustiga olib borilsa — sovigandan keyingi so'rov qancha kontekstni qayta yozishi va necha baravar qimmatligi chiqadi. Kesh muddati (5 daqiqa yoki 1 soat) transkriptdan olinadi, shuning uchun Claude ilovasidagi sessiyalarda ham ishlaydi.
+- Kesh sovishidan oldin bildirishnoma: 5 daqiqalik keshda 1 daqiqa, 1 soatlikda 5 daqiqa oldin. Xabar oldindan rejalashtiriladi, shuning uchun ilova jim turganda ham o'z vaqtida chiqadi; yozsangiz bekor bo'ladi. Yangi sessiyaga ko'chirilgan eski sessiyalar uchun chiqmaydi. Sozlamalarda «Kesh sovishidan oldin…» bilan o'chiriladi.
+- Kartaning pastki qatorida kontekst endi faqat foiz bilan ko'rsatiladi (izohi tooltipda), kesh va kontekst yozuvlari kesilmaydi.
+
 ## 6.44.0 — 2026-10-29
 
 - Avtomatik yangi sessiya: kontekst chegaraga yaqinlashganda (chegaradan 15%, kamida 20K oldin) Claude javobining oxiriga ko'rinmaydigan ko'chirish eslatmasini yozadi — ish, nima bajarilgani, nima qolgani, kutilayotgan qaror va muhim jihatlar. Yangi sessiya xulosasi shu eslatmadan boshlanadi, sessiya nomi ham undagi «Ish:» qatoridan olinadi. Eslatma bo'lmasa, avvalgi xulosa ishlaydi. Eslatma so'raladigan sessiya bo'lmasa, hook ilovani umuman ishga tushirmaydi.

@@ -22,7 +22,7 @@ final class Alerts: NSObject, UNUserNotificationCenterDelegate {
         center.delegate = self
         let d = UserDefaults.standard
         let any = [Pref.notifyFinished, Pref.notifyStuck, Pref.notifyErrors, Pref.notifyRealLimit,
-                   Pref.notifyPermission, Pref.notifyContext, Pref.notifyWaste].contains { d.bool(forKey: $0) }
+                   Pref.notifyPermission, Pref.notifyContext, Pref.notifyWaste, Pref.notifyCache].contains { d.bool(forKey: $0) }
             || (d.bool(forKey: Pref.budgetEnabled) && d.bool(forKey: Pref.budgetNotify))
         if any { requestPermission() }
     }
@@ -53,6 +53,44 @@ final class Alerts: NSObject, UNUserNotificationCenterDelegate {
         evaluateBigContext(s)
         evaluateProjectWaste(s)
         evaluateAutoHandoff(s)
+        evaluateCache(s)
+    }
+
+    // MARK: - Kesh taymeri
+
+    /// Rejalashtirilgan ogohlantirishlar: sessiya → o'sha paytdagi sovish vaqti
+    private var cacheScheduled: [String: Date] = [:]
+
+    /// Javobni kutib turgan katta sessiyaning keshi sovishidan oldin — bir marta. Bildirishnoma oldindan
+    /// rejalashtiriladi (ilova jim turganda ham o'z vaqtida chiqadi); yangi so'rov yozilsa — bekor qilinadi
+    private func evaluateCache(_ s: Snapshot) {
+        guard let center else { return }
+        let now = Date()
+        var keep: Set<String> = []
+        if s.initialScanDone, UserDefaults.standard.bool(forKey: Pref.notifyCache) {
+            let k = UserDefaults.standard.double(forKey: Pref.autoHandoffK)
+            for sess in s.sessions where sess.state == .idle && s.permissionWaits[sess.id] == nil {
+                guard let c = CacheClock.of(sess), c.isWarm(at: now),
+                      // Yangi sessiyaga ko'chirilgan — unda davom etilmaydi
+                      !AutoHandoffRule.alreadyDone(doneAt: autoDoneContext[sess.id], known: autoDone[sess.id] != nil,
+                                                   context: sess.contextTokens, thresholdK: k) else { continue }
+                keep.insert(sess.id)
+                let fire = c.remaining(at: now) - c.warnBefore
+                guard cacheScheduled[sess.id] != c.expiresAt, fire > 0 else { continue }
+                cacheScheduled[sess.id] = c.expiresAt
+                let left = c.warnBefore >= 300 ? tr("5 daqiqada", "in 5 minutes") : tr("1 daqiqada", "in 1 minute")
+                post(tr("\(sess.project): kesh \(left) soviydi", "\(sess.project): cache cools \(left)"),
+                     tr("Keyingi so'rov \(Fmt.tokens(c.tokens)) kontekstni qaytadan yozadi — iliq keshdagidan ~\(c.coldMultiplier)× qimmat. "
+                        + "Davom etsangiz — hozir yozing; uzoq tanaffusdan keyin yangi mavzu bo'lsa — yangi sessiya arzonroq.",
+                        "The next prompt will rewrite the \(Fmt.tokens(c.tokens)) context — ~\(c.coldMultiplier)× the warm price. "
+                        + "If you're continuing, write now; after a long break on a new topic, a new session is cheaper."),
+                     session: sess.id, id: "cache-" + sess.id, after: fire)
+            }
+        }
+        let gone = cacheScheduled.keys.filter { !keep.contains($0) }
+        guard !gone.isEmpty else { return }
+        center.removePendingNotificationRequests(withIdentifiers: gone.map { "cache-" + $0 })
+        gone.forEach { cacheScheduled[$0] = nil }
     }
 
     // MARK: - Avtomatik yangi sessiya
@@ -365,7 +403,9 @@ final class Alerts: NSObject, UNUserNotificationCenterDelegate {
 
     // MARK: - Yuborish va bosish
 
-    private func post(_ title: String, _ body: String, session: String? = nil, section: Section? = nil) {
+    /// `id` va `after` berilsa — shu vaqtdan keyin chiqadi va shu id bilan bekor qilinadi (yoki almashtiriladi)
+    private func post(_ title: String, _ body: String, session: String? = nil, section: Section? = nil,
+                      id: String? = nil, after: TimeInterval? = nil) {
         guard let center else { return }
         let content = UNMutableNotificationContent()
         content.title = title
@@ -377,7 +417,8 @@ final class Alerts: NSObject, UNUserNotificationCenterDelegate {
         } else if let section {
             content.userInfo = ["section": section.rawValue]
         }
-        center.add(UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil))
+        let trigger = after.map { UNTimeIntervalNotificationTrigger(timeInterval: max(1, $0), repeats: false) }
+        center.add(UNNotificationRequest(identifier: id ?? UUID().uuidString, content: content, trigger: trigger))
     }
 
     /// Ilova oynasi ochiq bo'lsa ham banner ko'rinsin
