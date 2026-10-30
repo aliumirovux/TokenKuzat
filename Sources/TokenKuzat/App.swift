@@ -112,12 +112,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func snapshotSavings(to url: URL) {
         DispatchQueue.main.asyncAfter(deadline: .now() + 15) {
             for scheme in [ColorScheme.dark, .light] {
-                // ScrollView ImageRenderer'da bo'sh chiqadi — sahifadagi ko'chirish kartasi o'zi chiziladi
+                // ScrollView ImageRenderer'da bo'sh chiqadi — sahifadagi kartalar o'zi chiziladi
                 let snap = Store.shared.snap
                 let week = SavingsPeriod.week
-                let view = HandoffSavingsCard(summary: HandoffSavings.summary(HandoffSavings.pairs(snap.sessions), since: week.start(now: snap.updatedAt)),
-                                              period: week, mode: .weighted)
-                    .frame(width: 900).padding(24)
+                let view = VStack(spacing: 18) {
+                    HandoffSavingsCard(summary: HandoffSavings.summary(HandoffSavings.pairs(snap.sessions), since: week.start(now: snap.updatedAt)),
+                                       period: week, mode: .weighted)
+                    AgentRolesCard(summary: AgentRoleUsage.summary(snap.sessions, since: week.start(now: snap.updatedAt)), period: week, mode: .weighted)
+                }
+                .frame(width: 900).padding(24)
                     .background(Color(nsColor: .windowBackgroundColor))
                     .environment(\.colorScheme, scheme)
                 let r = ImageRenderer(content: view)

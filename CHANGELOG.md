@@ -1,5 +1,15 @@
 # O'zgarishlar
 
+## 6.69.0 — 2026-10-30
+
+- Agent turlari. Plagin endi uchta yordamchi agentni o'rnatadi, bosh agent (rahbar, eng kuchli model) esa ishni rejalaydi, yordamchilarga beradi va natijani tekshiradi:
+  - `izlovchi` — tez model (Haiku): ko'p fayl bo'ylab qidiradi, faqat xulosa va `fayl:qator` qaytaradi; fayl o'zgartirmaydi.
+  - `bajaruvchi` — o'rta model (Sonnet): rejasi aniq kod o'zgarishini bajaradi, tekshiruv natijasini aytadi; commit/push qilmaydi.
+  - `tekshiruvchi` — rahbar bilan bir xil model: «tayyor» deyishdan oldin mustaqil ko'rib chiqadi, faqat topilmalarni aytadi.
+  Og'ir o'qish arzon modellarga o'tadi, rahbar konteksti kichik qoladi; mayda ishlar bo'linmaydi (yordamchi noldan boshlaydi).
+- «Tejash» sahifasida «Agent turlari bo'yicha sarf» kartasi: rahbar va har yordamchi turi qancha sarfladi. Rahbar 30+ faylni o'zi o'qigan sessiyalar alohida ko'rsatiladi — o'sha izlashni izlovchiga berish mumkin edi.
+- `--snapshot-savings` ikkala kartani chizadi.
+
 ## 6.68.0 — 2026-10-30
 
 - Ko'chirish xulosasi to'liqroq: yangi sessiyalarning ~37% i eski suhbatni qayta o'qirdi — tahlil qilinganda sabab xulosada yo'q aniq ma'lumotlar ekan (havola, fayl kaliti, raqamli ro'yxat). Endi xulosaga Token Kuzatuv o'zi, eski sessiyadan aniq ko'chirib qo'shadi:

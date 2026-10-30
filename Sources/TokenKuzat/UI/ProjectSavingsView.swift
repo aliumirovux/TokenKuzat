@@ -53,6 +53,9 @@ struct ProjectSavingsView: View {
                     let handoffs = HandoffSavings.summary(HandoffSavings.pairs(store.snap.sessions), since: period.start(now: store.snap.updatedAt))
                     if handoffs.handoffs > 0 { HandoffSavingsCard(summary: handoffs, period: period, mode: mode) }
 
+                    let roles = AgentRoleUsage.summary(store.snap.sessions, since: period.start(now: store.snap.updatedAt))
+                    if !roles.rows.isEmpty { AgentRolesCard(summary: roles, period: period, mode: mode) }
+
                     let free = FreeModelLog.summary(FreeModelLog.load(), since: period.start(now: store.snap.updatedAt))
                     if free.calls > 0 { FreeModelCard(summary: free, period: period) }
 
@@ -133,6 +136,49 @@ struct HandoffSavingsCard: View {
         .card()
         .help(tr("Sessiya yozuvlaridan o'lchanadi: har ko'chirilgan sessiya o'zi davom ettirgan eski sessiya bilan solishtiriladi. Eski sessiyada qolinsa, har javob kamida eski oxirgi kontekstni o'qirdi — hisob ehtiyotkor. Narx rejimida yangi sessiya kontekstini bir marta keshga yozish ayirilgan.",
                  "Measured from session transcripts: each handed-off session is compared with the session it continued. Staying in the old session, every reply would read at least its last context — a conservative estimate. In cost mode, writing the new session's context to cache once is subtracted."))
+    }
+}
+
+/// Sarf agent turlari bo'yicha: rahbar (bosh agent) va yordamchilar — og'ir ish arzonroq yordamchilarga tushyaptimi
+struct AgentRolesCard: View {
+    let summary: AgentRoleUsage.Summary
+    let period: SavingsPeriod
+    let mode: CountMode
+
+    var body: some View {
+        let total = summary.rows.reduce(0.0) { $0 + $1.tokens.value(mode) }
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 12) {
+                Image(systemName: "person.3.fill").font(.title3).foregroundStyle(Brand.accent).frame(width: 28)
+                Text(tr("Agent turlari bo'yicha sarf · \(period.title)", "Usage by agent role · \(period.title)")).font(.subheadline.weight(.semibold))
+                Spacer()
+            }
+            ForEach(summary.rows, id: \.role) { r in
+                HStack(spacing: 10) {
+                    Text(r.role.title).frame(width: 130, alignment: .leading)
+                    GeometryReader { g in
+                        Capsule().fill(r.role == .lead ? Brand.accent.opacity(0.75) : Brand.ok)
+                            .frame(width: max(3, g.size.width * (total > 0 ? r.tokens.value(mode) / total : 0)))
+                    }
+                    .frame(height: 6)
+                    Text(Fmt.tokens(r.tokens.value(mode))).monospacedDigit().frame(width: 70, alignment: .trailing)
+                    Text(Fmt.percent(r.tokens.value(mode), of: total)).monospacedDigit().foregroundStyle(.secondary).frame(width: 44, alignment: .trailing)
+                    Text(r.role == .lead ? tr("\(r.agents) sessiya", "\(r.agents) sessions") : tr("\(r.agents) ta", "\(r.agents)"))
+                        .foregroundStyle(.secondary).frame(width: 80, alignment: .trailing)
+                }
+                .font(.caption)
+            }
+            if summary.heavyLeadSessions > 0 {
+                Text(tr("\(summary.heavyLeadSessions) sessiyada rahbar \(AgentRole.heavyLeadReads)+ faylni o'zi o'qidi — izlash ishini «izlovchi»ga berish mumkin edi",
+                        "In \(summary.heavyLeadSessions) session(s) the lead read \(AgentRole.heavyLeadReads)+ files itself — the search could have gone to the «izlovchi» helper"))
+                    .font(.caption).foregroundStyle(Brand.warn)
+            } else if !summary.helpersUsed {
+                Text(tr("Yordamchi agentlar hali ishlatilmagan", "No helper agents used yet")).font(.caption).foregroundStyle(.secondary)
+            }
+        }
+        .card()
+        .help(tr("Rahbar — asosiy agent (eng kuchli model): rejalaydi va tekshiradi. Izlovchi (tez model) qidiradi, bajaruvchi (o'rta model) aniq vazifani bajaradi, tekshiruvchi mustaqil ko'rib chiqadi. Turlar Token Kuzatuv plagini bilan o'rnatiladi.",
+                 "Lead — the main agent (strongest model): plans and checks. Explorer (fast model) searches, builder (mid model) does a specified task, reviewer checks independently. The roles come with the Token Kuzatuv plugin."))
     }
 }
 
