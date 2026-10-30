@@ -62,6 +62,20 @@ struct SettingsView: View {
         }
     }
 
+    @ViewBuilder private var updateAction: some View {
+        switch updates.install {
+        case .downloading: ProgressView().controlSize(.small); Text(tr("Yuklanmoqda…", "Downloading…")).foregroundStyle(.secondary)
+        case .installing: ProgressView().controlSize(.small); Text(tr("O'rnatilmoqda…", "Installing…")).foregroundStyle(.secondary)
+        default:
+            if updates.canInstallInPlace {
+                Button(tr("Yangilash", "Update")) { updates.installUpdate() }
+                    .help(tr("Yuklaydi, tekshiradi va ilovani qayta ochadi", "Downloads, verifies and relaunches the app"))
+            } else {
+                Button(tr("Yuklab olish", "Download")) { updates.download() }
+            }
+        }
+    }
+
     var body: some View {
         Form {
             SwiftUI.Section(tr("Umumiy", "General")) {
@@ -90,7 +104,14 @@ struct SettingsView: View {
                         Label(tr("v\(r.version) chiqdi", "v\(r.version) is out"), systemImage: "arrow.down.circle.fill").foregroundStyle(Brand.accent)
                         Spacer()
                         Button(tr("Reliz sahifasi", "Release page")) { NSWorkspace.shared.open(r.pageURL) }.buttonStyle(.link)
-                        Button(tr("Yuklab olish", "Download")) { updates.download() }
+                        updateAction
+                    }
+                    if case .failed(let msg) = updates.install {
+                        HStack {
+                            Text(tr("Yangilab bo'lmadi: \(msg)", "Couldn't update: \(msg)")).font(.caption).foregroundStyle(Brand.err)
+                            Spacer()
+                            Button(tr("DMG'ni yuklab olish", "Download the DMG")) { updates.download() }.buttonStyle(.link)
+                        }
                     }
                 } else if checkUpdates {
                     HStack {

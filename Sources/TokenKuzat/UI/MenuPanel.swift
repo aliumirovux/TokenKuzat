@@ -353,9 +353,17 @@ struct MenuPanel: View {
                 .buttonStyle(.link).tint(Brand.accent).font(.callout.weight(.semibold))
             Spacer()
             if let r = updates.available {
-                Button { updates.download() } label: { Label("v\(r.version)", systemImage: "arrow.down.circle.fill") }
-                    .buttonStyle(.link).tint(Brand.ok).font(.caption.weight(.semibold))
-                    .help(tr("Yangi versiya chiqdi — bosing, DMG yuklanadi", "A new version is out — click to download the DMG"))
+                if updates.install == .downloading || updates.install == .installing {
+                    ProgressView().controlSize(.mini).help(tr("v\(r.version) o'rnatilmoqda…", "Installing v\(r.version)…"))
+                } else if updates.canInstallInPlace {
+                    Button { updates.installUpdate() } label: { Label(tr("v\(r.version) — yangilash", "Update to v\(r.version)"), systemImage: "arrow.down.circle.fill") }
+                        .buttonStyle(.link).tint(Brand.ok).font(.caption.weight(.semibold))
+                        .help(tr("Yangi versiya chiqdi — bosing, ilova o'zi yangilanib qayta ochiladi", "A new version is out — click and the app updates and relaunches itself"))
+                } else {
+                    Button { updates.download() } label: { Label("v\(r.version)", systemImage: "arrow.down.circle.fill") }
+                        .buttonStyle(.link).tint(Brand.ok).font(.caption.weight(.semibold))
+                        .help(tr("Yangi versiya chiqdi — bosing, DMG yuklanadi", "A new version is out — click to download the DMG"))
+                }
             }
             Button { WindowManager.shared.show(.settings) } label: { Image(systemName: "gearshape") }.help(tr("Sozlamalar", "Settings"))
             Button { NSApp.terminate(nil) } label: { Image(systemName: "power") }.help(tr("Chiqish", "Quit"))

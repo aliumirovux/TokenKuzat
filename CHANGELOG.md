@@ -1,5 +1,11 @@
 # O'zgarishlar
 
+## 6.59.0 — 2026-10-30
+
+- Ilova o'zini o'zi yangilaydi: yangi versiya chiqsa, menyu panelida va Sozlamalarda «Yangilash» tugmasi chiqadi. Bosilsa, ilova DMG'ni GitHub'dan yuklaydi, relizdagi SHA-256 bilan tekshiradi, ichidagi ilova shu ilova va shu versiya ekanini va imzosi butunligini tekshiradi, keyin o'zini almashtirib qayta ochiladi. Endi DMG ochish va Applications'ga sudrash shart emas. Almashtirish muvaffaqiyatsiz bo'lsa, eski ilova joyiga qaytariladi.
+- Ilova papkasiga yozish ruxsati bo'lmasa yoki ilova DMG'dan ochilgan bo'lsa, avvalgidek «Yuklab olish» chiqadi. Yangilashda xato bo'lsa, Sozlamalarda sababi va «DMG'ni yuklab olish» havolasi ko'rinadi.
+- Relizlar bitta buyruq bilan chiqadi: `bash scripts/publish.sh` (testlar, DMG, teg va GitHub relizi; o'zgarishlar CHANGELOG'dan).
+
 ## 6.58.4 — 2026-10-30
 
 - Ish yangi sessiyaga ko'chirilgandan keyin eski sessiyada davom etilsa, kontekst yana 30K o'sishi bilan qayta ko'chiriladi (avval 100K kutilardi). Keyingi xabar yana yangi sessiyaga yo'naltiriladi — katta suhbat uzoq vaqt limitni yemaydi.

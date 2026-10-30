@@ -7,6 +7,8 @@ public struct ReleaseInfo: Equatable, Sendable {
     public let pageURL: URL
     /// DMG fayli (bo'lmasa — reliz sahifasi)
     public let downloadURL: URL
+    /// DMG yonidagi `.sha256` fayli — ilova ichida yangilashda yuklangan DMG shu bilan tekshiriladi
+    public let checksumURL: URL?
     public let notes: String
 
     public static let apiURL = URL(string: "https://api.github.com/repos/aliumirovux/TokenKuzat/releases/latest")!
@@ -17,12 +19,26 @@ public struct ReleaseInfo: Equatable, Sendable {
               let tag = o["tag_name"] as? String, let page = (o["html_url"] as? String).flatMap(URL.init(string:)),
               (o["draft"] as? Bool) != true, (o["prerelease"] as? Bool) != true else { return nil }
         let assets = o["assets"] as? [[String: Any]] ?? []
-        let dmg = assets.compactMap { a -> URL? in
-            guard let name = a["name"] as? String, name.lowercased().hasSuffix(".dmg") else { return nil }
-            return (a["browser_download_url"] as? String).flatMap(URL.init(string:))
-        }.first
+        func asset(_ suffix: String) -> URL? {
+            assets.compactMap { a -> URL? in
+                guard let name = a["name"] as? String, name.lowercased().hasSuffix(suffix) else { return nil }
+                return (a["browser_download_url"] as? String).flatMap(URL.init(string:))
+            }.first
+        }
+        let dmg = asset(".dmg")
         let version = tag.hasPrefix("v") ? String(tag.dropFirst()) : tag
-        return ReleaseInfo(version: version, pageURL: page, downloadURL: dmg ?? page, notes: o["body"] as? String ?? "")
+        return ReleaseInfo(version: version, pageURL: page, downloadURL: dmg ?? page,
+                           checksumURL: dmg == nil ? nil : asset(".dmg.sha256"), notes: o["body"] as? String ?? "")
+    }
+
+    /// Ilova ichida o'rnatish mumkinmi: DMG ham, uning SHA-256 fayli ham bor
+    public var canInstall: Bool { downloadURL.pathExtension.lowercased() == "dmg" && checksumURL != nil }
+
+    /// `shasum -a 256` chiqishi («<64 hex>  fayl») → kichik harfli hex
+    public static func parseChecksum(_ text: String) -> String? {
+        guard let first = text.split(whereSeparator: { $0 == " " || $0 == "\n" || $0 == "\t" }).first else { return nil }
+        let hex = first.lowercased()
+        return hex.count == 64 && hex.allSatisfy(\.isHexDigit) ? hex : nil
     }
 }
 

@@ -20,7 +20,18 @@ final class UpdatesTests: XCTestCase {
         let r = ReleaseInfo.parse(Data(json.utf8))
         XCTAssertEqual(r?.version, "6.27.0")
         XCTAssertEqual(r?.downloadURL.absoluteString, "https://x/a.dmg")
+        XCTAssertEqual(r?.checksumURL?.absoluteString, "https://x/a.sha256")
+        XCTAssertEqual(r?.canInstall, true)
+        let noSum = ReleaseInfo.parse(Data(#"{"tag_name":"v7","html_url":"https://x","assets":[{"name":"a.dmg","browser_download_url":"https://x/a.dmg"}]}"#.utf8))
+        XCTAssertEqual(noSum?.canInstall, false)
         XCTAssertNil(ReleaseInfo.parse(Data(#"{"tag_name":"v7","html_url":"https://x","prerelease":true}"#.utf8)))
         XCTAssertNil(ReleaseInfo.parse(Data("{}".utf8)))
+    }
+
+    func testParseChecksum() {
+        let hex = String(repeating: "aB", count: 32)
+        XCTAssertEqual(ReleaseInfo.parseChecksum("\(hex)  dist/TokenKuzatuv-6.58.4.dmg\n"), hex.lowercased())
+        XCTAssertNil(ReleaseInfo.parseChecksum("abc  file"))
+        XCTAssertNil(ReleaseInfo.parseChecksum(""))
     }
 }

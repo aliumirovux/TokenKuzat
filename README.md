@@ -21,7 +21,7 @@ Ilova hozircha Apple Developer ID bilan imzolanmagan (test rejimi), shuning uchu
 
 Yoki Terminal'da: `xattr -dr com.apple.quarantine "/Applications/Token Kuzatuv.app"`.
 
-Ilova kuniga bir marta GitHub'da yangi versiya borligini tekshiradi (faqat ochiq reliz ma'lumoti o'qiladi, hech narsa yuborilmaydi). Yangisi chiqsa, menyu panelida va Sozlamalarda «yuklab olish» havolasi paydo bo'ladi. O'chirish: Sozlamalar → «Yangi versiyani tekshirish».
+Ilova kuniga bir marta GitHub'da yangi versiya borligini tekshiradi (faqat ochiq reliz ma'lumoti o'qiladi, hech narsa yuborilmaydi). Yangisi chiqsa, menyu panelida va Sozlamalarda «Yangilash» tugmasi paydo bo'ladi: ilova DMG'ni yuklaydi, SHA-256 bilan tekshiradi, o'zini almashtiradi va qayta ochiladi. Ilova papkasiga yozish ruxsati bo'lmasa, avvalgidek DMG yuklab olinadi. O'chirish: Sozlamalar → «Yangi versiyani tekshirish».
 
 ### Claude Code orqali
 
@@ -150,7 +150,7 @@ The app speaks **English and Uzbek** — Settings → "Til / Language" (defaults
 
 ### Install
 
-**Ready-made app:** download `TokenKuzatuv-<version>.dmg` from [Releases](https://github.com/aliumirovux/TokenKuzat/releases/latest), open it and drag **Token Kuzatuv** to **Applications** (Apple Silicon and Intel, macOS 13+). It isn't signed with an Apple Developer ID yet (test phase), so the first launch is blocked: open it once, then **System Settings → Privacy & Security → Open Anyway** (or `xattr -dr com.apple.quarantine "/Applications/Token Kuzatuv.app"`). The app checks GitHub once a day for a newer release (it only reads public release info) and shows a download link in the menu bar panel and Settings; turn it off in Settings → "Check for updates".
+**Ready-made app:** download `TokenKuzatuv-<version>.dmg` from [Releases](https://github.com/aliumirovux/TokenKuzat/releases/latest), open it and drag **Token Kuzatuv** to **Applications** (Apple Silicon and Intel, macOS 13+). It isn't signed with an Apple Developer ID yet (test phase), so the first launch is blocked: open it once, then **System Settings → Privacy & Security → Open Anyway** (or `xattr -dr com.apple.quarantine "/Applications/Token Kuzatuv.app"`). The app checks GitHub once a day for a newer release (it only reads public release info) and shows an "Update" button in the menu bar panel and Settings — it downloads the DMG, checks its SHA-256, replaces itself and relaunches (or falls back to downloading the DMG if it can't write to its folder); turn it off in Settings → "Check for updates".
 
 From Claude Code:
 
