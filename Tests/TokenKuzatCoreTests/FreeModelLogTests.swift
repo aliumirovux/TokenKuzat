@@ -28,6 +28,15 @@ final class FreeModelLogTests: XCTestCase {
         let bad = FreeModelLog.missingQuotes(in: "Versiya 6.52.0: \"`ask_free_model` endi faylni o'qiydi: Claude uzun log\"", files: files)
         XCTAssertEqual(bad.missing, ["ask_free_model` endi faylni o'qiydi: Claude uzun log"])
         XCTAssertEqual(FreeModelLog.missingQuotes(in: "Iqtibossiz javob", files: files).checked, 0)
+        // Faqat chiziq yoki bo'shliq farq qilsa — to'g'ri; raqam farq qilsa — belgilanadi
+        let stat = "--- file: /p/git.log ---\n1|  Sources/MCPServer.swift                 |  55 ++++++-\n"
+        XCTAssertTrue(FreeModelLog.missingQuotes(in: "L1: \"Sources/MCPServer.swift | 55 ++++++--\"", files: stat).missing.isEmpty)
+        XCTAssertEqual(FreeModelLog.missingQuotes(in: "L1: \"Sources/MCPServer.swift | 56 ++++++-\"", files: stat).missing.count, 1)
+        // Iqtibos ichidagi qochirilgan qo'shtirnoq («\"five\"») iqtibosni kesmaydi
+        let code = "--- file: /p/a.swift ---\n5| let x: Int = \"five\"\n"
+        let esc = FreeModelLog.missingQuotes(in: #"L5: "let x: Int = \"five\"""#, files: code)
+        XCTAssertEqual(esc.checked, 1)
+        XCTAssertTrue(esc.missing.isEmpty)
     }
 
     func testRefusesSecretsRelativeBinaryAndLarge() throws {

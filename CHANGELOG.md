@@ -1,5 +1,10 @@
 # O'zgarishlar
 
+## 6.67.1 — 2026-10-30
+
+- `ask_free_model` iqtibos tekshiruvi ortiqcha ogohlantirmaydi: iqtibos fayldagidan faqat bo'shliq, tinish belgisi yoki «+++---» chizig'i bilan farq qilsa — to'g'ri hisoblanadi. Harf yoki raqam farq qilsa — avvalgidek «⚠» bilan belgilanadi (sinovdagi haqiqiy xato hamon ushlanadi). Ichida qo'shtirnoq bor iqtibos (`"let x = \"five\""`) endi to'g'ri o'qiladi.
+- Ishlab chiquvchi uchun: `--snapshot-savings fayl.png` — ko'chirish tejashi kartasini haqiqiy ma'lumot bilan rasmga saqlaydi.
+
 ## 6.67.0 — 2026-10-30
 
 - «Tejash» sahifasida yangi karta — sessiya ko'chirishning haqiqiy foydasi, sessiya yozuvlaridan o'lchanadi: nechta ko'chirish, har javob oldin va keyin qancha kontekst o'qiydi, qancha token tejaldi va necha foiz kam. Claude eski suhbatni qayta o'qishga majbur bo'lgan holatlar alohida ko'rsatiladi (xulosada nimadir yetishmagan). Hisob ehtiyotkor: eski sessiya o'smay qolardi deb olinadi; narx rejimida yangi sessiyani boshlash narxi ayiriladi.

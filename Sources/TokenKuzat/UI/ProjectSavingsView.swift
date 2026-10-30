@@ -102,7 +102,7 @@ struct ProjectSavingsView: View {
 }
 
 /// Sessiya ko'chirishning haqiqiy foydasi: yangi sessiyalar eski sessiya oxiridagiga qaraganda qancha kam o'qidi (yozuvlardan o'lchanadi)
-private struct HandoffSavingsCard: View {
+struct HandoffSavingsCard: View {
     let summary: HandoffSavings.Summary
     let period: SavingsPeriod
     let mode: CountMode

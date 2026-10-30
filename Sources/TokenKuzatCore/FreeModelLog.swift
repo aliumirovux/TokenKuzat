@@ -106,7 +106,7 @@ public enum FreeModelLog {
     public static func missingQuotes(in answer: String, files: String) -> (checked: Int, missing: [String]) {
         let source = normalize(files.replacingOccurrences(of: #"(?m)^\d+\| "#, with: "", options: .regularExpression))
         var quotes: [String] = []
-        for pattern in [#""([^"\n]{12,})""#, #"“([^”\n]{12,})”"#, #"«([^»\n]{12,})»"#, #"(?m)^\s*>\s*(.{12,})$"#] {
+        for pattern in [#""((?:[^"\\\n]|\\.){12,})""#, #"“([^”\n]{12,})”"#, #"«([^»\n]{12,})»"#, #"(?m)^\s*>\s*(.{12,})$"#] {
             let re = try! NSRegularExpression(pattern: pattern)
             let ns = answer as NSString
             for m in re.matches(in: answer, range: NSRange(location: 0, length: ns.length)) {
@@ -120,8 +120,20 @@ public enum FreeModelLog {
         }
         // «> "…"» ham, ichidagi «"…"» ham bir iqtibos — ichma-ich takrorlar bir marta sanaladi
         quotes = quotes.filter { q in !quotes.contains { $0 != q && $0.contains(q) } }
-        let missing = quotes.filter { !source.contains(normalize($0)) }
+        // Faqat bo'shliq, tinish belgisi yoki «+++---» chizig'i farq qilsa — iqtibos to'g'ri (sinovda git diffstat chizig'i
+        // bitta «-» ga farq qilib, bekorga belgilangan edi). Harf yoki raqam farq qilsa — baribir belgilanadi
+        let loose = letters(source)
+        let missing = quotes.filter { q in
+            if source.contains(normalize(q)) { return false }
+            let l = letters(q)
+            return l.count < 8 || !loose.contains(l)
+        }
         return (quotes.count, missing)
+    }
+
+    /// Faqat harf va raqamlar, kichik harfda
+    static func letters(_ s: String) -> String {
+        String(normalize(s).lowercased().unicodeScalars.filter { CharacterSet.alphanumerics.contains($0) }.map(Character.init))
     }
 
     static func normalize(_ s: String) -> String {

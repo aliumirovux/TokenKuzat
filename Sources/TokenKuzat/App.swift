@@ -70,6 +70,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             snapshotMap(to: URL(fileURLWithPath: CommandLine.arguments[i + 1]))
             return
         }
+        // `--snapshot-savings fayl.png` — «Tejash» sahifasi (ikki temada)
+        if let i = CommandLine.arguments.firstIndex(of: "--snapshot-savings"), i + 1 < CommandLine.arguments.count {
+            snapshotSavings(to: URL(fileURLWithPath: CommandLine.arguments[i + 1]))
+            return
+        }
         Alerts.shared.start()
         // Avtomatik davom SessionStart hook'iga tayanadi; skript har ishga tushganda yangilanadi (yangi shart bilan)
         if UserDefaults.standard.bool(forKey: Pref.autoResume) || SessionStartHook.isInstalled { try? SessionStartHook.install() }
@@ -90,6 +95,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
             for scheme in [ColorScheme.dark, .light] {
                 let view = MenuPanel().environmentObject(Store.shared)
+                    .background(Color(nsColor: .windowBackgroundColor))
+                    .environment(\.colorScheme, scheme)
+                let r = ImageRenderer(content: view)
+                r.scale = 2
+                let out = scheme == .dark ? url : url.deletingPathExtension().appendingPathExtension("light.png")
+                if let img = r.nsImage, let tiff = img.tiffRepresentation,
+                   let png = NSBitmapImageRep(data: tiff)?.representation(using: .png, properties: [:]) {
+                    try? png.write(to: out)
+                }
+            }
+            NSApp.terminate(nil)
+        }
+    }
+
+    private func snapshotSavings(to url: URL) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 15) {
+            for scheme in [ColorScheme.dark, .light] {
+                // ScrollView ImageRenderer'da bo'sh chiqadi — sahifadagi ko'chirish kartasi o'zi chiziladi
+                let snap = Store.shared.snap
+                let week = SavingsPeriod.week
+                let view = HandoffSavingsCard(summary: HandoffSavings.summary(HandoffSavings.pairs(snap.sessions), since: week.start(now: snap.updatedAt)),
+                                              period: week, mode: .weighted)
+                    .frame(width: 900).padding(24)
                     .background(Color(nsColor: .windowBackgroundColor))
                     .environment(\.colorScheme, scheme)
                 let r = ImageRenderer(content: view)
