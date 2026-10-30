@@ -50,6 +50,9 @@ struct ProjectSavingsView: View {
                         CacheWeekCard(week: week, previous: store.savingsHistory.cacheWeek(weeksBack: 1, now: store.snap.updatedAt), mode: mode)
                     }
 
+                    let handoffs = HandoffSavings.summary(HandoffSavings.pairs(store.snap.sessions), since: period.start(now: store.snap.updatedAt))
+                    if handoffs.handoffs > 0 { HandoffSavingsCard(summary: handoffs, period: period, mode: mode) }
+
                     let free = FreeModelLog.summary(FreeModelLog.load(), since: period.start(now: store.snap.updatedAt))
                     if free.calls > 0 { FreeModelCard(summary: free, period: period) }
 
@@ -95,6 +98,41 @@ struct ProjectSavingsView: View {
             }
         }
         .font(.caption).foregroundStyle(.secondary)
+    }
+}
+
+/// Sessiya ko'chirishning haqiqiy foydasi: yangi sessiyalar eski sessiya oxiridagiga qaraganda qancha kam o'qidi (yozuvlardan o'lchanadi)
+private struct HandoffSavingsCard: View {
+    let summary: HandoffSavings.Summary
+    let period: SavingsPeriod
+    let mode: CountMode
+
+    var body: some View {
+        let saved = mode == .weighted ? summary.savedWeighted : Double(summary.savedTokens)
+        HStack(spacing: 12) {
+            Image(systemName: "arrow.uturn.right.circle.fill").font(.title3).foregroundStyle(Brand.ok).frame(width: 28)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(tr("Sessiya ko'chirish — haqiqiy o'lchov · \(period.title)", "Session handoff — measured · \(period.title)")).font(.subheadline.weight(.semibold))
+                Text(tr("\(summary.handoffs) ta ko'chirish · har javob ~\(Fmt.tokens(Double(summary.medianBefore))) o'rniga ~\(Fmt.tokens(Double(summary.medianAfter))) o'qiydi",
+                        "\(summary.handoffs) handoff\(summary.handoffs == 1 ? "" : "s") · each reply reads ~\(Fmt.tokens(Double(summary.medianAfter))) instead of ~\(Fmt.tokens(Double(summary.medianBefore)))"))
+                    .font(.caption).foregroundStyle(.secondary).monospacedDigit()
+                if summary.rereads > 0 {
+                    Text(tr("\(summary.rereads) tasida Claude eski suhbatni qayta o'qidi — xulosada nimadir yetishmagan",
+                            "In \(summary.rereads) Claude re-read the old conversation — the summary missed something"))
+                        .font(.caption).foregroundStyle(Brand.warn)
+                }
+            }
+            Spacer()
+            VStack(alignment: .trailing, spacing: 2) {
+                Text(Fmt.tokens(max(0, saved))).font(.title3.weight(.semibold)).foregroundStyle(Brand.ok).monospacedDigit()
+                Text(tr("token tejaldi · \(Fmt.percent(Double(summary.savedTokens), of: Double(summary.savedTokens + summary.readTokens))) kam",
+                        "tokens saved · \(Fmt.percent(Double(summary.savedTokens), of: Double(summary.savedTokens + summary.readTokens))) less"))
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+        }
+        .card()
+        .help(tr("Sessiya yozuvlaridan o'lchanadi: har ko'chirilgan sessiya o'zi davom ettirgan eski sessiya bilan solishtiriladi. Eski sessiyada qolinsa, har javob kamida eski oxirgi kontekstni o'qirdi — hisob ehtiyotkor. Narx rejimida yangi sessiya kontekstini bir marta keshga yozish ayirilgan.",
+                 "Measured from session transcripts: each handed-off session is compared with the session it continued. Staying in the old session, every reply would read at least its last context — a conservative estimate. In cost mode, writing the new session's context to cache once is subtracted."))
     }
 }
 

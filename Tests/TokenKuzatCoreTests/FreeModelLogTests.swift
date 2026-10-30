@@ -12,8 +12,22 @@ final class FreeModelLogTests: XCTestCase {
         let d = tempDir()
         defer { try? FileManager.default.removeItem(at: d) }
         let f = d.appendingPathComponent("build.log")
-        try "error: boom\n".write(to: f, atomically: true, encoding: .utf8)
-        XCTAssertEqual(try FreeModelLog.readFiles([f.path]).get(), "--- file: \(f.path) ---\nerror: boom\n")
+        try "start\nerror: boom\n".write(to: f, atomically: true, encoding: .utf8)
+        // Har qator raqamlanadi — bepul model javobda qatorni ko'rsatadi
+        XCTAssertEqual(try FreeModelLog.readFiles([f.path]).get(), "--- file: \(f.path) ---\n1| start\n2| error: boom\n")
+    }
+
+    func testQuoteCheckFlagsAlteredQuotes() {
+        let files = "--- file: /p/CHANGELOG.md ---\n1| ## 6.65.0\n2| - `ask_free_model` endi faylni o'zi o'qiydi: Claude uzun log beradi.\n3| 6 files changed, 338 insertions(+)\n"
+        // Haqiqiy iqtiboslar: qator raqami, Markdown belgisi, oxirgi nuqta va boshqa apostrof farq qilmaydi
+        let good = "L2: \"ask_free_model endi faylni o’zi o'qiydi: Claude uzun log beradi.\"\n> \"6 files changed, 338 insertions(+)\"\nVersiya «## 6.65.0»"
+        let ok = FreeModelLog.missingQuotes(in: good, files: files)
+        XCTAssertEqual(ok.checked, 2)
+        XCTAssertTrue(ok.missing.isEmpty)
+        // Sinovdagi holat: model iqtibosni o'zgartirib, noto'g'ri xulosa bergan
+        let bad = FreeModelLog.missingQuotes(in: "Versiya 6.52.0: \"`ask_free_model` endi faylni o'qiydi: Claude uzun log\"", files: files)
+        XCTAssertEqual(bad.missing, ["ask_free_model` endi faylni o'qiydi: Claude uzun log"])
+        XCTAssertEqual(FreeModelLog.missingQuotes(in: "Iqtibossiz javob", files: files).checked, 0)
     }
 
     func testRefusesSecretsRelativeBinaryAndLarge() throws {

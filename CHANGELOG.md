@@ -1,5 +1,12 @@
 # O'zgarishlar
 
+## 6.67.0 — 2026-10-30
+
+- «Tejash» sahifasida yangi karta — sessiya ko'chirishning haqiqiy foydasi, sessiya yozuvlaridan o'lchanadi: nechta ko'chirish, har javob oldin va keyin qancha kontekst o'qiydi, qancha token tejaldi va necha foiz kam. Claude eski suhbatni qayta o'qishga majbur bo'lgan holatlar alohida ko'rsatiladi (xulosada nimadir yetishmagan). Hisob ehtiyotkor: eski sessiya o'smay qolardi deb olinadi; narx rejimida yangi sessiyani boshlash narxi ayiriladi.
+- `ask_free_model` aniqroq va tekshirsa bo'ladigan bo'ldi: fayl qator raqamlari bilan yuboriladi, bepul model har da'voga qator raqami (L12) va aynan iqtibos keltiradi, Token Kuzatuv esa har iqtibosni faylda tekshiradi — topilmaganini javob ostida «⚠» bilan ko'rsatadi, Claude o'sha qatorlarni o'zi o'qiydi. Haqiqiy loglardagi sinovda 8 savoldan 7 tasi to'g'ri (oldin 6), versiyani adashtirish xatosi yo'qoldi.
+- Asbob tavsifi: sanash, jami, eng katta/kichik va butun faylni solishtirish bepul modelga berilmaydi (sinovda aynan shunda adashdi) — Claude buni grep/sort bilan aniq qiladi.
+- Javob uzunligi chegarasi kamida 1 500 token: kichik chegarada o'ylaydigan model javobsiz qolardi.
+
 ## 6.66.0 — 2026-10-30
 
 - Ko'chirilgan sessiya nomi endi loyiha nomi bilan boshlanmaydi: birinchi qator «↪ TokenKuzat — ish» emas, faqat «↪ ish». Claude ilovasidagi ro'yxatda har sessiyaning o'z mavzusi birinchi ko'rinadi va kerakli sessiyani topish oson. Loyiha nomi xabar ichida qoladi — Claude qaysi loyihada ishlayotganini biladi.

@@ -127,7 +127,7 @@ enum MCPServer {
 
     private static let freeTool: [String: Any] = [
         "name": "ask_free_model",
-        "description": "Send a small, self-contained text task to a free model through the user's local FreeLLMAPI gateway, to save the Claude limit: translating text, summarizing a long log or document, drafting boilerplate prose, classifying or extracting from given text. To work on a long file (log, build output, document) pass its absolute path in files instead of reading it yourself — Token Kuzatuv reads it and the content never enters your context, which is where the real saving is. The free model sees ONLY the prompt and those files (not this conversation), is weaker than Claude and may be wrong — put every needed instruction in the prompt and check the answer before using it; if the answer looks doubtful, read the relevant part of the file yourself. Don't use it for code changes, decisions, or anything needing this conversation's context. Free providers may log or train on inputs: never send secrets, credentials, keys or private/customer data (files that look like keys or .env are refused).",
+        "description": "Send a small, self-contained text task to a free model through the user's local FreeLLMAPI gateway, to save the Claude limit: translating text, summarizing a long log or document, drafting boilerplate prose, finding an error or a specific fact, listing matching items, classifying or extracting from given text. To work on a long file (log, build output, document) pass its absolute path in files instead of reading it yourself — Token Kuzatuv reads it and the content never enters your context, which is where the real saving is. Don't use it for counting, totals, ranking, max/min or comparisons across a whole file (use grep/sort/awk — free models get these wrong), for code changes, decisions, or anything needing this conversation's context. The free model sees ONLY the prompt and those files (not this conversation) and is weaker than Claude. With files, its answer cites line numbers (L<N>) and quotes; Token Kuzatuv checks every quote against the files and flags the ones it can't find — then read those lines yourself (Read with offset/limit) before relying on them. Free providers may log or train on inputs: never send secrets, credentials, keys or private/customer data (files that look like keys or .env are refused).",
         "inputSchema": [
             "type": "object",
             "properties": [
@@ -149,18 +149,20 @@ enum MCPServer {
         guard var prompt = args["prompt"] as? String, !prompt.isEmpty else { return ("prompt is required", true) }
         let promptTokens = FreeModelLog.tokens(prompt)
         var fileTokens = 0
+        var fileText: String?
         if let paths = args["files"] as? [String], !paths.isEmpty {
             switch FreeModelLog.readFiles(paths) {
             case .failure(let e): return (e.description, true)
             case .success(let text):
                 fileTokens = FreeModelLog.tokens(text)
-                prompt += "\n\n" + text
+                fileText = text
+                prompt += "\n\n" + FreeModelLog.fileRules + "\n\n" + text
             }
         }
         guard let url = URL(string: FreeModels.rootURL(c.url) + "/v1/chat/completions"),
               let body = try? JSONSerialization.data(withJSONObject: FreeModels.chatRequest(
                 prompt: prompt, system: args["system"] as? String, model: args["model"] as? String,
-                maxTokens: (args["max_tokens"] as? NSNumber)?.intValue)) else { return ("Bad gateway address: \(c.url)", true) }
+                maxTokens: (args["max_tokens"] as? NSNumber).map { max($0.intValue, FreeModelLog.minAnswerTokens) })) else { return ("Bad gateway address: \(c.url)", true) }
         var req = URLRequest(url: url, timeoutInterval: 120)
         req.httpMethod = "POST"
         req.httpBody = body
@@ -197,6 +199,17 @@ enum MCPServer {
         if fileTokens > 0 { meta += ", read files ~\(fileTokens) tokens that stayed out of your context" }
         if reply.truncated { meta += ", cut off at max_tokens — the answer is incomplete" }
         meta += " — not Claude; verify before using]"
+        if let fileText {
+            let q = FreeModelLog.missingQuotes(in: reply.text, files: fileText)
+            if q.checked == 0 {
+                meta += "\n[no quotes to check — verify the claims against the file yourself]"
+            } else if q.missing.isEmpty {
+                meta += "\n[all \(q.checked) quotes found in the files]"
+            } else {
+                meta += "\n[⚠ \(q.missing.count) of \(q.checked) quotes are NOT in the files — the claims behind them may be wrong; read those lines yourself: "
+                    + q.missing.prefix(3).map { "\"\($0.prefix(80))\"" }.joined(separator: "; ") + "]"
+            }
+        }
         return (reply.text + "\n\n" + meta, false)
     }
 

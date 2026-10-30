@@ -62,7 +62,17 @@ public enum FreeModelLog {
         }
     }
 
-    /// Fayllarni o'qib, promptga qo'shiladigan matnga aylantiradi: har biri «--- file: yo'l ---» sarlavhasi bilan
+    /// Fayllar bilan birga promptga qo'shiladigan qoida: qator raqami bilan iqtibos — javobni tekshirsa bo'lsin.
+    /// Sinovda bepul model topish, ro'yxat va qisqartirishda aniq, sanash/eng katta va ikki joyni bog'lashda adashdi
+    public static let fileRules = """
+        Rules for the files below: each line starts with its line number as "N| " (not part of the text). \
+        For every claim give the line number as L<N> and quote the exact text from that line in double quotes, without the "N| " prefix. \
+        Quote one line per quote; never join pieces from different lines into one quote. \
+        If the answer isn't in the files, say so instead of guessing.
+        """
+
+    /// Fayllarni o'qib, promptga qo'shiladigan matnga aylantiradi: har biri «--- file: yo'l ---» sarlavhasi bilan,
+    /// har qator «N| » raqami bilan (bepul model javobda qatorni ko'rsatadi, Claude o'sha qatorni o'zi tekshira oladi)
     public static func readFiles(_ paths: [String], limit: Int = maxFileBytes) -> Result<String, FileError> {
         var parts: [String] = []
         var total = 0
@@ -77,9 +87,47 @@ public enum FreeModelLog {
             total += data.count
             if total > limit { return .failure(.tooLarge(total)) }
             guard let text = String(data: data, encoding: .utf8), !text.contains("\0") else { return .failure(.binary(raw)) }
-            parts.append("--- file: \(path) ---\n\(text)")
+            parts.append("--- file: \(path) ---\n\(numbered(text))")
         }
         return .success(parts.joined(separator: "\n\n"))
+    }
+
+    static func numbered(_ text: String) -> String {
+        var lines = text.components(separatedBy: "\n")
+        if lines.last == "" { lines.removeLast() }
+        return lines.enumerated().map { "\($0.offset + 1)| \($0.element)" }.joined(separator: "\n") + "\n"
+    }
+
+    /// Javob talab qilinmagan uzunlikka cheklansa, o'ylaydigan model butun chegarani o'ylashga sarflab, javobsiz qoladi
+    public static let minAnswerTokens = 1500
+
+    /// Javobdagi iqtiboslar (qo'shtirnoq, «», > qatori; 12 belgidan uzun) — fayllarda topilmaganlari.
+    /// Sinovda bepul model xato xulosani o'zgartirilgan iqtibos bilan berdi — shu tekshiruv ushlaydi
+    public static func missingQuotes(in answer: String, files: String) -> (checked: Int, missing: [String]) {
+        let source = normalize(files.replacingOccurrences(of: #"(?m)^\d+\| "#, with: "", options: .regularExpression))
+        var quotes: [String] = []
+        for pattern in [#""([^"\n]{12,})""#, #"“([^”\n]{12,})”"#, #"«([^»\n]{12,})»"#, #"(?m)^\s*>\s*(.{12,})$"#] {
+            let re = try! NSRegularExpression(pattern: pattern)
+            let ns = answer as NSString
+            for m in re.matches(in: answer, range: NSRange(location: 0, length: ns.length)) {
+                var q = ns.substring(with: m.range(at: 1)).trimmingCharacters(in: .whitespaces)
+                // «> "…"» — tashqi qo'shtirnoq va oxirgi nuqta iqtibosga kirmaydi
+                q = q.trimmingCharacters(in: CharacterSet(charactersIn: "\"“”`")).trimmingCharacters(in: .whitespaces)
+                q = q.replacingOccurrences(of: #"^L?\d+\|?\s*"#, with: "", options: .regularExpression)
+                if q.hasSuffix(".") && !source.contains(normalize(q)) { q.removeLast() }
+                if q.count >= 12, !quotes.contains(q) { quotes.append(q) }
+            }
+        }
+        // «> "…"» ham, ichidagi «"…"» ham bir iqtibos — ichma-ich takrorlar bir marta sanaladi
+        quotes = quotes.filter { q in !quotes.contains { $0 != q && $0.contains(q) } }
+        let missing = quotes.filter { !source.contains(normalize($0)) }
+        return (quotes.count, missing)
+    }
+
+    static func normalize(_ s: String) -> String {
+        var t = s
+        for (a, b) in [("’", "'"), ("‘", "'"), ("ʻ", "'"), ("ʼ", "'"), ("`", ""), ("\\\"", "\"")] { t = t.replacingOccurrences(of: a, with: b) }
+        return t.split(whereSeparator: \.isWhitespace).joined(separator: " ")
     }
 
     // MARK: Hisob
