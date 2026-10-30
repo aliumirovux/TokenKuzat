@@ -92,6 +92,41 @@ enum MenuBarStyle: String, CaseIterable, Identifiable {
     }
 }
 
+enum NotifyMode: String, CaseIterable, Identifiable {
+    case important, all, silent, custom
+    var id: String { rawValue }
+    var title: String {
+        switch self {
+        case .important: return tr("Faqat muhim", "Important only")
+        case .all: return tr("Hammasi", "All")
+        case .silent: return tr("Jim", "Silent")
+        case .custom: return tr("O'zim tanlayman", "Custom")
+        }
+    }
+
+    /// Diqqatingizni talab qiladiganlar: ish tugadi, ruxsat yoki osilish, xatolar, limit
+    static let importantKeys = [Pref.notifyFinished, Pref.notifyStuck, Pref.notifyErrors, Pref.notifyPermission,
+                                Pref.notifyRealLimit, Pref.budgetNotify]
+    /// Maslahat turidagilar: kontekst, yangi mavzu, isrof, kesh
+    static let adviceKeys = [Pref.notifyContext, Pref.notifySavings, Pref.notifyWaste, Pref.notifyCache]
+
+    static func current(_ d: UserDefaults = .standard) -> NotifyMode {
+        let imp = importantKeys.map { d.bool(forKey: $0) }, adv = adviceKeys.map { d.bool(forKey: $0) }
+        switch (imp.allSatisfy { $0 }, adv.allSatisfy { $0 }, (imp + adv).contains(true)) {
+        case (true, true, _): return .all
+        case (true, _, _) where !adv.contains(true): return .important
+        case (_, _, false): return .silent
+        default: return .custom
+        }
+    }
+
+    func apply(_ d: UserDefaults = .standard) {
+        guard self != .custom else { return }
+        for k in Self.importantKeys { d.set(self != .silent, forKey: k) }
+        for k in Self.adviceKeys { d.set(self == .all, forKey: k) }
+    }
+}
+
 enum BudgetPeriod: String, CaseIterable, Identifiable {
     case fiveHours, day
     var id: String { rawValue }

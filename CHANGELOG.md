@@ -1,5 +1,9 @@
 # O'zgarishlar
 
+## 6.61.0 — 2026-10-30
+
+- Sozlamalar → bildirishnomalar bo'limi tepasida bitta tanlov: «Hammasi», «Faqat muhim», «Jim». «Faqat muhim» — ish tugadi, ruxsat kutilyapti yoki qadam osilib qoldi, ketma-ket xatolar va limit; maslahat turidagi xabarlar (kontekst to'lmoqda, yangi mavzu, isrof, kesh soviyapti) chiqmaydi. Alohida bildirishnomalarni qo'lda o'zgartirsangiz, tanlov «O'zim tanlayman» bo'ladi. Standart holat o'zgarmadi — «Hammasi».
+
 ## 6.60.0 — 2026-10-30
 
 - Ilova ochilganda menyu paneli bo'sh turmaydi: Claude limitlari (5 soat va hafta) darhol ko'rinadi, sessiyalar esa pastda «Sessiyalar o'qilmoqda…» bilan orqa fonda o'qiladi. Avval yozuvlar o'qilguncha (katta tarixda 4–5 soniya) panelda faqat yuklanish belgisi turardi.

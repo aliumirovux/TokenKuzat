@@ -132,6 +132,16 @@ struct SettingsView: View {
             }
 
             SwiftUI.Section {
+                Picker(selection: Binding(get: { NotifyMode.current() }, set: { $0.apply() })) {
+                    ForEach(NotifyMode.allCases.filter { $0 != .custom || NotifyMode.current() == .custom }) { Text($0.title).tag($0) }
+                } label: {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(tr("Bildirishnomalar", "Notifications"))
+                        Text(tr("«Faqat muhim» — ish tugadi, ruxsat kutilyapti, xato va limit; maslahatlar (kontekst, isrof, kesh) chiqmaydi",
+                                "\"Important only\" — task finished, waiting for permission, errors and limits; no tips (context, waste, cache)"))
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                }
                 Toggle(tr("Claude ishni tugatganda", "When Claude finishes a task"), isOn: $notifyFinished)
                 Picker(tr("…agar ish shundan uzoq davom etgan bo'lsa", "…if it ran longer than"), selection: $notifyFinishedMin) {
                     Text(tr("har doim", "always")).tag(0.0)
