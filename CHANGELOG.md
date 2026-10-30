@@ -1,5 +1,9 @@
 # O'zgarishlar
 
+## 6.66.0 — 2026-10-30
+
+- Ko'chirilgan sessiya nomi endi loyiha nomi bilan boshlanmaydi: birinchi qator «↪ TokenKuzat — ish» emas, faqat «↪ ish». Claude ilovasidagi ro'yxatda har sessiyaning o'z mavzusi birinchi ko'rinadi va kerakli sessiyani topish oson. Loyiha nomi xabar ichida qoladi — Claude qaysi loyihada ishlayotganini biladi.
+
 ## 6.65.0 — 2026-10-30
 
 - `ask_free_model` endi faylni o'zi o'qiydi: Claude uzun log yoki hujjatning yo'lini `files` ga beradi, Token Kuzatuv faylni o'qib bepul modelga yuboradi. Fayl matni Claude kontekstiga umuman kirmaydi — haqiqiy tejash shu yerda. Bir chaqiruvda 400 KB gacha; `.env`, kalitlar, `.ssh` kabi maxfiy bo'lishi mumkin bo'lgan fayllar rad etiladi.

@@ -455,12 +455,13 @@ public enum SavingsAdvisor {
     private static func handoffText(_ s: SessionSnap, lastTurns: Int, gitLines: ([String]) -> [String],
                                     transcripts: [String]) -> String {
         var lines: [String] = []
-        // Birinchi qator — «↪ Loyiha — ish»: Claude ilovasi sessiya nomini birinchi xabardan yasaydi
+        // Birinchi qator — «↪ ish»: Claude ilovasi sessiya nomini birinchi xabardan yasaydi.
+        // Loyiha nomi bu yerda yo'q — aks holda hamma nom bir xil so'z bilan boshlanib, ro'yxatda farqlanmaydi
         let folder = projectFolder(for: s)
         let note = handoffNote(s)
         let project = folder.map { URL(fileURLWithPath: $0).lastPathComponent }
             ?? (s.cwd.map(HandoffStore.isScratch) == true ? nil : s.project)
-        lines.append(AutoHandoffRule.headline(project: project, task: handoffTask(s, note: note?.note)))
+        lines.append(AutoHandoffRule.headline(project: nil, task: handoffTask(s, note: note?.note)))
         lines.append("")
         lines.append(tr("Bu — oldingi Claude Code sessiyasining davomi (\(project ?? s.project)). Quyidagi xulosaga tayanib ishni davom ettir.", "This continues a previous Claude Code session (\(project ?? s.project)). Continue the work based on the summary below."))
         if let folder {

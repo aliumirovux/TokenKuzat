@@ -112,7 +112,7 @@ final class SavingsTests: XCTestCase {
                                          "Ofis panelini Claude Code ichida ko'rsat", "Ha, push qil"],
                                cwd: "/nonexistent/TokenKuzat")
         let text = Lang.with(english: false) { SavingsAdvisor.handoff(for: s, gitLines: { _ in [] }) }
-        XCTAssertTrue(text.hasPrefix("↪ Demo — Ofis modini plaginga qo'shish\n"))
+        XCTAssertTrue(text.hasPrefix("↪ Ofis modini plaginga qo'shish\n"))
         XCTAssertFalse(text.contains("Token Kuzatuv:"))
         XCTAssertFalse(text.contains("instagram"))
         XCTAssertFalse(text.contains("Ha, yasa"))
@@ -152,7 +152,7 @@ final class SavingsTests: XCTestCase {
                                files: [repo.appendingPathComponent("a.swift").path, "/private/tmp/scratchpad/notes.md"])
         XCTAssertEqual(SavingsAdvisor.projectFolder(for: s), repo.path)
         let text = Lang.with(english: false) { SavingsAdvisor.handoff(for: s, gitLines: { _ in [] }) }
-        XCTAssertTrue(text.hasPrefix("↪ MyApp — Ofis paneli\n"))
+        XCTAssertTrue(text.hasPrefix("↪ Ofis paneli\n"))
         XCTAssertTrue(text.contains("Loyiha papkasi: \(repo.path)"))
         // Loyiha topilmasa — vaqtinchalik papka nomi sarlavhaga chiqmaydi
         let bare = handoffSession(title: "Ofis paneli", prompts: [], cwd: scratch)
@@ -189,7 +189,7 @@ final class SavingsTests: XCTestCase {
             + "Qolgan: Settings'da yoqish\nKutilayotgan qaror: 6.44.0 relizi\n-->"
         let s = handoffSession(title: "TokenKuzat uchun qilish kerak", prompts: ["2-bandni boshla, eslatma kerak"], cwd: nil, reply: reply)
         let text = Lang.with(english: false) { SavingsAdvisor.handoff(for: s, gitLines: { _ in [] }) }
-        XCTAssertTrue(text.hasPrefix("↪ Demo — Claude yozadigan ko'chirish eslatmasi\n"))
+        XCTAssertTrue(text.hasPrefix("↪ Claude yozadigan ko'chirish eslatmasi\n"))
         XCTAssertTrue(text.contains("asosan shunga tayan):\nIsh: Claude yozadigan ko'chirish eslatmasi\nQolgan: Settings'da yoqish"))
         XCTAssertFalse(text.contains("<!--"))
         XCTAssertTrue(text.contains("Oxirgi holat (oldingi javobdan):\nCommit qilindi."))
