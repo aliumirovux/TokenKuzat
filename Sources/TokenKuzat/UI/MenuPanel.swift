@@ -14,7 +14,13 @@ struct MenuPanel: View {
         let s = store.snap
         VStack(spacing: 0) {
             if !s.initialScanDone {
-                ProgressView(tr("Yozuvlar o'qilmoqda…", "Reading logs…")).controlSize(.small).padding(40)
+                // Limitlar alohida fayldan darhol keladi — ularni ko'rsatib, qolgani uchun kichik yuklanish qatori
+                if s.limits != nil { limits(s) }
+                HStack(spacing: 8) {
+                    ProgressView().controlSize(.small)
+                    Text(tr("Sessiyalar o'qilmoqda…", "Reading sessions…")).font(.callout).foregroundStyle(.secondary)
+                }
+                .padding(s.limits != nil ? 20 : 40)
             } else {
                 limits(s)
                 VStack(spacing: 10) {

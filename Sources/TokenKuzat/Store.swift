@@ -51,19 +51,22 @@ final class Store: ObservableObject {
         engine = Engine(history: HistoryStore(url: HistoryStore.defaultURL))
         savingsHistory = projectHistory.load()
         let t = DispatchSource.makeTimerSource(queue: queue)
+        // Birinchi o'qish bir necha soniya oladi (yuzlab MB yozuv) — shu orada panelda limitlar bo'sh turmasin
+        queue.async { [weak self] in
+            guard let self else { return }
+            var s = Snapshot()
+            self.applyLimits(&s, now: Date())
+            guard s.limits != nil else { return }
+            DispatchQueue.main.async { if !self.snap.initialScanDone { self.snap = s } }
+        }
         t.schedule(deadline: .now(), repeating: 1.0, leeway: .milliseconds(250))
         t.setEventHandler { [weak self] in self?.step() }
         t.resume()
         timer = t
     }
 
-    private func step() {
-        let now = Date()
-        engine.update(now: now)
-        guard engine.revision != lastRevision || now.timeIntervalSince(lastPublish) >= 3 else { return }
-        lastRevision = engine.revision
-        lastPublish = now
-        var s = engine.snapshot()
+    /// Status line va Claude hisobidan limitlar — yozuvlarni o'qishga bog'liq emas, bir zumda
+    private func applyLimits(_ s: inout Snapshot, now: Date) {
         let statusLine = limitsReader.read()
         s.applyContextWindows(statusLine?.windowBySession ?? [:])
         if let l = statusLine?.active(at: now), !l.isEmpty || !l.costBySession.isEmpty {
@@ -83,6 +86,16 @@ final class Store: ObservableObject {
             if let w = a.fiveHour { s.fiveHourForecast = LimitForecast.forecast(w, history: acct.fiveHourHistory, now: now) }
             if let w = a.sevenDay { s.weekForecast = WeeklyForecast.forecast(w, now: now) }
         }
+    }
+
+    private func step() {
+        let now = Date()
+        engine.update(now: now)
+        guard engine.revision != lastRevision || now.timeIntervalSince(lastPublish) >= 3 else { return }
+        lastRevision = engine.revision
+        lastPublish = now
+        var s = engine.snapshot()
+        applyLimits(&s, now: now)
         // Limit o'sishini Mac sarfi bilan solishtirib — chat va bulutga ketgan qism
         if let l = s.limits, let w = l.fiveHour {
             outsideTracker.observe(w, at: l.updatedAt, minutes: s.recentMinutes)

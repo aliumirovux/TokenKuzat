@@ -1,5 +1,9 @@
 # O'zgarishlar
 
+## 6.60.0 — 2026-10-30
+
+- Ilova ochilganda menyu paneli bo'sh turmaydi: Claude limitlari (5 soat va hafta) darhol ko'rinadi, sessiyalar esa pastda «Sessiyalar o'qilmoqda…» bilan orqa fonda o'qiladi. Avval yozuvlar o'qilguncha (katta tarixda 4–5 soniya) panelda faqat yuklanish belgisi turardi.
+
 ## 6.59.0 — 2026-10-30
 
 - Ilova o'zini o'zi yangilaydi: yangi versiya chiqsa, menyu panelida va Sozlamalarda «Yangilash» tugmasi chiqadi. Bosilsa, ilova DMG'ni GitHub'dan yuklaydi, relizdagi SHA-256 bilan tekshiradi, ichidagi ilova shu ilova va shu versiya ekanini va imzosi butunligini tekshiradi, keyin o'zini almashtirib qayta ochiladi. Endi DMG ochish va Applications'ga sudrash shart emas. Almashtirish muvaffaqiyatsiz bo'lsa, eski ilova joyiga qaytariladi.
