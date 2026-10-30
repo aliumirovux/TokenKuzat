@@ -1,9 +1,9 @@
 import Foundation
 
 /// Agent turlari: bosh agent (rahbar) ishni rejalaydi va tekshiradi, og'ir o'qishni yordamchilarga beradi.
-/// Token Kuzatuv plagini `izlovchi`, `bajaruvchi`, `tekshiruvchi` agentlarini o'rnatadi; Claude Code'ning o'z turlari ham tanildi
+/// Token Kuzatuv plagini `izlovchi`, `bajaruvchi`, `tekshiruvchi`, `sinovchi` agentlarini o'rnatadi; Claude Code'ning o'z turlari ham tanildi
 public enum AgentRole: String, CaseIterable, Sendable {
-    case lead, explorer, builder, reviewer, other
+    case lead, explorer, builder, reviewer, tester, other
 
     public var title: String {
         switch self {
@@ -11,6 +11,7 @@ public enum AgentRole: String, CaseIterable, Sendable {
         case .explorer: return tr("Izlovchi", "Explorer")
         case .builder: return tr("Bajaruvchi", "Builder")
         case .reviewer: return tr("Tekshiruvchi", "Reviewer")
+        case .tester: return tr("Sinovchi", "Tester")
         case .other: return tr("Boshqa yordamchi", "Other helpers")
         }
     }
@@ -22,6 +23,7 @@ public enum AgentRole: String, CaseIterable, Sendable {
         let name = k.split(separator: ":").last.map(String.init) ?? k
         if name == "izlovchi" || name == "explore" || name.contains("search") { return .explorer }
         if name == "bajaruvchi" { return .builder }
+        if name == "sinovchi" || name == "qa" || name.contains("test") { return .tester }
         if name == "tekshiruvchi" || name.contains("review") || name.contains("verif") { return .reviewer }
         return .other
     }

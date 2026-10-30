@@ -177,8 +177,8 @@ struct AgentRolesCard: View {
             }
         }
         .card()
-        .help(tr("Rahbar — asosiy agent (eng kuchli model): rejalaydi va tekshiradi. Izlovchi (tez model) qidiradi, bajaruvchi (o'rta model) aniq vazifani bajaradi, tekshiruvchi mustaqil ko'rib chiqadi. Turlar Token Kuzatuv plagini bilan o'rnatiladi.",
-                 "Lead — the main agent (strongest model): plans and checks. Explorer (fast model) searches, builder (mid model) does a specified task, reviewer checks independently. The roles come with the Token Kuzatuv plugin."))
+        .help(tr("Rahbar — asosiy agent (eng kuchli model): rejalaydi va tekshiradi. Izlovchi (tez model) qidiradi, bajaruvchi (o'rta model) aniq vazifani bajaradi, tekshiruvchi kodni mustaqil ko'rib chiqadi, sinovchi (o'rta model) natijani ishga tushirib sinaydi. Turlar Token Kuzatuv plagini bilan o'rnatiladi.",
+                 "Lead — the main agent (strongest model): plans and checks. Explorer (fast model) searches, builder (mid model) does a specified task, reviewer checks the code independently, tester (mid model) runs the result to see it works. The roles come with the Token Kuzatuv plugin."))
     }
 }
 

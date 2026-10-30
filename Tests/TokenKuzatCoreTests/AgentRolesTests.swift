@@ -21,6 +21,8 @@ final class AgentRolesTests: XCTestCase {
         XCTAssertEqual(AgentRole.of(agent("Explore")), .explorer)
         XCTAssertEqual(AgentRole.of(agent("tokenkuzat:bajaruvchi")), .builder)
         XCTAssertEqual(AgentRole.of(agent("tokenkuzat:tekshiruvchi")), .reviewer)
+        XCTAssertEqual(AgentRole.of(agent("tokenkuzat:sinovchi")), .tester)
+        XCTAssertEqual(AgentRole.of(agent("qa")), .tester)
         XCTAssertEqual(AgentRole.of(agent("general-purpose")), .other)
     }
 

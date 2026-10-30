@@ -1,6 +1,6 @@
 {
   "name": "tokenkuzat",
-  "description": "Token Kuzatuv: Claude Code token sarfi, limitlar va sessiyalar. /tokenkuzat:install — Mac ilovasini yig'ib o'rnatadi; /tokenkuzat:optimize — loyihada token isrofini topib tuzatadi; /tokenkuzat:haftalik — haftalik o'zini tekshirish; MCP asboblari — Claude'dan sarf va sessiyalarni so'rash; agent turlari — izlovchi (Haiku), bajaruvchi (Sonnet), tekshiruvchi; «Ofis» paneli (/ofis) — agentlar robot bo'lib jonli ishlaydi",
+  "description": "Token Kuzatuv: Claude Code token sarfi, limitlar va sessiyalar. /tokenkuzat:install — Mac ilovasini yig'ib o'rnatadi; /tokenkuzat:optimize — loyihada token isrofini topib tuzatadi; /tokenkuzat:haftalik — haftalik o'zini tekshirish; MCP asboblari — Claude'dan sarf va sessiyalarni so'rash; agent turlari — izlovchi (Haiku), bajaruvchi (Sonnet), tekshiruvchi, sinovchi (Sonnet); «Ofis» paneli (/ofis) — agentlar robot bo'lib jonli ishlaydi",
   "author": { "name": "aliumirovux" },
   "homepage": "https://github.com/aliumirovux/TokenKuzat",
   "repository": "https://github.com/aliumirovux/TokenKuzat",

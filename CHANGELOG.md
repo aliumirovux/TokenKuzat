@@ -1,5 +1,11 @@
 # O'zgarishlar
 
+## 6.71.0 — 2026-10-30
+
+- Yangi yordamchi agent `sinovchi` (QA, o'rta model — Sonnet): ish tugagach, «tayyor» deyishdan oldin foydalanuvchining asl talabini tekshirish ro'yxatiga aylantiradi va har bandni ishga tushirib sinaydi (test, build, buyruq, rasm). Natija — har band bo'yicha «o'tdi / o'tmadi / tekshirib bo'lmadi», isboti bilan. Kodni o'zgartirmaydi, commit va reliz qilmaydi. `tekshiruvchi` kodni ko'rib chiqadi, `sinovchi` esa natija haqiqatan ishlashini tekshiradi.
+- «Agent turlari bo'yicha sarf» kartasida «Sinovchi» qatori (QA yoki test nomli boshqa agentlar ham shu qatorga tushadi).
+- Haftalik tekshiruv tuzatishlarni `sinovchi` bilan ishga tushirib sinaydi; «o'tmadi» chiqqan tuzatish qaytariladi yoki hisobotda yoziladi.
+
 ## 6.70.0 — 2026-10-30
 
 - Haftalik o'zini tekshirish: `/tokenkuzat:haftalik` skill'i (va har yakshanba avtomatik ishga tushadigan vazifa) testlarni yurgizadi, tejash va aniqlikni o'lchaydi, Claude Code, model va FreeLLMAPI yangiliklarini ilova bilan solishtiradi, eskirgan joylarni topadi. Xavfsiz tuzatishlarni alohida `haftalik/SANA` tarmog'ida tayyorlaydi (tekshiruvchi agent ko'rib chiqadi) va hisobot yozadi. Reliz, push va merge qilmaydi — bu sizning qaroringiz.
