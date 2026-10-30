@@ -1,0 +1,23 @@
+broken.swift:5:14: error: cannot convert value of type 'String' to specified type 'Int'
+3 | func total(_ items: [Item]) -> Int { items.reduce(0) { $0 + $1.cost } }
+4 | func label(_ i: Item) -> String { return i.price }
+5 | let x: Int = "five"
+  |              `- error: cannot convert value of type 'String' to specified type 'Int'
+6 | print(total([Item(name: "a", price: 1)]))
+7 | 
+
+broken.swift:3:64: error: value of type 'Item' has no member 'cost'
+1 | import Foundation
+2 | struct Item { let name: String; let price: Int }
+3 | func total(_ items: [Item]) -> Int { items.reduce(0) { $0 + $1.cost } }
+  |                                                                `- error: value of type 'Item' has no member 'cost'
+4 | func label(_ i: Item) -> String { return i.price }
+5 | let x: Int = "five"
+
+broken.swift:4:44: error: cannot convert return expression of type 'Int' to return type 'String'
+2 | struct Item { let name: String; let price: Int }
+3 | func total(_ items: [Item]) -> Int { items.reduce(0) { $0 + $1.cost } }
+4 | func label(_ i: Item) -> String { return i.price }
+  |                                            `- error: cannot convert return expression of type 'Int' to return type 'String'
+5 | let x: Int = "five"
+6 | print(total([Item(name: "a", price: 1)]))

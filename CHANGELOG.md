@@ -1,5 +1,10 @@
 # O'zgarishlar
 
+## 6.70.0 — 2026-10-30
+
+- Haftalik o'zini tekshirish: `/tokenkuzat:haftalik` skill'i (va har yakshanba avtomatik ishga tushadigan vazifa) testlarni yurgizadi, tejash va aniqlikni o'lchaydi, Claude Code, model va FreeLLMAPI yangiliklarini ilova bilan solishtiradi, eskirgan joylarni topadi. Xavfsiz tuzatishlarni alohida `haftalik/SANA` tarmog'ida tayyorlaydi (tekshiruvchi agent ko'rib chiqadi) va hisobot yozadi. Reliz, push va merge qilmaydi — bu sizning qaroringiz.
+- QA skriptlari loyihada: `scripts/qa/handoff_savings.py` (ko'chirish tejashi), `scripts/qa/rereads.py` (eski suhbatni qayta o'qish sabablari), `scripts/qa/free_model_bench.py` (bepul model aniqligi, `fixtures/` dagi haqiqiy loglar bilan; o'z sinov yozuvlarini jurnaldan tozalaydi).
+
 ## 6.69.0 — 2026-10-30
 
 - Agent turlari. Plagin endi uchta yordamchi agentni o'rnatadi, bosh agent (rahbar, eng kuchli model) esa ishni rejalaydi, yordamchilarga beradi va natijani tekshiradi:

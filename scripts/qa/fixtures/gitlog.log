@@ -1,0 +1,2157 @@
+commit 13b79a87bfb4ddde809150db9d48a8598eb90f26
+Author: Ali Umirov <aliumirov.me@gmail.com>
+Date:   Fri Oct 30 11:55:12 2026 +0500
+
+    v6.66.0: handoff session names start with the task, not the project
+    
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+ CHANGELOG.md                                 | 4 ++++
+ Sources/TokenKuzatCore/Savings.swift         | 5 +++--
+ Tests/TokenKuzatCoreTests/SavingsTests.swift | 6 +++---
+ VERSION                                      | 2 +-
+ 4 files changed, 11 insertions(+), 6 deletions(-)
+
+commit aa3cb35070b17349216c62a49197464b8011c3fe
+Author: Ali Umirov <aliumirov.me@gmail.com>
+Date:   Fri Oct 30 11:41:06 2026 +0500
+
+    v6.65.0: ask_free_model reads files itself; free-model savings on the Savings page
+    
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+ CHANGELOG.md                                      |   5 +
+ Sources/TokenKuzat/MCPServer.swift                |  18 +++-
+ Sources/TokenKuzat/UI/ProjectSavingsView.swift    |  29 +++++
+ Sources/TokenKuzatCore/FreeModelLog.swift         | 124 ++++++++++++++++++++++
+ Tests/TokenKuzatCoreTests/FreeModelLogTests.swift |  51 +++++++++
+ VERSION                                           |   2 +-
+ 6 files changed, 226 insertions(+), 3 deletions(-)
+
+commit cdef28868a2dddbf2d7626d5062cd76610a43151
+Author: Ali Umirov <aliumirov.me@gmail.com>
+Date:   Fri Oct 30 11:23:38 2026 +0500
+
+    v6.64.0: pin button keeps the window above all other apps
+    
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+ CHANGELOG.md                           |  4 ++++
+ Sources/TokenKuzat/Preferences.swift   |  2 ++
+ Sources/TokenKuzat/UI/FlowCanvas.swift | 25 ++++++++++++++++++++++++-
+ Sources/TokenKuzat/UI/SessionMap.swift |  4 ++++
+ Sources/TokenKuzat/WindowManager.swift |  9 +++++++++
+ VERSION                                |  2 +-
+ 6 files changed, 44 insertions(+), 2 deletions(-)
+
+commit 80589439b6e14964719666807e073c0d0eab7ffc
+Author: Ali Umirov <aliumirov.me@gmail.com>
+Date:   Fri Oct 30 11:16:34 2026 +0500
+
+    v6.63.0: hand off only to a new Claude app session; drop the Terminal target
+    
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+ CHANGELOG.md                                  |  6 ++++++
+ Sources/TokenKuzat/Alerts.swift               |  9 ++-------
+ Sources/TokenKuzat/AutoHandoff.swift          | 14 +++++---------
+ Sources/TokenKuzat/FreeFallback.swift         |  5 ++---
+ Sources/TokenKuzat/Preferences.swift          |  4 +---
+ Sources/TokenKuzat/PromptRedirectHook.swift   | 11 ++---------
+ Sources/TokenKuzat/UI/FreeModelsSection.swift |  6 ++++++
+ Sources/TokenKuzat/UI/ProjectsView.swift      | 10 +++++-----
+ Sources/TokenKuzat/UI/SettingsView.swift      | 20 ++++----------------
+ Sources/TokenKuzatCore/AutoHandoff.swift      | 12 ------------
+ VERSION                                       |  2 +-
+ 11 files changed, 34 insertions(+), 65 deletions(-)
+
+commit efcc2793886d85b4d5d1897221e53dba8a524f99
+Author: Ali Umirov <aliumirov.me@gmail.com>
+Date:   Fri Oct 30 11:05:00 2026 +0500
+
+    v6.62.1: recognise claude by its executable path so the old Terminal window closes again
+    
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+ CHANGELOG.md                         |  4 ++++
+ Sources/TokenKuzat/OldTerminal.swift | 11 ++++++++++-
+ VERSION                              |  2 +-
+ 3 files changed, 15 insertions(+), 2 deletions(-)
+
+commit c9ad50da758572dbf47a2906d6da08ead3df5685
+Author: Ali <ali@MacBook-Air-Ali.local>
+Date:   Fri Oct 30 05:18:50 2026 +0500
+
+    v6.62.0: Settings split into sections
+    
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+ CHANGELOG.md                             |   5 +
+ Sources/TokenKuzat/UI/MenuPanel.swift    |   2 +-
+ Sources/TokenKuzat/UI/OverviewView.swift |   2 +-
+ Sources/TokenKuzat/UI/SettingsView.swift | 620 ++++++++++++++++---------------
+ VERSION                                  |   2 +-
+ 5 files changed, 338 insertions(+), 293 deletions(-)
+
+commit eba387900c75ae7fb6bd172e5bcde5b2d5fb60e0
+Author: Ali <ali@MacBook-Air-Ali.local>
+Date:   Fri Oct 30 05:17:26 2026 +0500
+
+    v6.61.0: notification modes — All, Important only, Silent
+    
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+ CHANGELOG.md                             |  4 ++++
+ Sources/TokenKuzat/Preferences.swift     | 35 ++++++++++++++++++++++++++++++++
+ Sources/TokenKuzat/UI/SettingsView.swift | 10 +++++++++
+ VERSION                                  |  2 +-
+ 4 files changed, 50 insertions(+), 1 deletion(-)
+
+commit dbd6a3d97e993ff087753c1084a572aae3aac634
+Author: Ali <ali@MacBook-Air-Ali.local>
+Date:   Fri Oct 30 05:16:30 2026 +0500
+
+    v6.60.0: menu panel shows limits right away while sessions load
+    
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+ CHANGELOG.md                          |  4 ++++
+ Sources/TokenKuzat/Store.swift        | 27 ++++++++++++++++++++-------
+ Sources/TokenKuzat/UI/MenuPanel.swift |  8 +++++++-
+ VERSION                               |  2 +-
+ 4 files changed, 32 insertions(+), 9 deletions(-)
+
+commit adb5e8d7caff40695fa47fddffd18964661a9939
+Author: Ali <ali@MacBook-Air-Ali.local>
+Date:   Fri Oct 30 05:03:32 2026 +0500
+
+    v6.59.0: in-app update — download, verify SHA-256, replace and relaunch
+    
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+ CHANGELOG.md                                 |   6 ++
+ README.md                                    |   4 +-
+ Sources/TokenKuzat/UI/MenuPanel.swift        |  14 ++-
+ Sources/TokenKuzat/UI/SettingsView.swift     |  23 ++++-
+ Sources/TokenKuzat/UpdateChecker.swift       | 123 ++++++++++++++++++++++++++-
+ Sources/TokenKuzatCore/Updates.swift         |  26 ++++--
+ Tests/TokenKuzatCoreTests/UpdatesTests.swift |  11 +++
+ VERSION                                      |   2 +-
+ 8 files changed, 196 insertions(+), 13 deletions(-)
+
+commit 4805b333d4bacdb9dc37b25e45da6ece8e9e0e62
+Author: Ali <ali@MacBook-Air-Ali.local>
+Date:   Fri Oct 30 04:51:38 2026 +0500
+
+    Release script: tests, DMG, tag and GitHub release in one command
+    
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+ README.md          |  1 +
+ scripts/publish.sh | 83 ++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 84 insertions(+)
+
+commit 42912f646f98e6f2ae005c31e6d748fc6ad33258
+Author: Ali <ali@MacBook-Air-Ali.local>
+Date:   Fri Oct 30 04:35:10 2026 +0500
+
+    v6.58.4: re-hand off a continued old session after +30K context instead of +100K
+    
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+ CHANGELOG.md                                     |  4 ++++
+ Sources/TokenKuzat/Alerts.swift                  |  4 ++--
+ Sources/TokenKuzatCore/AutoHandoff.swift         |  2 +-
+ Tests/TokenKuzatCoreTests/AutoHandoffTests.swift | 12 ++++++------
+ VERSION                                          |  2 +-
+ 5 files changed, 14 insertions(+), 10 deletions(-)
+
+commit c89b00b6bc8a981a65763c1d4f1ad092ccce7669
+Author: Ali <ali@MacBook-Air-Ali.local>
+Date:   Fri Oct 30 04:28:39 2026 +0500
+
+    v6.58.3: menu panel project list skips temporary folders
+    
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+ CHANGELOG.md                          | 4 ++++
+ Sources/TokenKuzat/UI/MenuPanel.swift | 5 ++++-
+ VERSION                               | 2 +-
+ 3 files changed, 9 insertions(+), 2 deletions(-)
+
+commit 860622d598e086c44f2cb6ccc6bdda1e5eb4e75f
+Author: Ali <ali@MacBook-Air-Ali.local>
+Date:   Fri Oct 30 04:07:08 2026 +0500
+
+    v6.58.2: subfolders of a git project join the parent project card
+    
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+ CHANGELOG.md                                      |  4 ++++
+ Sources/TokenKuzatCore/ProjectBoard.swift         | 21 ++++++++++++++++++---
+ Tests/TokenKuzatCoreTests/ProjectBoardTests.swift | 17 ++++++++++++++++-
+ VERSION                                           |  2 +-
+ 4 files changed, 39 insertions(+), 5 deletions(-)
+
+commit 69cf6afe67181272ab89ad8e92e526d9310a33f0
+Author: Ali <ali@MacBook-Air-Ali.local>
+Date:   Fri Oct 30 04:02:00 2026 +0500
+
+    v6.58.1: fresher project task names, no repeated project name, temp folders out of the sidebar, auto-resume from subfolders
+    
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+ CHANGELOG.md                                      |  7 +++++++
+ Sources/TokenKuzat/UI/MainWindow.swift            |  5 ++++-
+ Sources/TokenKuzatCore/AutoHandoff.swift          |  2 ++
+ Sources/TokenKuzatCore/ProjectBoard.swift         | 22 +++++++++++++++++++++-
+ Sources/TokenKuzatCore/Savings.swift              | 23 +++++++++++++++++++++--
+ Tests/TokenKuzatCoreTests/ProjectBoardTests.swift | 20 ++++++++++++++++++++
+ Tests/TokenKuzatCoreTests/SavingsTests.swift      | 15 +++++++++++++++
+ VERSION                                           |  2 +-
+ 8 files changed, 91 insertions(+), 5 deletions(-)
+
+commit a8d3aa81e51e5e30df81d4f12ca47f8ff63aeed7
+Author: Ali <ali@MacBook-Air-Ali.local>
+Date:   Fri Oct 30 03:54:37 2026 +0500
+
+    v6.58.0: Projects page (⌘7), resume button, auto-resume a closed session per project folder
+    
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+ CHANGELOG.md                                      |   7 +
+ Sources/TokenKuzat/App.swift                      |   2 +
+ Sources/TokenKuzat/AutoHandoff.swift              |   9 +-
+ Sources/TokenKuzat/Hooks.swift                    |   9 +-
+ Sources/TokenKuzat/Preferences.swift              |   3 +
+ Sources/TokenKuzat/Projects.swift                 |  74 +++++++++
+ Sources/TokenKuzat/Store.swift                    |   1 +
+ Sources/TokenKuzat/UI/MainWindow.swift            |   3 +
+ Sources/TokenKuzat/UI/MenuPanel.swift             |  32 ++++
+ Sources/TokenKuzat/UI/ProjectsView.swift          | 163 ++++++++++++++++++
+ Sources/TokenKuzat/UI/SettingsView.swift          |  20 +++
+ Sources/TokenKuzat/WindowManager.swift            |   4 +-
+ Sources/TokenKuzatCore/Engine.swift               |   4 +-
+ Sources/TokenKuzatCore/Models.swift               |   2 +
+ Sources/TokenKuzatCore/ProjectBoard.swift         | 193 ++++++++++++++++++++++
+ Sources/TokenKuzatCore/TranscriptParser.swift     |   3 +
+ Tests/TokenKuzatCoreTests/ProjectBoardTests.swift | 105 ++++++++++++
+ VERSION                                           |   2 +-
+ 18 files changed, 628 insertions(+), 8 deletions(-)
+
+commit 05f2e2e4ea49b18c5ff0ad5fdfdc91f9de78b9b6
+Author: Ali <ali@MacBook-Air-Ali.local>
+Date:   Fri Oct 30 02:32:46 2026 +0500
+
+    v6.57.0: close the old Terminal window once the work moves to a new Terminal session
+    
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+ CHANGELOG.md                                |   6 ++
+ Resources/Info.plist                        |   1 +
+ Sources/TokenKuzat/App.swift                |   1 +
+ Sources/TokenKuzat/AutoHandoff.swift        |   8 +-
+ Sources/TokenKuzat/FreeFallback.swift       |   2 +-
+ Sources/TokenKuzat/OldTerminal.swift        | 153 ++++++++++++++++++++++++++++
+ Sources/TokenKuzat/Preferences.swift        |   3 +
+ Sources/TokenKuzat/PromptRedirectHook.swift |   4 +-
+ Sources/TokenKuzat/StatusLine.swift         |   1 +
+ Sources/TokenKuzat/UI/SettingsView.swift    |   8 ++
+ VERSION                                     |   2 +-
+ 11 files changed, 183 insertions(+), 6 deletions(-)
+
+commit 14c548d3eeed301b15a91abfa9c262840029200e
+Author: Ali <ali@MacBook-Air-Ali.local>
+Date:   Fri Oct 30 02:16:59 2026 +0500
+
+    v6.56.0: free-model MCP calls no longer block other requests; distinct connect buttons; keep user CLAUDE_* vars in Terminal handoff; true start context in long sessions
+    
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+ CHANGELOG.md                                  |  9 +++++++++
+ README.md                                     |  2 +-
+ Sources/TokenKuzat/AutoHandoff.swift          |  8 ++++++--
+ Sources/TokenKuzat/MCPServer.swift            | 21 ++++++++++++++++-----
+ Sources/TokenKuzat/UI/FreeModelsSection.swift |  2 ++
+ Sources/TokenKuzat/UI/OverviewView.swift      |  4 ++--
+ Sources/TokenKuzat/UI/SettingsView.swift      |  4 ++--
+ Sources/TokenKuzatCore/Engine.swift           |  5 ++++-
+ Sources/TokenKuzatCore/Models.swift           |  2 ++
+ Sources/TokenKuzatCore/Replay.swift           |  2 +-
+ Sources/TokenKuzatCore/Savings.swift          |  2 +-
+ Tests/TokenKuzatCoreTests/SavingsTests.swift  | 13 +++++++++++--
+ VERSION                                       |  2 +-
+ skills/install/SKILL.md                       |  2 +-
+ 14 files changed, 59 insertions(+), 19 deletions(-)
+
+commit 82d73b888d9c49cd9586ba9faf0028f32f0f00fb
+Author: Ali <ali@MacBook-Air-Ali.local>
+Date:   Fri Oct 30 02:08:51 2026 +0500
+
+    v6.55.0: real context window from the status line; clearer redirect, limit and settings texts
+    
+    - Context window (200K/1M) comes from the status line's context_window_size
+      instead of a guess from the peak, so 1M sessions don't warn at 85%.
+    - Redirect reason says "press Enter" when the new session opens in the
+      Claude app (message only filled in), "sent" in Terminal.
+    - "Continue in Claude" only picks a free-model session active after the
+      limit ran out; tells the user when there is none.
+    - Rate-limit failure notice is no longer skipped when the "limit reached"
+      alert is turned off.
+    - Settings: no impossible threshold advice, 90 s refresh text, budget
+      limit clamped to 1...2000. Stale "Handoff summary" texts updated.
+    - Dollar amounts follow the UI language; handoff context follows the
+      conversation language; MCP instructions in English.
+    
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+ CHANGELOG.md                                       | 10 +++++++++
+ Sources/TokenKuzat/Alerts.swift                    | 24 ++++++++++++++--------
+ Sources/TokenKuzat/AutoHandoff.swift               |  3 ++-
+ Sources/TokenKuzat/FreeFallback.swift              |  8 +++++---
+ Sources/TokenKuzat/MCPServer.swift                 |  6 ++++--
+ Sources/TokenKuzat/PromptRedirectHook.swift        |  4 ++--
+ Sources/TokenKuzat/StatusLine.swift                |  2 +-
+ Sources/TokenKuzat/Store.swift                     |  4 +++-
+ Sources/TokenKuzat/UI/SessionParts.swift           |  2 +-
+ Sources/TokenKuzat/UI/SessionsView.swift           |  4 ++--
+ Sources/TokenKuzat/UI/SettingsView.swift           | 22 ++++++++++++++++----
+ Sources/TokenKuzatCore/Format.swift                |  6 ++++++
+ Sources/TokenKuzatCore/Handoff.swift               | 16 +++++++++++----
+ Sources/TokenKuzatCore/Models.swift                | 10 +++++++++
+ Sources/TokenKuzatCore/RateLimits.swift            | 12 +++++++++--
+ Sources/TokenKuzatCore/Redirect.swift              | 15 +++++++++-----
+ Sources/TokenKuzatCore/Savings.swift               |  4 ++--
+ Tests/TokenKuzatCoreTests/HandoffTests.swift       |  8 ++++++++
+ Tests/TokenKuzatCoreTests/RedirectTests.swift      | 10 +++++++++
+ .../TokenKuzatCoreTests/TokenKuzatCoreTests.swift  | 19 +++++++++++++++++
+ VERSION                                            |  2 +-
+ 21 files changed, 152 insertions(+), 39 deletions(-)
+
+commit a9a348abe789991227d33c9aafb748fc3ecce65a
+Author: Ali <ali@MacBook-Air-Ali.local>
+Date:   Fri Oct 30 01:58:53 2026 +0500
+
+    v6.54.0: hand off only after a finished turn; fix MCP/project-savings/alert edge cases
+    
+    - Auto handoff waits until Claude actually ends its turn (turnEnded), not
+      during long tool calls, thinking or an unanswered question.
+    - Terminal handoff uses a per-launch UUID file in new-sessions, deleted after
+      start, so back-to-back handoffs don't overwrite each other; reports a
+      missing claude binary instead of closing silently.
+    - MCP savings_report no longer records "applied" on another project when the
+      requested one isn't found; session_details returns an error for an unknown
+      id or project instead of another session.
+    - Project savings: "Hand to Claude" only copies the task; the fix date is set
+      by "Mark as applied" or by Claude via MCP (step 4 of the prompt).
+    - Don't announce the 5-hour reset when the weekly limit is also exhausted.
+    
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+ CHANGELOG.md                                     |  9 ++++++
+ Sources/TokenKuzat/Alerts.swift                  | 11 ++++++-
+ Sources/TokenKuzat/AutoHandoff.swift             | 25 ++++++++++++---
+ Sources/TokenKuzat/MCPServer.swift               | 41 ++++++++++++++++--------
+ Sources/TokenKuzat/UI/ProjectSavingsView.swift   | 17 ++++++++--
+ Sources/TokenKuzatCore/AutoHandoff.swift         |  9 ++++--
+ Sources/TokenKuzatCore/Engine.swift              |  8 ++++-
+ Sources/TokenKuzatCore/Models.swift              |  2 ++
+ Sources/TokenKuzatCore/ProjectSavings.swift      |  4 +++
+ Tests/TokenKuzatCoreTests/AutoHandoffTests.swift | 17 ++++++++++
+ VERSION                                          |  2 +-
+ 11 files changed, 117 insertions(+), 28 deletions(-)
+
+commit d11f05817b188051e296bc61163d4c788d069050
+Author: Ali <ali@MacBook-Air-Ali.local>
+Date:   Fri Oct 30 01:06:10 2026 +0500
+
+    v6.53.0: open the FreeLLMAPI Mac app in the background when it is closed
+    
+    Token Kuzatuv now starts FreeLLMAPI itself (open -g -b com.freellmapi.desktop)
+    on app launch, when ask_free_model can't connect (then retries once), when work
+    moves to a free model, and on the Settings check. Only for a gateway address on
+    this Mac.
+    
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+ CHANGELOG.md                                    |  4 ++
+ Sources/TokenKuzat/App.swift                    |  2 +
+ Sources/TokenKuzat/FreeFallback.swift           | 55 ++++++++++++++++++++++++-
+ Sources/TokenKuzat/MCPServer.swift              | 14 +++++--
+ Sources/TokenKuzat/UI/FreeModelsSection.swift   |  4 +-
+ Sources/TokenKuzatCore/FreeModels.swift         |  8 ++++
+ Tests/TokenKuzatCoreTests/FreeModelsTests.swift |  5 +++
+ VERSION                                         |  2 +-
+ 8 files changed, 86 insertions(+), 8 deletions(-)
+
+commit 5f15829e2005b55c45ced3a67bdcbc85e246eaf5
+Author: Ali <ali@MacBook-Air-Ali.local>
+Date:   Fri Oct 30 00:24:22 2026 +0500
+
+    v6.52.1: ask_free_model no longer returns a thinking model's reasoning as the answer; default FreeLLMAPI address is the Mac app
+    
+    - When a reasoning model (gpt-oss…) hits max_tokens, FreeLLMAPI copies the reasoning into content; detect it and return a clear "raise max_tokens" error, and flag answers cut off at the limit
+    - Default address http://127.0.0.1:31415 (FreeLLMAPI Mac app); Settings text no longer says Docker, points to the Unified API key, and notes Claude Code needs a large-context tool-calling model (Groq alone won't do)
+    
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+ CHANGELOG.md                                    |  5 +++++
+ Sources/TokenKuzat/MCPServer.swift              |  5 +++++
+ Sources/TokenKuzat/UI/FreeModelsSection.swift   | 12 ++++++++----
+ Sources/TokenKuzatCore/FreeModels.swift         | 22 +++++++++++++++++-----
+ Tests/TokenKuzatCoreTests/FreeModelsTests.swift | 21 +++++++++++++++++++++
+ VERSION                                         |  2 +-
+ 6 files changed, 57 insertions(+), 10 deletions(-)
+
+commit fb0aeae6132d27984f47de016816de4be7b7f278
+Author: Ali <ali@MacBook-Air-Ali.local>
+Date:   Thu Oct 29 23:50:31 2026 +0500
+
+    v6.52.0: free models via FreeLLMAPI — continue on a free model when the Claude limit runs out, ask_free_model MCP tool
+    
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+ CHANGELOG.md                                       |   8 ++
+ README.md                                          |   4 +-
+ Sources/TokenKuzat/Alerts.swift                    |  92 ++++++++++--
+ Sources/TokenKuzat/AutoHandoff.swift               |  14 +-
+ Sources/TokenKuzat/FreeFallback.swift              |  72 ++++++++++
+ Sources/TokenKuzat/MCPServer.swift                 |  55 ++++++-
+ Sources/TokenKuzat/Preferences.swift               |   3 +
+ Sources/TokenKuzat/UI/FreeModelsSection.swift      | 135 +++++++++++++++++
+ Sources/TokenKuzat/UI/SettingsView.swift           |   2 +
+ Sources/TokenKuzatCore/Engine.swift                |  14 +-
+ Sources/TokenKuzatCore/FreeModels.swift            | 159 +++++++++++++++++++++
+ Sources/TokenKuzatCore/Models.swift                |   2 +
+ Tests/TokenKuzatCoreTests/FreeModelsTests.swift    |  78 ++++++++++
+ .../TokenKuzatCoreTests/TokenKuzatCoreTests.swift  |  16 +++
+ VERSION                                            |   2 +-
+ 15 files changed, 631 insertions(+), 25 deletions(-)
+
+commit e77578e98db34cba024e5dc331d75b1d3fffa35b
+Author: Ali <ali@MacBook-Air-Ali.local>
+Date:   Thu Oct 29 23:32:48 2026 +0500
+
+    v6.51.0: warn in Settings when Claude Code auto-compacts below the handoff threshold
+    
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+ CHANGELOG.md                                       |  4 +++
+ Sources/TokenKuzat/UI/SettingsView.swift           | 14 ++++++++
+ Sources/TokenKuzatCore/AutoCompactWindow.swift     | 37 ++++++++++++++++++++++
+ .../AutoCompactWindowTests.swift                   | 21 ++++++++++++
+ VERSION                                            |  2 +-
+ 5 files changed, 77 insertions(+), 1 deletion(-)
+
+commit ada0d68233e3cc84395ca3b49d9a6c7c1a36a31b
+Author: Ali <ali@MacBook-Air-Ali.local>
+Date:   Thu Oct 29 23:28:04 2026 +0500
+
+    v6.50.0: notify when a subagent finishes while the main agent is still working
+    
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+ CHANGELOG.md                                       |  4 ++++
+ Sources/TokenKuzat/Alerts.swift                    |  6 +++++
+ Sources/TokenKuzatCore/ActivityMonitor.swift       | 21 +++++++++++++++++
+ .../TokenKuzatCoreTests/TokenKuzatCoreTests.swift  | 26 ++++++++++++++++++++++
+ VERSION                                            |  2 +-
+ 5 files changed, 58 insertions(+), 1 deletion(-)
+
+commit 9576dfd1d0b5b34ec0654b8a618829d2b3f5d6c1
+Author: Ali <ali@MacBook-Air-Ali.local>
+Date:   Thu Oct 29 23:24:32 2026 +0500
+
+    v6.49.0: heavy-start tip lists loaded CLAUDE.md and rules files via InstructionsLoaded hook
+    
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+ CHANGELOG.md                                  |  4 ++
+ Sources/TokenKuzat/Hooks.swift                | 10 +++--
+ Sources/TokenKuzatCore/InstructionFiles.swift | 62 +++++++++++++++++++++++++++
+ Sources/TokenKuzatCore/Savings.swift          | 14 ++++--
+ Tests/TokenKuzatCoreTests/SavingsTests.swift  | 33 ++++++++++++++
+ VERSION                                       |  2 +-
+ 6 files changed, 117 insertions(+), 8 deletions(-)
+
+commit 4d06a47414a05ae88c606377690cffc522739193
+Author: Ali <ali@MacBook-Air-Ali.local>
+Date:   Thu Oct 29 23:18:05 2026 +0500
+
+    v6.48.1: handoff note uses Markdown link definitions so the Claude app hides it
+    
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+ CHANGELOG.md                                     |  4 ++
+ Sources/TokenKuzatCore/HandoffNote.swift         | 65 +++++++++++++++++-------
+ Tests/TokenKuzatCoreTests/HandoffNoteTests.swift | 14 ++++-
+ VERSION                                          |  2 +-
+ 4 files changed, 65 insertions(+), 20 deletions(-)
+
+commit ed5aa478e882c28130d2ac1115ad29298599476f
+Author: Ali <ali@MacBook-Air-Ali.local>
+Date:   Thu Oct 29 23:10:24 2026 +0500
+
+    v6.48.0: handoff summary links earlier transcripts and carries open proposals
+    
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+ CHANGELOG.md                                 |  5 +++
+ Sources/TokenKuzatCore/HandoffNote.swift     |  8 +++--
+ Sources/TokenKuzatCore/Savings.swift         | 52 ++++++++++++++++++++++++++--
+ Tests/TokenKuzatCoreTests/SavingsTests.swift | 25 +++++++++++++
+ VERSION                                      |  2 +-
+ 5 files changed, 86 insertions(+), 6 deletions(-)
+
+commit 3ff241073f044b94272243824e28029e043d65ea
+Author: Ali <ali@MacBook-Air-Ali.local>
+Date:   Thu Oct 29 23:00:14 2026 +0500
+
+    v6.47.1: precomputed compaction summaries show as compacted on the Map
+    
+    - Claude Code can precompute the summary long before compacting, so the
+      summary line carries an earlier timestamp than its compact_boundary. The
+      continuation turn now starts at the boundary that precedes it in the file,
+      so the Map card says "Auto-compacted" with the context change and sits in
+      the right place; steps in between stay with the previous prompt.
+    
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+ CHANGELOG.md                                      |  4 ++++
+ Sources/TokenKuzatCore/Engine.swift               | 21 +++++++++++++-----
+ Tests/TokenKuzatCoreTests/CompactGuardTests.swift | 27 +++++++++++++++++++++++
+ VERSION                                           |  2 +-
+ 4 files changed, 48 insertions(+), 6 deletions(-)
+
+commit ff6e6aa262bb055129880826df46b451f3387487
+Author: Ali <ali@MacBook-Air-Ali.local>
+Date:   Thu Oct 29 22:45:09 2026 +0500
+
+    v6.47.0: compaction shown on the Map, auto-compact no longer defeats auto handoff
+    
+    - Transcript compact_boundary lines are parsed; continuation cards on the Map
+      say whether Claude Code auto-compacted or /compact was used, with the
+      context change (968K -> 36K).
+    - A PreCompact hook (matcher "auto") blocks auto-compaction once in a large
+      session that auto handoff is still waiting on; when the reply ends the work
+      moves to a new session even below the threshold. /compact, idle compaction,
+      the second attempt and the app-not-running case are never blocked.
+    
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+ CHANGELOG.md                                      |  5 ++
+ Sources/TokenKuzat/Alerts.swift                   | 30 +++++++-
+ Sources/TokenKuzat/App.swift                      |  1 +
+ Sources/TokenKuzat/PreCompactHook.swift           | 83 +++++++++++++++++++++++
+ Sources/TokenKuzat/UI/SessionMap.swift            | 32 +++++++--
+ Sources/TokenKuzat/UI/SettingsView.swift          |  4 +-
+ Sources/TokenKuzatCore/AutoHandoff.swift          |  8 ++-
+ Sources/TokenKuzatCore/CompactGuard.swift         | 82 ++++++++++++++++++++++
+ Sources/TokenKuzatCore/Engine.swift               | 21 +++++-
+ Sources/TokenKuzatCore/Models.swift               | 24 ++++++-
+ Sources/TokenKuzatCore/TranscriptParser.swift     |  6 ++
+ Tests/TokenKuzatCoreTests/CompactGuardTests.swift | 75 ++++++++++++++++++++
+ VERSION                                           |  2 +-
+ 13 files changed, 358 insertions(+), 15 deletions(-)
+
+commit 9a86b787f180baaca971bc8e32a0b67386320269
+Author: Ali <ali@MacBook-Air-Ali.local>
+Date:   Thu Oct 29 22:35:15 2026 +0500
+
+    v6.46.0: measured cache waste, weekly cache metric, exact limit and API error alerts
+    
+    - The Savings page's cache cause counts real cold-cache calls: the break
+      outlasted that call's cache TTL and the next call rewrote the old context
+      instead of reading it. Compacts are skipped, only the old context counts,
+      priced as write minus read (1-hour cache costs more), limited to the period.
+    - Weekly metric: a "Cache rewritten after going cold · 7 days" card with this
+      week vs the previous 7 days. Daily totals go into project-savings.json
+      (cacheDays), backfilled from the sessions in memory.
+    - At 100% of a Claude limit: a "limit reached, resets at ..." notification and
+      a pre-scheduled "limit reset" one at the reset time.
+    - StopFailure hook: when a reply ends on an API error, a notification names
+      the session and the cause (rate limit with reset time from account limits,
+      overloaded, sign-in, billing, output too long). The notify hook now covers
+      Notification and StopFailure; existing installs are upgraded on launch.
+    
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+ CHANGELOG.md                                       |  7 ++
+ Sources/TokenKuzat/Alerts.swift                    | 70 +++++++++++++++++++-
+ Sources/TokenKuzat/App.swift                       |  2 +
+ Sources/TokenKuzat/Hooks.swift                     | 32 ++++++---
+ Sources/TokenKuzat/Store.swift                     |  5 +-
+ Sources/TokenKuzat/UI/ProjectSavingsView.swift     | 45 +++++++++++++
+ Sources/TokenKuzatCore/HookEvents.swift            | 21 +++++-
+ Sources/TokenKuzatCore/Models.swift                |  2 +
+ Sources/TokenKuzatCore/ProjectSavings.swift        | 43 +++++++++---
+ Sources/TokenKuzatCore/ProjectSavingsHistory.swift | 45 ++++++++++++-
+ Sources/TokenKuzatCore/Savings.swift               | 76 +++++++++++++++++-----
+ Tests/TokenKuzatCoreTests/HookEventsTests.swift    | 13 ++++
+ .../TokenKuzatCoreTests/ProjectSavingsTests.swift  | 24 +++++++
+ Tests/TokenKuzatCoreTests/SavingsTests.swift       | 27 ++++++++
+ VERSION                                            |  2 +-
+ 15 files changed, 373 insertions(+), 41 deletions(-)
+
+commit 248b32ebf8339cfb623ea763ee71cadfd6869113
+Author: Ali <ali@MacBook-Air-Ali.local>
+Date:   Thu Oct 29 22:20:54 2026 +0500
+
+    v6.45.0: prompt cache countdown and a warning before it goes cold
+    
+    - The menu panel's "Now" card shows, once Claude has answered, how long
+      until the prompt cache expires; it turns yellow near the end and reads
+      "cache cold" after. The tooltip says how much context the next prompt
+      would rewrite and how much more that costs.
+    - The TTL (5 min or 1 h) comes from the transcript's last cache write, so
+      it works for Claude app sessions too, where the status line never runs.
+      Logic lives in TokenKuzatCore/CacheClock.swift with tests.
+    - A notification is scheduled ahead (1 min before a 5-minute cache,
+      5 min before a 1-hour one), cancelled when you write, skipped for
+      sessions that were handed off. Settings has a toggle, on by default.
+    - The card's bottom row no longer truncates: context shows just the
+      percentage, with details in a tooltip.
+    
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+ CHANGELOG.md                                    |  6 +++
+ Sources/TokenKuzat/Alerts.swift                 | 47 +++++++++++++++++++++--
+ Sources/TokenKuzat/Preferences.swift            |  3 ++
+ Sources/TokenKuzat/UI/MenuPanel.swift           | 29 ++++++++++++--
+ Sources/TokenKuzat/UI/SettingsView.swift        |  2 +
+ Sources/TokenKuzatCore/CacheClock.swift         | 41 ++++++++++++++++++++
+ Tests/TokenKuzatCoreTests/CacheClockTests.swift | 51 +++++++++++++++++++++++++
+ VERSION                                         |  2 +-
+ 8 files changed, 173 insertions(+), 8 deletions(-)
+
+commit 62d879b6afe8065373a0325bb6a10a1fcda87488
+Author: Ali <ali@MacBook-Air-Ali.local>
+Date:   Thu Oct 29 21:56:49 2026 +0500
+
+    v6.44.0: Claude writes its own handoff note before the context limit
+    
+    - When a session's context is within 15% (at least 20K) of the auto-handoff
+      threshold, the app lists it in handoff-note-wanted.json; the
+      UserPromptSubmit hook then asks Claude to end its reply with a hidden
+      <!-- tk-handoff --> note (task, done, remaining, pending decision,
+      important), in the conversation's language.
+    - The handoff summary leads with that note and takes the session title
+      from its "Task:" line; only the last prompt's reply counts. Without a
+      note the mechanical summary is used as before.
+    - The hook script exits without starting the app unless a redirect or a
+      note request file exists. Turning off redirect now only clears pending
+      redirects; turning off auto handoff removes the hook.
+    - CHANGELOG also covers the two unversioned handoff commits before this.
+    
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+ CHANGELOG.md                                     |  7 ++
+ Sources/TokenKuzat/Alerts.swift                  | 27 ++++++-
+ Sources/TokenKuzat/PromptRedirectHook.swift      | 21 +++--
+ Sources/TokenKuzat/UI/SettingsView.swift         |  4 +-
+ Sources/TokenKuzatCore/HandoffNote.swift         | 99 ++++++++++++++++++++++++
+ Sources/TokenKuzatCore/Savings.swift             | 37 +++++++--
+ Sources/TokenKuzatCore/TranscriptParser.swift    |  3 +-
+ Tests/TokenKuzatCoreTests/HandoffNoteTests.swift | 41 ++++++++++
+ Tests/TokenKuzatCoreTests/SavingsTests.swift     | 12 +++
+ VERSION                                          |  2 +-
+ 10 files changed, 235 insertions(+), 18 deletions(-)
+
+commit 184b7166d5e2a14e0b1ac0d9e043e859c689dd8e
+Author: Ali <ali@MacBook-Air-Ali.local>
+Date:   Thu Oct 29 21:51:08 2026 +0500
+
+    Handoff summary keeps what matters: reply ending, pending decision, full last prompts
+    
+    - Long replies keep their head and tail when parsed, and the summary takes the ending at a sentence boundary
+    - A question left for the user (closing ask, AskUserQuestion, or a trailing "?") gets its own line
+    - The last two prompts go in full instead of their first 160 characters
+    - Scratchpad and /tmp files no longer appear in the changed-files list
+    
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+ Sources/TokenKuzatCore/Engine.swift           | 11 +++--
+ Sources/TokenKuzatCore/Models.swift           |  7 ++-
+ Sources/TokenKuzatCore/Replay.swift           |  2 +-
+ Sources/TokenKuzatCore/Savings.swift          | 71 +++++++++++++++++++++++++--
+ Sources/TokenKuzatCore/TranscriptParser.swift | 11 ++++-
+ Tests/TokenKuzatCoreTests/SavingsTests.swift  | 52 ++++++++++++++++++--
+ 6 files changed, 137 insertions(+), 17 deletions(-)
+
+commit 301d80b4d6f83cc7f4da60acff759df35ed443c2
+Author: Ali <ali@MacBook-Air-Ali.local>
+Date:   Thu Oct 29 21:46:51 2026 +0500
+
+    Handoff: project and task in the first line, cleaner task list, open in the project folder
+    
+    - The new session's first message starts with "↪ Project — task", so the Claude app names the session after it
+    - Previous handoff messages, bare links and short replies drop out of the task list (the last one stays)
+    - A session that ran in a scratch folder hands off into the git repo it wrote files to
+    
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+ Sources/TokenKuzat/Alerts.swift                  |  3 +-
+ Sources/TokenKuzat/AutoHandoff.swift             | 10 ++--
+ Sources/TokenKuzatCore/AutoHandoff.swift         | 36 +++++++++++++--
+ Sources/TokenKuzatCore/Redirect.swift            | 13 ++++--
+ Sources/TokenKuzatCore/Savings.swift             | 59 ++++++++++++++++++++++--
+ Tests/TokenKuzatCoreTests/AutoHandoffTests.swift | 11 +++++
+ Tests/TokenKuzatCoreTests/RedirectTests.swift    |  6 +++
+ Tests/TokenKuzatCoreTests/SavingsTests.swift     | 58 +++++++++++++++++++++++
+ 8 files changed, 178 insertions(+), 18 deletions(-)
+
+commit 02cea0103c52d385a5a56ba363be5c2c22be9d95
+Author: Ali <ali@MacBook-Air-Ali.local>
+Date:   Thu Oct 29 21:24:23 2026 +0500
+
+    v6.43.0: Office pane in Claude Code through the plugin
+    
+    - The tokenkuzat plugin now ships a hooks module (hooks/register.tsx,
+      hooks/scene.ts) that opens an «Ofis» pane beside the chat: the session's
+      agent and its helpers are robots whose pose follows real state (tool on
+      the monitor, «…» thinking, waving for permission, «x x» on error, coffee
+      when idle, «z z» after 5 minutes).
+    - A helper takes a free desk (6 desks) and gets a task card from the main
+      agent; a «✓» card flies back when it finishes.
+    - Opens on session start; /ofis reopens it. Terminals get the list only.
+    - types/index.d.ts declares the pane's state; hooks/office.test.tsx covers
+      spawn, terminal fallback and the permission/rest states.
+    - README (uz/en) describes the pane.
+    
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+ .claude-plugin/plugin.json |   3 +-
+ CHANGELOG.md               |   6 +
+ README.md                  |   4 +
+ VERSION                    |   2 +-
+ hooks/hooks.json           |   1 +
+ hooks/office.test.tsx      |  87 ++++++++++++
+ hooks/register.tsx         | 200 +++++++++++++++++++++++++++
+ hooks/scene.ts             | 335 +++++++++++++++++++++++++++++++++++++++++++++
+ types/index.d.ts           |  25 ++++
+ 9 files changed, 661 insertions(+), 2 deletions(-)
+
+commit 794f48c1af8a3474fd48211c81f72f9f28f5188c
+Author: Ali <ali@MacBook-Air-Ali.local>
+Date:   Thu Oct 29 21:24:03 2026 +0500
+
+    v6.42.1: Window no longer freezes on launch
+    
+    - The auto-handoff summary reads git state (git log, git status) in the
+      background, so the window answers at once and the project list shows.
+    - A slow or hung git is stopped after 3 seconds; the summary is written
+      without its git lines.
+    - «Continue in a new session» no longer blocks the window either.
+    
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+ CHANGELOG.md                                  |  4 +++
+ Sources/TokenKuzat/Alerts.swift               | 44 +++++++++++++++------------
+ Sources/TokenKuzat/AutoHandoff.swift          | 18 ++++++++---
+ Sources/TokenKuzat/UI/SavingsView.swift       | 17 ++++++-----
+ Sources/TokenKuzatCore/GitState.swift         | 31 ++++++++++++++++---
+ Tests/TokenKuzatCoreTests/GitStateTests.swift | 36 ++++++++++++++++++++++
+ VERSION                                       |  2 +-
+ 7 files changed, 116 insertions(+), 36 deletions(-)
+
+commit 7a6d17a0b91a7c51775b8dde14880ffb9f5ccc75
+Author: Ali <ali@MacBook-Air-Ali.local>
+Date:   Thu Oct 29 20:49:04 2026 +0500
+
+    v6.42.0: Office page — projects as rooms, agents as robots in 3D
+    
+    - New «Ofis» section (⌘6): a SceneKit building with up to 6 project rooms;
+      empty slots become small gardens.
+    - Every robot pose comes from real state: working at the desk (tool icon on
+      the monitor), thinking («…»), waiting for permission (stands and waves,
+      yellow room outline), error (turns away, sad eyes), idle (coffee on the
+      sofa), sleeping («z z»). Face-screen eyes change with state and blink.
+    - Robots walk to their own desk or sofa seat when state changes; idle ones
+      sometimes wander to the shelf, window or plant. Extra robots sit at free
+      desks or on the floor.
+    - The main agent wears a headset, points at a helper and flies it a task
+      card when the helper starts; the helper hops and sends a «✓ Done» card back.
+    - A watcher drone patrols and shines a beam on robots needing attention;
+      clicking it lists those rooms.
+    - Click a robot to open its session map; room chips focus the camera,
+      «Butun ofis» resets it. Drag to orbit, pinch or wheel to zoom.
+    - Sky and room lights follow the clock; still in Reduce Motion / light mode;
+      rendering pauses when the window is hidden.
+    
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+ CHANGELOG.md                                   |   8 +
+ README.md                                      |   1 +
+ Sources/TokenKuzat/UI/MainWindow.swift         |   3 +
+ Sources/TokenKuzat/UI/Office/OfficeArt.swift   | 328 +++++++++++++++++
+ Sources/TokenKuzat/UI/Office/OfficeBot.swift   | 328 +++++++++++++++++
+ Sources/TokenKuzat/UI/Office/OfficeModel.swift | 139 +++++++
+ Sources/TokenKuzat/UI/Office/OfficeScene.swift | 378 +++++++++++++++++++
+ Sources/TokenKuzat/UI/Office/OfficeView.swift  | 242 ++++++++++++
+ Sources/TokenKuzat/UI/Office/OfficeWorld.swift | 492 +++++++++++++++++++++++++
+ Sources/TokenKuzat/WindowManager.swift         |   4 +-
+ VERSION                                        |   2 +-
+ 11 files changed, 1923 insertions(+), 2 deletions(-)
+
+commit 4e48b9d5ac9c55a1af913d0b04ca63196fe16b2c
+Author: Ali <ali@MacBook-Air-Ali.local>
+Date:   Thu Oct 29 20:11:30 2026 +0500
+
+    Design: office prototype with living agent robots
+    
+    - design/ofis-prototype.html: an office view where each agent is a robot
+      whose behavior comes only from real session state.
+    - Face-screen emotions per state: working (focused, typing), thinking
+      (looks up, hand on chin), waiting for permission (stands, waves at you),
+      error (turns away, sad eyes), idle (happy eyes, coffee), sleeping (z z).
+    - Robots walk between their own desk and sofa seat instead of jumping;
+      idle robots occasionally wander to the bookshelf, window or plant.
+    - Lead bot wears a headset and points at helpers (Explore, Plan) as it
+      hands them tasks, with a "→ Explore" bubble.
+    
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+ design/ofis-prototype.html | 1498 ++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 1498 insertions(+)
+
+commit f89403cbe7b28383c8f7e06882923e76e91dd7f6
+Author: Ali <ali@MacBook-Air-Ali.local>
+Date:   Thu Oct 29 19:23:35 2026 +0500
+
+    v6.41.0: Context bar on the token card
+    
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+ CHANGELOG.md                            |  4 ++++
+ Sources/TokenKuzat/UI/FlowCanvas.swift  | 32 +++++++++++++++++++++++++++++++-
+ Sources/TokenKuzat/UI/GraphScreen.swift |  2 +-
+ VERSION                                 |  2 +-
+ 4 files changed, 37 insertions(+), 3 deletions(-)
+
+commit 8cede895cf1c2f2ff4ce12e1e6a5b8b5ad6cd23f
+Author: Ali <ali@MacBook-Air-Ali.local>
+Date:   Thu Oct 29 19:14:53 2026 +0500
+
+    v6.40.0: Show the token card on the Map canvas too
+    
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+ CHANGELOG.md                            |  4 ++++
+ Sources/TokenKuzat/UI/FlowCanvas.swift  | 11 ++++++-----
+ Sources/TokenKuzat/UI/GraphScreen.swift |  5 +++++
+ VERSION                                 |  2 +-
+ 4 files changed, 16 insertions(+), 6 deletions(-)
+
+commit 5a7ab385935fd5d9658af0a96cab56c216c6ed30
+Author: Ali <ali@MacBook-Air-Ali.local>
+Date:   Thu Oct 29 19:09:43 2026 +0500
+
+    v6.39.1: Align Summary token card with the Map/Summary tabs
+    
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+ CHANGELOG.md                           |  4 ++++
+ Sources/TokenKuzat/UI/FlowCanvas.swift | 26 +++++++++++++++-----------
+ VERSION                                |  2 +-
+ 3 files changed, 20 insertions(+), 12 deletions(-)
+
+commit 2bec028ba2570f2e0ac14bbe413492cd65697da3
+Author: Ali <ali@Mac.lan>
+Date:   Thu Oct 29 18:43:32 2026 +0500
+
+    v6.39.0: Apple-style glass token card on the Summary canvas
+    
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+ CHANGELOG.md                             |  4 ++
+ Sources/TokenKuzat/UI/DesignSystem.swift | 13 ++++++
+ Sources/TokenKuzat/UI/FlowCanvas.swift   | 76 ++++++++++++++++++++++++++------
+ VERSION                                  |  2 +-
+ 4 files changed, 80 insertions(+), 15 deletions(-)
+
+commit 31b19942c113d9ee49a23165d55d664f8f5ad438
+Author: Ali <ali@Mac.lan>
+Date:   Thu Oct 29 18:38:02 2026 +0500
+
+    v6.38.0: Summary canvas shows the agent's tokens in the top-left corner
+    
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+ CHANGELOG.md                           |  4 +++
+ Sources/TokenKuzat/UI/FlowCanvas.swift | 45 ++++++++++++++++++++++++++++++++++
+ VERSION                                |  2 +-
+ 3 files changed, 50 insertions(+), 1 deletion(-)
+
+commit 1a6fe43fe4dc6c50c3c246ab816c853ca4e9f4f5
+Author: Ali <ali@Mac.lan>
+Date:   Thu Oct 29 18:30:56 2026 +0500
+
+    v6.37.1: readable status colors and an honest pace line
+    
+    - Light-mode warn/err/ok darkened to reach 4.5:1 on white and gray
+    - Context label in the menu panel keeps its full warn color
+    - Ink glow softened and dark ink2 deepened so corner text stays >= 4.5:1
+    - Above 75% the pace line shows the used share instead of a green "fine"
+    
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+ CHANGELOG.md                             |  6 ++++++
+ Sources/TokenKuzat/UI/DesignSystem.swift | 16 +++++++++-------
+ Sources/TokenKuzat/UI/MenuPanel.swift    | 12 ++++++++----
+ Sources/TokenKuzat/UI/OverviewView.swift |  3 +++
+ Sources/TokenKuzat/UI/Theme.swift        | 13 +++++++++++++
+ VERSION                                  |  2 +-
+ 6 files changed, 40 insertions(+), 12 deletions(-)
+
+commit 202077bb19b49203ee72635d359ff659386a5e19
+Author: Ali <ali@Mac.lan>
+Date:   Thu Oct 29 18:01:36 2026 +0500
+
+    v6.37.0: one palette and meaningful gradients
+    
+    - All colors come from design-system tokens; no macOS system colors
+      (.purple .teal .green .red .accentColor ...) remain, so the Mac accent
+      color no longer changes the app.
+    - Token types: main slice (re-read context) in brand violet, then teal,
+      orchid, orange and blue; sub-agents moved to the end of the session bar.
+    - One limit rule (Palette.limit): violet below 75%, yellow 75-89%, red
+      90%+, used by sidebar, Settings, Today card, menu panel and limit row.
+    - Limit bars and rings show the full scale dimmed underneath; the fill
+      reveals it up to the current percent, with round caps drawn separately.
+    - Ink cards (menu panel, Today): diagonal gradient with a violet glow.
+    - Design mockups: design/a1-palette.html, design/a1b-gradient.html.
+    
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+ CHANGELOG.md                                   |   8 +
+ Sources/TokenKuzat/UI/Charts.swift             |   6 +-
+ Sources/TokenKuzat/UI/DesignSystem.swift       |  34 +++-
+ Sources/TokenKuzat/UI/FileHeatmap.swift        |  16 +-
+ Sources/TokenKuzat/UI/FlowCanvas.swift         |  18 +--
+ Sources/TokenKuzat/UI/GraphScreen.swift        |  14 +-
+ Sources/TokenKuzat/UI/HistoryView.swift        |   6 +-
+ Sources/TokenKuzat/UI/MainWindow.swift         |  12 +-
+ Sources/TokenKuzat/UI/MenuPanel.swift          |  14 +-
+ Sources/TokenKuzat/UI/OverviewView.swift       |  12 +-
+ Sources/TokenKuzat/UI/ProjectSavingsView.swift |   4 +-
+ Sources/TokenKuzat/UI/ReplayBar.swift          |   4 +-
+ Sources/TokenKuzat/UI/SessionsView.swift       |   4 +-
+ Sources/TokenKuzat/UI/SettingsView.swift       |  20 +--
+ Sources/TokenKuzat/UI/Theme.swift              | 114 +++++++++----
+ VERSION                                        |   2 +-
+ design/a1-palette.html                         | 139 ++++++++++++++++
+ design/a1b-gradient.html                       | 211 +++++++++++++++++++++++++
+ 18 files changed, 536 insertions(+), 102 deletions(-)
+
+commit 0fe3dc79f1893edb8ecab29a883ba03587536f28
+Author: Ali <ali@Mac.lan>
+Date:   Thu Oct 29 17:47:50 2026 +0500
+
+    v6.36.0: Summary graph shows each agent's tokens for the prompt
+    
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+ CHANGELOG.md                           |  4 ++++
+ Sources/TokenKuzat/UI/FlowCanvas.swift | 33 ++++++++++++++++++++++++++-------
+ VERSION                                |  2 +-
+ 3 files changed, 31 insertions(+), 8 deletions(-)
+
+commit 5061362197398873c46f6ceb43cc193f5581bee6
+Author: Ali <ali@Mac.lan>
+Date:   Thu Oct 29 17:36:06 2026 +0500
+
+    v6.35.0: plain words — 5-hour limit, one name per token type, human tool names
+    
+    - "Session" now means only a conversation: the 5-hour window is
+      "5-hour limit" everywhere (limit cards, menu panel, outside split).
+    - Token types use one set of plain names in charts, legends and the
+      History table (Composition.Label); "weighted tokens" -> "tokens (by price)".
+    - Savings: legend for the waste/useful bar, full-sentence caption,
+      "Save ~X per reply" chip.
+    - Known MCP tools described in plain words (computer-use, browser,
+      Claude app tools, ToolSearch); server titles in the session map.
+    - 5-hour pace warning names the reset time and is skipped when the limit
+      would run out less than 10 minutes before reset.
+    
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+ CHANGELOG.md                                       |  9 ++++
+ Sources/TokenKuzat/Alerts.swift                    |  4 +-
+ Sources/TokenKuzat/UI/Charts.swift                 | 40 ++++++++------
+ Sources/TokenKuzat/UI/GraphScreen.swift            |  2 +-
+ Sources/TokenKuzat/UI/HistoryView.swift            |  4 +-
+ Sources/TokenKuzat/UI/MenuPanel.swift              |  6 +--
+ Sources/TokenKuzat/UI/OutsideSplit.swift           |  4 +-
+ Sources/TokenKuzat/UI/OverviewView.swift           |  6 +--
+ Sources/TokenKuzat/UI/ProjectSavingsView.swift     | 20 +++++--
+ Sources/TokenKuzat/UI/SavingsView.swift            |  6 +--
+ Sources/TokenKuzat/UI/SessionsView.swift           |  2 +-
+ Sources/TokenKuzat/UI/SettingsView.swift           |  4 +-
+ Sources/TokenKuzat/UI/Theme.swift                  |  6 +++
+ Sources/TokenKuzatCore/RateLimits.swift            |  5 +-
+ Sources/TokenKuzatCore/ToolDescriber.swift         | 61 ++++++++++++++++++++--
+ .../TokenKuzatCoreTests/TokenKuzatCoreTests.swift  |  9 ++++
+ VERSION                                            |  2 +-
+ 17 files changed, 146 insertions(+), 44 deletions(-)
+
+commit 4b21db4bed7665c43de6dba3d1ec339fb4cfd546
+Author: Ali <ali@Mac.lan>
+Date:   Thu Oct 29 17:25:57 2026 +0500
+
+    v6.34.0: audit quick wins — settings rows, one status noun, history range
+    
+    - Settings: long-caption toggles overlapped the row above (Form sized them
+      as one line); render them as plain rows with a one-line caption, full
+      text in the tooltip.
+    - Light mode -> Reduce motion; short Counting labels, drop old Weighted term.
+    - Pill, sidebar, Live badge and menu panel all count running sessions
+      (new Snapshot.runningSessions); agent count moves to the tooltip.
+    - History defaults to the shortest range that covers collected data and
+      says since when history is collected.
+    - Today Now card: label the timer as the current step.
+    
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+ CHANGELOG.md                             |  9 +++++++
+ Sources/TokenKuzat/UI/HistoryView.swift  | 25 +++++++++++++++--
+ Sources/TokenKuzat/UI/MainWindow.swift   |  8 +++---
+ Sources/TokenKuzat/UI/MenuPanel.swift    |  2 +-
+ Sources/TokenKuzat/UI/OverviewView.swift |  4 +++
+ Sources/TokenKuzat/UI/SettingsView.swift | 46 +++++++++++++++++++++-----------
+ Sources/TokenKuzat/UI/Theme.swift        |  8 ++++--
+ Sources/TokenKuzatCore/Engine.swift      |  1 +
+ Sources/TokenKuzatCore/Models.swift      |  2 ++
+ VERSION                                  |  2 +-
+ 10 files changed, 81 insertions(+), 26 deletions(-)
+
+commit 3b0d5ee5ceca5acf893903e68ba0e0ab855baa9f
+Author: Ali <ali@Mac.lan>
+Date:   Thu Oct 29 17:16:08 2026 +0500
+
+    v6.33.1: clean page switches, no overlapping pages
+    
+    The detail page was swapped inside the nav button's spring animation, so
+    SwiftUI kept the old page on screen until the animation settled and both
+    pages showed on top of each other. Mirror the section into a page state
+    without animation and fade the new page in on appear instead.
+    
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+ CHANGELOG.md                           |  4 ++++
+ Sources/TokenKuzat/UI/MainWindow.swift | 38 ++++++++++++++++++++++++----------
+ VERSION                                |  2 +-
+ 3 files changed, 32 insertions(+), 12 deletions(-)
+
+commit 2ec91b00c6dff7653bf7aa0c787d48066f6b5804
+Author: Ali <ali@Mac.lan>
+Date:   Thu Oct 29 17:12:51 2026 +0500
+
+    v6.33.0: status pill opens the Live page
+    
+    The Live · N agents pill in the page header is now a button that switches
+    to the Live section; on Live itself it stays inert. Tooltip says so.
+    
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+ CHANGELOG.md                           |  4 ++++
+ Sources/TokenKuzat/UI/MainWindow.swift | 10 +++++++++-
+ Sources/TokenKuzat/UI/Theme.swift      | 10 ++++++++--
+ VERSION                                |  2 +-
+ 4 files changed, 22 insertions(+), 4 deletions(-)
+
+commit 1f3d544e7334e050714ceb3f0becec060317ffaa
+Author: Ali <ali@Mac.lan>
+Date:   Thu Oct 29 17:09:02 2026 +0500
+
+    v6.32.1: stop UI language flicker from handoff summaries
+    
+    GitState waited with waitUntilExit(), which spins the run loop, so on the
+    main thread SwiftUI redrew inside Lang.with and showed the conversation
+    language (e.g. Jonli · 2 agent). Wait on a semaphore instead, keep the
+    language override thread-local, and register By cost as the default count mode.
+    
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+ CHANGELOG.md                                      |  4 ++++
+ Sources/TokenKuzat/Preferences.swift              |  2 +-
+ Sources/TokenKuzatCore/GitState.swift             |  5 ++++-
+ Sources/TokenKuzatCore/Localization.swift         | 18 ++++++++++++------
+ Tests/TokenKuzatCoreTests/LocalizationTests.swift | 18 ++++++++++++++++++
+ VERSION                                           |  2 +-
+ 6 files changed, 40 insertions(+), 9 deletions(-)
+
+commit 7c8088b825d33b49bb978bea9d71d7e4652dc58b
+Author: Ali <ali@Mac.lan>
+Date:   Thu Oct 29 17:05:12 2026 +0500
+
+    v6.32.0: Sessions — continuation titles, Working label, day groups
+    
+    Handed-off sessions take their title from the last meaningful task in the
+    summary, running sessions say Working next to the name, empty subagent
+    chip and lone main-agent row are hidden, count modes are named
+    Token count / By cost (By cost by default), recent list is grouped by day.
+    
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+ CHANGELOG.md                                     |  8 ++++
+ Sources/TokenKuzat/App.swift                     |  2 +-
+ Sources/TokenKuzat/UI/GraphScreen.swift          |  2 +-
+ Sources/TokenKuzat/UI/HistoryView.swift          |  2 +-
+ Sources/TokenKuzat/UI/MenuPanel.swift            |  2 +-
+ Sources/TokenKuzat/UI/OverviewView.swift         |  2 +-
+ Sources/TokenKuzat/UI/ProjectSavingsView.swift   |  2 +-
+ Sources/TokenKuzat/UI/SessionsView.swift         | 59 ++++++++++++++++++------
+ Sources/TokenKuzat/UI/SettingsView.swift         |  6 +--
+ Sources/TokenKuzat/UI/Theme.swift                |  4 +-
+ Sources/TokenKuzatCore/AutoHandoff.swift         | 19 ++++++++
+ Sources/TokenKuzatCore/Engine.swift              |  6 ++-
+ Sources/TokenKuzatCore/TokenCounts.swift         |  4 +-
+ Tests/TokenKuzatCoreTests/AutoHandoffTests.swift |  8 ++++
+ VERSION                                          |  2 +-
+ 15 files changed, 99 insertions(+), 29 deletions(-)
+
+commit 38a4724a01d6dc60dd5f0a5a72cd9023fab0b2e2
+Author: Ali <ali@Mac.lan>
+Date:   Thu Oct 29 17:01:31 2026 +0500
+
+    v6.31.0: Sessions readable for first-time users
+    
+    Headline shows share of the 5-hour limit, collapsed bar compares session
+    size, sort by most expensive, plain-language breakdown with inline hints,
+    one insight line per expanded session.
+    
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+ CHANGELOG.md                             |  8 +++
+ Sources/TokenKuzat/UI/Charts.swift       | 30 +++++++++--
+ Sources/TokenKuzat/UI/SessionsView.swift | 90 +++++++++++++++++++++++++++++---
+ VERSION                                  |  2 +-
+ 4 files changed, 119 insertions(+), 11 deletions(-)
+
+commit 4cacd3d7d4d54e785d9e6d959390e2fdd99a8a1e
+Author: Ali <ali@Mac.lan>
+Date:   Thu Oct 29 16:56:52 2026 +0500
+
+    v6.30.1: equal-height Live cards per row, footers aligned
+    
+    Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+ CHANGELOG.md                         |  4 +++
+ Sources/TokenKuzat/UI/LiveView.swift | 54 ++++++++++++++++++++++++++++++------
+ VERSION                              |  2 +-
+ 3 files changed, 51 insertions(+), 9 deletions(-)
+
+commit 0d0fba5f19bb8eb26d1aa925dc423ab1cd24ddcd
+Author: Ali <ali@Mac.lan>
+Date:   Thu Oct 29 16:51:46 2026 +0500
+
+    v6.30.0: re-handoff when an old session grows another 100K
+
+ CHANGELOG.md                                     |  4 ++++
+ Sources/TokenKuzat/Alerts.swift                  | 18 +++++++++++++-----
+ Sources/TokenKuzatCore/AutoHandoff.swift         | 11 +++++++++++
+ Sources/TokenKuzatCore/Redirect.swift            |  5 +++--
+ Tests/TokenKuzatCoreTests/AutoHandoffTests.swift |  9 +++++++++
+ Tests/TokenKuzatCoreTests/RedirectTests.swift    | 10 ++++++++++
+ VERSION                                          |  2 +-
+ 7 files changed, 51 insertions(+), 8 deletions(-)
+
+commit a05abeec837ced171b1f55012416460634357c41
+Author: Ali <ali@Mac.lan>
+Date:   Thu Oct 29 16:46:34 2026 +0500
+
+    v6.29.1: strip system reminders from redirected prompts
+
+ CHANGELOG.md                                  |  4 ++++
+ Sources/TokenKuzatCore/Redirect.swift         |  5 ++++-
+ Tests/TokenKuzatCoreTests/RedirectTests.swift | 11 +++++++++++
+ VERSION                                       |  2 +-
+ 4 files changed, 20 insertions(+), 2 deletions(-)
+
+commit ecfd6d1ddfc26be1e023eeff8d7f06250c9e7ab4
+Author: Ali <ali@MacBook-Air-Ali.local>
+Date:   Thu Oct 29 16:21:35 2026 +0500
+
+    v6.29.0: handoff summary in the conversation language, with git state
+
+ CHANGELOG.md                                      |  5 +++
+ Sources/TokenKuzat/Alerts.swift                   |  3 +-
+ Sources/TokenKuzat/AutoHandoff.swift              |  3 +-
+ Sources/TokenKuzatCore/AutoHandoff.swift          |  3 +-
+ Sources/TokenKuzatCore/GitState.swift             | 45 +++++++++++++++++++++++
+ Sources/TokenKuzatCore/Localization.swift         | 28 ++++++++++++++
+ Sources/TokenKuzatCore/Redirect.swift             | 15 ++++++--
+ Sources/TokenKuzatCore/Savings.swift              | 26 ++++++++++++-
+ Tests/TokenKuzatCoreTests/LocalizationTests.swift | 12 ++++++
+ Tests/TokenKuzatCoreTests/RedirectTests.swift     |  8 ++++
+ Tests/TokenKuzatCoreTests/SavingsTests.swift      | 11 ++++++
+ VERSION                                           |  2 +-
+ 12 files changed, 151 insertions(+), 10 deletions(-)
+
+commit cfed78c7952b9b7296044e0122e00024ab0844d9
+Author: Ali <ali@MacBook-Air-Ali.local>
+Date:   Thu Oct 29 16:14:08 2026 +0500
+
+    v6.28.0: redirect the old session's next prompt to the new session
+
+ CHANGELOG.md                                  |  5 ++
+ Sources/TokenKuzat/Alerts.swift               | 16 +++++
+ Sources/TokenKuzat/App.swift                  |  1 +
+ Sources/TokenKuzat/AutoHandoff.swift          | 14 +++--
+ Sources/TokenKuzat/Preferences.swift          |  3 +
+ Sources/TokenKuzat/PromptRedirectHook.swift   | 89 +++++++++++++++++++++++++++
+ Sources/TokenKuzat/UI/SettingsView.swift      |  7 +++
+ Sources/TokenKuzatCore/Redirect.swift         | 87 ++++++++++++++++++++++++++
+ Tests/TokenKuzatCoreTests/RedirectTests.swift | 36 +++++++++++
+ VERSION                                       |  2 +-
+ 10 files changed, 255 insertions(+), 5 deletions(-)
+
+commit 3de2fc3ada228750ef62c6087e999585f8f7cc8e
+Author: Ali <ali@MacBook-Air-Ali.local>
+Date:   Thu Oct 29 16:07:30 2026 +0500
+
+    v6.27.1: remember auto-handoff per session across restarts
+
+ CHANGELOG.md                    |  4 ++++
+ Sources/TokenKuzat/Alerts.swift | 13 ++++++++++---
+ VERSION                         |  2 +-
+ 3 files changed, 15 insertions(+), 4 deletions(-)
+
+commit f9d20b53923525ffc893d8474e9229b175cbe6c2
+Author: Ali <ali@MacBook-Air-Ali.local>
+Date:   Thu Oct 29 15:59:37 2026 +0500
+
+    v6.27.0: DMG release script and daily update check
+
+ .gitignore                                   |  1 +
+ CHANGELOG.md                                 |  6 +++
+ README.md                                    | 22 +++++++++--
+ Sources/TokenKuzat/App.swift                 |  1 +
+ Sources/TokenKuzat/Preferences.swift         |  3 ++
+ Sources/TokenKuzat/UI/MenuPanel.swift        |  6 +++
+ Sources/TokenKuzat/UI/SettingsView.swift     | 32 +++++++++++++++
+ Sources/TokenKuzat/UpdateChecker.swift       | 55 ++++++++++++++++++++++++++
+ Sources/TokenKuzatCore/Updates.swift         | 40 +++++++++++++++++++
+ Tests/TokenKuzatCoreTests/UpdatesTests.swift | 26 ++++++++++++
+ VERSION                                      |  2 +-
+ scripts/release.sh                           | 59 ++++++++++++++++++++++++++++
+ 12 files changed, 249 insertions(+), 4 deletions(-)
+
+commit 732ebf54a83ee37a9f9cb4191bdc6df25f3076e9
+Author: Ali <ali@MacBook-Air-Ali.local>
+Date:   Thu Oct 29 15:48:04 2026 +0500
+
+    v6.26.1: accurate wording for app vs terminal auto-handoff
+
+ CHANGELOG.md                             |  4 ++++
+ Sources/TokenKuzat/Alerts.swift          | 14 ++++++++++----
+ Sources/TokenKuzat/UI/SettingsView.swift |  6 ++++--
+ VERSION                                  |  2 +-
+ 4 files changed, 19 insertions(+), 7 deletions(-)
+
+commit ac1af77492ef222dbfb76ed02d47c365593d9581
+Author: Ali <ali@MacBook-Air-Ali.local>
+Date:   Thu Oct 29 15:41:32 2026 +0500
+
+    v6.26.0: new session continues the work itself
+
+ CHANGELOG.md                                     |  4 ++
+ Sources/TokenKuzat/Alerts.swift                  | 12 +++---
+ Sources/TokenKuzat/AutoHandoff.swift             | 50 +++++++++++++++---------
+ Sources/TokenKuzat/UI/SettingsView.swift         |  4 +-
+ Sources/TokenKuzatCore/AutoHandoff.swift         | 13 ++++++
+ Sources/TokenKuzatCore/Savings.swift             |  5 ++-
+ Tests/TokenKuzatCoreTests/AutoHandoffTests.swift |  7 ++++
+ VERSION                                          |  2 +-
+ 8 files changed, 68 insertions(+), 29 deletions(-)
+
+commit acc9790217117a8e0ea61da7cd7157cd0e1075c0
+Author: Ali <ali@MacBook-Air-Ali.local>
+Date:   Thu Oct 29 15:37:42 2026 +0500
+
+    v6.25.1: open the new session in the project folder in the Claude app
+
+ CHANGELOG.md                         |  4 ++++
+ Sources/TokenKuzat/AutoHandoff.swift | 29 +++++++++++++++++++++--------
+ VERSION                              |  2 +-
+ 3 files changed, 26 insertions(+), 9 deletions(-)
+
+commit 0a06fa9d4e5d5743ed00bfd1e39f4e40edce1ee8
+Author: Ali <ali@MacBook-Air-Ali.local>
+Date:   Thu Oct 29 15:35:03 2026 +0500
+
+    v6.25.0: open a new session automatically when context gets large
+
+ CHANGELOG.md                                     |  4 ++
+ Sources/TokenKuzat/Alerts.swift                  | 30 +++++++++++++
+ Sources/TokenKuzat/AutoHandoff.swift             | 56 ++++++++++++++++++++++++
+ Sources/TokenKuzat/Preferences.swift             |  7 +++
+ Sources/TokenKuzat/UI/SavingsView.swift          |  9 ++--
+ Sources/TokenKuzat/UI/SettingsView.swift         | 16 +++++++
+ Sources/TokenKuzatCore/AutoHandoff.swift         | 29 ++++++++++++
+ Tests/TokenKuzatCoreTests/AutoHandoffTests.swift | 27 ++++++++++++
+ VERSION                                          |  2 +-
+ 9 files changed, 173 insertions(+), 7 deletions(-)
+
+commit 6d1ba7a7b3cc70a1d08acd0c24b535a007932024
+Author: Ali <ali@MacBook-Air-Ali.local>
+Date:   Thu Oct 29 15:29:58 2026 +0500
+
+    v6.24.0: today's waste row in the menu bar panel
+
+ CHANGELOG.md                          |  4 ++++
+ Sources/TokenKuzat/UI/MenuPanel.swift | 38 +++++++++++++++++++++++++++++++++++
+ VERSION                               |  2 +-
+ 3 files changed, 43 insertions(+), 1 deletion(-)
+
+commit 1bb0ee8b990448e09f0d4fe293b3e41bebc3e678
+Author: Ali <ali@Mac.lan>
+Date:   Thu Oct 29 13:59:47 2026 +0500
+
+    v6.23.1: savings trend hint, clean page transitions, hide connector UUIDs
+
+ CHANGELOG.md                                        |  7 +++++++
+ Sources/TokenKuzat/UI/MainWindow.swift              |  7 +++++--
+ Sources/TokenKuzat/UI/ProjectSavingsView.swift      |  9 +++++++++
+ Sources/TokenKuzat/UI/SessionParts.swift            |  2 +-
+ Sources/TokenKuzatCore/Savings.swift                |  6 +++---
+ Sources/TokenKuzatCore/ToolDescriber.swift          | 11 +++++++++--
+ Tests/TokenKuzatCoreTests/TokenKuzatCoreTests.swift |  2 ++
+ VERSION                                             |  2 +-
+ 8 files changed, 37 insertions(+), 9 deletions(-)
+
+commit 68b469f9e104915acd0f082a8c566ba480417dad
+Author: Ali <ali@Mac.lan>
+Date:   Thu Oct 29 11:44:48 2026 +0500
+
+    v6.23: per-project savings history, before/after, waste alerts; fix empty map
+    
+    Daily per-project usage and waste are saved (project-savings.json) so the Savings page shows a 14-day waste trend and before/after around the last fix (recorded by 'Hand to Claude' or savings_report applied=true from /tokenkuzat:optimize). New waste notifications: context passing 200K, and a project wasting 40%+ of today's usage. Fixed sessions started from another session having no prompts (leading <system-reminder> blocks made the task text ignored), which left the session map blank.
+
+ CHANGELOG.md                                       |   8 ++
+ Sources/TokenKuzat/Alerts.swift                    |  57 ++++++++-
+ Sources/TokenKuzat/MCPServer.swift                 |  12 ++
+ Sources/TokenKuzat/Preferences.swift               |   3 +
+ Sources/TokenKuzat/Store.swift                     |  22 ++++
+ Sources/TokenKuzat/UI/GraphScreen.swift            |  10 ++
+ Sources/TokenKuzat/UI/ProjectSavingsView.swift     |  43 +++++++
+ Sources/TokenKuzat/UI/SettingsView.swift           |   2 +
+ Sources/TokenKuzatCore/ProjectSavingsHistory.swift | 134 +++++++++++++++++++++
+ Sources/TokenKuzatCore/TranscriptParser.swift      |   7 +-
+ .../TokenKuzatCoreTests/ProjectSavingsTests.swift  |  30 +++++
+ .../TokenKuzatCoreTests/TokenKuzatCoreTests.swift  |   8 ++
+ VERSION                                            |   2 +-
+ skills/optimize/SKILL.md                           |   2 +
+ 14 files changed, 336 insertions(+), 4 deletions(-)
+
+commit 248ec1e2995b67518a8346161d22c87a678153f6
+Author: Ali <ali@Mac.lan>
+Date:   Thu Oct 29 11:32:12 2026 +0500
+
+    v6.22.1: one glass tab control everywhere, smoother project expand
+    
+    Session tabs, period pickers, Raw/Weighted and Live view switches now share PillSegments: a glass capsule with a sliding selection pill (also used by the working sessions bar, with a light-mode variant). Expanding a project on the Savings page uses a soft spring with delayed fade-in and clips during collapse.
+
+ CHANGELOG.md                                   |  5 ++
+ Sources/TokenKuzat/UI/DesignSystem.swift       | 64 +++++++++++++++++++
+ Sources/TokenKuzat/UI/GraphScreen.swift        | 88 +++++++-------------------
+ Sources/TokenKuzat/UI/HistoryView.swift        |  7 +-
+ Sources/TokenKuzat/UI/LiveView.swift           | 50 ---------------
+ Sources/TokenKuzat/UI/ProjectSavingsView.swift | 16 +++--
+ Sources/TokenKuzat/UI/Theme.swift              |  7 +-
+ VERSION                                        |  2 +-
+ 8 files changed, 106 insertions(+), 133 deletions(-)
+
+commit fcae6c49f9bd71be9f529ac1e8ecb9451446a0dc
+Author: Ali <ali@Mac.lan>
+Date:   Thu Oct 29 11:28:36 2026 +0500
+
+    v6.22: Savings page — per-project usage, waste causes and one-command fixes
+    
+    New Savings section ranks projects by usage (today / 7 days) with estimated avoidable waste and its causes (large context, heavy starts, large results, cache rewrites, screenshots, repeated reads, error loops). 'Hand to Claude' copies a ready task; the plugin adds the savings_report MCP tool and /tokenkuzat:optimize so Claude fetches the report and proposes CLAUDE.md / MCP changes, applying each only after approval.
+
+ .claude-plugin/plugin.json                         |   2 +-
+ CHANGELOG.md                                       |   8 +
+ README.md                                          |   8 +-
+ Sources/TokenKuzat/MCPServer.swift                 |  60 +++++
+ Sources/TokenKuzat/UI/MainWindow.swift             |   5 +-
+ Sources/TokenKuzat/UI/ProjectSavingsView.swift     | 262 +++++++++++++++++++++
+ Sources/TokenKuzat/UI/SavingsView.swift            |  26 +-
+ Sources/TokenKuzat/WindowManager.swift             |   4 +-
+ Sources/TokenKuzatCore/ProjectSavings.swift        | 237 +++++++++++++++++++
+ Sources/TokenKuzatCore/Savings.swift               |   5 +-
+ .../TokenKuzatCoreTests/ProjectSavingsTests.swift  |  43 ++++
+ VERSION                                            |   2 +-
+ skills/optimize/SKILL.md                           |  37 +++
+ 13 files changed, 681 insertions(+), 18 deletions(-)
+
+commit a7aaf3d4c93fcd63b89e945c026abc9563342960
+Author: Ali <ali@Mac.lan>
+Date:   Thu Oct 29 11:18:41 2026 +0500
+
+    v6.21.3: Map / Summary tabs in full view
+    
+    In map-only / diagram-only view a glass capsule with the Map and Summary tabs sits top left (selection pill slides between them), with the working sessions bar on the right.
+
+ CHANGELOG.md                            |  4 +++
+ Sources/TokenKuzat/UI/GraphScreen.swift | 51 +++++++++++++++++++++++++++++----
+ VERSION                                 |  2 +-
+ 3 files changed, 51 insertions(+), 6 deletions(-)
+
+commit 4e109a1ea784e714a7192f27842d7b919f161156
+Author: Ali <ali@Mac.lan>
+Date:   Thu Oct 29 11:16:13 2026 +0500
+
+    v6.21.2: Liquid Glass look for the working sessions bar
+    
+    One glass capsule (glassEffect on macOS 26+, material fallback), round project badges, a light selection pill that slides between sessions, subtle hover, and a glowing dot instead of the 'Working' label. Raw UUIDs no longer show as the status line.
+
+ CHANGELOG.md                             |  5 +++
+ Sources/TokenKuzat/UI/DesignSystem.swift | 12 +++++
+ Sources/TokenKuzat/UI/GraphScreen.swift  | 77 +++++++++++++++++++++-----------
+ VERSION                                  |  2 +-
+ 4 files changed, 68 insertions(+), 28 deletions(-)
+
+commit 13e018a4d6571f8f45b9683fa42665869983a505
+Author: Ali <ali@Mac.lan>
+Date:   Thu Oct 29 11:13:23 2026 +0500
+
+    v6.21.1: working sessions bar in map-only / diagram-only view
+    
+    The session switcher now floats at the top centre of the canvas in focus mode, with its own background; the Summary tab stretches edge to edge there like the map.
+
+ CHANGELOG.md                            |  5 +++++
+ Sources/TokenKuzat/UI/GraphScreen.swift | 30 +++++++++++++++++++++++++-----
+ VERSION                                 |  2 +-
+ 3 files changed, 31 insertions(+), 6 deletions(-)
+
+commit 00001e34b3bb5e47e664775441045685cf96103d
+Author: Ali <ali@Mac.lan>
+Date:   Thu Oct 29 11:11:09 2026 +0500
+
+    v6.21: switch between working sessions from the session page
+    
+    Next to the Map/Summary/Files/Outputs tabs, chips list the other sessions that are working or waiting for permission, with the project and what the main agent is doing; click to switch, Cmd-[ / Cmd-] to cycle. Order is stable by start time; the bar condenses on narrow windows and puts extras in a +N menu.
+
+ CHANGELOG.md                            |   5 ++
+ Sources/TokenKuzat/UI/GraphScreen.swift | 132 +++++++++++++++++++++++++++++++-
+ VERSION                                 |   2 +-
+ 3 files changed, 137 insertions(+), 2 deletions(-)
+
+commit 29129cf40bea5d6cd6ff18ca9dde59f74a8953cd
+Author: Ali <ali@Mac.lan>
+Date:   Thu Oct 29 11:06:57 2026 +0500
+
+    v6.20.2: diagram-only button on the Summary tab
+    
+    Same top-right button as the session map (Shift-Cmd-F, Esc to exit) hides the header, tabs, sidebar and panel and refits the diagram. The fit-to-window control now uses the viewfinder icon so it isn't confused with it.
+
+ CHANGELOG.md                            |  5 +++++
+ Sources/TokenKuzat/UI/FlowCanvas.swift  | 24 +++++++++++++++++++++++-
+ Sources/TokenKuzat/UI/GraphScreen.swift |  4 ++--
+ Sources/TokenKuzat/UI/MainWindow.swift  |  5 ++---
+ VERSION                                 |  2 +-
+ 5 files changed, 33 insertions(+), 7 deletions(-)
+
+commit 4908abeb3abfefaea03dfba675ae88a8d1ee2b79
+Author: Ali <ali@MacBook-Air-Ali.local>
+Date:   Wed Oct 28 23:46:57 2026 +0500
+
+    v6.20.1: pan and zoom on the Summary diagram
+    
+    Drag or scroll to pan, pinch or Cmd/Option-scroll to zoom around the
+    cursor, like the session map. The diagram stays fitted and centred until
+    moved; fixes its top being cut off when the tab opens.
+
+ CHANGELOG.md                           |   4 +
+ Sources/TokenKuzat/UI/FlowCanvas.swift | 139 ++++++++++++++++++++++++++++-----
+ Sources/TokenKuzat/UI/SessionMap.swift |   4 +-
+ VERSION                                |   2 +-
+ 4 files changed, 126 insertions(+), 23 deletions(-)
+
+commit ba470e3a6153892de6f2ef0ace5fcc29314d9453
+Author: Ali <ali@MacBook-Air-Ali.local>
+Date:   Wed Oct 28 23:42:18 2026 +0500
+
+    v6.20: English language — Uzbek / English / system language in Settings
+    
+    All user-visible text is now bilingual via tr(uz, en) in TokenKuzatCore/Localization.swift: pages, menu panel and menu bar, notifications, robot bubbles, tooltips, status line, relative times, dates and numbers. Language applies immediately; default follows the Mac's language. README gets an English section.
+
+ CHANGELOG.md                                      |   7 +
+ README.md                                         |  45 ++++++
+ Sources/TokenKuzat/AccountUsage.swift             |   2 +-
+ Sources/TokenKuzat/Alerts.swift                   |  60 +++++---
+ Sources/TokenKuzat/App.swift                      |  20 ++-
+ Sources/TokenKuzat/ChatImporter.swift             |   8 +-
+ Sources/TokenKuzat/Preferences.swift              |  10 +-
+ Sources/TokenKuzat/StatusLine.swift               |   6 +-
+ Sources/TokenKuzat/UI/ActivityView.swift          |  12 +-
+ Sources/TokenKuzat/UI/Charts.swift                |  20 +--
+ Sources/TokenKuzat/UI/FileHeatmap.swift           |  34 ++---
+ Sources/TokenKuzat/UI/FlowCanvas.swift            |  34 ++---
+ Sources/TokenKuzat/UI/GraphScreen.swift           | 176 ++++++++++-----------
+ Sources/TokenKuzat/UI/HistoryView.swift           |  36 ++---
+ Sources/TokenKuzat/UI/LiveLanes.swift             |  30 ++--
+ Sources/TokenKuzat/UI/LiveView.swift              |  30 ++--
+ Sources/TokenKuzat/UI/MainWindow.swift            |  44 +++---
+ Sources/TokenKuzat/UI/MenuPanel.swift             |  62 ++++----
+ Sources/TokenKuzat/UI/OutputsView.swift           |  10 +-
+ Sources/TokenKuzat/UI/OutsideSplit.swift          |  24 +--
+ Sources/TokenKuzat/UI/OverviewView.swift          |  86 +++++------
+ Sources/TokenKuzat/UI/ReplayBar.swift             |  14 +-
+ Sources/TokenKuzat/UI/Robot.swift                 |  18 +--
+ Sources/TokenKuzat/UI/SavingsView.swift           |  43 +++---
+ Sources/TokenKuzat/UI/SessionMap.swift            | 102 ++++++-------
+ Sources/TokenKuzat/UI/SessionParts.swift          |  29 ++--
+ Sources/TokenKuzat/UI/SessionsView.swift          |  30 ++--
+ Sources/TokenKuzat/UI/SettingsView.swift          | 177 ++++++++++++----------
+ Sources/TokenKuzat/UI/Theme.swift                 |  55 +++----
+ Sources/TokenKuzat/UI/TimelineModel.swift         |   2 +-
+ Sources/TokenKuzat/WindowManager.swift            |  17 ++-
+ Sources/TokenKuzatCore/ActivityMonitor.swift      |   2 +-
+ Sources/TokenKuzatCore/ChatImport.swift           |   2 +-
+ Sources/TokenKuzatCore/Engine.swift               |  14 +-
+ Sources/TokenKuzatCore/Format.swift               |  53 ++++---
+ Sources/TokenKuzatCore/Localization.swift         |  54 +++++++
+ Sources/TokenKuzatCore/Models.swift               |   6 +-
+ Sources/TokenKuzatCore/Outputs.swift              |   2 +-
+ Sources/TokenKuzatCore/Replay.swift               |   2 +-
+ Sources/TokenKuzatCore/Savings.swift              |  56 ++++---
+ Sources/TokenKuzatCore/TokenCounts.swift          |   4 +-
+ Sources/TokenKuzatCore/ToolDescriber.swift        |  40 ++---
+ Tests/TokenKuzatCoreTests/LocalizationTests.swift |  17 +++
+ VERSION                                           |   2 +-
+ 44 files changed, 849 insertions(+), 648 deletions(-)
+
+commit 2beb96fd78fa4e1afa6a84d428cf4ff0d2417d67
+Author: Ali <ali@MacBook-Air-Ali.local>
+Date:   Wed Oct 28 23:09:05 2026 +0500
+
+    v6.19: chat and cloud usage on the Live page, from OutsideUsage
+    
+    Reuse the 6.16 outside-usage tracker as the single source: record when
+    each limit increase started accumulating and expose the last 6 hours as
+    time segments, then show them on the Live page as a card and a lane.
+
+ CHANGELOG.md                                      |  4 ++
+ Sources/TokenKuzat/UI/LiveLanes.swift             | 64 ++++++++++++++++++-
+ Sources/TokenKuzat/UI/LiveView.swift              | 77 ++++++++++++++++++++++-
+ Sources/TokenKuzatCore/OutsideUsage.swift         | 55 +++++++++++++++-
+ Tests/TokenKuzatCoreTests/OutsideUsageTests.swift | 17 +++++
+ VERSION                                           |  2 +-
+ 6 files changed, 215 insertions(+), 4 deletions(-)
+
+commit 86c11c4cab1be28916f0be7de77d9669dd3003b4
+Author: Ali <aliumirov.me@gmail.com>
+Date:   Wed Oct 28 23:02:32 2026 +0500
+
+    v6.18: bulutdagi chat yozuvlarini qo'shish va xaritada ko'rsatish
+    
+    Sozlamalardagi tugma yoki oynaga sudrab tashlash bilan .jsonl yozuv
+    ixchamlanib ilova papkasiga ko'chiriladi va «Claude chat» sessiyasi bo'lib o'qiladi.
+
+ CHANGELOG.md                                    |  5 ++
+ README.md                                       |  4 +
+ Sources/TokenKuzat/ChatImporter.swift           | 41 +++++++++++
+ Sources/TokenKuzat/UI/MainWindow.swift          |  4 +
+ Sources/TokenKuzat/UI/SettingsView.swift        | 13 +++-
+ Sources/TokenKuzatCore/ChatImport.swift         | 98 +++++++++++++++++++++++++
+ Sources/TokenKuzatCore/Engine.swift             |  2 +
+ Tests/TokenKuzatCoreTests/ChatImportTests.swift | 56 ++++++++++++++
+ VERSION                                         |  2 +-
+ 9 files changed, 223 insertions(+), 2 deletions(-)
+
+commit a00e790b1634b558b37cf83396fe5ded0a226ec7
+Author: Ali <aliumirov.me@gmail.com>
+Date:   Wed Oct 28 22:39:50 2026 +0500
+
+    v6.17: qadam bajarilishi — kirish, chiqish va tafsilot (n8n uslubi)
+    
+    Xaritada qadam bosilganda o'ng panelda asbobga berilgan parametrlar,
+    asbob qaytargan natija, davomiylik va kontekstga qo'shilgan tokenlar.
+    Kirish/chiqish matni sessiyaning oxirgi 200 qadami uchun saqlanadi.
+
+ CHANGELOG.md                                       |   6 +
+ README.md                                          |   2 +-
+ Sources/TokenKuzat/UI/GraphScreen.swift            | 232 ++++++++++++++++++++-
+ Sources/TokenKuzat/UI/SessionMap.swift             |   4 +-
+ Sources/TokenKuzatCore/Engine.swift                |  26 ++-
+ Sources/TokenKuzatCore/Models.swift                |   5 +
+ Sources/TokenKuzatCore/Replay.swift                |   2 +-
+ Sources/TokenKuzatCore/TranscriptParser.swift      |  49 ++++-
+ Tests/TokenKuzatCoreTests/StepIOTests.swift        |  79 +++++++
+ .../TokenKuzatCoreTests/TokenKuzatCoreTests.swift  |   2 +-
+ VERSION                                            |   2 +-
+ 11 files changed, 391 insertions(+), 18 deletions(-)
+
+commit 4d0b06d3f5895a89369b1f3c346ed5f114b381b7
+Author: Ali <aliumirov.me@gmail.com>
+Date:   Wed Oct 28 22:04:41 2026 +0500
+
+    v6.16: limitning chat va bulutga ketgan qismi
+    
+    Haqiqiy 5 soatlik limit o'sishini Mac'dagi sarf bilan solishtirib,
+    claude.ai/desktop chat va bulut sessiyalari ulushini taxminan ajratadi.
+    Umumiy sahifa, menyu paneli va MCP usage_summary'da ko'rsatiladi.
+
+ CHANGELOG.md                                      |   8 +
+ README.md                                         |   6 +-
+ Sources/TokenKuzat/MCPServer.swift                |  19 +-
+ Sources/TokenKuzat/Store.swift                    |   8 +
+ Sources/TokenKuzat/UI/MenuPanel.swift             |   3 +
+ Sources/TokenKuzat/UI/OutsideSplit.swift          | 107 ++++++++++++
+ Sources/TokenKuzat/UI/OverviewView.swift          |  14 +-
+ Sources/TokenKuzat/UI/SettingsView.swift          |   2 +-
+ Sources/TokenKuzatCore/Models.swift               |   2 +
+ Sources/TokenKuzatCore/OutsideUsage.swift         | 204 ++++++++++++++++++++++
+ Tests/TokenKuzatCoreTests/OutsideUsageTests.swift | 149 ++++++++++++++++
+ VERSION                                           |   2 +-
+ 12 files changed, 517 insertions(+), 7 deletions(-)
+
+commit 2c0f1071c99bb7ce348c3259fac43a9bdfaa891a
+Author: Ali <ali@MacBook-Air-Ali.local>
+Date:   Wed Oct 28 21:29:51 2026 +0500
+
+    v6.15: Claude Code plugin with install skill and MCP server
+    
+    - Marketplace + plugin at the repo root: `/plugin install tokenkuzat
+      --marketplace aliumirovux/TokenKuzat`, then `/tokenkuzat:install` checks
+      requirements, builds and installs the app.
+    - `TokenKuzat --mcp`: stdio MCP server wired up by the plugin, with
+      usage_summary, list_sessions and session_details tools (read-only).
+
+ .claude-plugin/icon.png            | Bin 0 -> 631478 bytes
+ .claude-plugin/marketplace.json    |  12 ++
+ .claude-plugin/plugin.json         |  14 +++
+ CHANGELOG.md                       |   5 +
+ README.md                          |  21 +++-
+ Sources/TokenKuzat/App.swift       |   2 +
+ Sources/TokenKuzat/MCPServer.swift | 242 +++++++++++++++++++++++++++++++++++++
+ VERSION                            |   2 +-
+ skills/install/SKILL.md            |  51 ++++++++
+ 9 files changed, 346 insertions(+), 3 deletions(-)
+
+commit 54b54f2fe6f58790de4850697397cef5452b453e
+Author: Ali <ali@MacBook-Air-Ali.local>
+Date:   Wed Oct 28 21:18:42 2026 +0500
+
+    v6.14: «Jonli» page — parallel sessions as cards and time-aligned lanes
+    
+    - New Live section (⌘2) shows every running session at once.
+    - Cards: status, current prompt and action, last steps across agents,
+      helper agents, context and tokens; click opens the session map.
+    - Lanes: all sessions on one shared time axis (10 min – 3 h), steps as
+      duration bars, turn markers, hover details.
+    - PillSegments: a modern segmented control with a sliding accent pill.
+
+ CHANGELOG.md                           |   7 +
+ Sources/TokenKuzat/UI/LiveLanes.swift  | 260 +++++++++++++++++++++++++++++++
+ Sources/TokenKuzat/UI/LiveView.swift   | 276 +++++++++++++++++++++++++++++++++
+ Sources/TokenKuzat/UI/MainWindow.swift |   7 +-
+ Sources/TokenKuzat/WindowManager.swift |   4 +-
+ VERSION                                |   2 +-
+ 6 files changed, 552 insertions(+), 4 deletions(-)
+
+commit aef2d053d56eeebe312353635ba4f4c70d2ebcc3
+Author: Ali <ali@MacBook-Air-Ali.local>
+Date:   Wed Oct 28 21:09:07 2026 +0500
+
+    v6.13: map controls in one bar, content-bound panning, compact minimap
+    
+    - Zoom, follow and focus controls merged into one toolbar; bottom fade and
+      follow/fit leave room for it so the last step is never hidden.
+    - Panning is clamped to the real content bounds; a centred
+      "Hozirgiga qaytish" prompt appears when almost nothing is on screen.
+    - Minimap draws only the content area, smaller and tighter.
+    - Page headers sit closer to the window top, aligned with the sidebar brand.
+
+ CHANGELOG.md                             |   7 ++
+ Sources/TokenKuzat/UI/MainWindow.swift   |   2 +-
+ Sources/TokenKuzat/UI/SessionMap.swift   | 129 ++++++++++++++++++++++---------
+ Sources/TokenKuzat/UI/SessionParts.swift |   2 +-
+ VERSION                                  |   2 +-
+ 5 files changed, 102 insertions(+), 40 deletions(-)
+
+commit b539df4c1c6e1bed8b0474cef00e8bc830e0e13c
+Author: Ali <ali@MacBook-Air-Ali.local>
+Date:   Wed Oct 28 20:59:22 2026 +0500
+
+    v6.12.2: map-only mode fills the window to the top
+
+ CHANGELOG.md                            | 4 ++++
+ Sources/TokenKuzat/UI/GraphScreen.swift | 7 ++++---
+ VERSION                                 | 2 +-
+ 3 files changed, 9 insertions(+), 4 deletions(-)
+
+commit ed7c189831a814a334daba8c6fe3a08fdd41755a
+Author: Ali <ali@MacBook-Air-Ali.local>
+Date:   Wed Oct 28 20:58:13 2026 +0500
+
+    v6.12.1: map-only toggle as a corner icon
+
+ CHANGELOG.md                           |  4 +++
+ Sources/TokenKuzat/UI/SessionMap.swift | 45 +++++++++++++++++-----------------
+ VERSION                                |  2 +-
+ 3 files changed, 28 insertions(+), 23 deletions(-)
+
+commit 56a1766009ecf9135d82849e0ffa36c896300418
+Author: Ali <ali@MacBook-Air-Ali.local>
+Date:   Wed Oct 28 20:56:05 2026 +0500
+
+    v6.12: unified sidebars — refined left sidebar, full-height details panel
+
+ CHANGELOG.md                            |   6 +
+ Sources/TokenKuzat/UI/GraphScreen.swift | 192 +++++++++++++++++++++-----------
+ Sources/TokenKuzat/UI/MainWindow.swift  |  76 ++++++-------
+ VERSION                                 |   2 +-
+ 4 files changed, 167 insertions(+), 109 deletions(-)
+
+commit 4490669d99ad129bea083659fd3ba4c5eb97146b
+Author: Ali <ali@MacBook-Air-Ali.local>
+Date:   Wed Oct 28 20:50:15 2026 +0500
+
+    v6.11.1: sidebar toggles aligned with the window buttons row
+
+ CHANGELOG.md                           | 4 ++++
+ Sources/TokenKuzat/UI/MainWindow.swift | 6 ++++--
+ VERSION                                | 2 +-
+ 3 files changed, 9 insertions(+), 3 deletions(-)
+
+commit ed51bdd87dea16a9a8b87999d016649ec1e7d6fe
+Author: Ali <ali@MacBook-Air-Ali.local>
+Date:   Wed Oct 28 20:48:13 2026 +0500
+
+    v6.11: collapsible sidebar with toggle button and ⌃⌘S
+
+ CHANGELOG.md                           |  4 +++
+ Sources/TokenKuzat/UI/MainWindow.swift | 55 ++++++++++++++++++++++++++++++++--
+ VERSION                                |  2 +-
+ 3 files changed, 57 insertions(+), 4 deletions(-)
+
+commit 7e38f2eb6c32d53005d4cd788923211919c99c5a
+Author: Ali <ali@MacBook-Air-Ali.local>
+Date:   Wed Oct 28 20:44:46 2026 +0500
+
+    v6.10: cleaner sidebar; responsive overview and session header
+
+ CHANGELOG.md                             |   6 +
+ Sources/TokenKuzat/UI/MainWindow.swift   | 189 +++++++++++++++++++++++--------
+ Sources/TokenKuzat/UI/OverviewView.swift |  32 +++++-
+ Sources/TokenKuzat/UI/SessionParts.swift |  19 +---
+ VERSION                                  |   2 +-
+ 5 files changed, 178 insertions(+), 70 deletions(-)
+
+commit 951cbbf4565c83481247b50a2457bf3370f2e6a9
+Author: Ali <ali@MacBook-Air-Ali.local>
+Date:   Wed Oct 28 20:37:58 2026 +0500
+
+    v6.9.1: remove chat from the map
+
+ CHANGELOG.md                            |   4 +
+ Sources/TokenKuzat/App.swift            |   2 +-
+ Sources/TokenKuzat/MapChat.swift        | 199 --------------------------------
+ Sources/TokenKuzat/UI/GraphScreen.swift |   2 +-
+ Sources/TokenKuzat/UI/MapChatBar.swift  | 115 ------------------
+ Sources/TokenKuzat/UI/SessionMap.swift  |  23 +---
+ VERSION                                 |   2 +-
+ 7 files changed, 12 insertions(+), 335 deletions(-)
+
+commit a0bf21dbb89fb1b4ac074c51303c399d5815ba04
+Author: Ali <ali@MacBook-Air-Ali.local>
+Date:   Wed Oct 28 20:36:24 2026 +0500
+
+    v6.9: map-only mode — hide everything but the map
+
+ CHANGELOG.md                            |  4 ++++
+ Sources/TokenKuzat/Preferences.swift    |  2 ++
+ Sources/TokenKuzat/UI/GraphScreen.swift | 22 +++++++++++++++-------
+ Sources/TokenKuzat/UI/MainWindow.swift  | 11 ++++++++++-
+ Sources/TokenKuzat/UI/SessionMap.swift  | 24 ++++++++++++++++++++++++
+ VERSION                                 |  2 +-
+ 6 files changed, 56 insertions(+), 9 deletions(-)
+
+commit 147a735e484cd895b66ff23a37b498753857d2f8
+Author: Ali <ali@MacBook-Air-Ali.local>
+Date:   Wed Oct 28 20:33:06 2026 +0500
+
+    Remove unused TurnChips view
+
+ Sources/TokenKuzat/UI/SessionParts.swift | 41 --------------------------------
+ 1 file changed, 41 deletions(-)
+
+commit acb319d36f96c66a82032cd392876022ec277155
+Author: Ali <ali@MacBook-Air-Ali.local>
+Date:   Wed Oct 28 20:32:53 2026 +0500
+
+    v6.8.1: remove the prompt chips row
+
+ CHANGELOG.md                            | 4 ++++
+ Sources/TokenKuzat/UI/GraphScreen.swift | 2 --
+ VERSION                                 | 2 +-
+ 3 files changed, 5 insertions(+), 3 deletions(-)
+
+commit 7e0b9be2da13e61015a7081311ac34f7f5700b63
+Author: Ali <ali@MacBook-Air-Ali.local>
+Date:   Wed Oct 28 20:31:52 2026 +0500
+
+    v6.8: responsive header, inspector, minimap and chat bar in narrow windows
+
+ CHANGELOG.md                             |   7 ++
+ Sources/TokenKuzat/App.swift             |  35 ++++++++-
+ Sources/TokenKuzat/UI/GraphScreen.swift  |  48 ++++++++++---
+ Sources/TokenKuzat/UI/SessionMap.swift   |   8 ++-
+ Sources/TokenKuzat/UI/SessionParts.swift | 117 +++++++++++++++++++++++--------
+ VERSION                                  |   2 +-
+ 6 files changed, 176 insertions(+), 41 deletions(-)
+
+commit 720e8c338fe5c8de2070c6274b86023202a83d6d
+Author: Ali <ali@MacBook-Air-Ali.local>
+Date:   Wed Oct 28 20:26:25 2026 +0500
+
+    v6.7: cheaper animations (robot, borders, edges, spinner) and a light mode setting
+
+ CHANGELOG.md                             |  5 +++++
+ Sources/TokenKuzat/Preferences.swift     |  2 ++
+ Sources/TokenKuzat/UI/DataFlow.swift     |  7 ++++---
+ Sources/TokenKuzat/UI/FlowCanvas.swift   |  5 +++--
+ Sources/TokenKuzat/UI/GraphScreen.swift  |  8 ++++----
+ Sources/TokenKuzat/UI/MapChatBar.swift   |  4 ++--
+ Sources/TokenKuzat/UI/Robot.swift        | 11 ++++++++---
+ Sources/TokenKuzat/UI/SessionMap.swift   | 19 ++++++++++++-------
+ Sources/TokenKuzat/UI/SettingsView.swift |  8 ++++++++
+ Sources/TokenKuzat/UI/Theme.swift        | 32 +++++++++++++++++++++++++++++++-
+ VERSION                                  |  2 +-
+ 11 files changed, 80 insertions(+), 23 deletions(-)
+
+commit 0b829f2947175c5e551fe966f6dc73fadc964a5c
+Author: Ali <ali@MacBook-Air-Ali.local>
+Date:   Wed Oct 28 20:12:48 2026 +0500
+
+    v6.6: stop rendering when the window is closed or hidden; GPU live border; prune old sessions
+
+ CHANGELOG.md                           |  6 ++++++
+ Sources/TokenKuzat/UI/DataFlow.swift   |  7 ++++++-
+ Sources/TokenKuzat/UI/FlowCanvas.swift |  2 +-
+ Sources/TokenKuzat/UI/SessionMap.swift |  2 +-
+ Sources/TokenKuzat/WindowManager.swift | 26 ++++++++++++++++++++++++++
+ Sources/TokenKuzatCore/Engine.swift    |  7 +++++++
+ VERSION                                |  2 +-
+ 7 files changed, 48 insertions(+), 4 deletions(-)
+
+commit e63189da5eaff353723212754e5ef409c4c86547
+Author: Ali <ali@MacBook-Air-Ali.local>
+Date:   Wed Oct 28 20:00:43 2026 +0500
+
+    v6.5: outputs branch on the map with a Quick Look popover
+
+ CHANGELOG.md                            |   4 ++
+ Sources/TokenKuzat/UI/OutputsView.swift |   6 +-
+ Sources/TokenKuzat/UI/SessionMap.swift  | 107 ++++++++++++++++++++++++++++++--
+ VERSION                                 |   2 +-
+ 4 files changed, 109 insertions(+), 10 deletions(-)
+
+commit e914d7c9f88329a9ab19eb5360be4dc48318d8aa
+Author: Ali <ali@MacBook-Air-Ali.local>
+Date:   Wed Oct 28 19:56:09 2026 +0500
+
+    v6.4: Outputs tab — preview images, HTML, PDF and video produced during a session
+
+ CHANGELOG.md                                 |   6 +
+ Sources/TokenKuzat/UI/GraphScreen.swift      |  17 ++-
+ Sources/TokenKuzat/UI/OutputsView.swift      | 204 +++++++++++++++++++++++++++
+ Sources/TokenKuzatCore/Engine.swift          |   5 +-
+ Sources/TokenKuzatCore/Models.swift          |   2 +
+ Sources/TokenKuzatCore/Outputs.swift         |  99 +++++++++++++
+ Sources/TokenKuzatCore/Replay.swift          |   2 +-
+ Sources/TokenKuzatCore/ToolDescriber.swift   |   7 +-
+ Tests/TokenKuzatCoreTests/OutputsTests.swift |  47 ++++++
+ VERSION                                      |   2 +-
+ 10 files changed, 382 insertions(+), 9 deletions(-)
+
+commit a64b64d2066b74a3298b51361a8e53324a11f7df
+Author: Ali <ali@MacBook-Air-Ali.local>
+Date:   Wed Oct 28 19:49:00 2026 +0500
+
+    v6.3: chat from the map — send a message to the session in auto permission mode
+
+ CHANGELOG.md                            |   4 +
+ Sources/TokenKuzat/MapChat.swift        | 199 ++++++++++++++++++++++++++++++++
+ Sources/TokenKuzat/UI/GraphScreen.swift |   3 +-
+ Sources/TokenKuzat/UI/MapChatBar.swift  | 115 ++++++++++++++++++
+ Sources/TokenKuzat/UI/SessionMap.swift  |  14 +++
+ VERSION                                 |   2 +-
+ 6 files changed, 335 insertions(+), 2 deletions(-)
+
+commit 1081e054016f4eb4e518ed322779e4c7cc319b71
+Author: Ali <ali@MacBook-Air-Ali.local>
+Date:   Wed Oct 28 19:43:45 2026 +0500
+
+    v6.2: map focus mode — show only the current prompt
+
+ CHANGELOG.md                           |  4 ++++
+ Sources/TokenKuzat/UI/SessionMap.swift | 44 ++++++++++++++++++++++++++++++++--
+ VERSION                                |  2 +-
+ 3 files changed, 47 insertions(+), 3 deletions(-)
+
+commit ee15ee0d6ee01b84b15178843c4ff4a8d07cf0d2
+Author: Ali <ali@MacBook-Air-Ali.local>
+Date:   Wed Oct 28 19:03:20 2026 +0500
+
+    v6.1: auto-continue in a new session via SessionStart hook; correct cache TTL; big-result and heavy-start savings tips
+
+ CHANGELOG.md                                  |  9 +++
+ Sources/TokenKuzat/App.swift                  |  1 +
+ Sources/TokenKuzat/Hooks.swift                | 77 +++++++++++++++++++++
+ Sources/TokenKuzat/UI/SavingsView.swift       | 70 +++++++++++++------
+ Sources/TokenKuzat/UI/SettingsView.swift      | 13 ++++
+ Sources/TokenKuzatCore/Engine.swift           | 14 ++--
+ Sources/TokenKuzatCore/Handoff.swift          | 87 ++++++++++++++++++++++++
+ Sources/TokenKuzatCore/Models.swift           | 18 +++++
+ Sources/TokenKuzatCore/Replay.swift           |  5 +-
+ Sources/TokenKuzatCore/Savings.swift          | 97 +++++++++++++++++++++++++--
+ Sources/TokenKuzatCore/TranscriptParser.swift | 23 ++++++-
+ Tests/TokenKuzatCoreTests/HandoffTests.swift  | 48 +++++++++++++
+ Tests/TokenKuzatCoreTests/SavingsTests.swift  | 56 +++++++++++++++-
+ VERSION                                       |  2 +-
+ 14 files changed, 482 insertions(+), 38 deletions(-)
+
+commit ab2a35f34f8022ea4b6e24fed5733794e6663c28
+Author: Ali Umirov <aliumirov.me@gmail.com>
+Date:   Wed Oct 28 18:45:20 2026 +0500
+
+    v6.0: token savings advisor with handoff summary; usage API backoff and cache
+
+ CHANGELOG.md                                 |  10 ++
+ Sources/TokenKuzat/AccountUsage.swift        |  49 ++++++-
+ Sources/TokenKuzat/Alerts.swift              |  22 ++++
+ Sources/TokenKuzat/Preferences.swift         |   3 +
+ Sources/TokenKuzat/UI/MenuPanel.swift        |   6 +-
+ Sources/TokenKuzat/UI/OverviewView.swift     |  10 +-
+ Sources/TokenKuzat/UI/SavingsView.swift      | 188 +++++++++++++++++++++++++++
+ Sources/TokenKuzat/UI/SessionParts.swift     |   1 +
+ Sources/TokenKuzat/UI/SettingsView.swift     |   5 +
+ Sources/TokenKuzat/UI/Theme.swift            |  13 +-
+ Sources/TokenKuzatCore/Savings.swift         | 159 ++++++++++++++++++++++
+ Tests/TokenKuzatCoreTests/SavingsTests.swift |  52 ++++++++
+ VERSION                                      |   2 +-
+ 13 files changed, 509 insertions(+), 11 deletions(-)
+
+commit 48ffa3b082fe3f4e5b23941833b2dd48d9c77272
+Author: Ali Umirov <aliumirov.me@gmail.com>
+Date:   Wed Oct 28 18:24:12 2026 +0500
+
+    v5.12: watcher robot on the map — works with the active card, patrols when idle, says hi on tap
+
+ CHANGELOG.md                           |  6 ++++
+ Sources/TokenKuzat/App.swift           |  2 +-
+ Sources/TokenKuzat/UI/Robot.swift      | 58 ++++++++++++++++++++++++++++++++--
+ Sources/TokenKuzat/UI/SessionMap.swift | 37 ++++++++++++++++++++++
+ VERSION                                |  2 +-
+ 5 files changed, 101 insertions(+), 4 deletions(-)
+
+commit 6fe9720d74e9074009737e326a550001db2417de
+Author: Ali Umirov <aliumirov.me@gmail.com>
+Date:   Wed Oct 28 18:19:17 2026 +0500
+
+    v5.11.1: polished robot — speech bubble with tail and dots, shaded shell, shadow
+
+ CHANGELOG.md                      |   4 +
+ Sources/TokenKuzat/UI/Robot.swift | 154 +++++++++++++++++++++++++++++---------
+ VERSION                           |   2 +-
+ 3 files changed, 125 insertions(+), 35 deletions(-)
+
+commit 3b04a4454678e6d19057239ad56a74c3c34e28bf
+Author: Ali Umirov <aliumirov.me@gmail.com>
+Date:   Wed Oct 28 18:17:04 2026 +0500
+
+    v5.11: robot with per-task actions, props and expressions
+
+ CHANGELOG.md                           |   6 +
+ Sources/TokenKuzat/App.swift           |  18 ++
+ Sources/TokenKuzat/UI/FlowCanvas.swift |  40 ++-
+ Sources/TokenKuzat/UI/Robot.swift      | 444 ++++++++++++++++++++++++++-------
+ VERSION                                |   2 +-
+ 5 files changed, 409 insertions(+), 101 deletions(-)
+
+commit e32adfd0cd8ced5fdd34b0f49c5113c1c7f14857
+Author: Ali Umirov <aliumirov.me@gmail.com>
+Date:   Wed Oct 28 18:12:29 2026 +0500
+
+    v5.10: animated robot helper in summary flow; cached credentials; stable signing when available
+
+ CHANGELOG.md                           |   6 ++
+ Sources/TokenKuzat/AccountUsage.swift  |  11 +-
+ Sources/TokenKuzat/UI/FlowCanvas.swift |  23 ++++-
+ Sources/TokenKuzat/UI/Robot.swift      | 179 +++++++++++++++++++++++++++++++++
+ VERSION                                |   2 +-
+ build.sh                               |  10 +-
+ 6 files changed, 227 insertions(+), 4 deletions(-)
+
+commit 4d9c9b0962b9ff280ee0fa0f6a931a636690da2a
+Author: Ali Umirov <aliumirov.me@gmail.com>
+Date:   Wed Oct 28 18:07:12 2026 +0500
+
+    v5.9: home — limit as two large cards with compact hour/day columns
+
+ CHANGELOG.md                             |   4 +
+ Sources/TokenKuzat/UI/OverviewView.swift | 245 +++++++++++++++++--------------
+ VERSION                                  |   2 +-
+ 3 files changed, 138 insertions(+), 113 deletions(-)
+
+commit d645c10fdb153b5027706a68e79554927bd9cd0d
+Author: Ali Umirov <aliumirov.me@gmail.com>
+Date:   Wed Oct 28 18:04:05 2026 +0500
+
+    v5.8: home limit hero — rings, single pace line, labeled hourly chart
+
+ CHANGELOG.md                             |  5 ++
+ Sources/TokenKuzat/UI/MenuPanel.swift    | 15 ++---
+ Sources/TokenKuzat/UI/OverviewView.swift | 94 ++++++++++++++++++--------------
+ VERSION                                  |  2 +-
+ 4 files changed, 66 insertions(+), 50 deletions(-)
+
+commit 01a6fba88cd96e6bdf8259caf3b98e3f8a8142c2
+Author: Ali Umirov <aliumirov.me@gmail.com>
+Date:   Wed Oct 28 17:59:40 2026 +0500
+
+    v5.7: menu panel redesign — limit rings, clear now card, labeled trace
+
+ CHANGELOG.md                          |   8 +
+ Sources/TokenKuzat/UI/MenuPanel.swift | 307 +++++++++++++++++++---------------
+ VERSION                               |   2 +-
+ 3 files changed, 183 insertions(+), 134 deletions(-)
+
+commit 397e019b3185e5a5a693aff8016581112f8d7adc
+Author: Ali Umirov <aliumirov.me@gmail.com>
+Date:   Wed Oct 28 17:56:12 2026 +0500
+
+    v5.6: live limits from the Claude account (same source as claude.ai usage)
+
+ CHANGELOG.md                             |   6 ++
+ Sources/TokenKuzat/AccountUsage.swift    | 138 +++++++++++++++++++++++++++++++
+ Sources/TokenKuzat/App.swift             |   1 +
+ Sources/TokenKuzat/Preferences.swift     |   2 +
+ Sources/TokenKuzat/Store.swift           |  10 +++
+ Sources/TokenKuzat/UI/MenuPanel.swift    |   2 +-
+ Sources/TokenKuzat/UI/OverviewView.swift |   5 +-
+ Sources/TokenKuzat/UI/SettingsView.swift |  54 ++++++++++++
+ Sources/TokenKuzat/UI/Theme.swift        |   2 +-
+ VERSION                                  |   2 +-
+ 10 files changed, 217 insertions(+), 5 deletions(-)
+
+commit 9a654e48c768a02a4eb073e3e095d98899aeabaf
+Author: Ali Umirov <aliumirov.me@gmail.com>
+Date:   Wed Oct 28 17:52:43 2026 +0500
+
+    v5.5: session/week limit rows like claude.ai, weekly pace forecast, stale-data note
+
+ CHANGELOG.md                                    |  7 +++
+ Sources/TokenKuzat/Store.swift                  |  1 +
+ Sources/TokenKuzat/UI/MenuPanel.swift           | 17 ++++++
+ Sources/TokenKuzat/UI/OverviewView.swift        | 30 +++++-----
+ Sources/TokenKuzat/UI/Theme.swift               | 76 +++++++++++++++++++++++++
+ Sources/TokenKuzatCore/Models.swift             |  2 +
+ Sources/TokenKuzatCore/RateLimits.swift         | 72 +++++++++++++++++++++++
+ Tests/TokenKuzatCoreTests/HookEventsTests.swift | 26 +++++++++
+ VERSION                                         |  2 +-
+ 9 files changed, 217 insertions(+), 16 deletions(-)
+
+commit 1cec5481055c62fa435f5a77a247cc2a0069634d
+Author: Ali Umirov <aliumirov.me@gmail.com>
+Date:   Wed Oct 28 17:48:18 2026 +0500
+
+    v5.4: menu panel — live process card with mini trace, stat tiles, solid background
+
+ CHANGELOG.md                             |   6 +
+ Sources/TokenKuzat/UI/MenuPanel.swift    | 206 ++++++++++++++++++++++++++-----
+ Sources/TokenKuzat/UI/SessionParts.swift |   2 +-
+ VERSION                                  |   2 +-
+ 4 files changed, 183 insertions(+), 33 deletions(-)
+
+commit 25aa112e36fc20ad5f68264d41e22f8a24b81768
+Author: Ali Umirov <aliumirov.me@gmail.com>
+Date:   Wed Oct 28 17:45:23 2026 +0500
+
+    Hide window title text
+
+ Sources/TokenKuzat/WindowManager.swift | 2 ++
+ 1 file changed, 2 insertions(+)
+
+commit de270de537fdd8295ba24801a25732d6b031829c
+Author: Ali Umirov <aliumirov.me@gmail.com>
+Date:   Wed Oct 28 17:41:58 2026 +0500
+
+    v5.3: single horizontal row of cards with side-by-side sections
+
+ CHANGELOG.md                           |   6 +
+ Sources/TokenKuzat/UI/SessionMap.swift | 203 +++++++++++++++++----------------
+ VERSION                                |   2 +-
+ 3 files changed, 111 insertions(+), 100 deletions(-)
+
+commit c29e6a2b5d1e0fbd35f2003b190674a15fe2576a
+Author: Ali Umirov <aliumirov.me@gmail.com>
+Date:   Wed Oct 28 17:38:44 2026 +0500
+
+    v5.2: back to wrapped rows; local tools branch up, external tools down
+
+ CHANGELOG.md                            |   5 +
+ Sources/TokenKuzat/App.swift            |   6 +-
+ Sources/TokenKuzat/UI/GraphScreen.swift |  52 +++-
+ Sources/TokenKuzat/UI/SessionMap.swift  | 355 +++++++++++++------------
+ Sources/TokenKuzat/UI/TraceView.swift   | 453 --------------------------------
+ VERSION                                 |   2 +-
+ 6 files changed, 252 insertions(+), 621 deletions(-)
+
+commit f6fc8d71525e617960780a37c8c9efd64dee9365
+Author: Ali Umirov <aliumirov.me@gmail.com>
+Date:   Wed Oct 28 17:35:31 2026 +0500
+
+    v5.1: horizontal lane trace map — flow line moves between tool lanes
+
+ CHANGELOG.md                            |   6 +
+ Sources/TokenKuzat/App.swift            |   6 +-
+ Sources/TokenKuzat/UI/GraphScreen.swift |  52 +---
+ Sources/TokenKuzat/UI/TraceView.swift   | 453 ++++++++++++++++++++++++++++++++
+ VERSION                                 |   2 +-
+ 5 files changed, 465 insertions(+), 54 deletions(-)
+
+commit 826573f7f830522d933ac22fe093cce0eea6150e
+Author: Ali Umirov <aliumirov.me@gmail.com>
+Date:   Wed Oct 28 17:29:45 2026 +0500
+
+    v5.0: vertical tree map — turn trunk with tool and process branches
+
+ CHANGELOG.md                           |   6 +
+ Sources/TokenKuzat/UI/SessionMap.swift | 316 +++++++++++++++++----------------
+ VERSION                                |   2 +-
+ 3 files changed, 169 insertions(+), 155 deletions(-)
+
+commit d9045c81f5b2a5f610e67287293d06efeed2ff24
+Author: Ali Umirov <aliumirov.me@gmail.com>
+Date:   Wed Oct 28 17:24:33 2026 +0500
+
+    Map: keep row-wrap connectors inside the section frame
+
+ Sources/TokenKuzat/UI/SessionMap.swift | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+commit dd03c71c3d9e3fad4d64b7118e1e57bc07d3b600
+Author: Ali Umirov <aliumirov.me@gmail.com>
+Date:   Wed Oct 28 17:23:18 2026 +0500
+
+    Map: neutral section frame stroke (live state is shown on the card)
+
+ Sources/TokenKuzat/UI/SessionMap.swift | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+commit 91b7ec9239cd413ff7c7d2810b702b714ff95c07
+Author: Ali Umirov <aliumirov.me@gmail.com>
+Date:   Wed Oct 28 17:22:32 2026 +0500
+
+    v4.9.2: compact far-zoom layout without reserved gaps, anchored zoom switch
+
+ CHANGELOG.md                           |  6 ++++
+ Sources/TokenKuzat/App.swift           |  8 +++--
+ Sources/TokenKuzat/UI/SessionMap.swift | 65 ++++++++++++++++++++++++++--------
+ VERSION                                |  2 +-
+ 4 files changed, 64 insertions(+), 17 deletions(-)
