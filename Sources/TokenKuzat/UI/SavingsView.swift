@@ -102,6 +102,11 @@ struct SavingsList: View {
             HStack(spacing: 8) {
                 Image(systemName: "leaf.fill").foregroundStyle(Brand.ok)
                 Text(tr("Tokenni tejash", "Save tokens")).font(.headline)
+                if !tips.isEmpty {
+                    AccuracyBadge(accuracy: .estimated,
+                                  help: tr("Kontekst hajmi transkriptdan o'lchangan. Tejash raqamlari — taxmin: ixcham sessiya ~40K deb, takroriy o'qish ~3K, skrinshot ~1,5K token deb olinadi.",
+                                           "Context size is measured from the transcript. Savings figures are estimates: a lean session is taken as ~40K, a repeated read ~3K and a screenshot ~1.5K tokens."))
+                }
                 Spacer()
                 Text(tr("Tejash uchun modelni yoki javob sifatini pasaytirish shart emas", "Saving doesn't mean a weaker model or worse answers")).font(.caption).foregroundStyle(.secondary)
             }

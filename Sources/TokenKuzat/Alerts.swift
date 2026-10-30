@@ -274,9 +274,9 @@ final class Alerts: NSObject, UNUserNotificationCenterDelegate {
             guard bigContextPrimed, sess.state != .idle, UserDefaults.standard.bool(forKey: Pref.notifyWaste) else { continue }
             let extra = sess.contextTokens - (SavingsAdvisor.startContext(for: sess) ?? SavingsAdvisor.baseline)
             post(tr("\(sess.project): kontekst \(Fmt.tokens(sess.contextTokens))", "\(sess.project): context \(Fmt.tokens(sess.contextTokens))"),
-                 tr("Har javobda ~\(Fmt.tokens(extra)) ortiqcha qayta o'qilyapti. Yangi mavzu bo'lsa — yangi sessiya, shu mavzu bo'lsa — /compact. "
+                 tr("Har javobda taxminan \(Fmt.tokens(extra)) ortiqcha qayta o'qilyapti. Yangi mavzu bo'lsa — yangi sessiya, shu mavzu bo'lsa — /compact. "
                     + "Bosing — sessiya ochiladi, «Yangi sessiyada davom ettirish» u yerda.",
-                    "~\(Fmt.tokens(extra)) extra is re-read on every reply. New topic — a new session; same topic — /compact. "
+                    "About \(Fmt.tokens(extra)) extra is re-read on every reply. New topic — a new session; same topic — /compact. "
                     + "Click to open the session — «Continue in a new session» is there."),
                  session: sess.id)
         }
@@ -295,7 +295,7 @@ final class Alerts: NSObject, UNUserNotificationCenterDelegate {
         where r.wasteShare(.weighted) >= 0.4 && r.waste(.weighted) >= 2_000_000 && alerted[r.project] != day {
             alerted[r.project] = day
             let pct = Int((r.wasteShare(.weighted) * 100).rounded())
-            post(tr("\(r.project): bugun sarfning ~\(pct)% isrof", "\(r.project): ~\(pct)% of today's usage is waste"),
+            post(tr("\(r.project): bugun sarfning taxminan \(pct)% isrof", "\(r.project): an estimated \(pct)% of today's usage is waste"),
                  (r.issues.first.map { tr("Asosiy sabab: ", "Main cause: ") + $0.title.lowercased() + ". " } ?? "")
                     + tr("Bosing — Tejash sahifasida sabablar va «Claude'ga topshirish».",
                          "Click for the causes and «Hand to Claude» on the Savings page."),
@@ -319,9 +319,9 @@ final class Alerts: NSObject, UNUserNotificationCenterDelegate {
             guard savingsPrimed, UserDefaults.standard.bool(forKey: Pref.notifySavings) else { continue }
             let save = sess.contextTokens - SavingsAdvisor.baseline
             post(tr("\(sess.project): yangi mavzu — yangi sessiya arzonroq", "\(sess.project): new topic — a new session is cheaper"),
-                 tr("Kontekst \(Fmt.tokens(Double(sess.contextTokens))). Yangi sessiyada har javobda ~\(Fmt.tokens(Double(save))) token tejaladi. "
+                 tr("Kontekst \(Fmt.tokens(Double(sess.contextTokens))). Yangi sessiyada har javobda taxminan \(Fmt.tokens(Double(save))) token tejaladi. "
                  + "Bosing — sessiya ochiladi, tejash belgisidagi «Yangi sessiyada davom ettirish» tugmasini bosing.",
-                    "Context \(Fmt.tokens(Double(sess.contextTokens))). A new session saves ~\(Fmt.tokens(Double(save))) tokens on every reply. "
+                    "Context \(Fmt.tokens(Double(sess.contextTokens))). A new session saves an estimated \(Fmt.tokens(Double(save))) tokens on every reply. "
                  + "Click to open the session, then press «Continue in a new session» under the savings badge."),
                  session: sess.id)
         }

@@ -1,5 +1,14 @@
 # O'zgarishlar
 
+## 6.78.0 — 2026-10-30
+
+- Tejash va isrof raqamlarida ishonch belgisi — raqam transkriptdan o'lchanganmi yoki formula bilan taxmin qilinganmi, endi ko'rinib turadi (avval «taxminiy» so'zi faqat sichqoncha izohida edi):
+  - «O'lchangan» (yashil) — kesh sovib qayta yozilgan tokenlar.
+  - «Qisman o'lchov» — sessiya ko'chirish (oldin va keyingi kontekst o'lchangan, tejash — hisob), katta kontekst va og'ir boshlanish sabablari (kontekst o'lchangan, 150K/80K chegarasi — taxmin).
+  - «Taxminiy» (punktir chegara) — umumiy isrof, agent turlari tejagani, bepul modelga berilgan ishlar, takroriy o'qish (~3K), skrinshot (~1,5K), katta natijalar.
+  - Belgi ustiga kelinsa — raqam qanday hisoblangani yoziladi. Agentlar jadvalida «≈ Tejadi», «≈ 1 token sarfga».
+  - Bildirishnomalarda «~» o'rniga «taxminan».
+
 ## 6.77.0 — 2026-10-30
 
 - Boshqaruvlar zamonaviy Apple uslubida — butun ilovada eski ramkali tizim ko'rinishi o'rniga:

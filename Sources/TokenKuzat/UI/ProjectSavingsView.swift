@@ -35,10 +35,12 @@ struct ProjectSavingsView: View {
                         MetricTile(title: tr("Jami sarf", "Total usage"), value: Fmt.tokens(total), unit: tr("token", "tokens"),
                                    footnote: tr("\(reports.count) ta loyiha", reports.count == 1 ? "1 project" : "\(reports.count) projects"),
                                    symbol: "sum", tint: Brand.accent)
-                        MetricTile(title: tr("Taxminiy isrof", "Estimated waste"), value: Fmt.tokens(waste), unit: tr("token", "tokens"),
+                        MetricTile(title: tr("Isrof", "Waste"), value: Fmt.tokens(waste), unit: tr("token", "tokens"),
                                    footnote: tr("sarfning \(Fmt.percent(waste, of: total)) — tejasa bo'ladi",
                                                 "\(Fmt.percent(waste, of: total)) of usage — can be saved"),
-                                   symbol: "leaf.fill", tint: Brand.ok)
+                                   symbol: "leaf.fill", tint: Brand.ok, accuracy: .estimated,
+                                   accuracyHelp: tr("Asosan taxmin: katta kontekstda har javob 150K dan ortiq qayta o'qigan qism, og'ir boshlangan sessiyada 80K dan ortiq boshlang'ich qism, takroriy o'qish (~3K), skrinshot (~1,5K) va katta natijalar. Kesh sovib qayta yozilgani va sarfning o'zi transkriptdan o'lchangan.",
+                                                    "Mostly an estimate: what each reply re-read above 150K in a large context, the start-up part above 80K in heavy sessions, repeated reads (~3K), screenshots (~1.5K) and big results. Cold-cache rewrites and usage itself are measured from the transcript."))
                         MetricTile(title: tr("Eng ko'p isrof", "Most waste"), value: worst?.project ?? "—",
                                    footnote: worst.map { r in
                                        r.issues.first.map { $0.title } ?? tr("isrof topilmadi", "no waste found")
@@ -115,7 +117,12 @@ struct HandoffSavingsCard: View {
         HStack(spacing: 12) {
             Image(systemName: "arrow.uturn.right.circle.fill").font(.title3).foregroundStyle(Brand.ok).frame(width: 28)
             VStack(alignment: .leading, spacing: 2) {
-                Text(tr("Sessiya ko'chirish — haqiqiy o'lchov · \(period.title)", "Session handoff — measured · \(period.title)")).font(.subheadline.weight(.semibold))
+                HStack(spacing: 6) {
+                    Text(tr("Sessiya ko'chirish · \(period.title)", "Session handoff · \(period.title)")).font(.subheadline.weight(.semibold))
+                    AccuracyBadge(accuracy: .mixed,
+                                  help: tr("Eski sessiyaning oxirgi konteksti va yangi sessiyaning boshlang'ich konteksti transkriptdan o'lchangan. Tejash — shu farq × yangi sessiyadagi javoblar soni, ya'ni eski sessiyada qolinganda qancha o'qilardi degan hisob.",
+                                           "The old session's last context and the new session's starting context are measured from the transcript. Savings = that difference × replies in the new session, i.e. what staying in the old session would have read."))
+                }
                 Text(tr("\(summary.handoffs) ta ko'chirish · har javob ~\(Fmt.tokens(Double(summary.medianBefore))) o'rniga ~\(Fmt.tokens(Double(summary.medianAfter))) o'qiydi",
                         "\(summary.handoffs) handoff\(summary.handoffs == 1 ? "" : "s") · each reply reads ~\(Fmt.tokens(Double(summary.medianAfter))) instead of ~\(Fmt.tokens(Double(summary.medianBefore)))"))
                     .font(.caption).foregroundStyle(.secondary).monospacedDigit()
@@ -134,8 +141,8 @@ struct HandoffSavingsCard: View {
             }
         }
         .card()
-        .help(tr("Sessiya yozuvlaridan o'lchanadi: har ko'chirilgan sessiya o'zi davom ettirgan eski sessiya bilan solishtiriladi. Eski sessiyada qolinsa, har javob kamida eski oxirgi kontekstni o'qirdi — hisob ehtiyotkor. Narx rejimida yangi sessiya kontekstini bir marta keshga yozish ayirilgan.",
-                 "Measured from session transcripts: each handed-off session is compared with the session it continued. Staying in the old session, every reply would read at least its last context — a conservative estimate. In cost mode, writing the new session's context to cache once is subtracted."))
+        .help(tr("Sessiya yozuvlaridan hisoblanadi: har ko'chirilgan sessiya o'zi davom ettirgan eski sessiya bilan solishtiriladi. Eski sessiyada qolinsa, har javob kamida eski oxirgi kontekstni o'qirdi — hisob ehtiyotkor. Narx rejimida yangi sessiya kontekstini bir marta keshga yozish ayirilgan.",
+                 "Calculated from session transcripts: each handed-off session is compared with the session it continued. Staying in the old session, every reply would read at least its last context — a conservative estimate. In cost mode, writing the new session's context to cache once is subtracted."))
     }
 }
 
@@ -192,6 +199,7 @@ struct AgentRolesCard: View {
                     Text(extra ? tr("token ortiqcha · \(percent)% ko'p", "tokens extra · \(percent)% more")
                                : tr("token tejaldi · \(percent)% kam", "tokens saved · \(percent)% less"))
                         .font(.caption).foregroundStyle(.secondary)
+                    AccuracyBadge(accuracy: .estimated, help: Self.estimateHelp)
                 }
                 .help(Self.estimateHelp)
             }
@@ -249,8 +257,8 @@ struct AgentRolesCard: View {
                 Text(tr("Model", "Model")).gridColumnAlignment(.leading)
                 if !compact { Text(tr("Chaqiruv", "Runs")) }
                 Text(tr("Sarf", "Cost")).help(tr("Narx bo'yicha (Opus-ekvivalent): token × model narxi", "Price-weighted (Opus-equivalent): tokens × model price"))
-                Text(tr("Tejadi", "Saved"))
-                Text(tr("1 token sarfga", "Per token spent")).help(Self.estimateHelp)
+                Text(tr("≈ Tejadi", "≈ Saved")).help(Self.estimateHelp)
+                Text(tr("≈ 1 token sarfga", "≈ Per token spent")).help(Self.estimateHelp)
             }
             .font(.caption2.weight(.medium)).foregroundStyle(.secondary)
             .padding(.bottom, 6)
@@ -399,11 +407,16 @@ private struct FreeModelCard: View {
             VStack(alignment: .trailing, spacing: 2) {
                 Text("~\(Fmt.tokens(Double(summary.savedTokens)))").font(.title3.weight(.semibold)).foregroundStyle(Brand.ok).monospacedDigit()
                 Text(tr("token tejaldi", "tokens saved")).font(.caption).foregroundStyle(.secondary)
+                AccuracyBadge(accuracy: .estimated, help: Self.helpText)
             }
         }
         .card()
-        .help(tr("Taxminiy hisob: Claude kontekstiga kirmagan fayl matni va Claude o'zi yozmagan javob. Claude bergan ishni (prompt) va javobni o'qishini hisobga olmaydi.",
-                 "Estimate: file content that never entered Claude's context plus the answer Claude didn't have to write. Doesn't subtract the prompt Claude wrote or reading the answer."))
+        .help(Self.helpText)
+    }
+
+    private static var helpText: String {
+        tr("Taxminiy hisob: Claude kontekstiga kirmagan fayl matni va Claude o'zi yozmagan javob (har 4 bayt ≈ 1 token). Claude bergan ishni (prompt) va javobni o'qishini hisobga olmaydi.",
+           "Estimate: file content that never entered Claude's context plus the answer Claude didn't have to write (4 bytes ≈ 1 token). Doesn't subtract the prompt Claude wrote or reading the answer.")
     }
 }
 
@@ -420,7 +433,12 @@ private struct CacheWeekCard: View {
         HStack(spacing: 12) {
             Image(systemName: "clock.arrow.circlepath").font(.title3).foregroundStyle(Brand.warn).frame(width: 28)
             VStack(alignment: .leading, spacing: 2) {
-                Text(tr("Kesh sovib qayta yozildi · 7 kun", "Cache rewritten after going cold · 7 days")).font(.subheadline.weight(.semibold))
+                HStack(spacing: 6) {
+                    Text(tr("Kesh sovib qayta yozildi · 7 kun", "Cache rewritten after going cold · 7 days")).font(.subheadline.weight(.semibold))
+                    AccuracyBadge(accuracy: .measured,
+                                  help: tr("Transkriptdan o'lchangan: keyingi chaqiruv eski kontekstni keshdan o'qiy olmagan va qayta yozgan.",
+                                           "Measured from the transcript: the next call couldn't read the old context from cache and wrote it again."))
+                }
                 Text(week.count == 0
                      ? tr("Bu hafta kesh sovimagan", "The cache didn't go cold this week")
                      : tr("\(Fmt.tokens(value(week))) token · \(week.count) marta", "\(Fmt.tokens(value(week))) tokens · \(week.count == 1 ? "once" : "\(week.count) times")"))
@@ -504,6 +522,7 @@ private struct ProjectSavingsRow: View {
                                   "waste ~\(Fmt.tokens(report.waste(mode))) · \(Fmt.percent(report.waste(mode), of: report.tokens.value(mode)))")
                              : tr("isrof yo'q", "no waste"))
                             .font(.caption.weight(.medium)).monospacedDigit().foregroundStyle(report.waste > 0 ? wasteColor : .secondary)
+                            .help(tr("Isrof asosan taxmin — har sababning aniqligi ochilganda ko'rinadi", "Waste is mostly an estimate — each cause shows its accuracy when expanded"))
                     }
                     .frame(width: 150, alignment: .trailing)
                     Image(systemName: "chevron.right")
@@ -543,6 +562,7 @@ private struct ProjectSavingsRow: View {
                             Text(issue.title).font(.callout.weight(.semibold))
                             Spacer(minLength: 6)
                             if issue.waste > 0 {
+                                AccuracyBadge(accuracy: issue.kind.accuracy, help: issue.kind.accuracyHelp)
                                 Text("~\(Fmt.tokens(mode == .weighted ? issue.weighted : Double(issue.waste)))").font(.caption.weight(.semibold)).monospacedDigit()
                                     .foregroundStyle(color(issue.level))
                             }
@@ -696,5 +716,37 @@ private struct OptimizeCommandCard: View {
             Spacer(minLength: 0)
         }
         .card()
+    }
+}
+
+/// Isrof sababi qanchalik aniq: kesh — transkriptdan; katta kontekst va og'ir boshlanish — haqiqiy kontekst, lekin chegara (150K/80K) taxmin;
+/// qolganlari — qo'lda qo'yilgan bahodan (takroriy o'qish ~3K, skrinshot ~1,5K, katta natija — 4 bayt ≈ 1 token)
+extension SavingsTip.Kind {
+    var accuracy: Accuracy {
+        switch self {
+        case .cacheRebuilds: return .measured
+        case .bigContext, .heavyStart: return .mixed
+        default: return .estimated
+        }
+    }
+
+    var accuracyHelp: String {
+        switch self {
+        case .cacheRebuilds:
+            return tr("Transkriptdan o'lchangan: tanaffusdan keyin kontekst keshdan o'qilmay, qaytadan yozilgan.",
+                      "Measured from the transcript: after a break the context wasn't read from cache and was written again.")
+        case .bigContext:
+            return tr("Har javob o'qigan kontekst o'lchangan. Isrof deb 150K dan ortig'i olinadi — bu chegara taxmin.",
+                      "Context read per reply is measured. Waste counts what's above 150K — that threshold is an assumption.")
+        case .heavyStart:
+            return tr("Boshlang'ich kontekst o'lchangan. Isrof deb 80K dan ortig'i olinadi — bu chegara taxmin.",
+                      "Starting context is measured. Waste counts what's above 80K — that threshold is an assumption.")
+        case .repeatedReads:
+            return tr("Taxmin: har takroriy o'qish ~3K token deb olinadi.", "Estimate: each repeated read is taken as ~3K tokens.")
+        case .screenshots:
+            return tr("Taxmin: har skrinshot ~1,5K token deb olinadi.", "Estimate: each screenshot is taken as ~1.5K tokens.")
+        default:
+            return tr("Taxmin: natija hajmi matn hajmidan (4 bayt ≈ 1 token) hisoblanadi.", "Estimate: result size is derived from text size (4 bytes ≈ 1 token).")
+        }
     }
 }

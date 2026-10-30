@@ -254,6 +254,51 @@ struct Chip: View {
     }
 }
 
+/// Raqam qanchalik aniq: transkriptdan o'lchangan, formula bilan taxmin qilingan yoki ikkalasi
+enum Accuracy {
+    case measured, mixed, estimated
+
+    var title: String {
+        switch self {
+        case .measured: return tr("O'lchangan", "Measured")
+        case .mixed: return tr("Qisman o'lchov", "Partly measured")
+        case .estimated: return tr("Taxminiy", "Estimate")
+        }
+    }
+    var symbol: String {
+        switch self {
+        case .measured: return "checkmark.seal.fill"
+        case .mixed: return "circle.lefthalf.filled"
+        case .estimated: return "plusminus"
+        }
+    }
+}
+
+/// Ishonch belgisi: o'lchangan — yashil, yaxlit; taxminiy — kulrang, punktir chegara (rangsiz ham farqlanadi)
+struct AccuracyBadge: View {
+    let accuracy: Accuracy
+    var help: String? = nil
+
+    var body: some View {
+        let measured = accuracy == .measured
+        HStack(spacing: 3) {
+            Image(systemName: accuracy.symbol).imageScale(.small)
+            Text(accuracy.title)
+        }
+        .font(.caption2.weight(.medium))
+        .foregroundStyle(measured ? Brand.ok : Color.secondary)
+        .padding(.horizontal, 6).padding(.vertical, 2)
+        .background(measured ? Brand.ok.opacity(0.12) : Color.primary.opacity(0.05), in: Capsule())
+        .overlay {
+            if !measured {
+                Capsule().strokeBorder(Color.secondary.opacity(0.55), style: StrokeStyle(lineWidth: 1, dash: [3, 2]))
+            }
+        }
+        .lineLimit(1).fixedSize()
+        .help(help ?? accuracy.title)
+    }
+}
+
 // MARK: - Ko'rsatkich plitasi
 
 struct MetricTile: View {
@@ -263,6 +308,8 @@ struct MetricTile: View {
     var footnote: String? = nil
     var symbol: String
     var tint: Color = Brand.accent
+    var accuracy: Accuracy? = nil
+    var accuracyHelp: String? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -273,6 +320,10 @@ struct MetricTile: View {
                     .frame(width: 24, height: 24)
                     .background(Circle().fill(tint.opacity(0.16)))
                 Text(title).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                if let accuracy {
+                    Spacer(minLength: 4)
+                    AccuracyBadge(accuracy: accuracy, help: accuracyHelp)
+                }
             }
             HStack(alignment: .firstTextBaseline, spacing: 4) {
                 Text(value).font(.system(size: 26, weight: .semibold, design: .rounded)).monospacedDigit()
