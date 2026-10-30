@@ -69,387 +69,26 @@ struct SettingsView: View {
         default:
             if updates.canInstallInPlace {
                 Button(tr("Yangilash", "Update")) { updates.installUpdate() }
+                    .buttonStyle(.borderedProminent)
                     .help(tr("Yuklaydi, tekshiradi va ilovani qayta ochadi", "Downloads, verifies and relaunches the app"))
             } else {
-                Button(tr("Yuklab olish", "Download")) { updates.download() }
+                Button(tr("Yuklab olish", "Download")) { updates.download() }.buttonStyle(.borderedProminent)
             }
         }
     }
 
     var body: some View {
-        Form {
-            SwiftUI.Section {
-                Picker(tr("Bo'lim", "Section"), selection: $tab) {
-                    ForEach(SettingsTab.allCases) { Text($0.title).tag($0) }
-                }
-                .pickerStyle(.segmented).labelsHidden()
+        VStack(spacing: 0) {
+            SettingsTabBar(selection: $tab)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 24) { page }
+                    .frame(maxWidth: 680)
+                    .padding(.horizontal, 28).padding(.top, 24).padding(.bottom, 40)
+                    .frame(maxWidth: .infinity)
             }
-            if tab == .general {
-                SwiftUI.Section(tr("Umumiy", "General")) {
-                    Picker(selection: Binding(get: { AppLanguage(rawValue: language) ?? .system }, set: { Lang.set($0) })) {
-                        ForEach(AppLanguage.allCases) { Text($0.title).tag($0) }
-                    } label: {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Til / Language")
-                            Text(tr("Darhol qo'llanadi. «Tizim tili» — Mac inglizcha bo'lsa English, aks holda o'zbekcha",
-                                    "Applies immediately. “System language” — English if your Mac is in English, otherwise Uzbek"))
-                                .font(.caption).foregroundStyle(.secondary)
-                        }
-                    }
-                    Toggle(tr("Mac yoqilganda ishga tushsin", "Launch at login"), isOn: $launchAtLogin)
-                        .onChange(of: launchAtLogin) { LaunchAtLogin.set($0) }
-                        .disabled(!AppInfo.isBundled)
-                    Toggle(isOn: $checkUpdates) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(tr("Yangi versiyani tekshirish", "Check for updates"))
-                            Text(updateCaption).font(.caption).foregroundStyle(.secondary)
-                        }
-                    }
-                    .onChange(of: checkUpdates) { on in if on { updates.start() } else { updates.stop() } }
-                    if let r = updates.available {
-                        HStack {
-                            Label(tr("v\(r.version) chiqdi", "v\(r.version) is out"), systemImage: "arrow.down.circle.fill").foregroundStyle(Brand.accent)
-                            Spacer()
-                            Button(tr("Reliz sahifasi", "Release page")) { NSWorkspace.shared.open(r.pageURL) }.buttonStyle(.link)
-                            updateAction
-                        }
-                        if case .failed(let msg) = updates.install {
-                            HStack {
-                                Text(tr("Yangilab bo'lmadi: \(msg)", "Couldn't update: \(msg)")).font(.caption).foregroundStyle(Brand.err)
-                                Spacer()
-                                Button(tr("DMG'ni yuklab olish", "Download the DMG")) { updates.download() }.buttonStyle(.link)
-                            }
-                        }
-                    } else if checkUpdates {
-                        HStack {
-                            Spacer()
-                            Button(tr("Hozir tekshirish", "Check now")) { updates.check() }.disabled(updates.status == .checking)
-                        }
-                    }
-                    Picker(tr("Menyu satrida", "Menu bar"), selection: $menuBarStyle) {
-                        ForEach(MenuBarStyle.allCases) { Text($0.title).tag($0) }
-                    }
-                    Toggle(isOn: $lightMode) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(tr("Kam animatsiya", "Reduce motion"))
-                            Text(tr("Robot, aylanuvchi chegaralar va oqim animatsiyalari to'xtaydi — oyna ochiq turganda protsessor taxminan ikki baravar kam ishlaydi", "Stops the robot, spinning borders and flow animations — uses about half the CPU while the window is open"))
-                                .font(.caption).foregroundStyle(.secondary)
-                        }
-                    }
-                }
-
-                SwiftUI.Section {
-                    Picker(tr("Hisoblash usuli", "Counting method"), selection: $mode) {
-                        Text(tr("Token soni", "Token count")).tag(CountMode.raw)
-                        Text(tr("Narx bo'yicha", "By cost")).tag(CountMode.weighted)
-                    }
-                    .pickerStyle(.radioGroup)
-                } header: {
-                    Text(tr("Hisoblash", "Counting"))
-                } footer: {
-                    Text(tr("Token soni — har bir token teng sanaladi. Narx bo'yicha — kiritish narxiga nisbatan: javob ×\(fmt(Pricing.output)), kesh o'qish ×\(fmt(Pricing.cacheRead)), kesh yozish ×\(fmt(Pricing.cacheWrite5m)) (1 soatlik kesh ×\(fmt(Pricing.cacheWrite1h))). Limitni nima ko'proq «yeyayotgani»ni shu usul yaxshiroq ko'rsatadi.", "Token count — every token counts the same. By cost — relative to input price: output ×\(fmt(Pricing.output)), cache read ×\(fmt(Pricing.cacheRead)), cache write ×\(fmt(Pricing.cacheWrite5m)) (1-hour cache ×\(fmt(Pricing.cacheWrite1h))). This shows better what really «eats» your limit."))
-                        .font(.caption).foregroundStyle(.secondary)
-                }
-            }
-            if tab == .notifications {
-                SwiftUI.Section {
-                    Picker(selection: Binding(get: { NotifyMode.current() }, set: { $0.apply() })) {
-                        ForEach(NotifyMode.allCases.filter { $0 != .custom || NotifyMode.current() == .custom }) { Text($0.title).tag($0) }
-                    } label: {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(tr("Bildirishnomalar", "Notifications"))
-                            Text(tr("«Faqat muhim» — ish tugadi, ruxsat kutilyapti, xato va limit; maslahatlar (kontekst, isrof, kesh) chiqmaydi",
-                                    "\"Important only\" — task finished, waiting for permission, errors and limits; no tips (context, waste, cache)"))
-                                .font(.caption).foregroundStyle(.secondary)
-                        }
-                    }
-                    Toggle(tr("Claude ishni tugatganda", "When Claude finishes a task"), isOn: $notifyFinished)
-                    Picker(tr("…agar ish shundan uzoq davom etgan bo'lsa", "…if it ran longer than"), selection: $notifyFinishedMin) {
-                        Text(tr("har doim", "always")).tag(0.0)
-                        Text(tr("30 soniya", "30 seconds")).tag(30.0)
-                        Text(tr("1 daqiqa", "1 minute")).tag(60.0)
-                        Text(tr("3 daqiqa", "3 minutes")).tag(180.0)
-                        Text(tr("10 daqiqa", "10 minutes")).tag(600.0)
-                    }
-                    .disabled(!notifyFinished)
-                    Toggle(tr("Qadam uzoq tugamasa (ruxsat kutilayotgan bo'lishi mumkin)", "When a step takes too long (may be waiting for permission)"), isOn: $notifyStuck)
-                    Picker(tr("…shundan keyin", "…after"), selection: $notifyStuckSec) {
-                        Text(tr("30 soniya", "30 seconds")).tag(30.0)
-                        Text(tr("1,5 daqiqa", "1.5 minutes")).tag(90.0)
-                        Text(tr("3 daqiqa", "3 minutes")).tag(180.0)
-                        Text(tr("5 daqiqa", "5 minutes")).tag(300.0)
-                    }
-                    .disabled(!notifyStuck)
-                    Toggle(tr("Agent ketma-ket 3 marta xato olsa", "When an agent hits 3 errors in a row"), isOn: $notifyErrors)
-                    Toggle(tr("Kontekst 85% to'lganda (tez orada avtomatik xulosa)", "When context is 85% full (auto-summary coming soon)"), isOn: $notifyContext)
-                    Toggle(tr("Katta kontekstda yangi mavzu boshlansa — yangi sessiya taklifi (token tejash)", "New topic in a large context — suggest a new session (saves tokens)"), isOn: $notifySavings)
-                    Toggle(tr("Isrof: kontekst 200K dan oshsa yoki loyiha bugun sarfining 40%+ ini isrof qilsa", "Waste: context passes 200K, or a project wastes 40%+ of today's usage"), isOn: $notifyWaste)
-                    Toggle(tr("Kesh sovishidan oldin — javobingizni kutayotgan katta sessiyada", "Before the cache cools — in a large session waiting for your reply"), isOn: $notifyCache)
-                    HStack {
-                        Toggle(tr("Claude ruxsat so'raganda", "When Claude asks for permission"), isOn: $notifyPermission)
-                        Spacer()
-                        if hookInstalled {
-                            Label(tr("Ulangan", "Connected"), systemImage: "checkmark.circle.fill").font(.caption).foregroundStyle(Brand.ok)
-                            Button(tr("Uzish", "Disconnect")) { toggleHook(false) }.buttonStyle(.link)
-                        } else {
-                            Button(tr("Ruxsat xabarini ulash", "Connect permission alerts")) { toggleHook(true) }
-                        }
-                    }
-                    if let hookError {
-                        Label(hookError, systemImage: "exclamationmark.triangle").font(.caption).foregroundStyle(Brand.err)
-                    }
-                    HStack {
-                        Spacer()
-                        Button(tr("Sinov bildirishnomasi", "Test notification")) { Alerts.shared.sendTest() }
-                    }
-                    if notifyDenied {
-                        HStack {
-                            Label(tr("macOS bildirishnomalarga ruxsat bermagan", "macOS hasn't allowed notifications"), systemImage: "exclamationmark.triangle")
-                                .font(.caption).foregroundStyle(Brand.warn)
-                            Spacer()
-                            Button(tr("Ruxsat berish…", "Allow…")) {
-                                NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.Notifications-Settings.extension?id=uz.ali.tokenkuzat")!)
-                            }
-                        }
-                    }
-                } header: {
-                    Text(tr("Bildirishnomalar", "Notifications"))
-                } footer: {
-                    Text(tr("Bildirishnomani bosing — o'sha sessiya ochiladi.\nRuxsat so'rovi uchun «Ulash» settings.json ga hook qo'shadi; yangi sessiyalarda ishlaydi.", "Click a notification to open that session.\nFor permission requests, «Connect» adds a hook to settings.json; it works in new sessions."))
-                        .font(.caption).foregroundStyle(.secondary)
-                }
-                .disabled(!AppInfo.isBundled)
-                .onChange(of: notifyFinished) { if $0 { askPermission() } }
-                .onChange(of: notifyStuck) { if $0 { askPermission() } }
-                .onChange(of: notifyErrors) { if $0 { askPermission() } }
-            }
-            if tab == .sessions {
-                SwiftUI.Section {
-                    captionToggle(tr("Kontekst katta bo'lsa — avtomatik yangi sessiya", "Large context — open a new session automatically"),
-                                  tr("Javob tugagach xulosa bilan yangi sessiya ochiladi — ish to'xtatilmaydi", "Opens a new session with the summary after Claude's reply — work isn't interrupted"),
-                                  help: tr("Claude javobni tugatgach yangi sessiya xulosa bilan ochiladi; ish o'rtasida to'xtatilmaydi. Yangi sessiya Claude ilovasida ochiladi, xulosa yozib qo'yiladi — Enter bosasiz "
-                                     + "(ilova tashqaridan kelgan xabarni xavfsizlik uchun o'zi yubormaydi)",
-                                     "After Claude finishes its reply, a new session opens with the summary; work is never interrupted. The new session opens in the Claude app with the summary filled in — you press Enter "
-                                     + "(the app doesn't send outside messages by itself, for safety)"),
-                                  isOn: $autoHandoff)
-                    .onChange(of: autoHandoff) { on in
-                        if !on { try? PromptRedirectHook.uninstall(); try? PreCompactHook.uninstall() }
-                    }
-                    if autoHandoff {
-                        Picker(tr("…kontekst oshganda", "…when context passes"), selection: $autoHandoffK) {
-                            ForEach(AutoHandoffRule.thresholdOptionsK, id: \.self) { Text(Fmt.tokens($0 * 1000)).tag($0) }
-                        }
-                        if let w = compactWindow, Double(w.tokens) <= autoHandoffK * 1000 {
-                            Label(tr("Claude Code suhbatni \(Fmt.tokens(w.tokens)) da o'zi qisqartiradi (\(w.source)) — bu ko'chirish chegarasidan "
-                                     + "(\(Fmt.tokens(Int(autoHandoffK * 1000)))) kichik. Ilova qisqartirishni bir marta to'xtatib, ishni yangi sessiyaga ko'chiradi. "
-                                     + (canPickLower(w)
-                                        ? "Har doim ishonchli bo'lishi uchun chegarani \(Fmt.tokens(w.tokens)) dan pastroq tanlang."
-                                        : "Tanlovda \(Fmt.tokens(w.tokens)) dan past chegara yo'q — ishonchli bo'lishi uchun ~/.claude/settings.json dagi autoCompactWindow ni oshiring yoki olib tashlang."),
-                                     "Claude Code compacts the conversation by itself at \(Fmt.tokens(w.tokens)) (\(w.source)) — below the handoff threshold "
-                                     + "(\(Fmt.tokens(Int(autoHandoffK * 1000)))). The app stops compaction once and moves the work to a new session. "
-                                     + (canPickLower(w)
-                                        ? "To be safe every time, pick a threshold below \(Fmt.tokens(w.tokens))."
-                                        : "No threshold below \(Fmt.tokens(w.tokens)) is available — to be safe, raise or remove autoCompactWindow in ~/.claude/settings.json.")),
-                                  systemImage: "exclamationmark.triangle.fill")
-                                .font(.caption).foregroundStyle(.orange)
-                        }
-                        captionToggle(tr("…eski sessiyada yozsam — yangi sessiyaga yo'naltirish", "…if I type in the old session — redirect to the new one"),
-                                      tr("Keyingi xabaringiz xulosa bilan yangi sessiyaga ketadi", "Your next message goes to the new session with the summary"),
-                                      help: tr("Birinchi xabar to'xtatilib, xulosa bilan yangi sessiyaga yuboriladi; qayta yuborsangiz — eski sessiyada qoladi",
-                                         "The first message is stopped and sent to the new session with the summary; send it again to stay in the old session"),
-                                      isOn: $autoHandoffRedirect)
-                        // Hook eslatma so'rovi uchun ham kerak — avtomatik ko'chirish yoqiq bo'lsa, faqat yo'naltirishlar o'chiriladi
-                        .onChange(of: autoHandoffRedirect) { on in if !on { try? FileManager.default.removeItem(at: RedirectStore.defaultURL) } }
-                    }
-                    captionToggle(tr("Yopilgan sessiyani avtomatik davom ettirish", "Auto-resume a closed session"),
-                                  tr("Shu papkada yangi sessiya ochsangiz, Claude qayerda qolganini o'zi biladi", "Open a new session in the same folder and Claude knows where things stopped"),
-                                  help: tr("Oyna yopilgan yoki tashlab ketilgan sessiyaning xulosasi (24 soat ichida) shu papkada ochilgan keyingi yangi sessiyaga "
-                                           + "o'zi beriladi — har loyiha o'z papkasi bo'yicha. Boshqa mavzuda boshlasangiz, Claude uni e'tiborsiz qoldiradi. "
-                                           + "Har yangi sessiya boshida ~2–3K token",
-                                           "The summary of a session whose window was closed or left (within 24 hours) is passed to the next new session "
-                                           + "opened in the same folder — each project by its own folder. Start on another topic and Claude ignores it. "
-                                           + "~2–3K tokens at the start of each new session"),
-                                  isOn: $autoResume)
-                    .onChange(of: autoResume) { on in
-                        if on {
-                            try? SessionStartHook.install()
-                            handoffHookInstalled = SessionStartHook.isInstalled
-                        } else {
-                            ProjectTracker.shared.disableResume()
-                        }
-                    }
-                    if handoffHookInstalled {
-                        HStack {
-                            Text(tr("Yangi sessiyada davom ettirish (xulosa avtomatik beriladi)", "Continue in a new session (summary passed automatically)"))
-                            Spacer()
-                            Label(tr("Ulangan", "Connected"), systemImage: "checkmark.circle.fill").font(.caption).foregroundStyle(Brand.ok)
-                            Button(tr("Uzish", "Disconnect")) {
-                                try? SessionStartHook.uninstall()
-                                handoffHookInstalled = SessionStartHook.isInstalled
-                                // Avtomatik davom ham shu hook'da — keyingi ishga tushishda qayta ulanmasin
-                                autoResume = false
-                            }.buttonStyle(.link)
-                        }
-                    }
-                } header: {
-                    Text(tr("Avtomatik yangi sessiya", "Automatic new session"))
-                } footer: {
-                    Text(tr("Kontekst katta bo'lganda ish xulosa bilan yangi sessiyaga ko'chadi — limit sekinroq tugaydi.", "When the context gets large, work moves to a new session with a summary — the limit lasts longer."))
-                        .font(.caption).foregroundStyle(.secondary)
-                }
-                .disabled(!AppInfo.isBundled)
-
-                SwiftUI.Section {
-                    captionToggle(tr("Ko'p o'qisangiz — yordamchiga berishni eslatish", "Many reads — remind to use a helper"),
-                                  tr("Claude yordamchisiz ko'p fayl o'qisa, qidiruvni izlovchiga berishni eslatadi", "If Claude reads many files without a helper, it is reminded to hand searches to the finder"),
-                                  help: tr("Sessiyada yordamchi agent ishlatilmagan va 15 ta o'qish/qidiruv bajarilgan bo'lsa (keyin har 15 tada), Claude'ga qisqa eslatma beriladi. Hech narsani bloklamaydi",
-                                           "When no helper agent was used in a session and 15 reads/searches were done (then every 15), Claude gets a short reminder. Nothing is blocked"),
-                                  isOn: $delegateNudge)
-                    .onChange(of: delegateNudge) { on in
-                        DelegateNudgeHook.sync(enabled: on)
-                    }
-                } header: {
-                    Text(tr("Yordamchi agentlar", "Helper agents"))
-                } footer: {
-                    Text(tr("Faqat Token Kuzatuv plagini o'rnatilgan bo'lsa ishlaydi (tokenkuzat:izlovchi).", "Works only when the Token Kuzatuv plugin is installed (tokenkuzat:izlovchi)."))
-                        .font(.caption).foregroundStyle(.secondary)
-                }
-                .disabled(!AppInfo.isBundled)
-            }
-            if tab == .limits {
-                SwiftUI.Section {
-                    Toggle(tr("Claude hisobidan olish (claude.ai bilan bir xil)", "Fetch from Claude account (same as claude.ai)"), isOn: $accountUsage)
-                        .onChange(of: accountUsage) { on in
-                            if on { AccountUsage.shared.start(); AccountUsage.shared.refreshNow() } else { AccountUsage.shared.stop() }
-                            refreshAccount()
-                        }
-                    if accountUsage {
-                        LabeledContent(tr("Holat", "Status")) {
-                            HStack(spacing: 6) {
-                                Circle().fill(accountColor).frame(width: 8, height: 8)
-                                Text(accountText)
-                            }
-                        }
-                        HStack {
-                            Spacer()
-                            Button(tr("Hozir yangilash", "Refresh now")) { AccountUsage.shared.refreshNow(); refreshAccountLater() }
-                        }
-                    }
-                } header: {
-                    Text(tr("Claude limiti — hisobdan", "Claude limit — from account"))
-                } footer: {
-                    Text(tr("Claude Code'ning Keychain'dagi kirish kaliti bilan Anthropic'dan 5 soatlik va haftalik limit har 1,5 daqiqada olinadi — Code tabi va Claude ilovasida ham ishlaydi. Kalit faqat shu kompyuterda o'qiladi va faqat api.anthropic.com ga yuboriladi. Birinchi marta macOS Keychain ruxsatini so'raydi («Har doim ruxsat»). Ishlamasa — pastdagi status line zaxira manba bo'ladi. Yoqilgan bo'lsa, limitning chat va bulutga (Mac'ga yozilmaydigan ishlarga) ketgan qismi ham hisoblanadi.", "Using Claude Code's sign-in key from Keychain, the current session and weekly limits are fetched from Anthropic every 90 seconds — works for the Code tab and the Claude app too. The key is read only on this computer and sent only to api.anthropic.com. The first time, macOS asks for Keychain access («Always Allow»). If it doesn't work, the status line below is the fallback source. When on, the part of the limit spent in chat & cloud (work not written to this Mac) is calculated too."))
-                        .font(.caption).foregroundStyle(.secondary)
-                }
-                .onAppear(perform: refreshAccount)
-
-                SwiftUI.Section {
-                    LabeledContent(tr("Holat", "Status")) {
-                        HStack(spacing: 6) {
-                            Circle().fill(statusLineInstalled ? (store.snap.limits.map { !$0.isEmpty } == true ? Brand.ok : Brand.warn) : .secondary)
-                                .frame(width: 8, height: 8)
-                            Text(statusLineStatus)
-                        }
-                    }
-                    HStack {
-                        if statusLineInstalled {
-                            Button(tr("Uzish", "Disconnect")) { toggleStatusLine(false) }
-                        } else {
-                            Button(tr("Limitlarni ulash", "Connect limits")) { toggleStatusLine(true) }.buttonStyle(.borderedProminent)
-                        }
-                        Spacer()
-                        Button(tr("settings.json'ni ko'rsatish", "Show settings.json")) {
-                            NSWorkspace.shared.activateFileViewerSelecting([StatusLine.settingsURL])
-                        }
-                        .buttonStyle(.link)
-                    }
-                    if let statusLineError {
-                        Label(statusLineError, systemImage: "exclamationmark.triangle").font(.caption).foregroundStyle(Brand.err)
-                    }
-                    if let l = store.snap.limits, !l.isEmpty {
-                        RealLimitsView(limits: l, forecast: store.snap.fiveHourForecast)
-                    }
-                    Toggle(tr("80% va 95% ga yetganda bildirishnoma", "Notify at 80% and 95%"), isOn: $notifyRealLimit)
-                        .disabled(!statusLineInstalled || !AppInfo.isBundled)
-                        .onChange(of: notifyRealLimit) { if $0 { askPermission() } }
-                } header: {
-                    Text(tr("Claude limiti (haqiqiy)", "Claude limit (real)"))
-                } footer: {
-                    Text(tr("Claude Code har bir javobdan keyin status line'ga 5 soatlik va haftalik limit foizini beradi (Pro/Max obunada). «Ulash» ~/.claude/settings.json ga Token Kuzatuv'ni status line qilib yozadi: terminalda pastki satrda «5 soat 34% ↻16:40 · hafta 61%» ko'rinadi. Avvalgi status line bo'lsa — saqlanadi va ishlashda davom etadi; «Uzish» uni qaytaradi. Birinchi ulanishda settings.json nusxasi olinadi.", "After each reply, Claude Code passes the 5-hour and weekly limit percentages to the status line (Pro/Max plans). «Connect» sets Token Kuzatuv as the status line in ~/.claude/settings.json: the terminal's bottom line shows «5h 34% ↻16:40 · week 61%». An existing status line is kept and keeps working; «Disconnect» restores it. A backup of settings.json is made on first connect."))
-                        .font(.caption).foregroundStyle(.secondary)
-                }
-
-                SwiftUI.Section {
-                    Toggle(tr("Limitni kuzatish", "Track limit"), isOn: $budgetEnabled)
-                    Picker(tr("Davr", "Period"), selection: $budgetPeriod) {
-                        ForEach(BudgetPeriod.allCases) { Text($0.title).tag($0) }
-                    }
-                    .disabled(!budgetEnabled)
-                    LabeledContent(tr("Limit", "Limit")) {
-                        HStack(spacing: 6) {
-                            TextField("", value: $budgetLimitM, format: .number.precision(.fractionLength(0...1)))
-                                .textFieldStyle(.roundedBorder)
-                                .multilineTextAlignment(.trailing)
-                                .frame(width: 80)
-                                // 0 yoki manfiy limit foizni buzadi — Stepper chegarasiga keltiriladi
-                                .onChange(of: budgetLimitM) { v in
-                                    let c = min(max(v, 1), 2000)
-                                    if c != v { budgetLimitM = c }
-                                }
-                            Stepper("", value: $budgetLimitM, in: 1...2000, step: 5).labelsHidden()
-                            Text(tr("mln token (narx bo'yicha)", "M tokens (by price)")).foregroundStyle(.secondary)
-                        }
-                    }
-                    .disabled(!budgetEnabled)
-                    Toggle(tr("80% va 100% da bildirishnoma", "Notify at 80% and 100%"), isOn: $budgetNotify)
-                        .disabled(!budgetEnabled || !AppInfo.isBundled)
-                        .onChange(of: budgetNotify) { if $0 { askPermission() } }
-                    if budgetEnabled, let b = BudgetStatus.current(store.snap) {
-                        BudgetBar(status: b)
-                    }
-                } header: {
-                    Text(tr("O'z limitim (taxminiy)", "My own limit (estimate)"))
-                } footer: {
-                    Text(tr("Claude obunasi limiti 5 soatlik oyna bo'yicha tiklanadi. Anthropic aniq limitni e'lon qilmaydi — o'zingizning odatiy sarfingizga qarab qiymat qo'ying (Tarix sahifasida ko'rinadi).", "Claude plan limits reset on a 5-hour window. Anthropic doesn't publish the exact limit — set a value based on your typical usage (shown on the History page)."))
-                        .font(.caption).foregroundStyle(.secondary)
-                }
-            }
-            if tab == .freeModels {
-                FreeModelsSection()
-            }
-            if tab == .data {
-                SwiftUI.Section(tr("Ma'lumot", "Data")) {
-                    LabeledContent(tr("Kuzatilayotgan fayllar", "Watched files"), value: tr("\(store.snap.filesWatched) ta (oxirgi 30 kun)", "\(store.snap.filesWatched) (last 30 days)"))
-                    SourcesList(sources: store.snap.sources)
-                    LabeledContent(tr("Bulutdagi chatlar", "Cloud chats")) {
-                        HStack {
-                            Button(tr("Chat yozuvini qo'shish…", "Add chat transcript…")) { ChatImporter.pick() }
-                            Button(tr("Papkani ochish", "Open folder")) {
-                                try? FileManager.default.createDirectory(at: ChatImport.directory, withIntermediateDirectories: true)
-                                NSWorkspace.shared.open(ChatImport.directory)
-                            }
-                        }
-                    }
-                    Text(tr("Claude chat va bulutdagi sessiyalar Mac'ga yozilmaydi. Chatdan Claude'ga «yozuvini Token Kuzatuv uchun ber» deng — kelgan .jsonl faylni shu tugma bilan qo'shing yoki oynaga sudrab tashlang. Xaritada «\(ChatImport.projectName)» loyihasi bo'lib chiqadi.", "Claude chat and cloud sessions aren't written to this Mac. In chat, ask Claude to «export the transcript for Token Kuzatuv» — add the .jsonl file with this button or drag it onto the window. It shows up on the map as the «\(ChatImport.projectName)» project."))
-                        .font(.caption).foregroundStyle(.secondary)
-                    HStack {
-                        Button(tr("Claude papkasini ochish", "Open Claude folder")) { NSWorkspace.shared.open(Engine.primaryRoot) }
-                        Button(tr("Tarix faylini ko'rsatish", "Show history file")) {
-                            NSWorkspace.shared.activateFileViewerSelecting([HistoryStore.defaultURL])
-                        }
-                        Spacer()
-                        Button(tr("Tarixni tozalash…", "Clear history…"), role: .destructive) { confirmClear = true }
-                    }
-                }
-
-                SwiftUI.Section(tr("Ilova haqida", "About")) {
-                    LabeledContent(tr("Versiya", "Version"), value: "\(AppInfo.version) (\(AppInfo.build))")
-                    Text(tr("Shu Mac'dagi ~/.claude fayllarini va o'zingiz qo'shgan chat yozuvlarini o'qiydi. Yozuvlar internetga yuborilmaydi.", "Reads ~/.claude files on this Mac and chat transcripts you add. Nothing is sent to the internet."))
-                        .font(.caption).foregroundStyle(.secondary)
-                }
-            }
+            // Tab almashganda sahifa tepadan boshlanadi
+            .id(tab)
         }
-        .formStyle(.grouped)
         .confirmationDialog(tr("Saqlangan kunlik tarix o'chirilsinmi?", "Delete saved daily history?"), isPresented: $confirmClear) {
             Button(tr("O'chirish", "Delete"), role: .destructive) { store.clearHistory() }
         } message: {
@@ -462,11 +101,398 @@ struct SettingsView: View {
         }
     }
 
-    private var statusLineStatus: String {
-        guard statusLineInstalled else { return tr("Ulanmagan", "Not connected") }
-        if let l = store.snap.limits, !l.isEmpty { return tr("Ulangan · ma'lumot \(Fmt.ago(l.updatedAt))", "Connected · data \(Fmt.ago(l.updatedAt))") }
-        if let t = StatusLine.lastUpdate { return tr("Ulangan · oxirgi chaqiruv \(Fmt.ago(t)), limit kelmadi (API kaliti bilanmi?)", "Connected · last call \(Fmt.ago(t)), no limit received (using an API key?)") }
-        return tr("Ulangan · Claude Code'da yangi so'rov kutilyapti", "Connected · waiting for a new prompt in Claude Code")
+    @ViewBuilder private var page: some View {
+        switch tab {
+        case .general: generalPage
+        case .notifications: notificationsPage
+        case .sessions: sessionsPage
+        case .limits: limitsPage
+        case .freeModels: FreeModelsSection()
+        case .data: dataPage
+        }
+    }
+
+    // MARK: - Umumiy
+
+    @ViewBuilder private var generalPage: some View {
+        SettingsGroup(title: tr("Ilova", "App")) {
+            SettingRow(symbol: "globe", title: "Til / Language",
+                       subtitle: tr("Darhol qo'llanadi. «Tizim tili» — Mac inglizcha bo'lsa English, aks holda o'zbekcha",
+                                    "Applies immediately. “System language” — English if your Mac is in English, otherwise Uzbek")) {
+                Picker("Til / Language", selection: Binding(get: { AppLanguage(rawValue: language) ?? .system }, set: { Lang.set($0) })) {
+                    ForEach(AppLanguage.allCases) { Text($0.title).tag($0) }
+                }
+                .labelsHidden().fixedSize()
+            }
+            ToggleRow(symbol: "power", title: tr("Mac yoqilganda ishga tushsin", "Launch at login"), isOn: $launchAtLogin)
+                .onChange(of: launchAtLogin) { LaunchAtLogin.set($0) }
+                .disabled(!AppInfo.isBundled)
+        }
+
+        SettingsGroup(title: tr("Yangilanish", "Updates")) {
+            ToggleRow(symbol: "arrow.triangle.2.circlepath", title: tr("Yangi versiyani tekshirish", "Check for updates"),
+                      subtitle: updateCaption, isOn: $checkUpdates) {
+                if checkUpdates && updates.available == nil {
+                    Button(tr("Hozir tekshirish", "Check now")) { updates.check() }
+                        .buttonStyle(.link)
+                        .disabled(updates.status == .checking)
+                }
+            }
+            .onChange(of: checkUpdates) { on in if on { updates.start() } else { updates.stop() } }
+            if let r = updates.available {
+                SettingRow(title: tr("Yangi versiya chiqdi", "A new version is out"), child: true) {
+                    StateChip(text: "v\(r.version)", kind: .ok, symbol: "arrow.down")
+                    Button(tr("Reliz sahifasi", "Release page")) { NSWorkspace.shared.open(r.pageURL) }.buttonStyle(.link)
+                    updateAction
+                }
+                if case .failed(let msg) = updates.install {
+                    SettingRow(title: tr("Yangilab bo'lmadi", "Couldn't update"), subtitle: msg, child: true) {
+                        Button(tr("DMG'ni yuklab olish", "Download the DMG")) { updates.download() }.buttonStyle(.link)
+                    }
+                }
+            }
+        }
+
+        SettingsGroup(title: tr("Ko'rinish", "Appearance")) {
+            SettingRow(symbol: "menubar.rectangle", title: tr("Menyu satrida", "Menu bar")) {
+                Picker(tr("Menyu satrida", "Menu bar"), selection: $menuBarStyle) {
+                    ForEach(MenuBarStyle.allCases) { Text($0.title).tag($0) }
+                }
+                .labelsHidden().fixedSize()
+            }
+            ToggleRow(symbol: "wind", title: tr("Kam animatsiya", "Reduce motion"),
+                      subtitle: tr("Robot, aylanuvchi chegaralar va oqim animatsiyalari to'xtaydi — oyna ochiq turganda protsessor taxminan ikki baravar kam ishlaydi",
+                                   "Stops the robot, spinning borders and flow animations — uses about half the CPU while the window is open"),
+                      isOn: $lightMode)
+        }
+
+        SettingsGroup(title: tr("Hisoblash", "Counting"),
+                      footer: tr("Limitni nima ko'proq «yeyayotgani»ni «Narx bo'yicha» usuli yaxshiroq ko'rsatadi.",
+                                 "«By cost» shows better what really «eats» your limit.")) {
+            SettingRow(symbol: "function", title: tr("Hisoblash usuli", "Counting method"),
+                       subtitle: mode == .raw ? tr("Har bir token teng sanaladi", "Every token counts the same")
+                                              : tr("Har token kiritish narxiga nisbatan sanaladi:", "Each token is weighed against the input price:")) {
+                Picker(tr("Hisoblash usuli", "Counting method"), selection: $mode) {
+                    Text(tr("Token soni", "Token count")).tag(CountMode.raw)
+                    Text(tr("Narx bo'yicha", "By cost")).tag(CountMode.weighted)
+                }
+                .pickerStyle(.segmented).labelsHidden().fixedSize()
+            } below: {
+                if mode == .weighted { weightTags.padding(.top, 6) }
+            }
+        }
+    }
+
+    /// Narx bo'yicha og'irliklar; tor oynada ikki qatorga bo'linadi
+    private var weightTags: some View {
+        let tags = [
+            WeightTag(label: tr("javob", "output"), value: "×" + fmt(Pricing.output)),
+            WeightTag(label: tr("kesh o'qish", "cache read"), value: "×" + fmt(Pricing.cacheRead)),
+            WeightTag(label: tr("kesh yozish", "cache write"), value: "×" + fmt(Pricing.cacheWrite5m)),
+            WeightTag(label: tr("1 soatlik kesh", "1-hour cache"), value: "×" + fmt(Pricing.cacheWrite1h)),
+        ]
+        return ViewThatFits(in: .horizontal) {
+            HStack(spacing: 6) { ForEach(0..<4) { tags[$0] } }
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 6) { tags[0]; tags[1] }
+                HStack(spacing: 6) { tags[2]; tags[3] }
+            }
+            VStack(alignment: .leading, spacing: 6) { ForEach(0..<4) { tags[$0] } }
+        }
+    }
+
+    // MARK: - Xabarlar
+
+    @ViewBuilder private var notificationsPage: some View {
+        SettingsGroup(title: tr("Bildirishnomalar", "Notifications")) {
+            SettingRow(symbol: "bell.badge", title: tr("Qaysilari chiqsin", "Which to show"),
+                       subtitle: tr("«Faqat muhim» — ish tugadi, ruxsat kutilyapti, xato va limit; maslahatlar (kontekst, isrof, kesh) chiqmaydi",
+                                    "\"Important only\" — task finished, waiting for permission, errors and limits; no tips (context, waste, cache)")) {
+                Picker(tr("Bildirishnomalar", "Notifications"), selection: Binding(get: { NotifyMode.current() }, set: { $0.apply() })) {
+                    ForEach(NotifyMode.allCases.filter { $0 != .custom || NotifyMode.current() == .custom }) { Text($0.title).tag($0) }
+                }
+                .labelsHidden().fixedSize()
+            }
+        }
+        .disabled(!AppInfo.isBundled)
+
+        SettingsGroup(title: tr("Ish holati", "Work status")) {
+            ToggleRow(symbol: "checkmark.circle", title: tr("Claude ishni tugatganda", "When Claude finishes a task"), isOn: $notifyFinished)
+                .onChange(of: notifyFinished) { if $0 { askPermission() } }
+            SettingRow(title: tr("…agar ish shundan uzoq davom etgan bo'lsa", "…if it ran longer than"), child: true) {
+                Picker(tr("…agar ish shundan uzoq davom etgan bo'lsa", "…if it ran longer than"), selection: $notifyFinishedMin) {
+                    Text(tr("har doim", "always")).tag(0.0)
+                    Text(tr("30 soniya", "30 seconds")).tag(30.0)
+                    Text(tr("1 daqiqa", "1 minute")).tag(60.0)
+                    Text(tr("3 daqiqa", "3 minutes")).tag(180.0)
+                    Text(tr("10 daqiqa", "10 minutes")).tag(600.0)
+                }
+                .labelsHidden().fixedSize()
+            }
+            .disabled(!notifyFinished)
+            ToggleRow(symbol: "hourglass", title: tr("Qadam uzoq tugamasa", "When a step takes too long"),
+                      subtitle: tr("Ruxsat kutilayotgan bo'lishi mumkin", "It may be waiting for permission"), isOn: $notifyStuck)
+                .onChange(of: notifyStuck) { if $0 { askPermission() } }
+            SettingRow(title: tr("…shundan keyin", "…after"), child: true) {
+                Picker(tr("…shundan keyin", "…after"), selection: $notifyStuckSec) {
+                    Text(tr("30 soniya", "30 seconds")).tag(30.0)
+                    Text(tr("1,5 daqiqa", "1.5 minutes")).tag(90.0)
+                    Text(tr("3 daqiqa", "3 minutes")).tag(180.0)
+                    Text(tr("5 daqiqa", "5 minutes")).tag(300.0)
+                }
+                .labelsHidden().fixedSize()
+            }
+            .disabled(!notifyStuck)
+            ToggleRow(symbol: "hand.raised", title: tr("Claude ruxsat so'raganda", "When Claude asks for permission"),
+                      subtitle: hookInstalled ? nil : tr("«Ulash» settings.json ga hook qo'shadi; yangi sessiyalarda ishlaydi",
+                                                         "«Connect» adds a hook to settings.json; it works in new sessions"),
+                      isOn: $notifyPermission) {
+                if hookInstalled {
+                    StateChip(text: tr("Ulangan", "Connected"), kind: .ok, symbol: "checkmark")
+                    Button(tr("Uzish", "Disconnect")) { toggleHook(false) }.buttonStyle(.link)
+                } else {
+                    Button(tr("Ulash", "Connect")) { toggleHook(true) }
+                }
+            }
+            if let hookError {
+                WideRow(child: true) {
+                    Label(hookError, systemImage: "exclamationmark.triangle").font(.caption).foregroundStyle(Brand.err)
+                }
+            }
+            ToggleRow(symbol: "exclamationmark.triangle", title: tr("Agent ketma-ket 3 marta xato olsa", "When an agent hits 3 errors in a row"), isOn: $notifyErrors)
+                .onChange(of: notifyErrors) { if $0 { askPermission() } }
+        }
+        .disabled(!AppInfo.isBundled)
+
+        SettingsGroup(title: tr("Token tejash maslahatlari", "Token-saving tips")) {
+            ToggleRow(symbol: "chart.pie", title: tr("Kontekst 85% to'lganda", "When context is 85% full"),
+                      subtitle: tr("Claude Code tez orada suhbatni o'zi qisqartiradi", "Claude Code will soon compact the conversation by itself"), isOn: $notifyContext)
+            ToggleRow(symbol: "arrow.triangle.branch", title: tr("Katta kontekstda yangi mavzu boshlansa", "New topic in a large context"),
+                      subtitle: tr("Yangi sessiya taklif qilinadi — token tejaydi", "Suggests a new session — saves tokens"), isOn: $notifySavings)
+            ToggleRow(symbol: "trash", title: tr("Isrof", "Waste"),
+                      subtitle: tr("Kontekst 200K dan oshsa yoki loyiha bugun sarfining 40%+ ini isrof qilsa",
+                                   "Context passes 200K, or a project wastes 40%+ of today's usage"), isOn: $notifyWaste)
+            ToggleRow(symbol: "snowflake", title: tr("Kesh sovishidan oldin", "Before the cache cools"),
+                      subtitle: tr("Javobingizni kutayotgan katta sessiyada", "In a large session waiting for your reply"), isOn: $notifyCache)
+        }
+        .disabled(!AppInfo.isBundled)
+
+        SettingsGroup(footer: tr("Bildirishnomani bosing — o'sha sessiya ochiladi.", "Click a notification to open that session.")) {
+            SettingRow(symbol: "paperplane", title: tr("Sinov bildirishnomasi", "Test notification"),
+                       subtitle: tr("Bildirishnomalar ishlashini tekshiring", "Check that notifications work")) {
+                Button(tr("Yuborish", "Send")) { Alerts.shared.sendTest() }
+            }
+            if notifyDenied {
+                SettingRow(symbol: "exclamationmark.triangle", title: tr("macOS bildirishnomalarga ruxsat bermagan", "macOS hasn't allowed notifications")) {
+                    StateChip(text: tr("Ruxsat yo'q", "Not allowed"), kind: .warn)
+                    Button(tr("Ruxsat berish…", "Allow…")) {
+                        NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.Notifications-Settings.extension?id=uz.ali.tokenkuzat")!)
+                    }
+                }
+            }
+        }
+        .disabled(!AppInfo.isBundled)
+    }
+
+    // MARK: - Sessiyalar
+
+    @ViewBuilder private var sessionsPage: some View {
+        SettingsGroup(title: tr("Avtomatik yangi sessiya", "Automatic new session"),
+                      footer: tr("Kontekst katta bo'lganda ish xulosa bilan yangi sessiyaga ko'chadi — limit sekinroq tugaydi.",
+                                 "When the context gets large, work moves to a new session with a summary — the limit lasts longer."),
+                      more: tr("Claude javobni tugatgach yangi sessiya xulosa bilan ochiladi; ish o'rtasida to'xtatilmaydi. Yangi sessiya Claude ilovasida ochiladi, xulosa yozib qo'yiladi — Enter bosasiz "
+                               + "(ilova tashqaridan kelgan xabarni xavfsizlik uchun o'zi yubormaydi).",
+                               "After Claude finishes its reply, a new session opens with the summary; work is never interrupted. The new session opens in the Claude app with the summary filled in — you press Enter "
+                               + "(the app doesn't send outside messages by itself, for safety).")) {
+            ToggleRow(symbol: "arrow.left.arrow.right", title: tr("Kontekst katta bo'lsa — avtomatik yangi sessiya", "Large context — open a new session automatically"),
+                      subtitle: tr("Javob tugagach xulosa bilan yangi sessiya ochiladi — ish to'xtatilmaydi", "Opens a new session with the summary after Claude's reply — work isn't interrupted"),
+                      isOn: $autoHandoff)
+                .onChange(of: autoHandoff) { on in
+                    if !on { try? PromptRedirectHook.uninstall(); try? PreCompactHook.uninstall() }
+                }
+            Group {
+                SettingRow(title: tr("…kontekst oshganda", "…when context passes"), child: true) {
+                    Picker(tr("…kontekst oshganda", "…when context passes"), selection: $autoHandoffK) {
+                        ForEach(AutoHandoffRule.thresholdOptionsK, id: \.self) { Text(Fmt.tokens($0 * 1000)).tag($0) }
+                    }
+                    .labelsHidden().fixedSize()
+                }
+                if autoHandoff, let w = compactWindow, Double(w.tokens) <= autoHandoffK * 1000 {
+                    WideRow(child: true) { compactWarning(w) }
+                }
+                ToggleRow(title: tr("…eski sessiyada yozsam — yangi sessiyaga yo'naltirish", "…if I type in the old session — redirect to the new one"),
+                          subtitle: tr("Keyingi xabaringiz xulosa bilan yangi sessiyaga ketadi", "Your next message goes to the new session with the summary"),
+                          child: true, isOn: $autoHandoffRedirect)
+                    .help(tr("Birinchi xabar to'xtatilib, xulosa bilan yangi sessiyaga yuboriladi; qayta yuborsangiz — eski sessiyada qoladi",
+                             "The first message is stopped and sent to the new session with the summary; send it again to stay in the old session"))
+                    // Hook eslatma so'rovi uchun ham kerak — avtomatik ko'chirish yoqiq bo'lsa, faqat yo'naltirishlar o'chiriladi
+                    .onChange(of: autoHandoffRedirect) { on in if !on { try? FileManager.default.removeItem(at: RedirectStore.defaultURL) } }
+            }
+            .disabled(!autoHandoff)
+        }
+        .disabled(!AppInfo.isBundled)
+
+        SettingsGroup(title: tr("Davom ettirish", "Resume"),
+                      footer: tr("Har yangi sessiya boshida ~2–3K token.", "~2–3K tokens at the start of each new session."),
+                      more: tr("Oyna yopilgan yoki tashlab ketilgan sessiyaning xulosasi (24 soat ichida) shu papkada ochilgan keyingi yangi sessiyaga "
+                               + "o'zi beriladi — har loyiha o'z papkasi bo'yicha. Boshqa mavzuda boshlasangiz, Claude uni e'tiborsiz qoldiradi.",
+                               "The summary of a session whose window was closed or left (within 24 hours) is passed to the next new session "
+                               + "opened in the same folder — each project by its own folder. Start on another topic and Claude ignores it.")) {
+            ToggleRow(symbol: "clock.arrow.circlepath", title: tr("Yopilgan sessiyani avtomatik davom ettirish", "Auto-resume a closed session"),
+                      subtitle: tr("Shu papkada yangi sessiya ochsangiz, Claude qayerda qolganini o'zi biladi", "Open a new session in the same folder and Claude knows where things stopped"),
+                      isOn: $autoResume) {
+                // Hook avtomatik ko'chirishda ham o'rnatiladi — kalit o'chiq turganda «Ulangan» chiqib, chalg'itmasin
+                if handoffHookInstalled && autoResume {
+                    StateChip(text: tr("Ulangan", "Connected"), kind: .ok, symbol: "checkmark")
+                    Button(tr("Uzish", "Disconnect")) {
+                        try? SessionStartHook.uninstall()
+                        handoffHookInstalled = SessionStartHook.isInstalled
+                        // Avtomatik davom ham shu hook'da — keyingi ishga tushishda qayta ulanmasin
+                        autoResume = false
+                    }
+                    .buttonStyle(.link)
+                }
+            }
+            .onChange(of: autoResume) { on in
+                if on {
+                    try? SessionStartHook.install()
+                    handoffHookInstalled = SessionStartHook.isInstalled
+                } else {
+                    ProjectTracker.shared.disableResume()
+                }
+            }
+        }
+        .disabled(!AppInfo.isBundled)
+
+        SettingsGroup(title: tr("Yordamchi agentlar", "Helper agents"),
+                      footer: tr("Faqat Token Kuzatuv plagini o'rnatilgan bo'lsa ishlaydi (tokenkuzat:izlovchi).", "Works only when the Token Kuzatuv plugin is installed (tokenkuzat:izlovchi).")) {
+            ToggleRow(symbol: "person.2", title: tr("Ko'p o'qisangiz — yordamchiga berishni eslatish", "Many reads — remind to use a helper"),
+                      subtitle: tr("Claude yordamchisiz ko'p fayl o'qisa, qidiruvni izlovchiga berishni eslatadi", "If Claude reads many files without a helper, it is reminded to hand searches to the finder"),
+                      isOn: $delegateNudge)
+                .help(tr("Sessiyada yordamchi agent ishlatilmagan va 15 ta o'qish/qidiruv bajarilgan bo'lsa (keyin har 15 tada), Claude'ga qisqa eslatma beriladi. Hech narsani bloklamaydi",
+                         "When no helper agent was used in a session and 15 reads/searches were done (then every 15), Claude gets a short reminder. Nothing is blocked"))
+                .onChange(of: delegateNudge) { on in DelegateNudgeHook.sync(enabled: on) }
+        }
+        .disabled(!AppInfo.isBundled)
+    }
+
+    private func compactWarning(_ w: AutoCompactWindow.Found) -> some View {
+        Label(tr("Claude Code suhbatni \(Fmt.tokens(w.tokens)) da o'zi qisqartiradi (\(w.source)) — bu ko'chirish chegarasidan "
+                 + "(\(Fmt.tokens(Int(autoHandoffK * 1000)))) kichik. Ilova qisqartirishni bir marta to'xtatib, ishni yangi sessiyaga ko'chiradi. "
+                 + (canPickLower(w)
+                    ? "Har doim ishonchli bo'lishi uchun chegarani \(Fmt.tokens(w.tokens)) dan pastroq tanlang."
+                    : "Tanlovda \(Fmt.tokens(w.tokens)) dan past chegara yo'q — ishonchli bo'lishi uchun ~/.claude/settings.json dagi autoCompactWindow ni oshiring yoki olib tashlang."),
+                 "Claude Code compacts the conversation by itself at \(Fmt.tokens(w.tokens)) (\(w.source)) — below the handoff threshold "
+                 + "(\(Fmt.tokens(Int(autoHandoffK * 1000)))). The app stops compaction once and moves the work to a new session. "
+                 + (canPickLower(w)
+                    ? "To be safe every time, pick a threshold below \(Fmt.tokens(w.tokens))."
+                    : "No threshold below \(Fmt.tokens(w.tokens)) is available — to be safe, raise or remove autoCompactWindow in ~/.claude/settings.json.")),
+              systemImage: "exclamationmark.triangle.fill")
+            .font(.caption).foregroundStyle(Brand.warn)
+    }
+
+    // MARK: - Limitlar
+
+    @ViewBuilder private var limitsPage: some View {
+        SettingsGroup(title: tr("Claude limiti — hisobdan", "Claude limit — from account"),
+                      footer: tr("claude.ai dagi raqamlar bilan bir xil.", "Same numbers as claude.ai."),
+                      more: tr("Claude Code'ning Keychain'dagi kirish kaliti bilan Anthropic'dan 5 soatlik va haftalik limit har 1,5 daqiqada olinadi — Code tabi va Claude ilovasida ham ishlaydi. Kalit faqat shu kompyuterda o'qiladi va faqat api.anthropic.com ga yuboriladi. Birinchi marta macOS Keychain ruxsatini so'raydi («Har doim ruxsat»). Ishlamasa — pastdagi status line zaxira manba bo'ladi. Yoqilgan bo'lsa, limitning chat va bulutga (Mac'ga yozilmaydigan ishlarga) ketgan qismi ham hisoblanadi.",
+                               "Using Claude Code's sign-in key from Keychain, the current session and weekly limits are fetched from Anthropic every 90 seconds — works for the Code tab and the Claude app too. The key is read only on this computer and sent only to api.anthropic.com. The first time, macOS asks for Keychain access («Always Allow»). If it doesn't work, the status line below is the fallback source. When on, the part of the limit spent in chat & cloud (work not written to this Mac) is calculated too.")) {
+            ToggleRow(symbol: "person.crop.circle", title: tr("Claude hisobidan olish", "Fetch from Claude account"), isOn: $accountUsage)
+                .onChange(of: accountUsage) { on in
+                    if on { AccountUsage.shared.start(); AccountUsage.shared.refreshNow() } else { AccountUsage.shared.stop() }
+                    refreshAccount()
+                }
+            if accountUsage {
+                SettingRow(title: tr("Holat", "Status"), subtitle: accountDetail, child: true) {
+                    StateChip(text: accountChip.text, kind: accountChip.kind, symbol: accountChip.kind == .ok ? "checkmark" : nil)
+                    Button(tr("Hozir yangilash", "Refresh now")) { AccountUsage.shared.refreshNow(); refreshAccountLater() }
+                }
+                if let l = store.snap.limits, !l.isEmpty {
+                    WideRow(child: true) { RealLimitsView(limits: l, forecast: store.snap.fiveHourForecast) }
+                }
+            }
+        }
+        .onAppear(perform: refreshAccount)
+
+        SettingsGroup(title: tr("Claude limiti — status line orqali", "Claude limit — via status line"),
+                      footer: tr("Hisobdan olish ishlamasa — zaxira manba.", "The fallback when fetching from the account doesn't work."),
+                      more: tr("Claude Code har bir javobdan keyin status line'ga 5 soatlik va haftalik limit foizini beradi (Pro/Max obunada). «Ulash» ~/.claude/settings.json ga Token Kuzatuv'ni status line qilib yozadi: terminalda pastki satrda «5 soat 34% ↻16:40 · hafta 61%» ko'rinadi. Avvalgi status line bo'lsa — saqlanadi va ishlashda davom etadi; «Uzish» uni qaytaradi. Birinchi ulanishda settings.json nusxasi olinadi.",
+                               "After each reply, Claude Code passes the 5-hour and weekly limit percentages to the status line (Pro/Max plans). «Connect» sets Token Kuzatuv as the status line in ~/.claude/settings.json: the terminal's bottom line shows «5h 34% ↻16:40 · week 61%». An existing status line is kept and keeps working; «Disconnect» restores it. A backup of settings.json is made on first connect.")) {
+            SettingRow(symbol: "terminal", title: "Status line", subtitle: statusLineDetail) {
+                StateChip(text: statusLineInstalled ? tr("Ulangan", "Connected") : tr("Ulanmagan", "Not connected"),
+                          kind: statusLineKind, symbol: statusLineKind == .ok ? "checkmark" : nil)
+                if statusLineInstalled {
+                    Button(tr("Uzish", "Disconnect")) { toggleStatusLine(false) }
+                } else {
+                    Button(tr("Limitlarni ulash", "Connect limits")) { toggleStatusLine(true) }.buttonStyle(.borderedProminent)
+                }
+            } below: {
+                Button(tr("settings.json'ni ko'rsatish", "Show settings.json")) {
+                    NSWorkspace.shared.activateFileViewerSelecting([StatusLine.settingsURL])
+                }
+                .buttonStyle(.link).font(.system(size: 12)).padding(.top, 2)
+            }
+            if let statusLineError {
+                WideRow(child: true) {
+                    Label(statusLineError, systemImage: "exclamationmark.triangle").font(.caption).foregroundStyle(Brand.err)
+                }
+            }
+            // Hisobdan olish yoqiq bo'lsa, shkalalar yuqoridagi guruhda
+            if !accountUsage, let l = store.snap.limits, !l.isEmpty {
+                WideRow(child: true) { RealLimitsView(limits: l, forecast: store.snap.fiveHourForecast) }
+            }
+            ToggleRow(symbol: "bell", title: tr("80% va 95% ga yetganda bildirishnoma", "Notify at 80% and 95%"), isOn: $notifyRealLimit)
+                .disabled(!statusLineInstalled || !AppInfo.isBundled)
+                .onChange(of: notifyRealLimit) { if $0 { askPermission() } }
+        }
+
+        SettingsGroup(title: tr("O'z limitim (taxminiy)", "My own limit (estimate)"),
+                      footer: tr("Claude obunasi limiti 5 soatlik oyna bo'yicha tiklanadi. Anthropic aniq limitni e'lon qilmaydi — o'zingizning odatiy sarfingizga qarab qiymat qo'ying (Tarix sahifasida ko'rinadi).",
+                                 "Claude plan limits reset on a 5-hour window. Anthropic doesn't publish the exact limit — set a value based on your typical usage (shown on the History page).")) {
+            ToggleRow(symbol: "target", title: tr("Limitni kuzatish", "Track limit"), isOn: $budgetEnabled)
+            Group {
+                SettingRow(title: tr("Davr", "Period"), child: true) {
+                    Picker(tr("Davr", "Period"), selection: $budgetPeriod) {
+                        ForEach(BudgetPeriod.allCases) { Text($0.title).tag($0) }
+                    }
+                    .pickerStyle(.segmented).labelsHidden().fixedSize()
+                }
+                SettingRow(title: tr("Limit", "Limit"), subtitle: tr("mln token (narx bo'yicha)", "M tokens (by price)"), child: true) {
+                    TextField(tr("Limit", "Limit"), value: $budgetLimitM, format: .number.precision(.fractionLength(0...1)))
+                        .labelsHidden()
+                        .textFieldStyle(.roundedBorder)
+                        .multilineTextAlignment(.trailing)
+                        .monospacedDigit()
+                        .frame(width: 72)
+                        // 0 yoki manfiy limit foizni buzadi — Stepper chegarasiga keltiriladi
+                        .onChange(of: budgetLimitM) { v in
+                            let c = min(max(v, 1), 2000)
+                            if c != v { budgetLimitM = c }
+                        }
+                    Stepper(tr("Limit", "Limit"), value: $budgetLimitM, in: 1...2000, step: 5).labelsHidden()
+                }
+                ToggleRow(title: tr("80% va 100% da bildirishnoma", "Notify at 80% and 100%"), child: true, isOn: $budgetNotify)
+                    .disabled(!AppInfo.isBundled)
+                    .onChange(of: budgetNotify) { if $0 { askPermission() } }
+            }
+            .disabled(!budgetEnabled)
+            if budgetEnabled, let b = BudgetStatus.current(store.snap) {
+                WideRow(child: true) { BudgetBar(status: b) }
+            }
+        }
+    }
+
+    private var statusLineKind: StateChip.Kind {
+        guard statusLineInstalled else { return .off }
+        return store.snap.limits.map { !$0.isEmpty } == true ? .ok : .warn
+    }
+
+    private var statusLineDetail: String {
+        guard statusLineInstalled else { return tr("Terminal pastki satri orqali 5 soatlik va haftalik foiz olinadi", "Gets the 5-hour and weekly percentages through the terminal's bottom line") }
+        if let l = store.snap.limits, !l.isEmpty { return tr("Ma'lumot \(Fmt.ago(l.updatedAt))", "Data \(Fmt.ago(l.updatedAt))") }
+        if let t = StatusLine.lastUpdate { return tr("Oxirgi chaqiruv \(Fmt.ago(t)), limit kelmadi (API kaliti bilanmi?)", "Last call \(Fmt.ago(t)), no limit received (using an API key?)") }
+        return tr("Claude Code'da yangi so'rov kutilyapti", "Waiting for a new prompt in Claude Code")
     }
 
     private func refreshAccount() { accountStatus = AccountUsage.shared.status }
@@ -475,42 +501,92 @@ struct SettingsView: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) { refreshAccount() }
     }
 
-    private var accountColor: Color {
+    private var accountChip: (text: String, kind: StateChip.Kind) {
         switch accountStatus {
-        case .ok: return Brand.ok
-        case .loading, .off: return .secondary
-        case .throttled: return Brand.warn
-        case .expired, .noCredentials: return Brand.warn
-        case .failed: return Brand.err
+        case .off: return (tr("O'chirilgan", "Off"), .off)
+        case .loading: return (tr("Olinmoqda…", "Fetching…"), .off)
+        case .ok: return (tr("Ulangan", "Connected"), .ok)
+        case .noCredentials: return (tr("Kalit topilmadi", "No key"), .warn)
+        case .expired: return (tr("Kalit eskirgan", "Key expired"), .warn)
+        case .throttled: return (tr("Cheklangan", "Rate-limited"), .warn)
+        case .failed: return (tr("Xato", "Error"), .err)
         }
     }
 
-    private var accountText: String {
+    private var accountDetail: String? {
         switch accountStatus {
-        case .off: return tr("O'chirilgan", "Off")
-        case .loading: return tr("Olinmoqda…", "Fetching…")
-        case .ok(let t): return tr("Ulangan · ", "Connected · ") + Fmt.ago(t) + (store.snap.limits?.plan.map { " · " + $0 } ?? "")
-        case .noCredentials: return tr("Claude Code kaliti topilmadi (Claude Code'ga kiring yoki Keychain ruxsatini bering)", "Claude Code key not found (sign in to Claude Code or allow Keychain access)")
-        case .expired: return tr("Kalit muddati o'tgan — Claude Code'da biror so'rov yuboring", "Key expired — send any prompt in Claude Code")
-        case .failed(let e): return tr("Xato: ", "Error: ") + e
+        case .off, .loading: return nil
+        case .ok(let t): return Fmt.ago(t) + (store.snap.limits?.plan.map { " · " + $0 } ?? "")
+        case .noCredentials: return tr("Claude Code'ga kiring yoki Keychain ruxsatini bering", "Sign in to Claude Code or allow Keychain access")
+        case .expired: return tr("Claude Code'da biror so'rov yuboring", "Send any prompt in Claude Code")
+        case .failed(let e): return e
         case .throttled(let until):
             return tr("Anthropic so'rovni cheklab turibdi — \(Fmt.hourMinute.string(from: until)) da qayta urinadi (oxirgi raqamlar ko'rsatilyapti)", "Anthropic is rate-limiting — retrying at \(Fmt.hourMinute.string(from: until)) (showing last numbers)")
         }
     }
 
-    /// Izohli toggle. Izoh bir satrga sig'sin: Form o'ralgan matnli qator balandligini kam hisoblab, qo'shni qator ustiga chizadi —
-    /// to'liq tushuntirish maslahatda (help)
-    private func captionToggle(_ title: String, _ caption: String, help: String, isOn: Binding<Bool>) -> some View {
-        HStack(alignment: .center, spacing: 12) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                Text(caption).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+    // MARK: - Ma'lumot
+
+    @ViewBuilder private var dataPage: some View {
+        SettingsGroup(title: tr("Manbalar", "Sources"),
+                      footer: tr("Shu Mac'dagi ~/.claude fayllarini va o'zingiz qo'shgan chat yozuvlarini o'qiydi. Yozuvlar internetga yuborilmaydi.", "Reads ~/.claude files on this Mac and chat transcripts you add. Nothing is sent to the internet.")) {
+            SettingRow(symbol: "doc.on.doc", title: tr("Kuzatilayotgan fayllar", "Watched files")) {
+                Text(tr("\(store.snap.filesWatched) ta", "\(store.snap.filesWatched)")).fontWeight(.semibold).monospacedDigit()
+                Text(tr("oxirgi 30 kun", "last 30 days")).foregroundStyle(.secondary)
             }
-            Spacer(minLength: 8)
-            Toggle(title, isOn: isOn).labelsHidden().toggleStyle(.switch)
+            ForEach(store.snap.sources) { src in
+                SettingRow(symbol: src.exists ? "folder.fill" : "folder", title: src.path, subtitle: SourcesList.detail(src), mono: true) {
+                    if !src.exists {
+                        StateChip(text: tr("Yo'q", "Missing"))
+                    } else if src.recent > 0 {
+                        StateChip(text: tr("Faol", "Active"), kind: .ok, symbol: "checkmark")
+                    } else {
+                        StateChip(text: tr("Faol emas", "Inactive"))
+                    }
+                }
+            }
         }
-        .help(help)
+
+        SettingsGroup(title: tr("Bulutdagi chatlar", "Cloud chats"),
+                      footer: tr(".jsonl faylni shu tugma bilan qo'shing yoki oynaga sudrab tashlang.", "Add the .jsonl file with this button or drag it onto the window."),
+                      more: tr("Claude chat va bulutdagi sessiyalar Mac'ga yozilmaydi. Chatdan Claude'ga «yozuvini Token Kuzatuv uchun ber» deng va kelgan faylni qo'shing. Xaritada «\(ChatImport.projectName)» loyihasi bo'lib chiqadi.",
+                               "Claude chat and cloud sessions aren't written to this Mac. In chat, ask Claude to «export the transcript for Token Kuzatuv» and add the file it gives you. It shows up on the map as the «\(ChatImport.projectName)» project.")) {
+            SettingRow(symbol: "icloud.and.arrow.down", title: tr("Chat yozuvini qo'shish", "Add a chat transcript")) {
+                Button(tr("Papkani ochish", "Open folder")) {
+                    try? FileManager.default.createDirectory(at: ChatImport.directory, withIntermediateDirectories: true)
+                    NSWorkspace.shared.open(ChatImport.directory)
+                }
+                .buttonStyle(.link)
+                Button(tr("Qo'shish…", "Add…")) { ChatImporter.pick() }
+            }
+        }
+
+        SettingsGroup(title: tr("Fayllar", "Files")) {
+            SettingRow(symbol: "folder", title: tr("Claude papkasi", "Claude folder")) {
+                Button(tr("Ochish", "Open")) { NSWorkspace.shared.open(Engine.primaryRoot) }
+            }
+            SettingRow(symbol: "clock", title: tr("Tarix fayli", "History file")) {
+                Button(tr("Finder'da ko'rsatish", "Show in Finder")) { NSWorkspace.shared.activateFileViewerSelecting([HistoryStore.defaultURL]) }
+            }
+        }
+
+        SettingsGroup(title: tr("Xavfli", "Danger zone"), danger: true) {
+            SettingRow(symbol: "trash", title: tr("Tarixni tozalash", "Clear history"),
+                       subtitle: tr("Oxirgi 30 kun qayta o'qiladi, undan eskilari tiklanmaydi", "The last 30 days are re-read; older days can't be restored")) {
+                Button(role: .destructive) { confirmClear = true } label: {
+                    Text(tr("Tozalash…", "Clear…")).foregroundStyle(Brand.err)
+                }
+            }
+        }
+
+        SettingsGroup(title: tr("Ilova haqida", "About")) {
+            SettingRow(symbol: "info.circle", title: tr("Versiya", "Version")) {
+                Text("\(AppInfo.version) (\(AppInfo.build))").foregroundStyle(.secondary).monospacedDigit().textSelection(.enabled)
+            }
+        }
     }
+
+    // MARK: - Amallar
 
     private func toggleStatusLine(_ on: Bool) {
         do {
@@ -566,6 +642,27 @@ enum SettingsTab: String, CaseIterable, Identifiable {
         case .limits: return tr("Limitlar", "Limits")
         case .freeModels: return tr("Bepul modellar", "Free models")
         case .data: return tr("Ma'lumot", "Data")
+        }
+    }
+    var symbol: String {
+        switch self {
+        case .general: return "slider.horizontal.3"
+        case .notifications: return "bell.fill"
+        case .sessions: return "bubble.left.and.bubble.right.fill"
+        case .limits: return "speedometer"
+        case .freeModels: return "sparkles"
+        case .data: return "cylinder.split.1x2.fill"
+        }
+    }
+    /// Tanlangan tab plitkasi rangi — mavjud toifa ranglaridan
+    var tint: Color {
+        switch self {
+        case .general: return Brand.accent
+        case .notifications: return Hue.mcp
+        case .sessions: return Hue.files
+        case .limits: return Hue.web
+        case .freeModels: return Brand.avatars[4]
+        case .data: return Brand.avatars[5]
         }
     }
     /// Sozlamalar shu bo'limda ochilsin (masalan, «Limitlarni ulash» tugmasidan)

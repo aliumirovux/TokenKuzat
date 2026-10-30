@@ -1,5 +1,17 @@
 # O'zgarishlar
 
+## 6.76.0 — 2026-10-30
+
+- Sozlamalar sahifasi qayta chizildi — zamonaviy va tez o'qiladigan ko'rinish:
+  - Tepada segmentli tanlagich o'rniga ikonli tablar (macOS Safari / Xcode sozlamalari kabi): Umumiy, Xabarlar, Sessiyalar, Limitlar, Bepul modellar, Ma'lumot. Tanlangan tab o'z rangli plitkasi va ostidagi chiziq bilan ajraladi.
+  - Sozlamalar ma'noli guruhlarga ajratilgan oq kartalarda (masalan, Umumiy: Ilova · Yangilanish · Ko'rinish · Hisoblash), har qatorda ikon — ro'yxatni ko'z bilan tez topasiz.
+  - Bog'liq sozlamalar ota qator ostida ichkariroqda turadi; ota kalit o'chiq bo'lsa — xiralashadi (avval ba'zilari yo'qolib qolardi).
+  - Holatlar rangli belgi va so'z bilan: «Ulangan», «Ulanmagan», «Faol», «Yo'q», «Ishlayapti · N ta model».
+  - Uzun izohlar bir jumlaga qisqardi, to'liq matn «Batafsil» ichida. «Hozir tekshirish» yangilanish qatorining o'zida. Hisoblash usuli — segment, ostida og'irliklar («javob ×5», «kesh o'qish ×0,1»…).
+  - «Tarixni tozalash» alohida qizil chegarali «Xavfli» guruhda.
+  - Izohli qatorlar endi qo'shni qator ustiga chiqmaydi (avvalgi Form balandlikni kam hisoblardi). Barcha sozlamalar, tugmalar va hook ulash/uzish avvalgidek ishlaydi.
+- Ishlab chiquvchi uchun: `TokenKuzat --snapshot-settings papka [--width 1000]` — Sozlamalarning har varag'ini ikki temada rasmga oladi.
+
 ## 6.75.0 — 2026-10-30
 
 - «Agent turlari bo'yicha sarf» kartasi qayta chizildi. Endi har yordamchi qaysi modelda ishlagani va qanchalik foydali ekani bir qarashda ko'rinadi:

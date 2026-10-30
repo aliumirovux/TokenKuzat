@@ -76,6 +76,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             snapshotSavings(to: URL(fileURLWithPath: CommandLine.arguments[i + 1]))
             return
         }
+        // `--snapshot-settings papka` — Sozlamalarning har bir varag'i ikki temada (papka/<tab>.dark.png, .light.png)
+        if let i = CommandLine.arguments.firstIndex(of: "--snapshot-settings"), i + 1 < CommandLine.arguments.count {
+            snapshotSettings(to: URL(fileURLWithPath: CommandLine.arguments[i + 1]))
+            return
+        }
         Alerts.shared.start()
         // Avtomatik davom SessionStart hook'iga tayanadi; skript har ishga tushganda yangilanadi (yangi shart bilan)
         if UserDefaults.standard.bool(forKey: Pref.autoResume) || SessionStartHook.isInstalled { try? SessionStartHook.install() }
@@ -136,6 +141,36 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             NSApp.terminate(nil)
         }
+    }
+
+    private func snapshotSettings(to dir: URL) {
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let width = CommandLine.arguments.firstIndex(of: "--width").flatMap { i in
+            i + 1 < CommandLine.arguments.count ? Double(CommandLine.arguments[i + 1]) : nil
+        } ?? 1000
+        let savedTab = UserDefaults.standard.string(forKey: "settingsTab")
+        let savedSection = UserDefaults.standard.string(forKey: Pref.section)
+        WindowManager.shared.show(.settings)
+        var shots: [(SettingsTab, NSAppearance.Name)] = []
+        for t in SettingsTab.allCases { shots += [(t, .darkAqua), (t, .aqua)] }
+        func next(_ k: Int) {
+            guard k < shots.count else {
+                // Foydalanuvchining tanlovlari joyiga qaytadi
+                UserDefaults.standard.set(savedTab, forKey: "settingsTab")
+                UserDefaults.standard.set(savedSection, forKey: Pref.section)
+                NSApp.terminate(nil)
+                return
+            }
+            let (t, look) = shots[k]
+            NSApp.appearance = NSAppearance(named: look)
+            t.select()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                let name = "\(t.rawValue).\(look == .darkAqua ? "dark" : "light").png"
+                WindowManager.shared.capture(to: dir.appendingPathComponent(name), size: NSSize(width: width, height: 900))
+                next(k + 1)
+            }
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) { next(0) }
     }
 
     /// Ishlab chiquvchi uchun: `--snapshot-header fayl.png --width 700` — sessiya sarlavhasi berilgan kenglikda

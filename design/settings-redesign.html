@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sozlamalar redizayni</title>
+<script src="https://unpkg.com/lucide@0.400.0/dist/umd/lucide.min.js"></script>
+<style>
+:root{
+  --accent:#6C5CE7; --accent-soft:#EFEDFD; --surface:#FFFFFF; --sunken:#F4F4F6; --canvas:#F2F2F4; --line:#E8E8EC;
+  --text:#17152B; --muted:#6E6E78; --faint:#A1A1AA; --ok:#0F7F45; --ok-soft:#E3F4EA; --warn:#9A5E00; --warn-soft:#FBF0DC;
+  --err:#C8321F; --err-soft:#FBE7E3; --mark:#FF9F0A; --side:#ECECF0; --shadow:0 1px 2px rgba(23,21,43,.06),0 0 0 1px var(--line);
+  --t1:#6C5CE7; --t2:#E0731C; --t3:#0E9F8E; --t4:#2F7BE5; --t5:#D9467A; --t6:#5B8C2A;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --accent:#8F82FF; --accent-soft:#272447; --surface:#1F1F23; --sunken:#18181B; --canvas:#111113; --line:#2C2C31;
+  --text:#F5F5F7; --muted:#A1A1AA; --faint:#6E6E76; --ok:#3DD68C; --ok-soft:#173326; --warn:#F2B544; --warn-soft:#3A2E14;
+  --err:#FF6E61; --err-soft:#3D1D1A; --side:#18181B; --shadow:0 0 0 1px var(--line);
+  --t1:#8F82FF; --t2:#EC8432; --t3:#16B3A0; --t4:#4A8FF0; --t5:#E86A96; --t6:#7FB24A;
+}}
+:root[data-theme="dark"]{
+  --accent:#8F82FF; --accent-soft:#272447; --surface:#1F1F23; --sunken:#18181B; --canvas:#111113; --line:#2C2C31;
+  --text:#F5F5F7; --muted:#A1A1AA; --faint:#6E6E76; --ok:#3DD68C; --ok-soft:#173326; --warn:#F2B544; --warn-soft:#3A2E14;
+  --err:#FF6E61; --err-soft:#3D1D1A; --side:#18181B; --shadow:0 0 0 1px var(--line);
+  --t1:#8F82FF; --t2:#EC8432; --t3:#16B3A0; --t4:#4A8FF0; --t5:#E86A96; --t6:#7FB24A;
+}
+*{box-sizing:border-box}
+body{margin:0;background:#D9D9DE;color:var(--text);font:13px/1.4 -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+:root[data-theme="dark"] body{background:#000}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) body{background:#000}}
+svg{width:16px;height:16px;stroke-width:1.8}
+
+/* Prototype controls */
+.bar{position:sticky;top:0;z-index:10;display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;padding:10px 16px;background:rgba(20,20,24,.92);color:#eee;font-size:12px}
+.bar b{font-weight:600}
+.bar .grp{display:flex;gap:2px;background:#2a2a30;border-radius:8px;padding:2px}
+.bar button{border:0;background:transparent;color:#bbb;padding:5px 10px;border-radius:6px;font:inherit;cursor:pointer}
+.bar button.on{background:#45454e;color:#fff}
+.legend{display:none;max-width:1180px;margin:12px auto 0;padding:12px 16px;border-radius:12px;background:var(--surface);box-shadow:var(--shadow);font-size:12px;color:var(--muted)}
+.legend ol{margin:6px 0 0;padding-left:20px;columns:2;column-gap:32px}
+.legend li{margin:2px 0;break-inside:avoid}
+.show-changes .legend{display:block}
+
+/* Window */
+.win{max-width:1180px;height:780px;margin:16px auto 40px;border-radius:14px;overflow:hidden;display:flex;background:var(--canvas);box-shadow:0 20px 60px rgba(0,0,0,.25),0 0 0 1px rgba(0,0,0,.15)}
+.appside{width:220px;flex:none;background:var(--side);border-right:1px solid var(--line);padding:44px 10px 12px;display:flex;flex-direction:column;gap:2px}
+.lights{position:absolute;margin:-30px 0 0 6px;display:flex;gap:8px}
+.lights i{width:12px;height:12px;border-radius:50%;background:#FF5F57}.lights i+i{background:#FEBC2E}.lights i+i+i{background:#28C840}
+.nav{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:8px;color:var(--muted)}
+.nav.on{background:var(--accent-soft);color:var(--accent);font-weight:600}
+.nav .k{margin-left:auto;font-size:11px;color:var(--faint)}
+.main{flex:1;display:flex;flex-direction:column;min-width:0}
+.head{display:flex;align-items:center;gap:12px;padding:18px 28px 0;height:64px;flex:none}
+.head h1{margin:0;font:600 22px/1 ui-rounded,-apple-system,system-ui;letter-spacing:-.01em}
+.pill{margin-left:auto;display:flex;align-items:center;gap:6px;padding:5px 11px;border-radius:99px;background:var(--surface);box-shadow:var(--shadow);font-size:12px;color:var(--muted)}
+.pill i{width:7px;height:7px;border-radius:50%;background:var(--faint)}
+
+/* Direction A: toolbar tabs */
+.tabs{display:flex;gap:4px;padding:14px 28px 0;flex:none;border-bottom:1px solid var(--line)}
+.tab{display:flex;flex-direction:column;align-items:center;gap:5px;min-width:96px;padding:8px 10px 10px;border-radius:10px 10px 0 0;color:var(--muted);cursor:pointer;position:relative;font-size:12px}
+.tab .ic{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;background:var(--sunken);color:var(--muted);transition:.15s}
+.tab:hover{color:var(--text)}
+.tab.on{color:var(--text);font-weight:600}
+.tab.on .ic{background:var(--c);color:#fff}
+.tab.on::after{content:"";position:absolute;left:18px;right:18px;bottom:-1px;height:2px;border-radius:2px;background:var(--accent)}
+.body{flex:1;display:flex;min-height:0}
+.scroll{flex:1;overflow:auto;padding:24px 28px 40px}
+.col{max-width:680px;margin:0 auto}
+
+/* Direction B: inner list */
+.inner{display:none;width:212px;flex:none;padding:16px 10px;border-right:1px solid var(--line)}
+.dirB .tabs{display:none}
+.dirB .inner{display:block}
+.inner .tab{flex-direction:row;min-width:0;padding:6px 8px;border-radius:8px;gap:10px;font-size:13px}
+.inner .tab .ic{width:24px;height:24px;border-radius:6px;background:var(--c);color:#fff}
+.inner .tab.on{background:var(--surface);box-shadow:var(--shadow)}
+.inner .tab.on::after{display:none}
+.inner .tab svg{width:14px;height:14px}
+
+/* Sections & rows */
+.sec{margin-bottom:24px}
+.sec h3{margin:0 0 8px 4px;font-size:12px;font-weight:600;color:var(--muted);letter-spacing:.01em}
+.card{background:var(--surface);border-radius:14px;box-shadow:var(--shadow);overflow:hidden}
+.row{display:flex;align-items:center;gap:12px;min-height:52px;padding:10px 16px}
+.row+.row{border-top:1px solid var(--line)}
+.row.child{padding-left:56px;background:color-mix(in srgb,var(--sunken) 50%,transparent)}
+.row.child + .row.child{border-top-color:transparent}
+.row.dis{opacity:.45}
+.gl{width:28px;height:28px;flex:none;border-radius:8px;display:grid;place-items:center;background:var(--sunken);color:var(--muted)}
+.row.child .gl{display:none}
+.tx{flex:1;min-width:0}
+.tt{font-weight:500}
+.st{color:var(--muted);font-size:12px;margin-top:2px}
+.ct{display:flex;align-items:center;gap:8px;flex:none}
+.foot{margin:8px 4px 0;font-size:12px;color:var(--muted)}
+.foot details{display:inline}
+.foot details[open]{display:block}
+.foot details summary{cursor:pointer;color:var(--accent);list-style:none;display:inline}
+.foot details summary::-webkit-details-marker{display:none}
+.foot details[open] summary{display:none}
+.foot details p{margin:4px 0 0}
+
+/* Controls */
+.sw{width:36px;height:22px;border-radius:99px;background:var(--line);position:relative;cursor:pointer;transition:.2s;flex:none}
+.sw::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25);transition:.2s}
+.sw.on{background:var(--accent)}
+.sw.on::after{left:16px}
+.pop{display:flex;align-items:center;gap:6px;padding:4px 8px 4px 10px;border-radius:7px;background:var(--sunken);box-shadow:inset 0 0 0 1px var(--line);white-space:nowrap}
+.pop svg{width:12px;height:12px;color:var(--muted)}
+.seg{display:flex;padding:2px;border-radius:8px;background:var(--sunken);box-shadow:inset 0 0 0 1px var(--line)}
+.seg span{padding:4px 12px;border-radius:6px;color:var(--muted);cursor:pointer;white-space:nowrap}
+.seg span.on{background:var(--surface);color:var(--text);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.btn{padding:5px 12px;border-radius:7px;background:var(--sunken);box-shadow:inset 0 0 0 1px var(--line);font-weight:500;white-space:nowrap;cursor:pointer}
+.btn.pri{background:var(--accent);color:#fff;box-shadow:none}
+.btn.dan{color:var(--err)}
+.lnk{color:var(--accent);cursor:pointer;white-space:nowrap}
+.chip{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:99px;font-size:12px;font-weight:500;white-space:nowrap}
+.chip.ok{background:var(--ok-soft);color:var(--ok)} .chip.warn{background:var(--warn-soft);color:var(--warn)}
+.chip.err{background:var(--err-soft);color:var(--err)} .chip.off{background:var(--sunken);color:var(--muted)}
+.chip svg{width:12px;height:12px}
+.fld{width:220px;padding:5px 9px;border-radius:7px;background:var(--sunken);box-shadow:inset 0 0 0 1px var(--line);color:var(--faint);font-family:ui-monospace,SFMono-Regular,monospace;font-size:12px}
+.num{width:64px;text-align:right;color:var(--text);font-family:inherit;font-variant-numeric:tabular-nums}
+.weights{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.weights span{padding:2px 8px;border-radius:6px;background:var(--sunken);font-size:12px;color:var(--muted)}
+.weights b{color:var(--text);font-variant-numeric:tabular-nums;font-weight:600}
+.meter{width:100%}
+.meter .ln{display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px}
+.meter .ln b{font-variant-numeric:tabular-nums}
+.track{height:6px;border-radius:99px;background:var(--sunken);overflow:hidden}
+.track i{display:block;height:100%;border-radius:99px;background:var(--accent)}
+.src{font-family:ui-monospace,SFMono-Regular,monospace;font-size:12px}
+.danger .card{box-shadow:0 0 0 1px color-mix(in srgb,var(--err) 30%,var(--line))}
+
+/* Changes overlay */
+.chg{position:relative}
+.show-changes .chg{outline:2px dashed var(--mark);outline-offset:-2px}
+.show-changes .chg::before{content:attr(data-n);position:absolute;top:4px;right:4px;z-index:2;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--mark);color:#000;font:600 11px/18px -apple-system,system-ui;text-align:center}
+
+@media (max-width:900px){.appside{display:none}.win{height:auto;min-height:780px;border-radius:0;margin:0}.tabs{overflow-x:auto}.tab{min-width:84px}.dirB .inner{display:none}.dirB .tabs{display:flex}}
+@media (max-width:560px){.row{flex-wrap:wrap}.ct{width:100%;justify-content:flex-end}.head,.tabs,.scroll{padding-left:16px;padding-right:16px}}
+</style>
+</head>
+<body>
+<div class="bar">
+  <b>Sozlamalar · redizayn</b>
+  <div class="grp" id="dir"><button data-v="A" class="on">A · Ikonli tablar (tavsiya)</button><button data-v="B">B · Ichki ro'yxat</button></div>
+  <div class="grp" id="chg"><button data-v="0" class="on">Changes: o'chiq</button><button data-v="1">Changes: yoqiq</button></div>
+  <div class="grp" id="thm"><button data-v="auto" class="on">Tizim</button><button data-v="light">Yorug'</button><button data-v="dark">Qorong'i</button></div>
+</div>
+
+<div class="legend">
+  <b style="color:var(--text)">Eski oynaga nisbatan nima o'zgardi</b> — sariq raqamlar maketda shu joylarni ko'rsatadi.
+  <ol>
+    <li>Qora sarlavha bandi olib tashlandi: sarlavha kontent foni bilan bir xil, 140 px o'rniga 64 px.</li>
+    <li>Segmentli boshqaruv o'rniga ikonli tablar (macOS Safari / Xcode sozlamalari kabi). Segment rejim tanlash uchun, navigatsiya uchun emas.</li>
+    <li>Takror «Umumiy» sarlavhasi o'rniga ma'noli guruhlar: Ilova · Yangilanish · Ko'rinish.</li>
+    <li>Har qatorda ikon: ro'yxatni ko'z bilan tez skanerlash mumkin.</li>
+    <li>«Hozir tekshirish» alohida bo'sh qatordan yangilanish qatorining o'ziga ko'chdi.</li>
+    <li>Hisoblash usuli: radio o'rniga segment, uzun izoh o'rniga og'irlik chiplari.</li>
+    <li>Uzun izohlar 1 jumlaga qisqardi, to'liq matn «Batafsil» ichida.</li>
+    <li>Bog'liq sozlamalar ota qator ostida ichkariga surilgan (ota o'chiq bo'lsa — xira).</li>
+    <li>Holatlar rangli chip + matn bilan: «Ulangan», «Ishlayapti», «Ulanmagan».</li>
+    <li>«Tarixni tozalash» alohida «Xavfli» guruhga ajratildi.</li>
+  </ol>
+</div>
+
+<div class="win" id="win">
+  <aside class="appside">
+    <div class="lights"><i></i><i></i><i></i></div>
+    <div class="nav"><i data-lucide="sun"></i>Bugun</div>
+    <div class="nav"><i data-lucide="activity"></i>Jonli</div>
+    <div class="nav"><i data-lucide="list"></i>Sessiyalar</div>
+    <div class="nav"><i data-lucide="piggy-bank"></i>Tejash</div>
+    <div class="nav"><i data-lucide="share-2"></i>Graf</div>
+    <div class="nav"><i data-lucide="calendar"></i>Tarix</div>
+    <div style="flex:1"></div>
+    <div class="nav on"><i data-lucide="settings"></i>Sozlamalar<span class="k">⌘,</span></div>
+  </aside>
+  <section class="main">
+    <div class="head chg" data-n="1"><h1>Sozlamalar</h1><div class="pill"><i></i>Tinch</div></div>
+    <nav class="tabs chg" data-n="2" id="tabs"></nav>
+    <div class="body">
+      <nav class="inner" id="inner"></nav>
+      <div class="scroll"><div class="col" id="content"></div></div>
+    </div>
+  </section>
+</div>
+
+<script>
+const ic = n => `<i data-lucide="${n}"></i>`;
+const sw = (on, id) => `<span class="sw ${on?'on':''}" data-sw="${id||''}"></span>`;
+const pop = t => `<span class="pop">${t}${ic('chevrons-up-down')}</span>`;
+const seg = (o, i) => `<span class="seg">${o.map((x,k)=>`<span class="${k===i?'on':''}">${x}</span>`).join('')}</span>`;
+const btn = (t, k='') => `<span class="btn ${k}">${t}</span>`;
+const lnk = t => `<span class="lnk">${t}</span>`;
+const chip = (t, k, i) => `<span class="chip ${k}">${i?ic(i):''}${t}</span>`;
+const meter = (l, r, p) => `<div class="meter"><div class="ln"><span>${l}</span><span>${r} · <b>${p}%</b></span></div><div class="track"><i style="width:${p}%"></i></div></div>`;
+
+const TABS = [
+ {id:'gen', l:'Umumiy', i:'sliders-horizontal', c:'--t1', s:[
+  {h:'Ilova', n:3, r:[
+   {i:'languages', t:'Til / Language', s:'Darhol qo\'llanadi. «Tizim tili» — Mac inglizcha bo\'lsa English, aks holda o\'zbekcha', c:pop('O\'zbekcha')},
+   {i:'power', t:'Mac yoqilganda ishga tushsin', c:sw(1)},
+  ]},
+  {h:'Yangilanish', r:[
+   {i:'refresh-cw', t:'Yangi versiyani tekshirish', s:'Hozirgi: v6.75.0 · eng so\'nggi versiya', c:lnk('Hozir tekshirish')+sw(1), n:5},
+  ]},
+  {h:'Ko\'rinish', r:[
+   {i:'menu', t:'Menyu satrida', c:pop('5 soatlik limit — qancha qoldi')},
+   {i:'wind', t:'Kam animatsiya', s:'Robot, aylanuvchi chegaralar va oqim animatsiyalari to\'xtaydi — protsessor taxminan 2 baravar kam ishlaydi', c:sw(0)},
+  ]},
+  {h:'Hisoblash', n:6, f:'Limitni nima ko\'proq «yeyayotgani»ni «Narx bo\'yicha» usuli yaxshiroq ko\'rsatadi.', r:[
+   {i:'calculator', t:'Hisoblash usuli', s:'Narx bo\'yicha — har token kiritish narxiga nisbatan sanaladi:<div class="weights"><span>javob <b>×5</b></span><span>kesh o\'qish <b>×0,1</b></span><span>kesh yozish <b>×1,25</b></span><span>1 soatlik kesh <b>×2</b></span></div>', c:seg(['Token soni','Narx bo\'yicha'],0)},
+  ]},
+ ]},
+ {id:'not', l:'Xabarlar', i:'bell', c:'--t2', s:[
+  {h:'Bildirishnomalar', r:[
+   {i:'bell-ring', t:'Bildirishnomalar', s:'«Faqat muhim» — ish tugadi, ruxsat kutilyapti, xato va limit; maslahatlar chiqmaydi', c:pop('Faqat muhim')},
+  ]},
+  {h:'Ish holati', n:8, r:[
+   {i:'check-circle-2', t:'Claude ishni tugatganda', c:sw(1,'fin')},
+   {child:1, dep:'fin', t:'…agar ish shundan uzoq davom etgan bo\'lsa', c:pop('30 soniya')},
+   {i:'hourglass', t:'Qadam uzoq tugamasa', s:'Ruxsat kutilayotgan bo\'lishi mumkin', c:sw(1,'stk')},
+   {child:1, dep:'stk', t:'…shundan keyin', c:pop('1,5 daqiqa')},
+   {i:'shield-question', t:'Claude ruxsat so\'raganda', s:'Bildirishnomani bosing — o\'sha sessiya ochiladi', c:chip('Ulangan','ok','link')+lnk('Uzish')+sw(1), n:9},
+   {i:'alert-triangle', t:'Agent ketma-ket 3 marta xato olsa', c:sw(1)},
+  ]},
+  {h:'Token tejash maslahatlari', r:[
+   {i:'gauge', t:'Kontekst 85% to\'lganda', s:'Tez orada avtomatik xulosa', c:sw(0)},
+   {i:'git-branch-plus', t:'Katta kontekstda yangi mavzu boshlansa', s:'Yangi sessiya taklifi', c:sw(0)},
+   {i:'trash', t:'Isrof', s:'Kontekst 200K dan oshsa yoki loyiha bugun sarfining 40%+ ini isrof qilsa', c:sw(0)},
+   {i:'snowflake', t:'Kesh sovishidan oldin', s:'Javobingizni kutayotgan katta sessiyada', c:sw(0)},
+  ]},
+  {f:'Ruxsat so\'rovi uchun «Ulash» settings.json ga hook qo\'shadi; yangi sessiyalarda ishlaydi.', r:[
+   {i:'send', t:'Sinov bildirishnomasi', s:'Bildirishnoma ishlashini tekshiring', c:btn('Yuborish')},
+  ]},
+ ]},
+ {id:'ses', l:'Sessiyalar', i:'messages-square', c:'--t3', s:[
+  {h:'Avtomatik yangi sessiya', f:'Kontekst katta bo\'lganda ish xulosa bilan yangi sessiyaga ko\'chadi — limit sekinroq tugaydi.', r:[
+   {i:'arrow-right-left', t:'Kontekst katta bo\'lsa — avtomatik yangi sessiya', s:'Javob tugagach xulosa bilan yangi sessiya ochiladi — ish to\'xtatilmaydi', c:sw(1,'ho')},
+   {child:1, dep:'ho', t:'…kontekst oshganda', c:pop('200K'), n:8},
+   {child:1, dep:'ho', t:'…eski sessiyada yozsam — yangi sessiyaga yo\'naltirish', s:'Keyingi xabaringiz xulosa bilan yangi sessiyaga ketadi', c:sw(1)},
+  ]},
+  {h:'Davom ettirish', r:[
+   {i:'history', t:'Yopilgan sessiyani avtomatik davom ettirish', s:'Shu papkada yangi sessiya ochsangiz, Claude qayerda qolganini o\'zi biladi', c:chip('Ulangan','ok','link')+lnk('Uzish')+sw(1), n:9},
+  ]},
+  {h:'Yordamchi agentlar', f:'Faqat Token Kuzatuv plagini o\'rnatilgan bo\'lsa ishlaydi (tokenkuzat:izlovchi).', r:[
+   {i:'users', t:'Ko\'p o\'qisangiz — yordamchiga berishni eslatish', s:'Claude yordamchisiz ko\'p fayl o\'qisa, qidiruvni izlovchiga berishni eslatadi', c:sw(1)},
+  ]},
+ ]},
+ {id:'lim', l:'Limitlar', i:'gauge', c:'--t4', s:[
+  {h:'Claude limiti — hisobdan', more:'Claude Code\'ning Keychain\'dagi kalitidan foydalanib 5 soatlik va haftalik limit har 1,5 daqiqada olinadi. Kalit faqat api.anthropic.com ga yuboriladi. Birinchi marta macOS Keychain ruxsatini so\'raydi; ulanmasa status line zaxira bo\'ladi.', f:'claude.ai dagi raqamlar bilan bir xil.', n:7, r:[
+   {i:'user-round', t:'Claude hisobidan olish', c:sw(1,'acc')},
+   {child:1, dep:'acc', t:'Holat', c:chip('Ulangan · 14:11 · Max','ok','check')+btn('Hozir yangilash'), n:9},
+   {child:1, dep:'acc', html:meter('5 soatlik oyna','↻ 16:40','42')},
+   {child:1, dep:'acc', html:meter('Haftalik','↻ 3-noyabr','18')},
+  ]},
+  {h:'Claude limiti — status line orqali', more:'Status line orqali 5 soatlik va haftalik foiz olinadi. «Ulash» ~/.claude/settings.json ni yozadi (birinchi ulanishda nusxasi olinadi), «Uzish» uni qaytaradi.', f:'Hisobdan olish ishlamasa zaxira manba.', r:[
+   {i:'terminal', t:'Holat', s:lnk('settings.json\'ni ko\'rsatish'), c:chip('Ulanmagan','off')+btn('Limitlarni ulash','pri')},
+   {i:'bell', t:'80% va 95% ga yetganda bildirishnoma', c:sw(0), dis:1},
+  ]},
+  {h:'O\'z limitim (taxminiy)', f:'Anthropic aniq limitni e\'lon qilmaydi — odatiy sarfingizga qarab qiymat qo\'ying (Tarix sahifasida ko\'rinadi).', r:[
+   {i:'target', t:'Limitni kuzatish', c:sw(0,'bud')},
+   {child:1, dep:'bud', t:'Davr', c:seg(['Oxirgi 5 soat','Bugun'],0)},
+   {child:1, dep:'bud', t:'Limit', s:'mln token (narx bo\'yicha)', c:'<span class="fld num">20</span>'+btn('−')+btn('+')},
+   {child:1, dep:'bud', t:'80% va 100% da bildirishnoma', c:sw(1)},
+  ]},
+ ]},
+ {id:'free', l:'Bepul modellar', i:'sparkles', c:'--t5', s:[
+  {h:'FreeLLMAPI ulanishi', more:'FreeLLMAPI — bepul LLM provayderlarini bitta API ortida jamlaydigan lokal server (standart manzil http://127.0.0.1:31415). Kalit 0600 huquqli faylda saqlanadi. Claude Code uchun ask_free_model asbobi shu ulanishdan foydalanadi. Bepul model sarfi Claude limitiga qo\'shilmaydi.', f:'Bepul model sarfi Claude limitiga qo\'shilmaydi.', r:[
+   {i:'server', t:'Manzil', c:'<span class="fld">http://127.0.0.1:31415</span>'},
+   {i:'key-round', t:'Umumiy kalit', c:'<span class="fld">freellmapi-••••••••••</span>'},
+   {i:'activity', t:'Holat', c:chip('Ishlayapti · 14 ta model','ok','check')+lnk('O\'chirish')+btn('Saqlash va tekshirish','pri'), n:9},
+  ]},
+  {h:'Limit tugaganda', r:[
+   {i:'life-buoy', t:'«Bepul modelda davom etish» tugmasi', s:'Claude limiti tugaganda bildirishnomada chiqadi', c:sw(1,'ff')},
+   {child:1, dep:'ff', t:'Bepul modelga o\'tgach eski Terminal oynasini yopish', c:sw(1), n:8},
+   {i:'square-terminal', t:'Hozir terminalda bepul modelda ochish', s:lnk('FreeLLMAPI haqida'), c:btn('Ochish')},
+  ]},
+ ]},
+ {id:'data', l:'Ma\'lumot', i:'database', c:'--t6', s:[
+  {h:'Manbalar', f:'Shu Mac\'dagi ~/.claude fayllarini va o\'zingiz qo\'shgan chat yozuvlarini o\'qiydi. Yozuvlar internetga yuborilmaydi.', r:[
+   {i:'files', t:'Kuzatilayotgan fayllar', c:'<b style="font-variant-numeric:tabular-nums">1 284 ta</b><span style="color:var(--muted)">oxirgi 30 kun</span>'},
+   {i:'folder-check', t:'<span class="src">~/.claude/projects</span>', s:'Jami 1 912 fayl · 30 kunda 1 284 · bugun 37 · oxirgisi: bugun 14:10', c:chip('Faol','ok','check')},
+   {i:'folder', t:'<span class="src">~/.config/claude/projects</span>', s:'Papka yo\'q', c:chip('Yo\'q','off')},
+  ]},
+  {h:'Bulutdagi chatlar', more:'Claude chat va bulutdagi sessiyalar Mac\'ga yozilmaydi. Chatdan Claude\'ga «yozuvini Token Kuzatuv uchun ber» deng — kelgan .jsonl faylni shu tugma bilan qo\'shing yoki oynaga sudrab tashlang. Xaritada «Claude chat» loyihasi bo\'lib chiqadi.', f:'.jsonl faylni qo\'shing yoki oynaga sudrab tashlang.', r:[
+   {i:'cloud-download', t:'Chat yozuvini qo\'shish', c:lnk('Papkani ochish')+btn('Qo\'shish…')},
+  ]},
+  {h:'Fayllar', r:[
+   {i:'folder-open', t:'Claude papkasi', c:btn('Ochish')},
+   {i:'file-clock', t:'Tarix fayli', c:btn('Finder\'da ko\'rsatish')},
+  ]},
+  {h:'Xavfli', danger:1, n:10, r:[
+   {i:'trash-2', t:'Tarixni tozalash', s:'Oxirgi 30 kun qayta o\'qiladi, undan eskilari tiklanmaydi', c:btn('Tozalash…','dan')},
+  ]},
+  {h:'Ilova haqida', r:[
+   {i:'info', t:'Versiya', c:'<span style="color:var(--muted);font-variant-numeric:tabular-nums">6.75.0 (675)</span>'},
+  ]},
+ ]},
+];
+
+let cur = 'gen';
+const state = {fin:1, stk:1, ho:1, acc:1, bud:0, ff:1};
+
+function rowHTML(r){
+  const off = r.dep && !state[r.dep];
+  const cls = ['row', r.child?'child':'', (r.dis||off)?'dis':'', r.n?'chg':''].join(' ');
+  if (r.html) return `<div class="${cls}">${r.html}</div>`;
+  const c = r.c.replace(/class="sw (on)?" data-sw="(\w+)"/, (m,on,id)=>`class="sw ${state[id]?'on':''}" data-sw="${id}"`);
+  return `<div class="${cls}" ${r.n?`data-n="${r.n}"`:''}>
+    <span class="gl">${r.i?ic(r.i):''}</span>
+    <div class="tx"><div class="tt">${r.t}</div>${r.s?`<div class="st">${r.s}</div>`:''}</div>
+    <div class="ct">${c}</div></div>`;
+}
+function render(){
+  const tab = TABS.find(t=>t.id===cur);
+  const tabsHTML = TABS.map(t=>`<div class="tab ${t.id===cur?'on':''}" data-t="${t.id}" style="--c:var(${t.c})"><span class="ic">${ic(t.i)}</span>${t.l}</div>`).join('');
+  document.getElementById('tabs').innerHTML = tabsHTML;
+  document.getElementById('inner').innerHTML = tabsHTML;
+  document.getElementById('content').innerHTML = tab.s.map((s,k)=>{
+    const foot = (s.f||s.more) ? `<div class="foot ${s.more?'chg':''}" ${s.more?'data-n="7"':''}>${s.f||''}${s.more?` <details><summary>Batafsil</summary><p>${s.more}</p></details>`:''}</div>` : '';
+    const head = s.h ? `<h3 class="${s.n===3?'chg':''}" ${s.n===3?'data-n="3"':''}>${s.h}</h3>` : '';
+    const n = s.n && s.n!==3 && s.n!==7 ? s.n : 0;
+    return `<div class="sec ${s.danger?'danger':''} ${n?'chg':''}" ${n?`data-n="${n}"`:''}>${head}<div class="card ${k===0&&cur==='gen'?'chg':''}" ${k===0&&cur==='gen'?'data-n="4"':''}>${s.r.map(rowHTML).join('')}</div>${foot}</div>`;
+  }).join('');
+  lucide.createIcons();
+}
+document.addEventListener('click', e=>{
+  const t = e.target.closest('.tab'); if (t){ cur = t.dataset.t; try{localStorage.setItem('tk-set-tab',cur)}catch(_){} render(); return; }
+  const s = e.target.closest('.sw');
+  if (s){ const id = s.dataset.sw; if (id){ state[id] = !state[id]; render(); } else s.classList.toggle('on'); return; }
+  const sg = e.target.closest('.seg span'); if (sg){ [...sg.parentNode.children].forEach(x=>x.classList.toggle('on', x===sg)); }
+});
+function group(id, fn){ document.getElementById(id).addEventListener('click', e=>{ const b=e.target.closest('button'); if(!b) return; [...b.parentNode.children].forEach(x=>x.classList.toggle('on',x===b)); fn(b.dataset.v); }); }
+group('dir', v=>document.getElementById('win').classList.toggle('dirB', v==='B'));
+group('chg', v=>document.body.classList.toggle('show-changes', v==='1'));
+group('thm', v=>{ if(v==='auto') document.documentElement.removeAttribute('data-theme'); else document.documentElement.dataset.theme=v; });
+try{ const s = localStorage.getItem('tk-set-tab'); if (s && TABS.some(t=>t.id===s)) cur = s; }catch(_){}
+render();
+</script>
+</body>
+</html>

@@ -70,6 +70,18 @@ final class WindowManager: NSObject, NSWindowDelegate {
         window?.makeKeyAndOrderFront(nil)
     }
 
+    /// Ishlab chiquvchi uchun: oyna mazmunini rasmga saqlaydi (AppKit boshqaruvlari ham chiziladi — ImageRenderer'dan farqli).
+    /// Oyna o'lchami saqlanmaydi, foydalanuvchining oynasi joyida qoladi
+    func capture(to url: URL, size: NSSize) {
+        guard let w = window, let v = w.contentView else { return }
+        w.setFrameAutosaveName("")
+        w.setContentSize(size)
+        v.layoutSubtreeIfNeeded()
+        guard let rep = v.bitmapImageRepForCachingDisplay(in: v.bounds) else { return }
+        v.cacheDisplay(in: v.bounds, to: rep)
+        try? rep.representation(using: .png, properties: [:])?.write(to: url)
+    }
+
     /// Oyna boshqa ilovalar ustida turadi: hamma ish stollarida va to'liq ekranli ilova ustida ham ko'rinadi
     func applyPinned() {
         guard let w = window else { return }

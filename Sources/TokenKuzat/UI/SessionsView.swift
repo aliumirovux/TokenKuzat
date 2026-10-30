@@ -262,7 +262,7 @@ struct SourcesList: View {
                         .foregroundStyle(src.exists ? (src.recent > 0 ? Brand.ok : Color.secondary) : Color.secondary.opacity(0.6))
                     VStack(alignment: .leading, spacing: 2) {
                         Text(src.path).font(.caption.monospaced()).lineLimit(1).truncationMode(.middle)
-                        Text(detail(src)).font(.caption2).foregroundStyle(.secondary)
+                        Text(Self.detail(src)).font(.caption2).foregroundStyle(.secondary)
                     }
                     Spacer(minLength: 0)
                 }
@@ -270,7 +270,7 @@ struct SourcesList: View {
         }
     }
 
-    private func detail(_ s: SourceInfo) -> String {
+    static func detail(_ s: SourceInfo) -> String {
         guard s.exists else { return tr("Papka yo'q", "No folder") }
         guard s.total > 0 else { return tr("Papka bor, lekin sessiya fayli yo'q", "Folder exists, but no session files") }
         let last = s.latest.map { Fmt.dayTime.string(from: $0) } ?? "—"

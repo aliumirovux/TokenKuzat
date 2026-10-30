@@ -15,81 +15,95 @@ struct FreeModelsSection: View {
     @State private var error: String?
 
     var body: some View {
-        SwiftUI.Section {
-            TextField(tr("Manzil", "Address"), text: $url, prompt: Text(FreeModels.defaultURL))
-            SecureField(tr("Umumiy kalit (freellmapi-…)", "Unified key (freellmapi-…)"), text: $key)
-            HStack {
-                statusView
-                Spacer()
-                if saved {
-                    Button(tr("O'chirish", "Remove")) { remove() }.buttonStyle(.link)
+        VStack(alignment: .leading, spacing: 24) {
+            SettingsGroup(title: tr("FreeLLMAPI ulanishi", "FreeLLMAPI connection"),
+                          footer: tr("Bepul model sarfi Claude limitiga qo'shilmaydi.", "Free-model usage doesn't count toward the Claude limit."),
+                          more: about) {
+                SettingRow(symbol: "server.rack", title: tr("Manzil", "Address")) {
+                    TextField(tr("Manzil", "Address"), text: $url, prompt: Text(FreeModels.defaultURL))
+                        .labelsHidden().textFieldStyle(.roundedBorder)
+                        .font(.system(size: 12, design: .monospaced))
+                        .frame(width: 240)
                 }
-                Button(saved ? tr("Saqlash va tekshirish", "Save and check") : tr("Saqlash", "Save")) { save() }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(key.trimmingCharacters(in: .whitespaces).isEmpty || checking)
-            }
-            if let error {
-                Label(error, systemImage: "exclamationmark.triangle").font(.caption).foregroundStyle(Brand.err)
-            }
-            Toggle(tr("Claude limiti tugaganda — «Bepul modelda davom etish» tugmasi", "When the Claude limit runs out — «Continue on a free model» button"),
-                   isOn: $freeFallback)
-                .disabled(!saved || !AppInfo.isBundled)
-            Toggle(tr("Bepul modelga o'tgach eski Terminal oynasini yopish", "Close the old Terminal window after moving to a free model"),
-                   isOn: $closeOldTerminal)
-                .disabled(!freeFallback)
-                .help(tr("Faqat Terminal ilovasida. Suhbat saqlanadi — claude --resume bilan qaytariladi. Birinchi marta macOS Terminal'ni boshqarishga ruxsat so'raydi",
-                         "Terminal app only. The conversation is kept — reopen it with claude --resume. The first time, macOS asks for permission to control Terminal"))
-            HStack {
-                Button(tr("Hozir terminalda bepul modelda ochish", "Open on a free model in Terminal now")) { openNow() }
-                    .disabled(!saved)
-                Spacer()
-                Button(tr("FreeLLMAPI haqida", "About FreeLLMAPI")) {
-                    NSWorkspace.shared.open(URL(string: "https://github.com/tashfeenahmed/freellmapi")!)
+                SettingRow(symbol: "key", title: tr("Umumiy kalit", "Unified key"), subtitle: "freellmapi-…") {
+                    SecureField(tr("Umumiy kalit (freellmapi-…)", "Unified key (freellmapi-…)"), text: $key)
+                        .labelsHidden().textFieldStyle(.roundedBorder)
+                        .frame(width: 240)
                 }
-                .buttonStyle(.link)
+                // Holat belgisi sarlavha ostida — uzun «Ulanib bo'lmadi: …» matni tugmalarni siqib qo'ymasin
+                SettingRow(symbol: "waveform.path.ecg", title: tr("Holat", "Status")) {
+                    if saved {
+                        Button(tr("O'chirish", "Remove")) { remove() }.buttonStyle(.link)
+                    }
+                    Button(saved ? tr("Saqlash va tekshirish", "Save and check") : tr("Saqlash", "Save")) { save() }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(key.trimmingCharacters(in: .whitespaces).isEmpty || checking)
+                } below: {
+                    statusView.padding(.top, 4)
+                }
+                if let error {
+                    WideRow(child: true) {
+                        Label(error, systemImage: "exclamationmark.triangle").font(.caption).foregroundStyle(Brand.err)
+                    }
+                }
             }
-        } header: {
-            Text(tr("Bepul modellar (FreeLLMAPI)", "Free models (FreeLLMAPI)"))
-        } footer: {
-            Text(tr("FreeLLMAPI — bepul tariflarni (Gemini, DeepSeek, Qwen, Llama…) bitta manzilga yig'adigan dastur; uni o'zingiz o'rnatasiz "
-                    + "(Mac ilovasi — manzil http://127.0.0.1:31415, server versiyasi — http://localhost:3001; Mac ilovasi yopiq bo'lsa, Token Kuzatuv uni o'zi orqa fonda ochadi), "
-                    + "provayder kalitlarini uning Keys sahifasida qo'shasiz va «Unified API key» ni shu yerga yozasiz. "
-                    + "Limit tugaganda bildirishnomadagi tugma ishni xulosa bilan Terminal'dagi claude'da bepul modelga o'tkazadi; limit tiklanganda «Claude'da davom etish» uni qaytaradi. "
-                    + "Claude Code uchun katta kontekstli va asboblarni chaqira oladigan model kerak (masalan, Google AI Studio — Gemini): faqat Groq kaliti bilan ishlamaydi. "
-                    + "Claude ilovasidagi sessiyalar Claude'da qoladi. Claude'ga «ask_free_model» asbobi ham qo'shiladi (/mcp da tokenkuzat'ni qayta ulang): "
-                    + "tarjima, uzun logni qisqartirish kabi mayda ishlarni bepul modelga beradi. Bepul modellar Claude'dan zaif va so'rovlarni o'qitishga ishlatishi mumkin — "
-                    + "maxfiy kod va ma'lumotda ehtiyot bo'ling. Kalit faqat shu Mac'da (0600 fayl) saqlanadi va faqat shu manzilga yuboriladi; "
-                    + "bepul model sarfi Claude limitiga qo'shilmaydi.",
-                    "FreeLLMAPI is an app that pools free tiers (Gemini, DeepSeek, Qwen, Llama…) behind one address; you install it yourself "
-                    + "(Mac app — address http://127.0.0.1:31415, server version — http://localhost:3001; if the Mac app is closed, Token Kuzatuv opens it in the background), "
-                    + "add provider keys on its Keys page and paste its «Unified API key» here. "
-                    + "When the limit runs out, the notification button moves the work with a summary to claude in Terminal on a free model; when the limit resets, «Continue in Claude» moves it back. "
-                    + "Claude Code needs a model with a large context that can call tools (e.g. Google AI Studio — Gemini): a Groq key alone won't do. "
-                    + "Sessions in the Claude app stay on Claude. Claude also gets an «ask_free_model» tool (reconnect tokenkuzat in /mcp) "
-                    + "for small jobs like translating or summarizing a long log. Free models are weaker than Claude and may train on prompts — "
-                    + "be careful with private code and data. The key is stored only on this Mac (0600 file) and sent only to this address; "
-                    + "free-model usage doesn't count toward the Claude limit."))
-                .font(.caption).foregroundStyle(.secondary)
+
+            SettingsGroup(title: tr("Limit tugaganda", "When the limit runs out"),
+                          footer: tr("Claude ilovasidagi sessiyalar Claude'da qoladi.", "Sessions in the Claude app stay on Claude.")) {
+                ToggleRow(symbol: "lifepreserver", title: tr("«Bepul modelda davom etish» tugmasi", "«Continue on a free model» button"),
+                          subtitle: saved ? tr("Claude limiti tugaganda bildirishnomada chiqadi", "Appears in the notification when the Claude limit runs out")
+                                          : tr("Avval yuqorida kalitni saqlang", "Save the key above first"),
+                          isOn: $freeFallback)
+                    .disabled(!saved || !AppInfo.isBundled)
+                ToggleRow(title: tr("Bepul modelga o'tgach eski Terminal oynasini yopish", "Close the old Terminal window after moving to a free model"),
+                          child: true, isOn: $closeOldTerminal)
+                    .disabled(!freeFallback)
+                    .help(tr("Faqat Terminal ilovasida. Suhbat saqlanadi — claude --resume bilan qaytariladi. Birinchi marta macOS Terminal'ni boshqarishga ruxsat so'raydi",
+                             "Terminal app only. The conversation is kept — reopen it with claude --resume. The first time, macOS asks for permission to control Terminal"))
+                SettingRow(symbol: "apple.terminal", title: tr("Hozir terminalda bepul modelda ochish", "Open on a free model in Terminal now")) {
+                    Button(tr("FreeLLMAPI haqida", "About FreeLLMAPI")) {
+                        NSWorkspace.shared.open(URL(string: "https://github.com/tashfeenahmed/freellmapi")!)
+                    }
+                    .buttonStyle(.link)
+                    Button(tr("Ochish", "Open")) { openNow() }.disabled(!saved)
+                }
+            }
         }
         .onAppear { if saved && check == nil { runCheck() } }
+    }
+
+    private var about: String {
+        tr("FreeLLMAPI — bepul tariflarni (Gemini, DeepSeek, Qwen, Llama…) bitta manzilga yig'adigan dastur; uni o'zingiz o'rnatasiz "
+           + "(Mac ilovasi — manzil http://127.0.0.1:31415, server versiyasi — http://localhost:3001; Mac ilovasi yopiq bo'lsa, Token Kuzatuv uni o'zi orqa fonda ochadi), "
+           + "provayder kalitlarini uning Keys sahifasida qo'shasiz va «Unified API key» ni shu yerga yozasiz. "
+           + "Limit tugaganda bildirishnomadagi tugma ishni xulosa bilan Terminal'dagi claude'da bepul modelga o'tkazadi; limit tiklanganda «Claude'da davom etish» uni qaytaradi. "
+           + "Claude Code uchun katta kontekstli va asboblarni chaqira oladigan model kerak (masalan, Google AI Studio — Gemini): faqat Groq kaliti bilan ishlamaydi. "
+           + "Claude'ga «ask_free_model» asbobi ham qo'shiladi (/mcp da tokenkuzat'ni qayta ulang): "
+           + "tarjima, uzun logni qisqartirish kabi mayda ishlarni bepul modelga beradi. Bepul modellar Claude'dan zaif va so'rovlarni o'qitishga ishlatishi mumkin — "
+           + "maxfiy kod va ma'lumotda ehtiyot bo'ling. Kalit faqat shu Mac'da (0600 fayl) saqlanadi va faqat shu manzilga yuboriladi.",
+           "FreeLLMAPI is an app that pools free tiers (Gemini, DeepSeek, Qwen, Llama…) behind one address; you install it yourself "
+           + "(Mac app — address http://127.0.0.1:31415, server version — http://localhost:3001; if the Mac app is closed, Token Kuzatuv opens it in the background), "
+           + "add provider keys on its Keys page and paste its «Unified API key» here. "
+           + "When the limit runs out, the notification button moves the work with a summary to claude in Terminal on a free model; when the limit resets, «Continue in Claude» moves it back. "
+           + "Claude Code needs a model with a large context that can call tools (e.g. Google AI Studio — Gemini): a Groq key alone won't do. "
+           + "Claude also gets an «ask_free_model» tool (reconnect tokenkuzat in /mcp) "
+           + "for small jobs like translating or summarizing a long log. Free models are weaker than Claude and may train on prompts — "
+           + "be careful with private code and data. The key is stored only on this Mac (0600 file) and sent only to this address.")
     }
 
     @ViewBuilder private var statusView: some View {
         if checking {
             ProgressView().controlSize(.small)
         } else if let check {
-            HStack(spacing: 6) {
-                Circle().fill(color(check)).frame(width: 8, height: 8)
-                Text(text(check)).font(.caption)
-            }
+            StateChip(text: text(check), kind: kind(check), symbol: kind(check) == .ok ? "checkmark" : nil)
         } else if !saved {
-            Text(tr("Sozlanmagan", "Not set up")).font(.caption).foregroundStyle(.secondary)
+            StateChip(text: tr("Sozlanmagan", "Not set up"))
         }
     }
 
-    private func color(_ c: FreeFallback.Check) -> Color {
-        if case .ok = c { return Brand.ok }
-        return c == .notConfigured ? .secondary : Brand.err
+    private func kind(_ c: FreeFallback.Check) -> StateChip.Kind {
+        if case .ok = c { return .ok }
+        return c == .notConfigured ? .off : .err
     }
 
     private func text(_ c: FreeFallback.Check) -> String {
