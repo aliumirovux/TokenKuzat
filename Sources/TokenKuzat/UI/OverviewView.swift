@@ -5,6 +5,7 @@ import TokenKuzatCore
 // 1) limit qancha qoldi va qachon tiklanadi (qahramon blok, 5 soatlik oyna soatma-soat);
 // 2) hozir nima bo'lyapti («Hozir» qatori);
 // 3) bugun nima ustida ishlandi (bento ko'rsatkichlar va sessiyalar).
+// Orada — yordamchi agentlar qancha tejagani (7 kunlik karta).
 
 struct OverviewView: View {
     @EnvironmentObject var store: Store
@@ -30,12 +31,21 @@ struct OverviewView: View {
                     if let sess = s.sessions.first(where: { $0.state != .idle }) ?? s.sessions.first {
                         SavingsCard(session: sess)
                     }
+                    agentRoles(s)
                     TodayBento(snap: s, mode: mode)
                     sessions(s)
                 }
                 .padding(.horizontal, 24).padding(.top, 4).padding(.bottom, 28)
             }
         }
+    }
+
+    /// Yordamchilar qancha sarflab, qancha tejagani — 7 kunlik: summary sessiyaning butun sarfini oladi,
+    /// «Bugun» deb ko'rsatilsa kechagi tokenlar ham kirib, yonidagi bugungi raqamlarga to'g'ri kelmasdi
+    @ViewBuilder
+    private func agentRoles(_ s: Snapshot) -> some View {
+        let week = AgentRoleUsage.summary(s.sessions, since: SavingsPeriod.week.start(now: s.updatedAt))
+        if !week.rows.isEmpty { AgentRolesCard(summary: week, period: .week, mode: mode) }
     }
 
     @ViewBuilder

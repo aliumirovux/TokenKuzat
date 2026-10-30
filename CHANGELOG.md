@@ -1,5 +1,9 @@
 # O'zgarishlar
 
+## 6.74.0 — 2026-10-30
+
+- «Agent turlari bo'yicha sarf» kartasi endi «Bugun» sahifasida ham chiqadi: «Hozir» qatoridan keyin, bugungi ko'rsatkichlardan tepada — ilovani ochganda varaqlamasdan ko'rinadi. Karta 7 kunlik: u sessiyaning butun sarfini oladi, «Bugun» deb ko'rsatilsa kechagi tokenlar ham kirib, yonidagi bugungi raqamlarga to'g'ri kelmasdi. «Tejash» sahifasida karta avvalgidek turadi.
+
 ## 6.73.0 — 2026-10-30
 
 - «Agent turlari bo'yicha sarf» kartasi endi har yordamchi qancha token tejaganini ham ko'rsatadi: qatorlarda «~X tejaldi» (yoki «~X ortiqcha»), pastida «Yordamchilar ~X token tejadi (~N%)». Bu taxminiy hisob: bosh agent shu ishni o'zi qilganda ketadigan narx (o'z modeli, katta konteksti, keyingi javoblarda qayta o'qish) minus yordamchining haqiqiy narxi. Model narxi nisbati Opus 5 : Sonnet 3 : Haiku 1, hammasi Opus-ekvivalent tokenda. Siqish (/compact) va 200K oyna hisobga olinadi, oyna bitta sessiyadagi yordamchilar orasida bo'linadi; ma'lumoti yo'q yordamchida tejash ko'rsatilmaydi.
