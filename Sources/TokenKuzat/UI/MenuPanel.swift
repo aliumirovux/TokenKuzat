@@ -38,6 +38,7 @@ struct MenuPanel: View {
         .frame(width: 372)
         // Butun panel bir xil qattiq fonda, oyna chetlarigacha — tagidagi rasm ko'rinmaydi
         .background(Brand.canvas.ignoresSafeArea())
+        .background(ProjectTracker.WindowVisibility(id: "menu"))
     }
 
     // MARK: Limit

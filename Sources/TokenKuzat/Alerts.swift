@@ -218,8 +218,12 @@ final class Alerts: NSObject, UNUserNotificationCenterDelegate {
         // Ko'chirilgan sessiyalar (shu jumladan ilova qayta ishga tushishidan oldingilari) — keyingi xabari yangi sessiyaga yo'naltiriladi
         if d.bool(forKey: Pref.autoHandoffRedirect) {
             let cutoff = Date().timeIntervalSince1970 - RedirectStore.lifetime
+            let pending = s.sessions.contains { (autoDone[$0.id] ?? 0) >= cutoff && !redirectArmed.contains($0.id) }
+            let stored = pending ? RedirectStore.load() : [:]
             for sess in s.sessions where (autoDone[sess.id] ?? 0) >= cutoff && !redirectArmed.contains(sess.id) {
                 redirectArmed.insert(sess.id)
+                // Oldingi ishga tushishda saqlangan — xulosa qayta yasalmaydi (loyiha papkasida git chaqirilmaydi)
+                if stored[sess.id] != nil { continue }
                 AutoHandoff.summary(for: sess) { Self.armRedirect(sess, summary: $0) }
             }
         }

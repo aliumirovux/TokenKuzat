@@ -2,7 +2,8 @@
 # Token Kuzatuv — tarqatish uchun DMG: universal (Apple Silicon + Intel) ilova, «Applications» yorlig'i bilan.
 #   bash scripts/release.sh            dist/TokenKuzatuv-<versiya>.dmg yasaydi
 #   bash scripts/release.sh --test     avval testlarni yurgizadi
-# Imzo: TK_SIGN_IDENTITY (masalan, «Developer ID Application: …») berilsa — o'sha bilan, aks holda vaqtinchalik (ad-hoc).
+# Imzo: TK_SIGN_IDENTITY (masalan, «Developer ID Application: …») berilsa — o'sha bilan, keyin «Token Kuzatuv Local»
+# (scripts/make-signing-cert.sh), aks holda vaqtinchalik (ad-hoc).
 # Notarizatsiya: TK_NOTARY_PROFILE (xcrun notarytool store-credentials nomi) va Developer ID imzosi bo'lsa — DMG notarizatsiyadan o'tkaziladi.
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -35,10 +36,16 @@ cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 sed -e "s/__VERSION__/$VERSION/" -e "s/__BUILD__/$BUILD/" Resources/Info.plist > "$APP/Contents/Info.plist"
 
 IDENTITY="${TK_SIGN_IDENTITY:-}"
+LOCAL_ID="Token Kuzatuv Local"
 if [ -n "$IDENTITY" ]; then
     codesign --force --options runtime --timestamp --sign "$IDENTITY" "$APP"
     echo "✓ Imzolandi: $IDENTITY"
+elif security find-certificate -c "$LOCAL_ID" >/dev/null 2>&1 && codesign --force --sign "$LOCAL_ID" "$APP" 2>/dev/null; then
+    # Developer ID emas, lekin doimiy: macOS yangilanishdan keyin «Hujjatlar» va Keychain ruxsatini qayta so'ramaydi
+    echo "✓ O'z sertifikati bilan imzolandi: $LOCAL_ID (birinchi ochishda macOS baribir ogohlantiradi)"
 else
+    security find-certificate -c "$LOCAL_ID" >/dev/null 2>&1 \
+        && echo "! '$LOCAL_ID' bilan imzolab bo'lmadi (kalitga ruxsat?) — vaqtinchalik imzo, yangilanishdan keyin ruxsat qayta so'raladi"
     codesign --force --sign - "$APP"
     echo "! Developer ID yo'q — vaqtinchalik imzo. Birinchi ochishda macOS ogohlantiradi (README → «O'rnatish»)."
 fi

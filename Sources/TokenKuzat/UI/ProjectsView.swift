@@ -37,6 +37,7 @@ struct ProjectsView: View {
             }
             .padding(.horizontal, 24).padding(.bottom, 24)
         }
+        .background(ProjectTracker.WindowVisibility(id: "projects"))
     }
 }
 

@@ -1,5 +1,12 @@
 # O'zgarishlar
 
+## 6.79.0 — 2026-10-30
+
+- «Hujjatlar» papkasiga ruxsat so'rovi kamaydi — loyihalar shu papkada bo'lsa, macOS har yangilanishdan keyin ruxsat so'rardi:
+  - Loyihalarning git holati (saqlanmagan o'zgarishlar) endi faqat Loyihalar sahifasi yoki menyu ekranda ochiq turganda tekshiriladi. Ilova ochilishida va fonda git chaqirilmaydi.
+  - Ilova qayta ochilganda avvalroq saqlangan «Avtomatik davom» xulosalari va yangi sessiyaga yo'naltirish xulosalari qayta yasalmaydi.
+  - Doimiy o'z imzosi: `scripts/make-signing-cert.sh` bir marta bepul sertifikat yaratadi. `build.sh` va reliz shu bilan imzolanadi va macOS yangi versiyalarni o'sha ilova deb taniydi: ruxsat bir marta beriladi. Sertifikat bo'lmasa, avvalgidek vaqtinchalik imzo ishlatiladi.
+
 ## 6.78.0 — 2026-10-30
 
 - Tejash va isrof raqamlarida ishonch belgisi — raqam transkriptdan o'lchanganmi yoki formula bilan taxmin qilinganmi, endi ko'rinib turadi (avval «taxminiy» so'zi faqat sichqoncha izohida edi):
