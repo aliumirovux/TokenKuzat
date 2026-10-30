@@ -1,5 +1,11 @@
 # O'zgarishlar
 
+## 6.63.0 — 2026-10-30
+
+- Kontekst to'lganda ish endi faqat Claude ilovasidagi yangi Code sessiyasiga ko'chadi; Terminalda ochish tanlovi olib tashlandi. Yangi sessiyada xulosa yozib qo'yiladi — Enter bosasiz, Claude ishni davom ettiradi. Eski sessiyada yozilgan xabar ham, limit tiklangach bepul modeldan qaytish ham shu yerga yo'naltiriladi.
+- «Loyihalar» sahifasidagi «Davom ettirish» ham sessiyani Claude ilovasida ochadi.
+- Bepul modellar Terminal'da qoladi (ular `claude` ga maxsus sozlama bilan ulanadi). «Eski Terminal oynasini yopish» sozlamasi «Bepul modellar» bo'limiga ko'chdi.
+
 ## 6.62.1 — 2026-10-30
 
 - Ish yangi Terminal sessiyasiga ko'chgach eski oyna yana yopiladi. Claude Code yangi usulda o'rnatilganda (`~/.local/share/claude/versions/…`) jarayon nomi versiya raqami bo'lib qoladi va ilova `claude` ni tanimay, oynani yozib olmay qo'ygan edi. Endi jarayon to'liq yo'lidan ham taniladi.

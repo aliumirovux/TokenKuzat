@@ -237,24 +237,19 @@ final class Alerts: NSObject, UNUserNotificationCenterDelegate {
             d.set(autoDoneContext.filter { autoDone[$0.key] != nil }, forKey: autoDoneContextKey)
             let redirect = d.bool(forKey: Pref.autoHandoffRedirect)
             if redirect { redirectArmed.insert(sess.id) }
-            let target = AutoHandoffTarget(rawValue: d.string(forKey: Pref.autoHandoffTarget) ?? "") ?? .app
             AutoHandoff.summary(for: sess) { summary in
                 if redirect { Self.armRedirect(sess, summary: summary, replace: true) }
-                let ok = AutoHandoff.start(sess, target: target, summary: summary)
+                let ok = AutoHandoff.start(sess, summary: summary)
                 let start = SavingsAdvisor.startContext(for: sess) ?? SavingsAdvisor.baseline
                 let why = byCompact ? tr("Claude Code suhbatni avtomatik qisqartirmoqchi edi — o'rniga ish yangi sessiyaga ko'chirildi. ",
                                          "Claude Code was about to auto-compact the conversation — the work moved to a new session instead. ") : ""
                 self.post(tr("\(sess.project): yangi sessiya ochildi", "\(sess.project): new session opened"),
-                          why + (ok ? (target == .app
+                          why + (ok
                                 // Claude ilovasi tashqi havoladagi xabarni xavfsizlik uchun o'zi yubormaydi — Enter foydalanuvchida
                                 ? tr("Kontekst \(Fmt.tokens(sess.contextTokens)) edi. Yangi sessiyada xulosa yozib qo'yildi — Enter bosing, Claude ishni davom ettiradi "
                                      + "(kontekst ~\(Fmt.tokens(start)) dan boshlanadi). Eski sessiyada davom etmang.",
                                      "Context was \(Fmt.tokens(sess.contextTokens)). The summary is filled in the new session — press Enter and Claude continues the work "
                                      + "(context starts at ~\(Fmt.tokens(start))). Don't keep working in the old session.")
-                                : tr("Kontekst \(Fmt.tokens(sess.contextTokens)) edi. Terminalda yangi sessiya xulosa bilan boshlandi — Claude ishni o'zi davom ettiradi "
-                                     + "(kontekst ~\(Fmt.tokens(start)) dan boshlanadi). Eski sessiyada davom etmang.",
-                                     "Context was \(Fmt.tokens(sess.contextTokens)). A new Terminal session started with the summary — Claude continues the work itself "
-                                     + "(context starts at ~\(Fmt.tokens(start))). Don't keep working in the old session."))
                              : tr("Yangi sessiyani ochib bo'lmadi — sessiyani oching va «Yangi sessiyada davom ettirish»ni bosing.",
                                   "Couldn't open a new session — open the session and click «Continue in a new session».")),
                           session: sess.id)

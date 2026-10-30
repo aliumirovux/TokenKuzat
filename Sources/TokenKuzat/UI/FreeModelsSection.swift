@@ -6,6 +6,7 @@ import TokenKuzatCore
 struct FreeModelsSection: View {
     @EnvironmentObject var store: Store
     @AppStorage(Pref.freeFallback) private var freeFallback = false
+    @AppStorage(Pref.closeOldTerminal) private var closeOldTerminal = true
     @State private var url = FreeModels.load()?.url ?? FreeModels.defaultURL
     @State private var key = FreeModels.load()?.key ?? ""
     @State private var saved = FreeModels.load() != nil
@@ -33,6 +34,11 @@ struct FreeModelsSection: View {
             Toggle(tr("Claude limiti tugaganda — «Bepul modelda davom etish» tugmasi", "When the Claude limit runs out — «Continue on a free model» button"),
                    isOn: $freeFallback)
                 .disabled(!saved || !AppInfo.isBundled)
+            Toggle(tr("Bepul modelga o'tgach eski Terminal oynasini yopish", "Close the old Terminal window after moving to a free model"),
+                   isOn: $closeOldTerminal)
+                .disabled(!freeFallback)
+                .help(tr("Faqat Terminal ilovasida. Suhbat saqlanadi — claude --resume bilan qaytariladi. Birinchi marta macOS Terminal'ni boshqarishga ruxsat so'raydi",
+                         "Terminal app only. The conversation is kept — reopen it with claude --resume. The first time, macOS asks for permission to control Terminal"))
             HStack {
                 Button(tr("Hozir terminalda bepul modelda ochish", "Open on a free model in Terminal now")) { openNow() }
                     .disabled(!saved)

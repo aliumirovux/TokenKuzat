@@ -3,7 +3,7 @@ import AppKit
 import TokenKuzatCore
 
 /// «Loyihalar» sahifasi: har loyiha — bitta karta. Qayerda qolgani, nima qolgani, sizdan nima kutilyapti va
-/// git'da saqlanmagan ish. «Davom ettirish» shu papkada yangi Terminal sessiyasini xulosa bilan ochadi.
+/// git'da saqlanmagan ish. «Davom ettirish» Claude ilovasida shu papkada yangi sessiyani xulosa bilan ochadi.
 struct ProjectsView: View {
     @EnvironmentObject var store: Store
     @ObservedObject private var tracker = ProjectTracker.shared
@@ -123,7 +123,7 @@ private struct ProjectCardView: View {
     private var continueButton: some View {
         Button(action: open) {
             Label(failed ? tr("Ochib bo'lmadi", "Couldn't open") : tr("Davom ettirish", "Continue"),
-                  systemImage: failed ? "exclamationmark.triangle.fill" : "terminal")
+                  systemImage: failed ? "exclamationmark.triangle.fill" : "arrow.right.circle")
                 .font(.callout.weight(.semibold))
                 .padding(.horizontal, 12).padding(.vertical, 6)
                 .foregroundStyle(Brand.accent)
@@ -131,8 +131,8 @@ private struct ProjectCardView: View {
         }
         .buttonStyle(.plain)
         .disabled(opening)
-        .help(tr("Shu papkada yangi Terminal sessiyasi ochiladi. Claude oldingi ish xulosasini oladi va qayerda qolganini birinchi javobda aytadi.",
-                 "Opens a new Terminal session in this folder. Claude gets the previous work's summary and says where things stopped in its first reply."))
+        .help(tr("Claude ilovasida shu papkada yangi sessiya ochiladi, xulosa yozib qo'yiladi — Enter bosing, Claude qayerda qolganini birinchi javobda aytadi.",
+                 "Opens a new session in this folder in the Claude app with the summary filled in — press Enter and Claude says where things stopped in its first reply."))
     }
 
     private func open() {
@@ -141,7 +141,7 @@ private struct ProjectCardView: View {
         let folder = card.folder
         AutoHandoff.summary(for: sess) { summary in
             let english = SavingsAdvisor.conversationEnglish(sess)
-            let ok = AutoHandoff.openInTerminal(cwd: folder, message: ProjectsView.resumeMessage(summary: summary, english: english))
+            let ok = AutoHandoff.openInApp(cwd: folder, message: ProjectsView.resumeMessage(summary: summary, english: english))
             opening = false
             failed = !ok
         }

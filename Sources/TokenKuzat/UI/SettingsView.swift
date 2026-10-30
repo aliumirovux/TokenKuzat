@@ -34,9 +34,7 @@ struct SettingsView: View {
     private var compactWindow: AutoCompactWindow.Found? {
         (try? StatusLine.readSettings()).flatMap { AutoCompactWindow.smallest(settings: $0) }
     }
-    @AppStorage(Pref.autoHandoffTarget) private var autoHandoffTarget = AutoHandoffTarget.app.rawValue
     @AppStorage(Pref.autoHandoffRedirect) private var autoHandoffRedirect = true
-    @AppStorage(Pref.closeOldTerminal) private var closeOldTerminal = true
     @AppStorage(Pref.autoResume) private var autoResume = true
     @AppStorage(Pref.lightMode) private var lightMode = false
     @AppStorage(Lang.prefKey) private var language = AppLanguage.system.rawValue
@@ -228,10 +226,10 @@ struct SettingsView: View {
                 SwiftUI.Section {
                     captionToggle(tr("Kontekst katta bo'lsa — avtomatik yangi sessiya", "Large context — open a new session automatically"),
                                   tr("Javob tugagach xulosa bilan yangi sessiya ochiladi — ish to'xtatilmaydi", "Opens a new session with the summary after Claude's reply — work isn't interrupted"),
-                                  help: tr("Claude javobni tugatgach yangi sessiya xulosa bilan ochiladi; ish o'rtasida to'xtatilmaydi. Claude ilovasida xulosa yozib qo'yiladi — Enter bosasiz "
-                                     + "(ilova tashqaridan kelgan xabarni xavfsizlik uchun o'zi yubormaydi); Terminalda to'liq avtomatik",
-                                     "After Claude finishes its reply, a new session opens with the summary; work is never interrupted. In the Claude app the summary is filled in — you press Enter "
-                                     + "(the app doesn't send outside messages by itself, for safety); in Terminal it's fully automatic"),
+                                  help: tr("Claude javobni tugatgach yangi sessiya xulosa bilan ochiladi; ish o'rtasida to'xtatilmaydi. Yangi sessiya Claude ilovasida ochiladi, xulosa yozib qo'yiladi — Enter bosasiz "
+                                     + "(ilova tashqaridan kelgan xabarni xavfsizlik uchun o'zi yubormaydi)",
+                                     "After Claude finishes its reply, a new session opens with the summary; work is never interrupted. The new session opens in the Claude app with the summary filled in — you press Enter "
+                                     + "(the app doesn't send outside messages by itself, for safety)"),
                                   isOn: $autoHandoff)
                     .onChange(of: autoHandoff) { on in
                         if !on { try? PromptRedirectHook.uninstall(); try? PreCompactHook.uninstall() }
@@ -239,9 +237,6 @@ struct SettingsView: View {
                     if autoHandoff {
                         Picker(tr("…kontekst oshganda", "…when context passes"), selection: $autoHandoffK) {
                             ForEach(AutoHandoffRule.thresholdOptionsK, id: \.self) { Text(Fmt.tokens($0 * 1000)).tag($0) }
-                        }
-                        Picker(tr("…ochiladi", "…opens"), selection: $autoHandoffTarget) {
-                            ForEach(AutoHandoffTarget.allCases) { Text($0.title).tag($0.rawValue) }
                         }
                         if let w = compactWindow, Double(w.tokens) <= autoHandoffK * 1000 {
                             Label(tr("Claude Code suhbatni \(Fmt.tokens(w.tokens)) da o'zi qisqartiradi (\(w.source)) — bu ko'chirish chegarasidan "
@@ -264,13 +259,6 @@ struct SettingsView: View {
                                       isOn: $autoHandoffRedirect)
                         // Hook eslatma so'rovi uchun ham kerak — avtomatik ko'chirish yoqiq bo'lsa, faqat yo'naltirishlar o'chiriladi
                         .onChange(of: autoHandoffRedirect) { on in if !on { try? FileManager.default.removeItem(at: RedirectStore.defaultURL) } }
-                        captionToggle(tr("Ko'chirilgandan keyin eski Terminal oynasini yopish", "Close the old Terminal window after the move"),
-                                      tr("Yangi sessiya ochilgach, eskisi to'xtatiladi va oynasi yopiladi", "Once the new session opens, the old one is stopped and its window closed"),
-                                      help: tr("Faqat Terminal ilovasida, yangi sessiya Terminal'da ochilganda (bepul modelga o'tishda ham). Suhbat saqlanadi — claude --resume bilan qaytariladi. "
-                                               + "Birinchi marta macOS Terminal'ni boshqarishga ruxsat so'raydi",
-                                               "Terminal app only, when the new session opens in Terminal (also when moving to a free model). The conversation is kept — reopen it with claude --resume. "
-                                               + "The first time, macOS asks for permission to control Terminal"),
-                                      isOn: $closeOldTerminal)
                     }
                     captionToggle(tr("Yopilgan sessiyani avtomatik davom ettirish", "Auto-resume a closed session"),
                                   tr("Shu papkada yangi sessiya ochsangiz, Claude qayerda qolganini o'zi biladi", "Open a new session in the same folder and Claude knows where things stopped"),

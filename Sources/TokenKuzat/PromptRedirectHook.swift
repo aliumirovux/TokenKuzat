@@ -76,16 +76,9 @@ enum PromptRedirectHook {
     static func runAndExit() -> Never {
         let data = FileHandle.standardInput.readDataToEndOfFile()
         Pref.register()
-        let target = AutoHandoffTarget(rawValue: UserDefaults.standard.string(forKey: Pref.autoHandoffTarget) ?? "") ?? .app
         if UserDefaults.standard.bool(forKey: Pref.autoHandoffRedirect),
-           let d = RedirectStore.handlePrompt(input: data, needsEnter: target == .app) {
-            let opened: Bool
-            switch target {
-            case .app: opened = AutoHandoff.openInApp(cwd: d.cwd, message: d.message)
-            case .terminal:
-                let sid = ((try? JSONSerialization.jsonObject(with: data)) as? [String: Any])?["session_id"] as? String
-                opened = AutoHandoff.openInTerminal(cwd: d.cwd, message: d.message, closing: sid)
-            }
+           let d = RedirectStore.handlePrompt(input: data, needsEnter: true) {
+            let opened = AutoHandoff.openInApp(cwd: d.cwd, message: d.message)
             // Ochib bo'lmasa — xabar to'xtatilmaydi, shu sessiyada odatdagidek ketadi
             if opened {
                 FileHandle.standardOutput.write(Data(d.output.utf8))

@@ -96,15 +96,3 @@ extension AutoHandoffRule {
         return pick.flatMap { $0.isEmpty ? nil : $0 } ?? tr("Oldingi sessiya davomi", "Continued session")
     }
 }
-
-/// Yangi sessiya qayerda ochiladi
-public enum AutoHandoffTarget: String, CaseIterable, Identifiable, Sendable {
-    case app, terminal
-    public var id: String { rawValue }
-    public var title: String {
-        switch self {
-        case .app: return tr("Claude ilovasida", "In the Claude app")
-        case .terminal: return tr("Terminalda (claude)", "In Terminal (claude)")
-        }
-    }
-}

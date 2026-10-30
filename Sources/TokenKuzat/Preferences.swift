@@ -34,12 +34,11 @@ enum Pref {
     /// Kuniga bir marta GitHub'da yangi versiya borligini tekshirish
     static let checkUpdates = "checkUpdates"
     static let autoHandoffK = "autoHandoffK"
-    static let autoHandoffTarget = "autoHandoffTarget"
     /// Ko'chirilgan eski sessiyada yozilgan birinchi xabar yangi sessiyaga yo'naltiriladi (UserPromptSubmit hook)
     static let autoHandoffRedirect = "autoHandoffRedirect"
     /// Claude limiti tugaganda bildirishnomada «Bepul modelda davom etish» (FreeLLMAPI orqali, terminalda)
     static let freeFallback = "freeFallback"
-    /// Ish yangi Terminal sessiyasiga ko'chgach, eski sessiyaning Terminal oynasi yopiladi
+    /// Bepul modelga Terminal'da o'tilgach, eski sessiyaning Terminal oynasi yopiladi
     static let closeOldTerminal = "closeOldTerminal"
     /// Avtomatik davom: shu papkada yangi sessiya ochilsa, oldingi sessiya (24 soat ichida) xulosasi o'zi beriladi
     static let autoResume = "autoResume"
@@ -72,7 +71,6 @@ enum Pref {
             checkUpdates: true,
             autoHandoffRedirect: true,
             autoHandoffK: AutoHandoffRule.defaultThresholdK,
-            autoHandoffTarget: AutoHandoffTarget.app.rawValue,
             freeFallback: false,
             closeOldTerminal: true,
             autoResume: true,

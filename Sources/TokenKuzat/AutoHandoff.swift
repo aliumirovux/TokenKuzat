@@ -30,23 +30,19 @@ enum AutoHandoff {
     }
 
     /// Yangi sessiyani ochib, xulosani birinchi xabar sifatida o'zi yuboradi — Claude ishni o'zi davom ettiradi.
-    /// Xabar havolada (ilova) yoki buyruq argumentida (Terminal) beriladi, shuning uchun papka mos kelmasa ham yetib boradi.
+    /// Sessiya Claude ilovasida ochiladi; xabar havolada beriladi, shuning uchun papka mos kelmasa ham yetib boradi.
     /// Eski sessiya vaqtinchalik papkada ishlagan bo'lsa ham, yangisi fayllar yozilgan loyiha papkasida ochiladi
     @discardableResult
-    static func start(_ sess: SessionSnap, target: AutoHandoffTarget, summary: String) -> Bool {
+    static func start(_ sess: SessionSnap, summary: String) -> Bool {
         let message = AutoHandoffRule.firstMessage(summary: summary, previousContext: sess.contextTokens,
                                                    english: SavingsAdvisor.conversationEnglish(sess))
-        return open(sess, target: target, message: message)
+        return open(sess, message: message)
     }
 
     /// Sessiya loyihasida yangi sessiya — berilgan birinchi xabar bilan
     @discardableResult
-    static func open(_ sess: SessionSnap, target: AutoHandoffTarget, message: String) -> Bool {
-        let dir = SavingsAdvisor.projectFolder(for: sess) ?? sess.cwd
-        switch target {
-        case .app: return openInApp(cwd: dir, message: message)
-        case .terminal: return openInTerminal(cwd: dir, message: message, closing: sess.id)
-        }
+    static func open(_ sess: SessionSnap, message: String) -> Bool {
+        openInApp(cwd: SavingsAdvisor.projectFolder(for: sess) ?? sess.cwd, message: message)
     }
 
     /// Claude ilovasida yangi Code sessiyasi — o'sha papkada (Finder'dagi «New Claude Code Session Here» bilan bir xil havola).
