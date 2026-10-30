@@ -1,5 +1,13 @@
 # O'zgarishlar
 
+## 6.68.0 — 2026-10-30
+
+- Ko'chirish xulosasi to'liqroq: yangi sessiyalarning ~37% i eski suhbatni qayta o'qirdi — tahlil qilinganda sabab xulosada yo'q aniq ma'lumotlar ekan (havola, fayl kaliti, raqamli ro'yxat). Endi xulosaga Token Kuzatuv o'zi, eski sessiyadan aniq ko'chirib qo'shadi:
+  - **Oxirgi ro'yxat** — Claude'ning so'nggi javoblaridagi raqamli ro'yxat yoki jadval o'zgarishsiz. Foydalanuvchi «2ni boshla», «keyingi bandlarga o't» desa, yangi sessiya bandlarni biladi.
+  - **Resurslar** — suhbatdagi havolalar (Figma, GitHub, sozlama sahifalari) va Figma fayl kalitlari, eng so'nggilari. Kesilgan kalitlar, mahalliy manzillar va shablonlar tashlanadi.
+  - **Ishlatilgan asboblar** — qaysi asboblar bilan ishlangani (masalan, Figma yoki ekran rasmi), yangi sessiya o'sha usulni qidirib yurmasin.
+- Faqat qo'shiladi, hech narsa olib tashlanmaydi; eski suhbat fayliga havola avvalgidek qoladi.
+
 ## 6.67.1 — 2026-10-30
 
 - `ask_free_model` iqtibos tekshiruvi ortiqcha ogohlantirmaydi: iqtibos fayldagidan faqat bo'shliq, tinish belgisi yoki «+++---» chizig'i bilan farq qilsa — to'g'ri hisoblanadi. Harf yoki raqam farq qilsa — avvalgidek «⚠» bilan belgilanadi (sinovdagi haqiqiy xato hamon ushlanadi). Ichida qo'shtirnoq bor iqtibos (`"let x = \"five\""`) endi to'g'ri o'qiladi.

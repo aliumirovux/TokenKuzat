@@ -381,6 +381,64 @@ public enum SavingsAdvisor {
         return nil
     }
 
+    /// So'nggi javoblardagi eng oxirgi raqamli ro'yxat yoki jadval (kamida 2 qator) — o'zgarishsiz
+    static func lastList(_ s: SessionSnap, replies: Int = 3, max: Int = 2500) -> String? {
+        let item = try! NSRegularExpression(pattern: #"^\s*(\d+[.)]\s|\|)"#)
+        for note in s.notes.filter({ $0.kind == .reply && $0.agent == nil }).suffix(replies).reversed() {
+            var blocks: [[String]] = [], cur: [String] = []
+            for line in note.text.components(separatedBy: "\n") {
+                let ns = line as NSString
+                if item.firstMatch(in: line, range: NSRange(location: 0, length: ns.length)) != nil {
+                    cur.append(line)
+                } else if !cur.isEmpty, line.hasPrefix("   ") || line.hasPrefix("\t") || line.trimmingCharacters(in: .whitespaces).hasPrefix("- ") {
+                    cur.append(line)   // band ichidagi davom qatori
+                } else if !cur.isEmpty {
+                    blocks.append(cur); cur = []
+                }
+            }
+            if !cur.isEmpty { blocks.append(cur) }
+            if let b = blocks.last(where: { $0.count >= 2 }) {
+                let text = b.joined(separator: "\n")
+                return text.count > max ? String(text.prefix(max)) + "…" : text
+            }
+        }
+        return nil
+    }
+
+    /// Suhbatdagi havolalar va Figma fayl kalitlari — eng so'nggilari. Yangi sessiya ularni eski yozuvdan qidirib yurmasin
+    static func resources(_ s: SessionSnap, limit: Int = 12) -> [String] {
+        // So'rovlardan faqat ma'nolilari — xulosadan tashlangan shovqin (yolg'iz havola, «Ha») qaytib kirmasin
+        var texts = meaningfulTurns(s).map(\.text) + s.notes.filter { $0.kind == .reply }.map(\.text)
+        texts += s.agents.flatMap { $0.steps.compactMap(\.input) }
+        let url = try! NSRegularExpression(pattern: #"https?://[^\s)\]"'<>`«»\\]+"#)
+        let key = try! NSRegularExpression(pattern: #"fileKey\\?"?\s*[:=]\s*\\?"?([A-Za-z0-9]{10,})"#)
+        var out: [String] = []
+        func add(_ v: String) {
+            var v = v
+            while let c = v.last, ".,;:!?".contains(c) { v.removeLast() }
+            // Sessiya yozuvlari (.jsonl) yuqorida alohida; mahalliy server manzili ham resurs emas
+            // shablon («{token}»), IPv6 bo'lagi va Claude imzosi ham emas
+            guard !v.hasSuffix(".jsonl"), !v.contains("://localhost"), !v.contains("://127.0.0.1"), !v.contains("://["),
+                  !v.contains("{"), !v.hasPrefix("https://claude.com/claude-code") else { return }
+            out.removeAll { $0 == v }
+            out.append(v)
+        }
+        for t in texts {
+            let ns = t as NSString
+            for m in url.matches(in: t, range: NSRange(location: 0, length: ns.length)) { add(ns.substring(with: m.range)) }
+            for m in key.matches(in: t, range: NSRange(location: 0, length: ns.length)) { add("Figma fileKey: " + ns.substring(with: m.range(at: 1))) }
+        }
+        // Asbob kirishi yozuvda kesilgan bo'lishi mumkin — boshqa kalitning yoki havolaning boshi bo'lgan kalit tashlanadi
+        let keyPrefix = "Figma fileKey: "
+        let all = out
+        out.removeAll { r in
+            guard r.hasPrefix(keyPrefix) else { return false }
+            let k = String(r.dropFirst(keyPrefix.count))
+            return all.contains { o in o != r && (o.hasPrefix(keyPrefix) ? o.dropFirst(keyPrefix.count).hasPrefix(k) : o.contains(k)) }
+        }
+        return Array(out.suffix(limit))
+    }
+
     static func lastReply(_ s: SessionSnap) -> NoteSnap? {
         s.notes.last { $0.kind == .reply && $0.agent == nil }
     }
@@ -511,14 +569,35 @@ public enum SavingsAdvisor {
             lines.append(tr("Git holati (ko'chirish paytida):", "Git state (at handoff time):"))
             lines += git
         }
+        var lastTail = ""
         if let reply = lastReply(s) {
             // Eslatma bor javobdan eslatmaning o'zi olib tashlanadi — yuqorida bor
             let text = reply.id == note?.reply.id ? (HandoffNote.extract(from: reply.text)?.rest ?? reply.text) : reply.text
             if !text.isEmpty {
+                lastTail = tail(text, max: 1500)
                 lines.append("")
                 lines.append(tr("Oxirgi holat (oldingi javobdan):", "Last state (from the previous reply):"))
-                lines.append(tail(text, max: 1500))
+                lines.append(lastTail)
             }
+        }
+        // Foydalanuvchi «2ni boshla», «keyingi bandlar» deydi — ro'yxat o'zi bo'lmasa, yangi sessiya eski yozuvni qidiradi
+        if let list = lastList(s), !lastTail.contains(list) {
+            lines.append("")
+            lines.append(tr("Oxirgi ro'yxat (oldingi javoblardan, o'zgarishsiz — foydalanuvchi band raqamiga ishora qilishi mumkin):",
+                            "Last list (from previous replies, verbatim — the user may refer to an item by number):"))
+            lines.append(list)
+        }
+        let res = resources(s)
+        if !res.isEmpty {
+            lines.append("")
+            lines.append(tr("Resurslar (havolalar va fayl kalitlari — aniq shu qiymatlarni ishlat):",
+                            "Resources (links and file keys — use these exact values):"))
+            for r in res { lines.append("- \(r)") }
+        }
+        if let tools = s.main?.topTools.prefix(8), !tools.isEmpty {
+            lines.append("")
+            lines.append(tr("Ishlatilgan asboblar (qaysi usul bilan ishlangani): ", "Tools used (how the work was done): ")
+                         + tools.map { "\($0.name) \($0.count)" }.joined(separator: ", "))
         }
         if let q = pendingQuestion(s) {
             lines.append("")
