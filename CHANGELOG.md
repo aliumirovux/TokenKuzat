@@ -1,5 +1,10 @@
 # O'zgarishlar
 
+## 6.65.0 — 2026-10-30
+
+- `ask_free_model` endi faylni o'zi o'qiydi: Claude uzun log yoki hujjatning yo'lini `files` ga beradi, Token Kuzatuv faylni o'qib bepul modelga yuboradi. Fayl matni Claude kontekstiga umuman kirmaydi — haqiqiy tejash shu yerda. Bir chaqiruvda 400 KB gacha; `.env`, kalitlar, `.ssh` kabi maxfiy bo'lishi mumkin bo'lgan fayllar rad etiladi.
+- «Tejash» sahifasida yangi karta: bepul modelga necha marta ish berilgani va taxminan qancha Claude tokeni tejalgani (Claude o'qimagan fayl matni + o'zi yozmagan javob).
+
 ## 6.64.0 — 2026-10-30
 
 - Sessiya xaritasi va sxemasining yuqori o'ng burchagida, «Faqat xarita» tagida «pin» tugmasi: bosilsa, Token Kuzatuv oynasi boshqa hamma ilovalar ustida turadi — Claude yoki muharrirda ishlab, xaritani yonida kuzatib turasiz. Oyna hamma ish stollarida va to'liq ekranli ilova ustida ham ko'rinadi. Qayta bosilsa (yoki ⌥⌘P) oddiy holatga qaytadi; tanlov eslab qolinadi.

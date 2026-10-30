@@ -50,6 +50,9 @@ struct ProjectSavingsView: View {
                         CacheWeekCard(week: week, previous: store.savingsHistory.cacheWeek(weeksBack: 1, now: store.snap.updatedAt), mode: mode)
                     }
 
+                    let free = FreeModelLog.summary(FreeModelLog.load(), since: period.start(now: store.snap.updatedAt))
+                    if free.calls > 0 { FreeModelCard(summary: free, period: period) }
+
                     VStack(alignment: .leading, spacing: 4) {
                         SectionHeader(title: tr("Loyihalar", "Projects"),
                                       subtitle: tr("sarf bo'yicha · bosing — sabablar va tuzatish", "by usage · click for causes and fixes"),
@@ -92,6 +95,32 @@ struct ProjectSavingsView: View {
             }
         }
         .font(.caption).foregroundStyle(.secondary)
+    }
+}
+
+/// Bepul modelga (MCP `ask_free_model`) berilgan ishlar: necha marta va taxminan qancha Claude tokeni tejaldi
+private struct FreeModelCard: View {
+    let summary: FreeModelLog.Summary
+    let period: SavingsPeriod
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "gift.fill").font(.title3).foregroundStyle(Brand.ok).frame(width: 28)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(tr("Bepul modelga berilgan ishlar · \(period.title)", "Tasks handed to free models · \(period.title)")).font(.subheadline.weight(.semibold))
+                Text(tr("\(summary.calls) marta · \(summary.withFiles) tasida faylni Token Kuzatuv o'zi o'qidi",
+                        "\(summary.calls == 1 ? "once" : "\(summary.calls) times") · Token Kuzatuv read the file itself in \(summary.withFiles)"))
+                    .font(.caption).foregroundStyle(.secondary).monospacedDigit()
+            }
+            Spacer()
+            VStack(alignment: .trailing, spacing: 2) {
+                Text("~\(Fmt.tokens(Double(summary.savedTokens)))").font(.title3.weight(.semibold)).foregroundStyle(Brand.ok).monospacedDigit()
+                Text(tr("token tejaldi", "tokens saved")).font(.caption).foregroundStyle(.secondary)
+            }
+        }
+        .card()
+        .help(tr("Taxminiy hisob: Claude kontekstiga kirmagan fayl matni va Claude o'zi yozmagan javob. Claude bergan ishni (prompt) va javobni o'qishini hisobga olmaydi.",
+                 "Estimate: file content that never entered Claude's context plus the answer Claude didn't have to write. Doesn't subtract the prompt Claude wrote or reading the answer."))
     }
 }
 

@@ -127,11 +127,12 @@ enum MCPServer {
 
     private static let freeTool: [String: Any] = [
         "name": "ask_free_model",
-        "description": "Send a small, self-contained text task to a free model through the user's local FreeLLMAPI gateway, to save the Claude limit: translating text, summarizing a long log or document you paste in, drafting boilerplate prose, classifying or extracting from given text. The free model sees ONLY the prompt (not this conversation or files), is weaker than Claude and may be wrong — put every needed piece of text in the prompt and check the answer before using it. Don't use it for code changes, decisions, or anything needing this conversation's context. Free providers may log or train on inputs: never send secrets, credentials, keys or private/customer data.",
+        "description": "Send a small, self-contained text task to a free model through the user's local FreeLLMAPI gateway, to save the Claude limit: translating text, summarizing a long log or document, drafting boilerplate prose, classifying or extracting from given text. To work on a long file (log, build output, document) pass its absolute path in files instead of reading it yourself — Token Kuzatuv reads it and the content never enters your context, which is where the real saving is. The free model sees ONLY the prompt and those files (not this conversation), is weaker than Claude and may be wrong — put every needed instruction in the prompt and check the answer before using it; if the answer looks doubtful, read the relevant part of the file yourself. Don't use it for code changes, decisions, or anything needing this conversation's context. Free providers may log or train on inputs: never send secrets, credentials, keys or private/customer data (files that look like keys or .env are refused).",
         "inputSchema": [
             "type": "object",
             "properties": [
                 "prompt": ["type": "string", "description": "The complete task with all text the model needs"],
+                "files": ["type": "array", "items": ["type": "string"], "description": "Optional absolute paths of text files to append to the prompt (read by Token Kuzatuv, not by you; up to 400 KB in total)"],
                 "system": ["type": "string", "description": "Optional system instruction (role, output format)"],
                 "model": ["type": "string", "description": "Model id from the gateway; default auto (the gateway picks the best available free model)"],
                 "max_tokens": ["type": "integer", "description": "Optional cap on the answer length"],
@@ -145,7 +146,17 @@ enum MCPServer {
         guard let c = FreeModels.load() else {
             return ("Free models are not set up: Token Kuzatuv → Settings → «Free models».", true)
         }
-        guard let prompt = args["prompt"] as? String, !prompt.isEmpty else { return ("prompt is required", true) }
+        guard var prompt = args["prompt"] as? String, !prompt.isEmpty else { return ("prompt is required", true) }
+        let promptTokens = FreeModelLog.tokens(prompt)
+        var fileTokens = 0
+        if let paths = args["files"] as? [String], !paths.isEmpty {
+            switch FreeModelLog.readFiles(paths) {
+            case .failure(let e): return (e.description, true)
+            case .success(let text):
+                fileTokens = FreeModelLog.tokens(text)
+                prompt += "\n\n" + text
+            }
+        }
         guard let url = URL(string: FreeModels.rootURL(c.url) + "/v1/chat/completions"),
               let body = try? JSONSerialization.data(withJSONObject: FreeModels.chatRequest(
                 prompt: prompt, system: args["system"] as? String, model: args["model"] as? String,
@@ -179,8 +190,11 @@ enum MCPServer {
             return ("The free model (\(served)) spent its whole max_tokens on reasoning and gave no answer. "
                     + "Retry with a larger max_tokens (e.g. 2000) or leave it unset.", true)
         }
+        FreeModelLog.append(.init(date: Date(), model: served, promptTokens: promptTokens,
+                                  fileTokens: fileTokens, replyTokens: FreeModelLog.tokens(reply.text)))
         var meta = "[free model: \(served)"
         if let t = reply.tokens { meta += ", \(t) tokens" }
+        if fileTokens > 0 { meta += ", read files ~\(fileTokens) tokens that stayed out of your context" }
         if reply.truncated { meta += ", cut off at max_tokens — the answer is incomplete" }
         meta += " — not Claude; verify before using]"
         return (reply.text + "\n\n" + meta, false)
