@@ -6,8 +6,8 @@ final class AgentRolesTests: XCTestCase {
 
     private func agent(_ kind: String, main: Bool = false, tokens: Int = 100, reads: Int = 0) -> AgentSnap {
         AgentSnap(id: kind, title: kind, subtitle: "", kind: kind, isMain: main, tokens: TokenCounts(cacheRead: tokens), calls: 2,
-                  topTools: reads > 0 ? [("Read", reads)] : [], lastAction: "", state: .idle, lastActivity: t0, firstActivity: t0,
-                  steps: [], resources: [], usage: [], bigResults: [])
+                  topTools: [], lastAction: "", state: .idle, lastActivity: t0, firstActivity: t0,
+                  steps: [], resources: [], usage: [], bigResults: [], reads: reads)
     }
 
     private func session(_ agents: [AgentSnap]) -> SessionSnap {

@@ -1,5 +1,11 @@
 # O'zgarishlar
 
+## 6.72.0 — 2026-10-30
+
+- Rahbar yordamchi agentlarga ish berishi uchun eslatma. Tahlil ko'rsatdiki, agentlar qo'shilgandan beri 22 sessiyada bironta yordamchi chaqirilmagan: bosh agent fayllarni o'zi, asosan Bash orqali (`cat`, `grep`, `sed -n`) o'qigan. Endi Claude Code hooki (PostToolUse) rahbar sessiyada 15 marta o'zi o'qisa va hali yordamchi ishlatmagan bo'lsa, unga «keyingi qidiruvni `izlovchi`ga bering» deb eslatadi (30, 45 da yana). Yordamchi ishlatilgach jim bo'ladi, hech qachon ishni to'xtatmaydi, bitta chaqiruv ~12 ms. Faqat Token Kuzatuv plagini o'rnatilgan bo'lsa ulanadi; Sozlamalar → Sessiyalar → «Yordamchi agentlar» da o'chiriladi.
+- O'qishlar to'g'ri sanaladi: Read/Grep/Glob bilan birga o'qish turidagi Bash buyruqlari ham (cat, grep, find, ls, git log/diff/status…), yozuvchi buyruqlar (`sed -i`, `> fayl`, `swift build`, `git commit`) sanalmaydi. «Agent turlari» kartasidagi «rahbar 30+ fayl o'qidi» ogohlantirishi shu hisobga o'tdi.
+- `~/.claude/CLAUDE.md` qoidasi aniqlashtirildi: 3 dan ko'p fayl o'qish — `izlovchi`ga; kod o'zgargan jiddiy ish oxirida `tekshiruvchi` va `sinovchi` majburiy.
+
 ## 6.71.0 — 2026-10-30
 
 - Yangi yordamchi agent `sinovchi` (QA, o'rta model — Sonnet): ish tugagach, «tayyor» deyishdan oldin foydalanuvchining asl talabini tekshirish ro'yxatiga aylantiradi va har bandni ishga tushirib sinaydi (test, build, buyruq, rasm). Natija — har band bo'yicha «o'tdi / o'tmadi / tekshirib bo'lmadi», isboti bilan. Kodni o'zgartirmaydi, commit va reliz qilmaydi. `tekshiruvchi` kodni ko'rib chiqadi, `sinovchi` esa natija haqiqatan ishlashini tekshiradi.

@@ -268,9 +268,10 @@ public final class Engine {
 
         for item in a.items {
             switch item {
-            case .tool(let id, let name, let d, let target, let input):
+            case .tool(let id, let name, let d, let target, let input, let isRead):
                 guard seenTools.insert(id).inserted else { continue }
                 agent.tools[ToolDescriber.shortName(name), default: 0] += 1
+                if isRead { agent.reads += 1 }
                 let ts = ev.timestamp ?? fs.mtime ?? now
                 let res = agent.resource(target)
                 res.calls += 1
@@ -454,7 +455,7 @@ public final class Engine {
                     state: st, lastActivity: a.lastActivity, firstActivity: a.firstActivity,
                     steps: a.steps.suffix(150).map { $0.snap(now: now, turn: Engine.turnIndex(starts, $0.start)) },
                     resources: a.resourceGroups(now: now),
-                    usage: a.usage, bigResults: a.bigResults, outputs: a.outputs, startContext: a.startContext))
+                    usage: a.usage, bigResults: a.bigResults, outputs: a.outputs, startContext: a.startContext, reads: a.reads))
             }
             if best != .idle { snap.activeSessions += 1 }
             if best == .running { snap.runningSessions += 1 }
@@ -647,6 +648,8 @@ private final class AgentAcc {
     var tokens = TokenCounts()
     var calls = 0
     var tools: [String: Int] = [:]
+    /// O'qish/qidirish chaqiruvlari (Bash orqali ham — `ReadCounter`)
+    var reads = 0
     var lastActivity: Date?
     var firstActivity: Date?
     var lastAction = ""

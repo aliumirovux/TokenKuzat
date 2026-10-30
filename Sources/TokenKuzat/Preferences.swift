@@ -38,6 +38,8 @@ enum Pref {
     static let autoHandoffRedirect = "autoHandoffRedirect"
     /// Claude limiti tugaganda bildirishnomada «Bepul modelda davom etish» (FreeLLMAPI orqali, terminalda)
     static let freeFallback = "freeFallback"
+    /// Rahbar yordamchisiz ko'p fayl o'qisa, izlovchiga berishni eslatish (PostToolUse hook)
+    static let delegateNudge = "delegateNudge"
     /// Bepul modelga Terminal'da o'tilgach, eski sessiyaning Terminal oynasi yopiladi
     static let closeOldTerminal = "closeOldTerminal"
     /// Avtomatik davom: shu papkada yangi sessiya ochilsa, oldingi sessiya (24 soat ichida) xulosasi o'zi beriladi
@@ -76,6 +78,7 @@ enum Pref {
             freeFallback: false,
             closeOldTerminal: true,
             autoResume: true,
+            delegateNudge: true,
         ])
     }
 }

@@ -22,7 +22,7 @@ final class ParserTests: XCTestCase {
         // 10 + 100×5 + 1000×2 (1 soatlik kesh) + 2000×0,1
         XCTAssertEqual(u.weighted, 10 + 500 + 2000 + 200, accuracy: 0.001)
         XCTAssertEqual(a.items.count, 2)
-        if case .tool(_, let name, let d, let target, _) = a.items[1] {
+        if case .tool(_, let name, let d, let target, _, _) = a.items[1] {
             XCTAssertEqual(target.category, .files)
             XCTAssertEqual(target.name, "Engine.swift")
             XCTAssertEqual(target.access, .read)

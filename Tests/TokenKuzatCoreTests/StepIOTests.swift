@@ -6,7 +6,7 @@ final class StepIOTests: XCTestCase {
     func testParserKeepsInputAndResultText() throws {
         let use = #"{"type":"assistant","message":{"content":[{"type":"tool_use","id":"t1","name":"Bash","input":{"description":"Build","command":"swift build"}}]}}"#
         guard case .assistant(let a) = try XCTUnwrap(TranscriptParser.parse(Data(use.utf8))).kind,
-              case .tool(_, _, _, _, let input) = a.items[0] else { return XCTFail() }
+              case .tool(_, _, _, _, let input, _) = a.items[0] else { return XCTFail() }
         // Kalitlar tartiblangan, o'qiladigan JSON
         XCTAssertEqual(input, "{\n  \"command\" : \"swift build\",\n  \"description\" : \"Build\"\n}")
 

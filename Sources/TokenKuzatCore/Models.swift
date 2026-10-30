@@ -40,6 +40,8 @@ public struct AgentSnap: Identifiable, Sendable {
     public var outputs: [String: Date] = [:]
     /// Birinchi chaqiruvdagi kontekst. `usage` uzun sessiyada boshidan kesiladi — bu qiymat saqlanib qoladi
     public var startContext: Int?
+    /// O'qish/qidirish chaqiruvlari soni: Read, Grep, Glob va Bash orqali cat/grep/sed -n… (`ReadCounter`)
+    public var reads: Int = 0
 
     public var toolsLine: String {
         topTools.prefix(3).map { "\($0.name) \($0.count)" }.joined(separator: " · ")

@@ -16,6 +16,7 @@ struct TokenKuzatApp: App {
         if CommandLine.arguments.contains(SessionStartHook.flag) { SessionStartHook.runAndExit() }
         if CommandLine.arguments.contains(PromptRedirectHook.flag) { PromptRedirectHook.runAndExit() }
         if CommandLine.arguments.contains(PreCompactHook.flag) { PreCompactHook.runAndExit() }
+        if CommandLine.arguments.contains(DelegateNudgeHook.flag) { DelegateNudgeHook.runAndExit() }
         // MCP server (Claude Code plagini) — stdio orqali, oynasiz
         if CommandLine.arguments.contains(MCPServer.flag) { MCPServer.runAndExit() }
         if CommandLine.arguments.contains(OldTerminal.flag) { OldTerminal.runAndExit() }
@@ -78,6 +79,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         Alerts.shared.start()
         // Avtomatik davom SessionStart hook'iga tayanadi; skript har ishga tushganda yangilanadi (yangi shart bilan)
         if UserDefaults.standard.bool(forKey: Pref.autoResume) || SessionStartHook.isInstalled { try? SessionStartHook.install() }
+        // Yordamchiga berishni eslatish PostToolUse hook'iga tayanadi; skript har ishga tushganda yangilanadi
+        DelegateNudgeHook.sync(enabled: UserDefaults.standard.bool(forKey: Pref.delegateNudge))
         AccountUsage.shared.start()
         UpdateChecker.shared.start()
         // Kompyuter qayta yoqilganda FreeLLMAPI yopiq qoladi — bepul modellar sozlangan bo'lsa, orqa fonda ochiladi

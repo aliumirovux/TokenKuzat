@@ -13,7 +13,7 @@ public struct TranscriptEvent {
 
     public enum Item: Equatable {
         /// `input` — asbobga berilgan parametrlar (JSON, ko'pi bilan `ioLimit` belgi)
-        case tool(id: String, name: String, description: ToolDescriber.Description, target: ToolTarget, input: String)
+        case tool(id: String, name: String, description: ToolDescriber.Description, target: ToolTarget, input: String, isRead: Bool)
         /// Javob matni (ko'pi bilan `noteLimit` belgi; uzuni — boshi va oxiri)
         case text(String)
         /// O'ylash matni; shifrlangan bo'lsa — bo'sh
@@ -106,7 +106,8 @@ public enum TranscriptParser {
                 let name = b["name"] as? String ?? "?"
                 let input = b["input"] as? [String: Any] ?? [:]
                 a.items.append(.tool(id: id, name: name, description: ToolDescriber.describe(name, input),
-                                     target: ToolDescriber.target(name, input), input: inputText(input)))
+                                     target: ToolDescriber.target(name, input), input: inputText(input),
+                                     isRead: ReadCounter.isRead(tool: name, input: input)))
             case "text":
                 if let t = b["text"] as? String {
                     let s = t.trimmingCharacters(in: .whitespacesAndNewlines)

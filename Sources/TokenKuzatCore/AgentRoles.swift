@@ -61,7 +61,7 @@ public enum AgentRoleUsage {
                 row.calls += a.calls
                 rows[r] = row
             }
-            let reads = s.main?.topTools.first { $0.name == "Read" }?.count ?? 0
+            let reads = s.main?.reads ?? 0
             if reads >= AgentRole.heavyLeadReads, s.helperCount == 0 { out.heavyLeadSessions += 1 }
         }
         out.rows = AgentRole.allCases.compactMap { rows[$0] }.filter { $0.agents > 0 }

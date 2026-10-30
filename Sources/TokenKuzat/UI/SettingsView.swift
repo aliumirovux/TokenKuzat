@@ -36,6 +36,7 @@ struct SettingsView: View {
     }
     @AppStorage(Pref.autoHandoffRedirect) private var autoHandoffRedirect = true
     @AppStorage(Pref.autoResume) private var autoResume = true
+    @AppStorage(Pref.delegateNudge) private var delegateNudge = true
     @AppStorage(Pref.lightMode) private var lightMode = false
     @AppStorage(Lang.prefKey) private var language = AppLanguage.system.rawValue
     @State private var hookInstalled = Hooks.isInstalled
@@ -294,6 +295,23 @@ struct SettingsView: View {
                     Text(tr("Avtomatik yangi sessiya", "Automatic new session"))
                 } footer: {
                     Text(tr("Kontekst katta bo'lganda ish xulosa bilan yangi sessiyaga ko'chadi — limit sekinroq tugaydi.", "When the context gets large, work moves to a new session with a summary — the limit lasts longer."))
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                .disabled(!AppInfo.isBundled)
+
+                SwiftUI.Section {
+                    captionToggle(tr("Ko'p o'qisangiz — yordamchiga berishni eslatish", "Many reads — remind to use a helper"),
+                                  tr("Claude yordamchisiz ko'p fayl o'qisa, qidiruvni izlovchiga berishni eslatadi", "If Claude reads many files without a helper, it is reminded to hand searches to the finder"),
+                                  help: tr("Sessiyada yordamchi agent ishlatilmagan va 15 ta o'qish/qidiruv bajarilgan bo'lsa (keyin har 15 tada), Claude'ga qisqa eslatma beriladi. Hech narsani bloklamaydi",
+                                           "When no helper agent was used in a session and 15 reads/searches were done (then every 15), Claude gets a short reminder. Nothing is blocked"),
+                                  isOn: $delegateNudge)
+                    .onChange(of: delegateNudge) { on in
+                        DelegateNudgeHook.sync(enabled: on)
+                    }
+                } header: {
+                    Text(tr("Yordamchi agentlar", "Helper agents"))
+                } footer: {
+                    Text(tr("Faqat Token Kuzatuv plagini o'rnatilgan bo'lsa ishlaydi (tokenkuzat:izlovchi).", "Works only when the Token Kuzatuv plugin is installed (tokenkuzat:izlovchi)."))
                         .font(.caption).foregroundStyle(.secondary)
                 }
                 .disabled(!AppInfo.isBundled)
