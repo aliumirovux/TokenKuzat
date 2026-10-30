@@ -1,5 +1,9 @@
 # O'zgarishlar
 
+## 6.62.1 — 2026-10-30
+
+- Ish yangi Terminal sessiyasiga ko'chgach eski oyna yana yopiladi. Claude Code yangi usulda o'rnatilganda (`~/.local/share/claude/versions/…`) jarayon nomi versiya raqami bo'lib qoladi va ilova `claude` ni tanimay, oynani yozib olmay qo'ygan edi. Endi jarayon to'liq yo'lidan ham taniladi.
+
 ## 6.62.0 — 2026-10-30
 
 - Sozlamalar bo'limlarga ajratildi: tepada «Umumiy · Xabarlar · Sessiyalar · Limitlar · Bepul modellar · Ma'lumot» tanlovi, har birida faqat o'z sozlamalari. Avval hammasi bitta uzun sahifada edi. Avtomatik yangi sessiya va yopilgan sessiyani davom ettirish bildirishnomalardan ajralib, «Sessiyalar» bo'limiga o'tdi. Oxirgi ochilgan bo'lim eslab qolinadi.

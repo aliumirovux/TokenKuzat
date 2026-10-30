@@ -131,7 +131,16 @@ enum OldTerminal {
         return proc_name(pid, &buf, UInt32(buf.count)) > 0 ? String(cString: buf) : ""
     }
 
-    private static func isClaude(_ pid: pid_t) -> Bool { name(pid).lowercased().contains("claude") }
+    private static func path(_ pid: pid_t) -> String {
+        var buf = [CChar](repeating: 0, count: Int(4 * MAXPATHLEN))
+        return proc_pidpath(pid, &buf, UInt32(buf.count)) > 0 ? String(cString: buf) : ""
+    }
+
+    /// Yangi o'rnatishda `claude` fayli versiya bilan nomlanadi (`~/.local/share/claude/versions/2.1.314`) —
+    /// jarayon nomida «claude» yo'q, shuning uchun to'liq yo'l ham tekshiriladi
+    private static func isClaude(_ pid: pid_t) -> Bool {
+        name(pid).lowercased().contains("claude") || path(pid).lowercased().contains("/claude/")
+    }
 
     /// status line → sh → (sh -c) → claude: bir necha qadam yuqoriga qaraladi
     private static func claudeAncestor() -> pid_t? {
