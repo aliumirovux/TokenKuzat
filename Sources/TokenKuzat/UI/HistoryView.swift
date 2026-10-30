@@ -43,6 +43,7 @@ struct HistoryView: View {
                     }
                     Spacer()
                     Button { exportCSV() } label: { Label(tr("CSV eksport", "Export CSV"), systemImage: "square.and.arrow.up") }
+                        .buttonStyle(.tk(.secondary, small: true))
                 }
 
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 3), spacing: 12) {

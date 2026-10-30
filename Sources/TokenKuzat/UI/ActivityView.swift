@@ -14,12 +14,10 @@ struct ActivityView: View {
         }
         VStack(spacing: 0) {
             HStack(spacing: 12) {
-                Picker(tr("Loyiha", "Project"), selection: $project) {
-                    Text(tr("Barcha loyihalar", "All projects")).tag("")
-                    ForEach(projects, id: \.self) { Text($0).tag($0) }
-                }
-                .frame(maxWidth: 260)
+                SettingsMenu(title: tr("Loyiha", "Project"), selection: $project,
+                             options: [("", tr("Barcha loyihalar", "All projects"))] + projects.map { ($0, $0) })
                 Toggle(tr("Faqat so'rovlarim", "Only my prompts"), isOn: $onlyPrompts)
+                    .toggleStyle(.switch).controlSize(.mini).tint(Brand.accent)
                 Spacer()
                 Text(tr("Bugun · \(shown.count) ta harakat", shown.count == 1 ? "Today · 1 action" : "Today · \(shown.count) actions")).font(.caption).foregroundStyle(.secondary)
             }

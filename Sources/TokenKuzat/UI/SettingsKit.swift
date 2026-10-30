@@ -209,6 +209,98 @@ struct WideRow<Content: View>: View {
     }
 }
 
+// MARK: - Tanlash menyusi
+
+/// Tizim sozlamalaridagi kabi ochiluvchi tanlov: ramkasiz qiymat va ⌃⌄ belgisi, ustiga kelganda yengil fon.
+/// Ochilgan ro'yxatda tanlangan band ✓ bilan belgilanadi
+struct SettingsMenu<Value: Hashable>: View {
+    let title: String
+    @Binding var selection: Value
+    let options: [(value: Value, label: String)]
+    @State private var hover = false
+    @Environment(\.isEnabled) private var enabled
+
+    private var current: String { options.first { $0.value == selection }?.label ?? "" }
+
+    var body: some View {
+        Menu {
+            Picker(title, selection: $selection) {
+                ForEach(options.indices, id: \.self) { i in Text(options[i].label).tag(options[i].value) }
+            }
+            .pickerStyle(.inline).labelsHidden()
+        } label: {
+            HStack(spacing: 5) {
+                Text(current).foregroundStyle(Color.primary)
+                    .lineLimit(1).truncationMode(.middle).frame(maxWidth: 260, alignment: .trailing)
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(Color.secondary)
+            }
+            .font(.system(size: 13))
+            .padding(.horizontal, 8).padding(.vertical, 4)
+            .background(RoundedRectangle(cornerRadius: 7, style: .continuous).fill(Color.primary.opacity(hover && enabled ? 0.07 : 0)))
+            .contentShape(Rectangle())
+        }
+        .menuStyle(.button).buttonStyle(.plain).menuIndicator(.hidden)
+        .fixedSize()
+        .onHover { hover = $0 }
+        .animation(.easeOut(duration: 0.12), value: hover)
+        .accessibilityLabel(title)
+        .accessibilityValue(current)
+    }
+}
+
+// MARK: - Segmentli tanlov
+
+/// Ikki-uch qiymatli tanlov: botiq yo'lak ichida tanlangan qiymat ko'tarilgan plitkada, plitka yangi qiymatga suzadi.
+/// Ranglar ikki tema uchun aniq berilgan — karta ichida qorong'i temada matn qora bo'lib qolmaydi (PillSegments'dagi kabi)
+struct SettingsSegments<Value: Hashable>: View {
+    let title: String
+    @Binding var selection: Value
+    let options: [(value: Value, label: String)]
+    @Namespace private var thumb
+
+    private static var track: Color { Color(light: 0xEDEDF0, dark: 0x141417) }
+    private static var raised: Color { Color(light: 0xFFFFFF, dark: 0x3A3A41) }
+
+    var body: some View {
+        HStack(spacing: 2) {
+            ForEach(options.indices, id: \.self) { i in
+                let on = options[i].value == selection
+                Button {
+                    withAnimation(Motion.snappy) { selection = options[i].value }
+                } label: {
+                    // Kenglik har doim qalin yozuv bo'yicha — tanlov almashganda segmentlar sakramaydi
+                    Text(options[i].label).font(.system(size: 12.5, weight: .semibold)).hidden()
+                        .overlay {
+                            Text(options[i].label)
+                                .font(.system(size: 12.5, weight: on ? .semibold : .regular))
+                                .foregroundStyle(on ? Color.primary : Color.secondary)
+                        }
+                        .padding(.horizontal, 12).frame(height: 24)
+                        .background {
+                            if on {
+                                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                    .fill(Self.raised)
+                                    .shadow(color: .black.opacity(0.12), radius: 1.5, y: 1)
+                                    .matchedGeometryEffect(id: "thumb", in: thumb)
+                            }
+                        }
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityAddTraits(on ? .isSelected : [])
+            }
+        }
+        .padding(2)
+        .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(Self.track))
+        .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).strokeBorder(Brand.line, lineWidth: 1))
+        .fixedSize()
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(title)
+    }
+}
+
 // MARK: - Holat belgisi
 
 /// Rangli kapsula va matn: «Ulangan», «Ishlayapti», «Ulanmagan» — holat faqat rang bilan emas, so'z bilan ham aytiladi

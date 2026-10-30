@@ -69,10 +69,10 @@ struct SettingsView: View {
         default:
             if updates.canInstallInPlace {
                 Button(tr("Yangilash", "Update")) { updates.installUpdate() }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(.tkPrimary)
                     .help(tr("Yuklaydi, tekshiradi va ilovani qayta ochadi", "Downloads, verifies and relaunches the app"))
             } else {
-                Button(tr("Yuklab olish", "Download")) { updates.download() }.buttonStyle(.borderedProminent)
+                Button(tr("Yuklab olish", "Download")) { updates.download() }.buttonStyle(.tkPrimary)
             }
         }
     }
@@ -119,10 +119,8 @@ struct SettingsView: View {
             SettingRow(symbol: "globe", title: "Til / Language",
                        subtitle: tr("Darhol qo'llanadi. «Tizim tili» — Mac inglizcha bo'lsa English, aks holda o'zbekcha",
                                     "Applies immediately. “System language” — English if your Mac is in English, otherwise Uzbek")) {
-                Picker("Til / Language", selection: Binding(get: { AppLanguage(rawValue: language) ?? .system }, set: { Lang.set($0) })) {
-                    ForEach(AppLanguage.allCases) { Text($0.title).tag($0) }
-                }
-                .labelsHidden().fixedSize()
+                SettingsMenu(title: "Til / Language", selection: Binding(get: { AppLanguage(rawValue: language) ?? .system }, set: { Lang.set($0) }),
+                             options: AppLanguage.allCases.map { ($0, $0.title) })
             }
             ToggleRow(symbol: "power", title: tr("Mac yoqilganda ishga tushsin", "Launch at login"), isOn: $launchAtLogin)
                 .onChange(of: launchAtLogin) { LaunchAtLogin.set($0) }
@@ -155,10 +153,8 @@ struct SettingsView: View {
 
         SettingsGroup(title: tr("Ko'rinish", "Appearance")) {
             SettingRow(symbol: "menubar.rectangle", title: tr("Menyu satrida", "Menu bar")) {
-                Picker(tr("Menyu satrida", "Menu bar"), selection: $menuBarStyle) {
-                    ForEach(MenuBarStyle.allCases) { Text($0.title).tag($0) }
-                }
-                .labelsHidden().fixedSize()
+                SettingsMenu(title: tr("Menyu satrida", "Menu bar"), selection: $menuBarStyle,
+                             options: MenuBarStyle.allCases.map { ($0, $0.title) })
             }
             ToggleRow(symbol: "wind", title: tr("Kam animatsiya", "Reduce motion"),
                       subtitle: tr("Robot, aylanuvchi chegaralar va oqim animatsiyalari to'xtaydi — oyna ochiq turganda protsessor taxminan ikki baravar kam ishlaydi",
@@ -172,11 +168,10 @@ struct SettingsView: View {
             SettingRow(symbol: "function", title: tr("Hisoblash usuli", "Counting method"),
                        subtitle: mode == .raw ? tr("Har bir token teng sanaladi", "Every token counts the same")
                                               : tr("Har token kiritish narxiga nisbatan sanaladi:", "Each token is weighed against the input price:")) {
-                Picker(tr("Hisoblash usuli", "Counting method"), selection: $mode) {
-                    Text(tr("Token soni", "Token count")).tag(CountMode.raw)
-                    Text(tr("Narx bo'yicha", "By cost")).tag(CountMode.weighted)
-                }
-                .pickerStyle(.segmented).labelsHidden().fixedSize()
+                SettingsSegments(title: tr("Hisoblash usuli", "Counting method"), selection: $mode, options: [
+                    (CountMode.raw, tr("Token soni", "Token count")),
+                    (CountMode.weighted, tr("Narx bo'yicha", "By cost")),
+                ])
             } below: {
                 if mode == .weighted { weightTags.padding(.top, 6) }
             }
@@ -208,10 +203,8 @@ struct SettingsView: View {
             SettingRow(symbol: "bell.badge", title: tr("Qaysilari chiqsin", "Which to show"),
                        subtitle: tr("«Faqat muhim» — ish tugadi, ruxsat kutilyapti, xato va limit; maslahatlar (kontekst, isrof, kesh) chiqmaydi",
                                     "\"Important only\" — task finished, waiting for permission, errors and limits; no tips (context, waste, cache)")) {
-                Picker(tr("Bildirishnomalar", "Notifications"), selection: Binding(get: { NotifyMode.current() }, set: { $0.apply() })) {
-                    ForEach(NotifyMode.allCases.filter { $0 != .custom || NotifyMode.current() == .custom }) { Text($0.title).tag($0) }
-                }
-                .labelsHidden().fixedSize()
+                SettingsMenu(title: tr("Bildirishnomalar", "Notifications"), selection: Binding(get: { NotifyMode.current() }, set: { $0.apply() }),
+                             options: NotifyMode.allCases.filter { $0 != .custom || NotifyMode.current() == .custom }.map { ($0, $0.title) })
             }
         }
         .disabled(!AppInfo.isBundled)
@@ -220,27 +213,25 @@ struct SettingsView: View {
             ToggleRow(symbol: "checkmark.circle", title: tr("Claude ishni tugatganda", "When Claude finishes a task"), isOn: $notifyFinished)
                 .onChange(of: notifyFinished) { if $0 { askPermission() } }
             SettingRow(title: tr("…agar ish shundan uzoq davom etgan bo'lsa", "…if it ran longer than"), child: true) {
-                Picker(tr("…agar ish shundan uzoq davom etgan bo'lsa", "…if it ran longer than"), selection: $notifyFinishedMin) {
-                    Text(tr("har doim", "always")).tag(0.0)
-                    Text(tr("30 soniya", "30 seconds")).tag(30.0)
-                    Text(tr("1 daqiqa", "1 minute")).tag(60.0)
-                    Text(tr("3 daqiqa", "3 minutes")).tag(180.0)
-                    Text(tr("10 daqiqa", "10 minutes")).tag(600.0)
-                }
-                .labelsHidden().fixedSize()
+                SettingsMenu(title: tr("…agar ish shundan uzoq davom etgan bo'lsa", "…if it ran longer than"), selection: $notifyFinishedMin, options: [
+                    (0.0, tr("har doim", "always")),
+                    (30.0, tr("30 soniya", "30 seconds")),
+                    (60.0, tr("1 daqiqa", "1 minute")),
+                    (180.0, tr("3 daqiqa", "3 minutes")),
+                    (600.0, tr("10 daqiqa", "10 minutes")),
+                ])
             }
             .disabled(!notifyFinished)
             ToggleRow(symbol: "hourglass", title: tr("Qadam uzoq tugamasa", "When a step takes too long"),
                       subtitle: tr("Ruxsat kutilayotgan bo'lishi mumkin", "It may be waiting for permission"), isOn: $notifyStuck)
                 .onChange(of: notifyStuck) { if $0 { askPermission() } }
             SettingRow(title: tr("…shundan keyin", "…after"), child: true) {
-                Picker(tr("…shundan keyin", "…after"), selection: $notifyStuckSec) {
-                    Text(tr("30 soniya", "30 seconds")).tag(30.0)
-                    Text(tr("1,5 daqiqa", "1.5 minutes")).tag(90.0)
-                    Text(tr("3 daqiqa", "3 minutes")).tag(180.0)
-                    Text(tr("5 daqiqa", "5 minutes")).tag(300.0)
-                }
-                .labelsHidden().fixedSize()
+                SettingsMenu(title: tr("…shundan keyin", "…after"), selection: $notifyStuckSec, options: [
+                    (30.0, tr("30 soniya", "30 seconds")),
+                    (90.0, tr("1,5 daqiqa", "1.5 minutes")),
+                    (180.0, tr("3 daqiqa", "3 minutes")),
+                    (300.0, tr("5 daqiqa", "5 minutes")),
+                ])
             }
             .disabled(!notifyStuck)
             ToggleRow(symbol: "hand.raised", title: tr("Claude ruxsat so'raganda", "When Claude asks for permission"),
@@ -249,9 +240,9 @@ struct SettingsView: View {
                       isOn: $notifyPermission) {
                 if hookInstalled {
                     StateChip(text: tr("Ulangan", "Connected"), kind: .ok, symbol: "checkmark")
-                    Button(tr("Uzish", "Disconnect")) { toggleHook(false) }.buttonStyle(.link)
+                    Button(tr("Uzish", "Disconnect")) { toggleHook(false) }.buttonStyle(.tkSecondary)
                 } else {
-                    Button(tr("Ulash", "Connect")) { toggleHook(true) }
+                    Button(tr("Ulash", "Connect")) { toggleHook(true) }.buttonStyle(.tkSecondary)
                 }
             }
             if let hookError {
@@ -280,7 +271,7 @@ struct SettingsView: View {
         SettingsGroup(footer: tr("Bildirishnomani bosing — o'sha sessiya ochiladi.", "Click a notification to open that session.")) {
             SettingRow(symbol: "paperplane", title: tr("Sinov bildirishnomasi", "Test notification"),
                        subtitle: tr("Bildirishnomalar ishlashini tekshiring", "Check that notifications work")) {
-                Button(tr("Yuborish", "Send")) { Alerts.shared.sendTest() }
+                Button(tr("Yuborish", "Send")) { Alerts.shared.sendTest() }.buttonStyle(.tkSecondary)
             }
             if notifyDenied {
                 SettingRow(symbol: "exclamationmark.triangle", title: tr("macOS bildirishnomalarga ruxsat bermagan", "macOS hasn't allowed notifications")) {
@@ -288,6 +279,7 @@ struct SettingsView: View {
                     Button(tr("Ruxsat berish…", "Allow…")) {
                         NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.Notifications-Settings.extension?id=uz.ali.tokenkuzat")!)
                     }
+                    .buttonStyle(.tkSecondary)
                 }
             }
         }
@@ -312,10 +304,8 @@ struct SettingsView: View {
                 }
             Group {
                 SettingRow(title: tr("…kontekst oshganda", "…when context passes"), child: true) {
-                    Picker(tr("…kontekst oshganda", "…when context passes"), selection: $autoHandoffK) {
-                        ForEach(AutoHandoffRule.thresholdOptionsK, id: \.self) { Text(Fmt.tokens($0 * 1000)).tag($0) }
-                    }
-                    .labelsHidden().fixedSize()
+                    SettingsMenu(title: tr("…kontekst oshganda", "…when context passes"), selection: $autoHandoffK,
+                                 options: AutoHandoffRule.thresholdOptionsK.map { ($0, Fmt.tokens($0 * 1000)) })
                 }
                 if autoHandoff, let w = compactWindow, Double(w.tokens) <= autoHandoffK * 1000 {
                     WideRow(child: true) { compactWarning(w) }
@@ -350,7 +340,7 @@ struct SettingsView: View {
                         // Avtomatik davom ham shu hook'da — keyingi ishga tushishda qayta ulanmasin
                         autoResume = false
                     }
-                    .buttonStyle(.link)
+                    .buttonStyle(.tkSecondary)
                 }
             }
             .onChange(of: autoResume) { on in
@@ -407,6 +397,7 @@ struct SettingsView: View {
                 SettingRow(title: tr("Holat", "Status"), subtitle: accountDetail, child: true) {
                     StateChip(text: accountChip.text, kind: accountChip.kind, symbol: accountChip.kind == .ok ? "checkmark" : nil)
                     Button(tr("Hozir yangilash", "Refresh now")) { AccountUsage.shared.refreshNow(); refreshAccountLater() }
+                        .buttonStyle(.tkSecondary)
                 }
                 if let l = store.snap.limits, !l.isEmpty {
                     WideRow(child: true) { RealLimitsView(limits: l, forecast: store.snap.fiveHourForecast) }
@@ -423,9 +414,9 @@ struct SettingsView: View {
                 StateChip(text: statusLineInstalled ? tr("Ulangan", "Connected") : tr("Ulanmagan", "Not connected"),
                           kind: statusLineKind, symbol: statusLineKind == .ok ? "checkmark" : nil)
                 if statusLineInstalled {
-                    Button(tr("Uzish", "Disconnect")) { toggleStatusLine(false) }
+                    Button(tr("Uzish", "Disconnect")) { toggleStatusLine(false) }.buttonStyle(.tkSecondary)
                 } else {
-                    Button(tr("Limitlarni ulash", "Connect limits")) { toggleStatusLine(true) }.buttonStyle(.borderedProminent)
+                    Button(tr("Limitlarni ulash", "Connect limits")) { toggleStatusLine(true) }.buttonStyle(.tkPrimary)
                 }
             } below: {
                 Button(tr("settings.json'ni ko'rsatish", "Show settings.json")) {
@@ -453,24 +444,22 @@ struct SettingsView: View {
             ToggleRow(symbol: "target", title: tr("Limitni kuzatish", "Track limit"), isOn: $budgetEnabled)
             Group {
                 SettingRow(title: tr("Davr", "Period"), child: true) {
-                    Picker(tr("Davr", "Period"), selection: $budgetPeriod) {
-                        ForEach(BudgetPeriod.allCases) { Text($0.title).tag($0) }
-                    }
-                    .pickerStyle(.segmented).labelsHidden().fixedSize()
+                    SettingsSegments(title: tr("Davr", "Period"), selection: $budgetPeriod,
+                                     options: BudgetPeriod.allCases.map { ($0, $0.title) })
                 }
                 SettingRow(title: tr("Limit", "Limit"), subtitle: tr("mln token (narx bo'yicha)", "M tokens (by price)"), child: true) {
                     TextField(tr("Limit", "Limit"), value: $budgetLimitM, format: .number.precision(.fractionLength(0...1)))
                         .labelsHidden()
-                        .textFieldStyle(.roundedBorder)
                         .multilineTextAlignment(.trailing)
                         .monospacedDigit()
+                        .tkField()
                         .frame(width: 72)
                         // 0 yoki manfiy limit foizni buzadi — Stepper chegarasiga keltiriladi
                         .onChange(of: budgetLimitM) { v in
                             let c = min(max(v, 1), 2000)
                             if c != v { budgetLimitM = c }
                         }
-                    Stepper(tr("Limit", "Limit"), value: $budgetLimitM, in: 1...2000, step: 5).labelsHidden()
+                    TKStepper(title: tr("Limit", "Limit"), value: $budgetLimitM, range: 1...2000, step: 5)
                 }
                 ToggleRow(title: tr("80% va 100% da bildirishnoma", "Notify at 80% and 100%"), child: true, isOn: $budgetNotify)
                     .disabled(!AppInfo.isBundled)
@@ -557,16 +546,16 @@ struct SettingsView: View {
                     NSWorkspace.shared.open(ChatImport.directory)
                 }
                 .buttonStyle(.link)
-                Button(tr("Qo'shish…", "Add…")) { ChatImporter.pick() }
+                Button(tr("Qo'shish…", "Add…")) { ChatImporter.pick() }.buttonStyle(.tkSecondary)
             }
         }
 
         SettingsGroup(title: tr("Fayllar", "Files")) {
             SettingRow(symbol: "folder", title: tr("Claude papkasi", "Claude folder")) {
-                Button(tr("Ochish", "Open")) { NSWorkspace.shared.open(Engine.primaryRoot) }
+                Button(tr("Ochish", "Open")) { NSWorkspace.shared.open(Engine.primaryRoot) }.buttonStyle(.tkSecondary)
             }
             SettingRow(symbol: "clock", title: tr("Tarix fayli", "History file")) {
-                Button(tr("Finder'da ko'rsatish", "Show in Finder")) { NSWorkspace.shared.activateFileViewerSelecting([HistoryStore.defaultURL]) }
+                Button(tr("Finder'da ko'rsatish", "Show in Finder")) { NSWorkspace.shared.activateFileViewerSelecting([HistoryStore.defaultURL]) }.buttonStyle(.tkSecondary)
             }
         }
 
@@ -576,6 +565,7 @@ struct SettingsView: View {
                 Button(role: .destructive) { confirmClear = true } label: {
                     Text(tr("Tozalash…", "Clear…")).foregroundStyle(Brand.err)
                 }
+                .buttonStyle(.tkDestructive)
             }
         }
 

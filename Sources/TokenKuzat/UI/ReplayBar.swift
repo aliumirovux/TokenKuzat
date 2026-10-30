@@ -45,14 +45,8 @@ struct ReplayBar: View {
             }
             .frame(width: 120, alignment: .trailing)
 
-            Picker(tr("Tezlik", "Speed"), selection: $speed) {
-                Text("1×").tag(1.0)
-                Text("5×").tag(5.0)
-                Text("20×").tag(20.0)
-                Text("60×").tag(60.0)
-            }
-            .labelsHidden()
-            .frame(width: 64)
+            SettingsMenu(title: tr("Tezlik", "Speed"), selection: $speed,
+                         options: [(1.0, "1×"), (5.0, "5×"), (20.0, "20×"), (60.0, "60×")])
             .help(tr("Ijro tezligi", "Playback speed"))
 
             Button {
@@ -61,6 +55,7 @@ struct ReplayBar: View {
             } label: {
                 Label(tr("Jonli", "Live"), systemImage: "dot.radiowaves.left.and.right")
             }
+            .buttonStyle(.tk(.secondary, small: true))
             .help(tr("Replay'dan chiqib, hozirgi holatga qaytish", "Exit replay and return to the current state"))
         }
         .padding(.horizontal, 14).padding(.vertical, 8)

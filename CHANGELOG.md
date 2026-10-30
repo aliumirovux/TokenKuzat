@@ -1,5 +1,15 @@
 # O'zgarishlar
 
+## 6.77.0 — 2026-10-30
+
+- Boshqaruvlar zamonaviy Apple uslubida — butun ilovada eski ramkali tizim ko'rinishi o'rniga:
+  - Sozlamalardagi ochiluvchi tanlovlar (til, menyu satri, bildirishnomalar, vaqtlar, kontekst chegarasi) Tizim sozlamalaridagi kabi ramkasiz: qiymat va ⌃⌄ belgisi, ustiga kelganda yengil fon.
+  - «Hisoblash usuli» va «Davr» — yangi segmentli tanlov: botiq yo'lak, tanlangan qiymat ko'tarilgan plitkada suzib o'tadi.
+  - Tugmalar uch xil: asosiy (urg'u rangida — «Saqlash va tekshirish», «Limitlarni ulash», «Yangilash»), oddiy (yengil kulrang — «Hozir yangilash», «Uzish», «CSV eksport», «Finder»…) va xavfli (qizg'ish — «Tozalash…»). Hover va bosilish animatsiyasi bilan.
+  - Matn maydonlari (FreeLLMAPI manzili va kaliti, limit, qidiruvlar) botiq ko'rinishda, yozayotganda chegarasi urg'u rangida; qidiruvda lupa belgisi.
+  - Limit uchun tizim stepperi o'rniga «−» / «+» tugmalari; Faollik va Fayllar issiqligidagi katakchalar — kichik kalit; Faollikdagi loyiha va Replay tezligi tanlovi — yangi menyu.
+  - Ikkala temada ham yozuvlar aniq o'qiladi; o'chiq sozlamalar bir xil xiralashadi.
+
 ## 6.76.0 — 2026-10-30
 
 - Sozlamalar sahifasi qayta chizildi — zamonaviy va tez o'qiladigan ko'rinish:

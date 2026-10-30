@@ -21,13 +21,12 @@ struct FreeModelsSection: View {
                           more: about) {
                 SettingRow(symbol: "server.rack", title: tr("Manzil", "Address")) {
                     TextField(tr("Manzil", "Address"), text: $url, prompt: Text(FreeModels.defaultURL))
-                        .labelsHidden().textFieldStyle(.roundedBorder)
-                        .font(.system(size: 12, design: .monospaced))
+                        .labelsHidden().tkField(mono: true)
                         .frame(width: 240)
                 }
                 SettingRow(symbol: "key", title: tr("Umumiy kalit", "Unified key"), subtitle: "freellmapi-…") {
                     SecureField(tr("Umumiy kalit (freellmapi-…)", "Unified key (freellmapi-…)"), text: $key)
-                        .labelsHidden().textFieldStyle(.roundedBorder)
+                        .labelsHidden().tkField()
                         .frame(width: 240)
                 }
                 // Holat belgisi sarlavha ostida — uzun «Ulanib bo'lmadi: …» matni tugmalarni siqib qo'ymasin
@@ -36,7 +35,7 @@ struct FreeModelsSection: View {
                         Button(tr("O'chirish", "Remove")) { remove() }.buttonStyle(.link)
                     }
                     Button(saved ? tr("Saqlash va tekshirish", "Save and check") : tr("Saqlash", "Save")) { save() }
-                        .buttonStyle(.borderedProminent)
+                        .buttonStyle(.tkPrimary)
                         .disabled(key.trimmingCharacters(in: .whitespaces).isEmpty || checking)
                 } below: {
                     statusView.padding(.top, 4)
@@ -65,7 +64,7 @@ struct FreeModelsSection: View {
                         NSWorkspace.shared.open(URL(string: "https://github.com/tashfeenahmed/freellmapi")!)
                     }
                     .buttonStyle(.link)
-                    Button(tr("Ochish", "Open")) { openNow() }.disabled(!saved)
+                    Button(tr("Ochish", "Open")) { openNow() }.buttonStyle(.tkSecondary).disabled(!saved)
                 }
             }
         }

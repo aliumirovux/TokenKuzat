@@ -137,8 +137,8 @@ struct FileHeatmapScreen: View {
                 if model.totalErrors > 0 { stat("\(model.totalErrors)", model.totalErrors == 1 ? tr("xato", "error") : tr("xato", "errors"), "exclamationmark.triangle.fill", Brand.err) }
                 if model.searches > 0 { stat("\(model.searches)", model.searches == 1 ? tr("qidiruv", "search") : tr("qidiruv", "searches"), "magnifyingglass", .secondary) }
                 Spacer()
-                Toggle(tr("Faqat o'zgarganlar", "Changed only"), isOn: $onlyChanged).toggleStyle(.checkbox).font(.caption).fixedSize()
-                TextField(tr("Fayl qidirish", "Search files"), text: $query).textFieldStyle(.roundedBorder).frame(minWidth: 100, maxWidth: 180)
+                Toggle(tr("Faqat o'zgarganlar", "Changed only"), isOn: $onlyChanged).toggleStyle(.switch).controlSize(.mini).tint(Brand.accent).font(.caption).fixedSize()
+                TextField(tr("Fayl qidirish", "Search files"), text: $query).tkField(symbol: "magnifyingglass").frame(minWidth: 100, maxWidth: 180)
             }
             if !model.dirs.isEmpty {
                 HStack(spacing: 6) {

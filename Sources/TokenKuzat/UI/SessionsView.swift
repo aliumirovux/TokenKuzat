@@ -28,7 +28,7 @@ struct SessionsView: View {
                         .init(id: "cost", title: tr("Eng qimmat", "Most expensive")),
                     ], compact: true)
                     TextField(tr("Loyiha yoki so'rov bo'yicha qidirish", "Search by project or prompt"), text: $query)
-                        .textFieldStyle(.roundedBorder)
+                        .tkField(symbol: "magnifyingglass")
                         .frame(maxWidth: 280)
                 }
                 if list.isEmpty {

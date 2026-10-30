@@ -112,9 +112,11 @@ struct OutputDetail: View {
                 Button {
                     NSWorkspace.shared.open(URL(fileURLWithPath: file.path))
                 } label: { Label(file.kind == .web ? tr("Brauzerda ochish", "Open in browser") : tr("Ochish", "Open"), systemImage: "arrow.up.forward.app") }
+                .buttonStyle(.tk(.secondary, small: true))
                 Button {
                     NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: file.path)])
                 } label: { Label("Finder", systemImage: "folder") }
+                .buttonStyle(.tk(.secondary, small: true))
             }
             .padding(12)
             Divider()
