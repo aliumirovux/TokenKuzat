@@ -42,6 +42,8 @@ public struct AgentSnap: Identifiable, Sendable {
     public var startContext: Int?
     /// O'qish/qidirish chaqiruvlari soni: Read, Grep, Glob va Bash orqali cat/grep/sed -n… (`ReadCounter`)
     public var reads: Int = 0
+    /// Agent ishlatgan model identifikatori (transkriptdan); noma'lum bo'lsa nil
+    public var model: String? = nil
 
     public var toolsLine: String {
         topTools.prefix(3).map { "\($0.name) \($0.count)" }.joined(separator: " · ")

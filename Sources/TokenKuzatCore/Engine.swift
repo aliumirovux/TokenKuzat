@@ -455,7 +455,8 @@ public final class Engine {
                     state: st, lastActivity: a.lastActivity, firstActivity: a.firstActivity,
                     steps: a.steps.suffix(150).map { $0.snap(now: now, turn: Engine.turnIndex(starts, $0.start)) },
                     resources: a.resourceGroups(now: now),
-                    usage: a.usage, bigResults: a.bigResults, outputs: a.outputs, startContext: a.startContext, reads: a.reads))
+                    usage: a.usage, bigResults: a.bigResults, outputs: a.outputs, startContext: a.startContext, reads: a.reads,
+                    model: a.model.isEmpty ? nil : a.model))
             }
             if best != .idle { snap.activeSessions += 1 }
             if best == .running { snap.runningSessions += 1 }

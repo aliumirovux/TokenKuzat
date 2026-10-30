@@ -1,5 +1,9 @@
 # O'zgarishlar
 
+## 6.73.0 — 2026-10-30
+
+- «Agent turlari bo'yicha sarf» kartasi endi har yordamchi qancha token tejaganini ham ko'rsatadi: qatorlarda «~X tejaldi» (yoki «~X ortiqcha»), pastida «Yordamchilar ~X token tejadi (~N%)». Bu taxminiy hisob: bosh agent shu ishni o'zi qilganda ketadigan narx (o'z modeli, katta konteksti, keyingi javoblarda qayta o'qish) minus yordamchining haqiqiy narxi. Model narxi nisbati Opus 5 : Sonnet 3 : Haiku 1, hammasi Opus-ekvivalent tokenda. Siqish (/compact) va 200K oyna hisobga olinadi, oyna bitta sessiyadagi yordamchilar orasida bo'linadi; ma'lumoti yo'q yordamchida tejash ko'rsatilmaydi.
+
 ## 6.72.0 — 2026-10-30
 
 - Rahbar yordamchi agentlarga ish berishi uchun eslatma. Tahlil ko'rsatdiki, agentlar qo'shilgandan beri 22 sessiyada bironta yordamchi chaqirilmagan: bosh agent fayllarni o'zi, asosan Bash orqali (`cat`, `grep`, `sed -n`) o'qigan. Endi Claude Code hooki (PostToolUse) rahbar sessiyada 15 marta o'zi o'qisa va hali yordamchi ishlatmagan bo'lsa, unga «keyingi qidiruvni `izlovchi`ga bering» deb eslatadi (30, 45 da yana). Yordamchi ishlatilgach jim bo'ladi, hech qachon ishni to'xtatmaydi, bitta chaqiruv ~12 ms. Faqat Token Kuzatuv plagini o'rnatilgan bo'lsa ulanadi; Sozlamalar → Sessiyalar → «Yordamchi agentlar» da o'chiriladi.

@@ -145,6 +145,18 @@ struct AgentRolesCard: View {
     let period: SavingsPeriod
     let mode: CountMode
 
+    /// Tejash har doim og'irlikdagi tokenda (rahbar modeli hisobida), karta xom tokenda bo'lsa ham
+    @ViewBuilder private func savedText(_ r: AgentRoleUsage.Row) -> some View {
+        if !r.hasEstimate {
+            Text("").frame(width: 120, alignment: .trailing)
+        } else {
+            Text(r.saved < 0
+                 ? tr("~\(Fmt.tokens(-r.saved)) ortiqcha", "~\(Fmt.tokens(-r.saved)) extra")
+                 : tr("~\(Fmt.tokens(r.saved)) tejaldi", "~\(Fmt.tokens(r.saved)) saved"))
+                .monospacedDigit().foregroundStyle(r.saved < 0 ? Brand.warn : Brand.ok).frame(width: 120, alignment: .trailing)
+        }
+    }
+
     var body: some View {
         let total = summary.rows.reduce(0.0) { $0 + $1.tokens.value(mode) }
         VStack(alignment: .leading, spacing: 10) {
@@ -165,8 +177,19 @@ struct AgentRolesCard: View {
                     Text(Fmt.percent(r.tokens.value(mode), of: total)).monospacedDigit().foregroundStyle(.secondary).frame(width: 44, alignment: .trailing)
                     Text(r.role == .lead ? tr("\(r.agents) sessiya", "\(r.agents) sessions") : tr("\(r.agents) ta", "\(r.agents)"))
                         .foregroundStyle(.secondary).frame(width: 80, alignment: .trailing)
+                    savedText(r)
                 }
                 .font(.caption)
+            }
+            if summary.hasEstimate {
+                let amount = Fmt.tokens(abs(summary.totalSaved))
+                let percent = Int(abs(summary.savedPercent).rounded())
+                Text(summary.totalSaved < 0
+                     ? tr("Yordamchilar ~\(amount) token ortiqcha sarfladi (~\(percent)%)", "Helpers cost ~\(amount) tokens extra (~\(percent)%)")
+                     : tr("Yordamchilar ~\(amount) token tejadi (~\(percent)%)", "Helpers saved ~\(amount) tokens (~\(percent)%)"))
+                    .font(.caption.weight(.semibold)).foregroundStyle(summary.totalSaved < 0 ? Brand.warn : Brand.ok).monospacedDigit()
+                    .help(tr("Taxminiy hisob: bosh agent shu ishni o'zi qilganda ketadigan narx (o'z modeli, katta konteksti, keyingi javoblarda qayta o'qish) minus yordamchining haqiqiy narxi. Model narxi nisbati: Opus 5 : Sonnet 3 : Haiku 1. Tejash narx bo'yicha (og'irlikdagi) tokenda hisoblanadi.",
+                             "Estimate: what the lead would have paid doing this work itself (its own model, larger context, re-reading in later replies) minus the helper's actual cost. Model price ratio: Opus 5 : Sonnet 3 : Haiku 1. Savings are in price-weighted tokens."))
             }
             if summary.heavyLeadSessions > 0 {
                 Text(tr("\(summary.heavyLeadSessions) sessiyada rahbar \(AgentRole.heavyLeadReads)+ faylni o'zi o'qidi — izlash ishini «izlovchi»ga berish mumkin edi",
