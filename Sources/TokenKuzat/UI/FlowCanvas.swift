@@ -310,7 +310,7 @@ struct FlowCanvas: View {
                 }
                 .overlay(alignment: .bottomTrailing) { zoomControls(layout, vs).padding(12) }
                 .overlay(alignment: .bottomLeading) { FlowLegend().padding(12) }
-                .overlay(alignment: .topTrailing) { focusButton.padding(12) }
+                .overlay(alignment: .topTrailing) { VStack(spacing: 8) { focusButton; PinWindowButton() }.padding(12) }
                 .overlay(alignment: .topLeading) {
                     FlowTokenHUD(model: model, session: session, agentId: selectedAgent, mode: mode, floating: mapOnly)
                 }
@@ -978,5 +978,28 @@ struct Enter: ViewModifier {
             .scaleEffect(on ? 1 : 0.9)
             .offset(y: on ? 0 : 8)
             .animation(Motion.spring.delay(delay), value: on)
+    }
+}
+
+/// Oynani boshqa ilovalar ustida ushlash — xarita va sxemaning yuqori o'ng burchagida, «Faqat xarita» tagida
+struct PinWindowButton: View {
+    @AppStorage(Pref.windowPinned) private var pinned = false
+
+    var body: some View {
+        Button {
+            pinned.toggle()
+            WindowManager.shared.applyPinned()
+        } label: {
+            Image(systemName: pinned ? "pin.fill" : "pin")
+                .font(.system(size: 13, weight: .semibold))
+                .rotationEffect(.degrees(45))
+                .foregroundStyle(pinned ? Brand.accent : Color.primary)
+                .frame(width: 32, height: 32)
+                .surface(radius: 10, interactive: true)
+        }
+        .buttonStyle(.plain)
+        .keyboardShortcut("p", modifiers: [.command, .option])
+        .help(pinned ? tr("Oynani ustidan tushirish (⌥⌘P)", "Unpin window (⌥⌘P)")
+                     : tr("Oynani hamma oynalar ustida ushlash (⌥⌘P)", "Keep window above all others (⌥⌘P)"))
     }
 }

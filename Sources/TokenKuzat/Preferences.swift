@@ -46,6 +46,8 @@ enum Pref {
     static let lightMode = "lightMode"
     /// «Faqat xarita»: sessiya sahifasida yon menyu, sarlavha va tablar yashiriladi — oynada faqat xarita
     static let mapOnly = "mapOnly"
+    /// Oyna boshqa ilovalar oynalari ustida turadi (xaritani kuzatib, boshqa joyda ishlash uchun)
+    static let windowPinned = "windowPinned"
 
     static func register() {
         UserDefaults.standard.register(defaults: [

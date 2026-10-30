@@ -747,6 +747,8 @@ struct SessionMapView: View {
             .overlay(alignment: .topTrailing) {
                 // «Faqat xarita» — yuqori o'ng burchakda, faqat belgi
                 if interactive {
+                    // Pin — «Faqat xarita» tagida: yonida boshqa ilovalarning ustki panellari tushib, uni yopib qo'yardi
+                    VStack(spacing: 8) {
                     Button {
                         withAnimation(Motion.spring) { mapOnly.toggle() }
                         follow = true
@@ -763,6 +765,8 @@ struct SessionMapView: View {
                     .buttonStyle(.plain)
                     .keyboardShortcut(mapOnly ? .cancelAction : KeyboardShortcut("f", modifiers: [.command, .shift]))
                     .help(mapOnly ? tr("Oddiy ko'rinishga qaytish (Esc)", "Back to normal view (Esc)") : tr("Faqat xarita — qolgan hamma narsa yashiriladi (⇧⌘F)", "Map only — hides everything else (⇧⌘F)"))
+                    PinWindowButton()
+                    }
                     .padding(12)
                 }
             }

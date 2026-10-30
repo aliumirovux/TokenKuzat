@@ -63,10 +63,19 @@ final class WindowManager: NSObject, NSWindowDelegate {
             if !w.setFrameUsingName("TokenKuzatMain") { w.center() }
             w.delegate = self
             window = w
+            applyPinned()
         }
         NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
         window?.makeKeyAndOrderFront(nil)
+    }
+
+    /// Oyna boshqa ilovalar ustida turadi: hamma ish stollarida va to'liq ekranli ilova ustida ham ko'rinadi
+    func applyPinned() {
+        guard let w = window else { return }
+        let on = UserDefaults.standard.bool(forKey: Pref.windowPinned)
+        w.level = on ? .floating : .normal
+        w.collectionBehavior = on ? [.canJoinAllSpaces, .fullScreenAuxiliary] : []
     }
 
     /// Oyna butunlay boshqa oynalar ortida yoki Dock'da: ko'rinish ajratib qo'yiladi (animatsiyalar to'xtaydi),

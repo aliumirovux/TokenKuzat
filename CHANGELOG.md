@@ -1,5 +1,9 @@
 # O'zgarishlar
 
+## 6.64.0 — 2026-10-30
+
+- Sessiya xaritasi va sxemasining yuqori o'ng burchagida, «Faqat xarita» tagida «pin» tugmasi: bosilsa, Token Kuzatuv oynasi boshqa hamma ilovalar ustida turadi — Claude yoki muharrirda ishlab, xaritani yonida kuzatib turasiz. Oyna hamma ish stollarida va to'liq ekranli ilova ustida ham ko'rinadi. Qayta bosilsa (yoki ⌥⌘P) oddiy holatga qaytadi; tanlov eslab qolinadi.
+
 ## 6.63.0 — 2026-10-30
 
 - Kontekst to'lganda ish endi faqat Claude ilovasidagi yangi Code sessiyasiga ko'chadi; Terminalda ochish tanlovi olib tashlandi. Yangi sessiyada xulosa yozib qo'yiladi — Enter bosasiz, Claude ishni davom ettiradi. Eski sessiyada yozilgan xabar ham, limit tiklangach bepul modeldan qaytish ham shu yerga yo'naltiriladi.
