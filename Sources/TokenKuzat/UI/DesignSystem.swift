@@ -23,6 +23,11 @@ enum Brand {
     /// Yagona urg'u: tanlov, asosiy grafiklar, havolalar
     static let accent = Color(light: 0x6C5CE7, dark: 0x8F82FF)
     static let accentSoft = Color(light: 0xEFEDFD, dark: 0x272447)
+    /// Model darajasi nishonlari (Opus — urg'u rangi); matn o'z yumshoq fonida ≥ 4,5:1
+    static let sonnet = Color(light: 0x1F5FC4, dark: 0x6FA0F2)
+    static let sonnetSoft = Color(light: 0xE5EEFC, dark: 0x22324C)
+    static let haiku = Color(light: 0x0B6F64, dark: 0x4FD1C0)
+    static let haikuSoft = Color(light: 0xDFF3EF, dark: 0x1C3936)
     /// Qahramon blok (limit) — to'q siyoh
     static let ink = Color(light: 0x17152B, dark: 0x24204A)
     /// Qahramon blok gradientining yuqori-o'ng uchi

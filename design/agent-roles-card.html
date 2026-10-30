@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent turlari kartasi</title>
+<style>
+:root{
+  --bg:#f2f2f4; --card:#ffffff; --line:#e4e4e8; --text:#1d1d1f; --muted:#6e6e73; --faint:#a1a1a6;
+  --ok:#1f9d55; --warn:#b26a00; --accent:#6d5bd0;
+  --opus:#6d5bd0; --opus-bg:#ece9fb; --sonnet:#2f6fdb; --sonnet-bg:#e5eefc; --haiku:#0f8f83; --haiku-bg:#e0f4f1;
+  --mark:#ff9f0a;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#1c1c1e; --card:#2a2a2d; --line:#3a3a3e; --text:#f5f5f7; --muted:#a1a1a6; --faint:#6e6e73;
+    --ok:#34c77b; --warn:#f0a83a; --accent:#8b7cf0;
+    --opus:#a497f5; --opus-bg:#3a3456; --sonnet:#6fa0f2; --sonnet-bg:#253650; --haiku:#4fd1c0; --haiku-bg:#1f3d3a;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#1c1c1e; --card:#2a2a2d; --line:#3a3a3e; --text:#f5f5f7; --muted:#a1a1a6; --faint:#6e6e73;
+  --ok:#34c77b; --warn:#f0a83a; --accent:#8b7cf0;
+  --opus:#a497f5; --opus-bg:#3a3456; --sonnet:#6fa0f2; --sonnet-bg:#253650; --haiku:#4fd1c0; --haiku-bg:#1f3d3a;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:13px/1.4 -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+.wrap{max-width:920px;margin:0 auto;padding:24px 16px 48px}
+.top{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:18px}
+.top h1{font-size:20px;margin:0 auto 0 0;font-weight:600}
+.seg{display:inline-flex;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:2px}
+.seg button{border:0;background:none;color:var(--muted);font:inherit;padding:5px 10px;border-radius:6px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--bg);color:var(--text);font-weight:600}
+h2{font-size:14px;margin:28px 0 4px}
+.sub{color:var(--muted);margin:0 0 12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;position:relative}
+.num{font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)} .faint{color:var(--faint)} .ok{color:var(--ok)} .warn{color:var(--warn)}
+
+/* header */
+.hd{display:flex;gap:12px;align-items:flex-start}
+.hd .ic{width:28px;height:28px;border-radius:8px;background:var(--opus-bg);color:var(--accent);display:grid;place-items:center;font-size:15px;flex:none}
+.hd .t{font-weight:600;font-size:14px}
+.hd .s{color:var(--muted);font-size:12px;margin-top:2px}
+.kpi{margin-left:auto;text-align:right}
+.kpi .v{font-size:24px;font-weight:700;color:var(--ok);line-height:1.1}
+.kpi .l{font-size:12px;color:var(--muted)}
+
+/* tier badge — rang + nom + narx: rangsiz ham o'qiladi */
+.tier{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:2px 7px 2px 6px;border-radius:6px;white-space:nowrap}
+.tier i{display:inline-flex;gap:2px}
+.tier i b{width:4px;height:9px;border-radius:1px;background:currentColor;opacity:.25}
+.tier i b.on{opacity:1}
+.tier.opus{color:var(--opus);background:var(--opus-bg)}
+.tier.sonnet{color:var(--sonnet);background:var(--sonnet-bg)}
+.tier.haiku{color:var(--haiku);background:var(--haiku-bg)}
+.tier.mixed{color:var(--muted);background:var(--bg);border:1px dashed var(--line)}
+.tier .x{font-weight:500;opacity:.8}
+
+/* lead strip */
+.lead{margin:16px 0 4px;padding:12px 14px;border-radius:10px;background:var(--bg);display:grid;grid-template-columns:auto 1fr auto;gap:6px 14px;align-items:center}
+.lead .n{font-weight:600}
+.share{grid-column:1/-1;height:8px;border-radius:4px;background:var(--opus);opacity:.85;position:relative;overflow:hidden}
+.share span{position:absolute;right:0;top:0;bottom:0;background:var(--ok)}
+.legend{grid-column:1/-1;display:flex;gap:16px;font-size:11px;color:var(--muted)}
+.legend i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+
+/* table */
+table{width:100%;border-collapse:collapse;margin-top:12px}
+th{font-size:11px;font-weight:500;color:var(--faint);text-align:right;padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child{text-align:left;padding-left:0}
+td{padding:9px 8px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td.role{font-weight:500}
+td.role small{display:block;font-weight:400;color:var(--faint);font-size:11px}
+td.c-tier{text-align:left}
+.roi{display:flex;align-items:center;gap:8px;justify-content:flex-end}
+.roi .bar{width:90px;height:6px;border-radius:3px;background:var(--line);position:relative;overflow:hidden}
+.roi .bar span{position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:var(--ok)}
+.roi .bar.low span{background:var(--warn)}
+.roi b{min-width:38px;text-align:right;font-weight:600}
+
+.foot{display:flex;gap:10px;align-items:center;margin-top:14px;padding-top:12px;border-top:1px solid var(--line);flex-wrap:wrap}
+.foot .w{color:var(--warn);flex:1;min-width:240px}
+.btn{border:1px solid var(--line);background:var(--bg);color:var(--text);font:inherit;font-size:12px;padding:5px 10px;border-radius:7px;cursor:pointer}
+.link{color:var(--muted);font-size:12px;text-decoration:underline dotted;cursor:help}
+
+/* B: tier mix */
+.mix{display:flex;height:10px;border-radius:5px;overflow:hidden;margin:16px 0 6px}
+.mix span{display:block}
+.mixlg{display:flex;gap:16px;font-size:12px;flex-wrap:wrap}
+.grp{margin-top:14px}
+.grp-h{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);padding-bottom:6px;border-bottom:1px solid var(--line)}
+.grp-h .sum{margin-left:auto}
+.r{display:grid;grid-template-columns:1fr 70px 80px 100px 130px;gap:8px;padding:8px 0;border-bottom:1px solid var(--line);align-items:center}
+.r:last-child{border-bottom:0}
+.r>div:not(:first-child){text-align:right}
+
+/* changes toggle */
+.chg{display:none;position:absolute;width:20px;height:20px;border-radius:50%;background:var(--mark);color:#000;font-size:11px;font-weight:700;place-items:center;z-index:2;box-shadow:0 0 0 3px var(--card)}
+body.changes .chg{display:grid}
+body.changes .hl{outline:2px dashed var(--mark);outline-offset:3px;border-radius:6px}
+.notes{display:none;margin-top:12px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 16px}
+body.changes .notes{display:block}
+.notes ol{margin:0;padding-left:20px} .notes li{margin:4px 0}
+.before{opacity:.95}
+.before .row{display:grid;grid-template-columns:120px 1fr 60px 40px 80px 110px;gap:10px;font-size:12px;padding:5px 0;align-items:center}
+.before .row>div:nth-child(n+3){text-align:right}
+.before .b{height:6px;border-radius:3px;background:var(--ok)}
+.tag{display:inline-block;font-size:10px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:1px 5px;margin-left:6px;vertical-align:2px}
+@media (max-width:720px){
+  .hide-sm{display:none}
+  .kpi{margin-left:0;text-align:left;width:100%}
+  .hd{flex-wrap:wrap}
+  .r{grid-template-columns:1fr 80px 100px}
+  .r .hide-sm{display:none}
+  .card{overflow-x:auto}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <h1>Agent turlari kartasi — 2 yo'nalish</h1>
+    <div class="seg" role="group" aria-label="O'zgarishlar">
+      <button id="chgBtn" aria-pressed="false">O'zgarishlar</button>
+    </div>
+    <div class="seg" role="group" aria-label="Tema">
+      <button data-th="light" aria-pressed="false">Yorug'</button>
+      <button data-th="dark" aria-pressed="false">Qorong'i</button>
+    </div>
+  </div>
+  <p class="sub">Raqamlar — sizning skrinshotingizdan (7 kun). «Sarf» va «samara» ustunlari maket uchun taxminiy hisoblangan: haqiqiy qiymatni ilova o'zi chiqaradi.</p>
+
+  <!-- ===== HOZIR ===== -->
+  <h2>Hozir <span class="tag">oldin</span></h2>
+  <div class="card before">
+    <div style="font-weight:600;margin-bottom:8px">Agent turlari bo'yicha sarf · 7 kun</div>
+    <div class="row"><div>Rahbar</div><div class="b" style="background:var(--accent);width:100%"></div><div class="num">1,64B</div><div class="num muted">98%</div><div class="muted">120 sessiya</div><div></div></div>
+    <div class="row"><div>Izlovchi</div><div class="b" style="width:4px"></div><div class="num">1,2M</div><div class="num muted">&lt;1%</div><div class="muted">2 ta</div><div class="ok">~918K tejaldi</div></div>
+    <div class="row"><div>Bajaruvchi</div><div class="b" style="width:4px"></div><div class="num">4,6M</div><div class="num muted">&lt;1%</div><div class="muted">2 ta</div><div class="ok">~537K tejaldi</div></div>
+    <div class="row"><div>…</div><div></div><div></div><div></div><div></div><div></div></div>
+    <div class="ok" style="font-weight:600;margin-top:6px">Yordamchilar ~6,5M token tejadi (~3%)</div>
+    <p class="muted" style="margin:10px 0 0;font-size:12px">Muammolar: ① chiziq faqat «rahbar hammasini sarfladi»ni ko'rsatadi, yordamchilar nuqta bo'lib qoladi · ② ustunlarda sarlavha yo'q («2 ta» — nima?) · ③ qaysi agent qaysi modelda ishlashi ko'rinmaydi · ④ «sarf» va «tejaldi» har xil birlikda, solishtirib bo'lmaydi · ⑤ asosiy natija eng pastda · ⑥ ogohlantirishda keyingi qadam yo'q.</p>
+  </div>
+
+  <!-- ===== A ===== -->
+  <h2>A · Jadval + model darajasi <span class="tag">tavsiya</span></h2>
+  <p class="sub">Har yordamchi qatorida model nishoni bor. Chiziq endi ulushni emas, foydani ko'rsatadi: 1 token sarfga qancha tejaldi.</p>
+  <div class="card">
+    <div class="hd">
+      <div class="ic" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><circle cx="5" cy="5" r="2.2"/><circle cx="11" cy="5" r="2.2"/><path d="M1 13c0-2.2 1.8-4 4-4s4 1.8 4 4zM7 13c0-2.2 1.8-4 4-4s4 1.8 4 4z"/></svg></div>
+      <div>
+        <div class="t">Agent turlari bo'yicha sarf · 7 kun</div>
+        <div class="s">120 sessiya · 26 yordamchi chaqiruvi</div>
+      </div>
+      <div class="kpi hl" style="position:relative">
+        <span class="chg" style="left:-26px;top:0">1</span>
+        <div class="v num">~6,5M</div>
+        <div class="l">token tejaldi · jami sarfning 3%</div>
+      </div>
+    </div>
+
+    <div class="lead hl" style="position:relative">
+      <span class="chg" style="left:-10px;top:-10px">2</span>
+      <div class="n">Rahbar</div>
+      <div><span class="tier opus"><i><b class="on"></b><b class="on"></b><b class="on"></b></i>Opus <span class="x">×5</span></span></div>
+      <div class="num">1,64B · <span class="muted">120 sessiya</span></div>
+      <div class="share"><span style="width:2%"></span></div>
+      <div class="legend"><span><i style="background:var(--opus)"></i>Rahbar o'zi — 98%</span><span><i style="background:var(--ok)"></i>Yordamchilarga berildi — 2%</span></div>
+    </div>
+
+    <table>
+      <thead class="hl"><tr>
+        <th style="position:relative"><span class="chg" style="left:-26px;top:2px">3</span>Yordamchi</th>
+        <th style="text-align:left;position:relative">Model<span class="chg" style="right:-6px;top:-8px">4</span></th>
+        <th class="hide-sm">Chaqiruv</th>
+        <th title="Opus-ekvivalent: token × model narxi">Sarf</th>
+        <th>Tejadi</th>
+        <th style="position:relative">1 token sarfga<span class="chg" style="right:-12px;top:-8px">5</span></th>
+      </tr></thead>
+      <tbody>
+        <tr><td class="role">Izlovchi<small>qidirish, o'qish</small></td><td class="c-tier"><span class="tier haiku"><i><b class="on"></b><b></b><b></b></i>Haiku <span class="x">×1</span></span></td><td class="num muted hide-sm">2</td><td class="num">240K</td><td class="num ok">~918K</td><td><div class="roi"><div class="bar"><span style="width:100%"></span></div><b class="num ok">×3,8</b></div></td></tr>
+        <tr><td class="role">Sinovchi<small>ishga tushirib sinash</small></td><td class="c-tier"><span class="tier sonnet"><i><b class="on"></b><b class="on"></b><b></b></i>Sonnet <span class="x">×3</span></span></td><td class="num muted hide-sm">3</td><td class="num">497K</td><td class="num ok">~543K</td><td><div class="roi"><div class="bar"><span style="width:29%"></span></div><b class="num">×1,1</b></div></td></tr>
+        <tr><td class="role">Boshqa yordamchi<small>Explore, Plan, general…</small></td><td class="c-tier"><span class="tier mixed" title="Explore — Haiku, general-purpose — rahbar modeli">Aralash</span></td><td class="num muted hide-sm">15</td><td class="num">8,4M</td><td class="num ok">~4,0M</td><td><div class="roi"><div class="bar low"><span style="width:13%"></span></div><b class="num">×0,5</b></div></td></tr>
+        <tr><td class="role">Tekshiruvchi<small>kodni mustaqil ko'rish</small></td><td class="c-tier"><span class="tier opus"><i><b class="on"></b><b class="on"></b><b class="on"></b></i>Opus <span class="x">×5</span></span></td><td class="num muted hide-sm">3</td><td class="num">966K</td><td class="num ok">~451K</td><td><div class="roi"><div class="bar low"><span style="width:12%"></span></div><b class="num">×0,5</b></div></td></tr>
+        <tr><td class="role">Bajaruvchi<small>aniq kod o'zgarishi</small></td><td class="c-tier"><span class="tier sonnet"><i><b class="on"></b><b class="on"></b><b></b></i>Sonnet <span class="x">×3</span></span></td><td class="num muted hide-sm">2</td><td class="num">2,8M</td><td class="num ok">~537K</td><td><div class="roi"><div class="bar low"><span style="width:5%"></span></div><b class="num">×0,2</b></div></td></tr>
+      </tbody>
+    </table>
+
+    <div class="foot hl" style="position:relative">
+      <span class="chg" style="left:-10px;top:4px">6</span>
+      <span class="w">⚠︎ 8 sessiyada rahbar 30+ faylni o'zi o'qidi — bu ishni Izlovchi (Haiku, ×1) arzonroq qilardi</span>
+      <button class="btn">Sessiyalarni ko'rish</button>
+      <span class="link" title="Tejash = rahbar shu ishni o'zi qilganda ketadigan narx − yordamchining haqiqiy narxi. Model narxi: Opus ×5 · Sonnet ×3 · Haiku ×1.">Qanday hisoblanadi?</span>
+    </div>
+  </div>
+
+  <!-- ===== B ===== -->
+  <h2>B · Model darajasi bo'yicha guruh</h2>
+  <p class="sub">Asosiy savol boshqacha: «ishning qancha qismi arzon modelga ketdi?». Yordamchilar Opus / Sonnet / Haiku guruhlariga bo'lingan.</p>
+  <div class="card">
+    <div class="hd">
+      <div class="ic" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><circle cx="5" cy="5" r="2.2"/><circle cx="11" cy="5" r="2.2"/><path d="M1 13c0-2.2 1.8-4 4-4s4 1.8 4 4zM7 13c0-2.2 1.8-4 4-4s4 1.8 4 4z"/></svg></div>
+      <div>
+        <div class="t">Agent turlari bo'yicha sarf · 7 kun</div>
+        <div class="s">Rahbar: Opus · 1,64B · 120 sessiya (98%)</div>
+      </div>
+      <div class="kpi"><div class="v num">~6,5M</div><div class="l">token tejaldi · 3%</div></div>
+    </div>
+    <div class="mix" aria-label="Yordamchilar sarfi model bo'yicha"><span style="width:2%;background:var(--haiku)"></span><span style="width:26%;background:var(--sonnet)"></span><span style="width:7%;background:var(--opus)"></span><span style="width:65%;background:var(--faint)"></span></div>
+    <div class="mixlg"><span><span class="tier haiku">Haiku ×1</span> 2%</span><span><span class="tier sonnet">Sonnet ×3</span> 26%</span><span><span class="tier opus">Opus ×5</span> 7%</span><span><span class="tier mixed">Aralash</span> 65%</span><span class="muted">— yordamchilar sarfi</span></div>
+
+    <div class="grp">
+      <div class="grp-h"><span class="tier haiku"><i><b class="on"></b><b></b><b></b></i>Haiku ×1</span>tez, arzon<span class="sum num ok">~918K tejadi</span></div>
+      <div class="r"><div>Izlovchi</div><div class="num muted hide-sm">2 ta</div><div class="num">240K</div><div class="num ok">~918K</div><div class="num ok"><b>×3,8</b> foyda</div></div>
+    </div>
+    <div class="grp">
+      <div class="grp-h"><span class="tier sonnet"><i><b class="on"></b><b class="on"></b><b></b></i>Sonnet ×3</span>o'rta<span class="sum num ok">~1,1M tejadi</span></div>
+      <div class="r"><div>Sinovchi</div><div class="num muted hide-sm">3 ta</div><div class="num">497K</div><div class="num ok">~543K</div><div class="num"><b>×1,1</b> foyda</div></div>
+      <div class="r"><div>Bajaruvchi</div><div class="num muted hide-sm">2 ta</div><div class="num">2,8M</div><div class="num ok">~537K</div><div class="num"><b>×0,2</b> foyda</div></div>
+    </div>
+    <div class="grp">
+      <div class="grp-h"><span class="tier opus"><i><b class="on"></b><b class="on"></b><b class="on"></b></i>Opus ×5</span>rahbar bilan bir xil<span class="sum num ok">~451K tejadi</span></div>
+      <div class="r"><div>Tekshiruvchi</div><div class="num muted hide-sm">3 ta</div><div class="num">966K</div><div class="num ok">~451K</div><div class="num"><b>×0,5</b> foyda</div></div>
+    </div>
+    <div class="grp">
+      <div class="grp-h"><span class="tier mixed">Aralash</span>model har chaqiruvda boshqa — turini belgilang<span class="sum num ok">~4,0M tejadi</span></div>
+      <div class="r"><div>Boshqa yordamchi</div><div class="num muted hide-sm">15 ta</div><div class="num">8,4M</div><div class="num ok">~4,0M</div><div class="num"><b>×0,5</b> foyda</div></div>
+    </div>
+    <div class="foot"><span class="w">⚠︎ 8 sessiyada rahbar 30+ faylni o'zi o'qidi</span><button class="btn">Sessiyalarni ko'rish</button></div>
+  </div>
+
+  <div class="notes">
+    <b>O'zgarishlar (A)</b>
+    <ol>
+      <li>Asosiy natija — «~6,5M tejaldi» — pastdan yuqori o'ng burchakka, katta raqam bo'lib chiqdi.</li>
+      <li>Rahbar jadvaldan ajratildi: bitta chiziqda «98% rahbar o'zi / 2% yordamchilarga». Ulush chizig'i faqat shu yerda ma'noli.</li>
+      <li>Ustun sarlavhalari qo'shildi: Chaqiruv, Sarf, Tejadi — «2 ta» endi tushunarli.</li>
+      <li>Model darajasi nishoni: nom + narx (×1/×3/×5) + 1–3 ustuncha. Rang yordamchi belgi, ma'no rangsiz ham o'qiladi.</li>
+      <li>Chiziq endi foydani ko'rsatadi: 1 token sarfga necha token tejaldi. Qatorlar shu bo'yicha saralangan; ×1 dan pasti sariq.</li>
+      <li>Ogohlantirish arzonroq yo'lni aytadi va «Sessiyalarni ko'rish» tugmasi bor; hisob formulasi «Qanday hisoblanadi?» ostida.</li>
+    </ol>
+  </div>
+</div>
+<script>
+const b=document.getElementById('chgBtn');
+b.onclick=()=>{const on=document.body.classList.toggle('changes');b.setAttribute('aria-pressed',on)};
+document.querySelectorAll('[data-th]').forEach(x=>x.onclick=()=>{
+  document.documentElement.dataset.theme=x.dataset.th;
+  document.querySelectorAll('[data-th]').forEach(y=>y.setAttribute('aria-pressed',y===x));
+});
+</script>
+</body>
+</html>

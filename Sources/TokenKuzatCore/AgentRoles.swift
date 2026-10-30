@@ -16,6 +16,18 @@ public enum AgentRole: String, CaseIterable, Sendable {
         }
     }
 
+    /// Qisqa izoh: tur nima qiladi
+    public var hint: String {
+        switch self {
+        case .lead: return tr("rejalash, tekshirish", "plans, checks")
+        case .explorer: return tr("qidirish, o'qish", "searches, reads")
+        case .builder: return tr("aniq kod o'zgarishi", "specified code change")
+        case .reviewer: return tr("kodni mustaqil ko'rish", "independent code review")
+        case .tester: return tr("ishga tushirib sinash", "runs and tests")
+        case .other: return tr("Plan, general-purpose…", "Plan, general-purpose…")
+        }
+    }
+
     /// `kind` — Claude Code yozuvidagi agentType («Explore», «tokenkuzat:izlovchi» …)
     public static func of(_ a: AgentSnap) -> AgentRole {
         if a.isMain { return .lead }
@@ -45,6 +57,13 @@ public enum AgentRoleUsage {
         /// Tejash hisoblangan yordamchilar soni (rahbari yo'q yoki `usage`siz yordamchi hisoblanmaydi)
         public var estimates = 0
         public var hasEstimate: Bool { estimates > 0 }
+        /// Shu turdagi agentlar ishlagan model darajalari (modeli noma'lum yordamchi — rahbar modelida)
+        public var tiers: Set<ModelTier> = []
+        /// Bitta daraja — o'sha; bir nechta — `.mixed`; noma'lum — nil
+        public var tier: ModelTier? { tiers.count > 1 ? .mixed : tiers.first }
+        /// 1 token (Opus-ekvivalent) sarfga qancha tejaldi; manfiy — ortiqcha sarf.
+        /// Butun `actual` ga bo'linadi: tejashi hisoblanmagan yordamchi sarfi ham kiradi (ehtiyotkor baho)
+        public var efficiency: Double? { hasEstimate && actual > 0 ? saved / actual : nil }
     }
 
     public struct Summary: Sendable {
@@ -63,6 +82,8 @@ public enum AgentRoleUsage {
         }
         public var hasEstimate: Bool { rows.contains { $0.hasEstimate } }
         public var helpersUsed: Bool { rows.contains { $0.role != .lead && $0.agents > 0 } }
+        /// Yordamchi agentlar soni (rahbardan tashqari hamma qator)
+        public var helperAgents: Int { rows.filter { $0.role != .lead }.reduce(0) { $0 + $1.agents } }
     }
 
     public static func summary(_ sessions: [SessionSnap], since: Date) -> Summary {
@@ -85,6 +106,8 @@ public enum AgentRoleUsage {
                 row.tokens = row.tokens + a.tokens
                 row.agents += 1
                 row.calls += a.calls
+                // Modeli yozilmagan yordamchi rahbar modelida ishlaydi; Claude bo'lmagan model darajasiz
+                if let t = ModelTier.of(a.model ?? (a.isMain ? nil : lead?.model)) { row.tiers.insert(t) }
                 if a.isMain {
                     row.actual += a.tokens.weighted * (ModelPrice.ratio(a.model) ?? 1)
                 } else {
@@ -167,5 +190,38 @@ public enum ModelPrice {
         if m.contains("sonnet") { return sonnet }
         if m.contains("haiku") { return haiku }
         return nil
+    }
+}
+
+/// Model darajasi: narx nisbati bo'yicha (Opus ×5 · Sonnet ×3 · Haiku ×1)
+public enum ModelTier: String, Sendable, Hashable {
+    case opus, sonnet, haiku, mixed
+
+    /// Model identifikatori yoki nomidagi oila bo'yicha (`ModelPrice.ratio` bilan bir xil); tanilmasa nil
+    public static func of(_ model: String?) -> ModelTier? {
+        let m = (model ?? "").lowercased()
+        if m.contains("opus") { return .opus }
+        if m.contains("sonnet") { return .sonnet }
+        if m.contains("haiku") { return .haiku }
+        return nil
+    }
+
+    public var title: String {
+        switch self {
+        case .opus: return "Opus"
+        case .sonnet: return "Sonnet"
+        case .haiku: return "Haiku"
+        case .mixed: return tr("Aralash", "Mixed")
+        }
+    }
+
+    /// Narx Haiku'ga nisbatan (5 : 3 : 1); aralashda nil
+    public var multiplier: Int? {
+        switch self {
+        case .opus: return 5
+        case .sonnet: return 3
+        case .haiku: return 1
+        case .mixed: return nil
+        }
     }
 }

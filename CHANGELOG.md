@@ -1,5 +1,15 @@
 # O'zgarishlar
 
+## 6.75.0 — 2026-10-30
+
+- «Agent turlari bo'yicha sarf» kartasi qayta chizildi. Endi har yordamchi qaysi modelda ishlagani va qanchalik foydali ekani bir qarashda ko'rinadi:
+  - Natija tepada: jami tejalgan token katta raqam bilan o'ng burchakda, ostida «N sessiya · M yordamchi chaqiruvi».
+  - Rahbar (bosh agent) alohida blokda: modeli, sarfi va «Rahbar o'zi X% / Yordamchilarga berildi Y%» chizig'i.
+  - Yordamchilar sarlavhali jadvalda: nomi va qisqa izohi, model nishoni (Haiku ×1, Sonnet ×3, Opus ×5 yoki Aralash), chaqiruvlar soni, sarf, tejalgan va «1 token sarfga» — sarflangan har token evaziga qancha tejalgani. Qatorlar eng foydalisidan boshlab tartiblangan.
+  - Sarf, tejash va rahbar ulushi bir birlikda — narx bo'yicha (Opus-ekvivalent), shuning uchun raqamlarni solishtirsa bo'ladi.
+  - Ogohlantirish arzonroq yo'lni aytadi: «bu ishni Izlovchi (Haiku, ×1) arzonroq qilardi». Yonida «Qanday hisoblanadi?» izohi.
+  - Tor oynada jadval ixcham ko'rinishga o'tadi. Modeli yozilmagan yordamchi rahbar modelida deb olinadi, Claude bo'lmagan modelga nishon qo'yilmaydi.
+
 ## 6.74.0 — 2026-10-30
 
 - «Agent turlari bo'yicha sarf» kartasi endi «Bugun» sahifasida ham chiqadi: «Hozir» qatoridan keyin, bugungi ko'rsatkichlardan tepada — ilovani ochganda varaqlamasdan ko'rinadi. Karta 7 kunlik: u sessiyaning butun sarfini oladi, «Bugun» deb ko'rsatilsa kechagi tokenlar ham kirib, yonidagi bugungi raqamlarga to'g'ri kelmasdi. «Tejash» sahifasida karta avvalgidek turadi.

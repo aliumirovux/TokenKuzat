@@ -139,69 +139,245 @@ struct HandoffSavingsCard: View {
     }
 }
 
-/// Sarf agent turlari bo'yicha: rahbar (bosh agent) va yordamchilar — og'ir ish arzonroq yordamchilarga tushyaptimi
+/// Sarf agent turlari bo'yicha: rahbar (bosh agent) alohida, yordamchilar jadvalda — qaysi modelda ishlagani
+/// va 1 token sarfga qancha tejagani. Natija (jami tejalgan) tepada
 struct AgentRolesCard: View {
     let summary: AgentRoleUsage.Summary
     let period: SavingsPeriod
     let mode: CountMode
 
-    /// Tejash har doim og'irlikdagi tokenda (rahbar modeli hisobida), karta xom tokenda bo'lsa ham
-    @ViewBuilder private func savedText(_ r: AgentRoleUsage.Row) -> some View {
-        if !r.hasEstimate {
-            Text("").frame(width: 120, alignment: .trailing)
-        } else {
-            Text(r.saved < 0
-                 ? tr("~\(Fmt.tokens(-r.saved)) ortiqcha", "~\(Fmt.tokens(-r.saved)) extra")
-                 : tr("~\(Fmt.tokens(r.saved)) tejaldi", "~\(Fmt.tokens(r.saved)) saved"))
-                .monospacedDigit().foregroundStyle(r.saved < 0 ? Brand.warn : Brand.ok).frame(width: 120, alignment: .trailing)
-        }
+    private var lead: AgentRoleUsage.Row? { summary.rows.first { $0.role == .lead } }
+    /// Foydasi kattasi tepada; tejashi hisoblanmaganlar oxirida
+    private var helpers: [AgentRoleUsage.Row] {
+        summary.rows.filter { $0.role != .lead }.sorted { ($0.efficiency ?? -.infinity) > ($1.efficiency ?? -.infinity) }
     }
+    private static var estimateHelp: String { tr("Taxminiy hisob: bosh agent shu ishni o'zi qilganda ketadigan narx (o'z modeli, katta konteksti, keyingi javoblarda qayta o'qish) minus yordamchining haqiqiy narxi. Model narxi nisbati: Opus ×5 · Sonnet ×3 · Haiku ×1. Sarf va tejash narx bo'yicha (Opus-ekvivalent) tokenda.",
+                                         "Estimate: what the lead would have paid doing this work itself (its own model, larger context, re-reading in later replies) minus the helper's actual cost. Model price ratio: Opus ×5 · Sonnet ×3 · Haiku ×1. Cost and savings are in price-weighted (Opus-equivalent) tokens.") }
 
     var body: some View {
-        let total = summary.rows.reduce(0.0) { $0 + $1.tokens.value(mode) }
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 12) {
-                Image(systemName: "person.3.fill").font(.title3).foregroundStyle(Brand.accent).frame(width: 28)
-                Text(tr("Agent turlari bo'yicha sarf · \(period.title)", "Usage by agent role · \(period.title)")).font(.subheadline.weight(.semibold))
-                Spacer()
-            }
-            ForEach(summary.rows, id: \.role) { r in
-                HStack(spacing: 10) {
-                    Text(r.role.title).frame(width: 130, alignment: .leading)
-                    GeometryReader { g in
-                        Capsule().fill(r.role == .lead ? Brand.accent.opacity(0.75) : Brand.ok)
-                            .frame(width: max(3, g.size.width * (total > 0 ? r.tokens.value(mode) / total : 0)))
-                    }
-                    .frame(height: 6)
-                    Text(Fmt.tokens(r.tokens.value(mode))).monospacedDigit().frame(width: 70, alignment: .trailing)
-                    Text(Fmt.percent(r.tokens.value(mode), of: total)).monospacedDigit().foregroundStyle(.secondary).frame(width: 44, alignment: .trailing)
-                    Text(r.role == .lead ? tr("\(r.agents) sessiya", "\(r.agents) sessions") : tr("\(r.agents) ta", "\(r.agents)"))
-                        .foregroundStyle(.secondary).frame(width: 80, alignment: .trailing)
-                    savedText(r)
+        VStack(alignment: .leading, spacing: 14) {
+            header
+            if let lead { leadStrip(lead) }
+            if !helpers.isEmpty {
+                // Tor oynada «Chaqiruv» ustuni va chiziq tushib qoladi
+                ViewThatFits(in: .horizontal) {
+                    table(compact: false)
+                    table(compact: true)
                 }
-                .font(.caption)
             }
-            if summary.hasEstimate {
-                let amount = Fmt.tokens(abs(summary.totalSaved))
-                let percent = Int(abs(summary.savedPercent).rounded())
-                Text(summary.totalSaved < 0
-                     ? tr("Yordamchilar ~\(amount) token ortiqcha sarfladi (~\(percent)%)", "Helpers cost ~\(amount) tokens extra (~\(percent)%)")
-                     : tr("Yordamchilar ~\(amount) token tejadi (~\(percent)%)", "Helpers saved ~\(amount) tokens (~\(percent)%)"))
-                    .font(.caption.weight(.semibold)).foregroundStyle(summary.totalSaved < 0 ? Brand.warn : Brand.ok).monospacedDigit()
-                    .help(tr("Taxminiy hisob: bosh agent shu ishni o'zi qilganda ketadigan narx (o'z modeli, katta konteksti, keyingi javoblarda qayta o'qish) minus yordamchining haqiqiy narxi. Model narxi nisbati: Opus 5 : Sonnet 3 : Haiku 1. Tejash narx bo'yicha (og'irlikdagi) tokenda hisoblanadi.",
-                             "Estimate: what the lead would have paid doing this work itself (its own model, larger context, re-reading in later replies) minus the helper's actual cost. Model price ratio: Opus 5 : Sonnet 3 : Haiku 1. Savings are in price-weighted tokens."))
-            }
-            if summary.heavyLeadSessions > 0 {
-                Text(tr("\(summary.heavyLeadSessions) sessiyada rahbar \(AgentRole.heavyLeadReads)+ faylni o'zi o'qidi — izlash ishini «izlovchi»ga berish mumkin edi",
-                        "In \(summary.heavyLeadSessions) session(s) the lead read \(AgentRole.heavyLeadReads)+ files itself — the search could have gone to the «izlovchi» helper"))
-                    .font(.caption).foregroundStyle(Brand.warn)
-            } else if !summary.helpersUsed {
-                Text(tr("Yordamchi agentlar hali ishlatilmagan", "No helper agents used yet")).font(.caption).foregroundStyle(.secondary)
-            }
+            footer
         }
         .card()
         .help(tr("Rahbar — asosiy agent (eng kuchli model): rejalaydi va tekshiradi. Izlovchi (tez model) qidiradi, bajaruvchi (o'rta model) aniq vazifani bajaradi, tekshiruvchi kodni mustaqil ko'rib chiqadi, sinovchi (o'rta model) natijani ishga tushirib sinaydi. Turlar Token Kuzatuv plagini bilan o'rnatiladi.",
                  "Lead — the main agent (strongest model): plans and checks. Explorer (fast model) searches, builder (mid model) does a specified task, reviewer checks the code independently, tester (mid model) runs the result to see it works. The roles come with the Token Kuzatuv plugin."))
+    }
+
+    private var header: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: "person.3.fill").font(.callout).foregroundStyle(Brand.accent)
+                .frame(width: 28, height: 28).background(Brand.accentSoft, in: RoundedRectangle(cornerRadius: 8))
+            VStack(alignment: .leading, spacing: 2) {
+                Text(tr("Agent turlari bo'yicha sarf · \(period.title)", "Usage by agent role · \(period.title)")).font(.subheadline.weight(.semibold))
+                Text(tr("\(summary.sessions) sessiya · \(summary.helperAgents) yordamchi chaqiruvi",
+                        "\(summary.sessions) \(summary.sessions == 1 ? "session" : "sessions") · \(summary.helperAgents) helper \(summary.helperAgents == 1 ? "run" : "runs")"))
+                    .font(.caption).foregroundStyle(.secondary).monospacedDigit()
+            }
+            Spacer()
+            if summary.hasEstimate {
+                let extra = summary.totalSaved < 0
+                let percent = Int(abs(summary.savedPercent).rounded())
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text("~\(Fmt.tokens(abs(summary.totalSaved)))").font(.title2.weight(.bold)).monospacedDigit()
+                        .foregroundStyle(extra ? Brand.warn : Brand.ok)
+                    Text(extra ? tr("token ortiqcha · \(percent)% ko'p", "tokens extra · \(percent)% more")
+                               : tr("token tejaldi · \(percent)% kam", "tokens saved · \(percent)% less"))
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                .help(Self.estimateHelp)
+            }
+        }
+    }
+
+    /// Rahbar alohida: sarfning qanchasi o'zida, qanchasi yordamchilarda. Jadval bilan bir birlikda —
+    /// narx bo'yicha (Opus-ekvivalent), aks holda arzon modeldagi yordamchi ulushi bo'rttirilib ko'rinadi
+    private func leadStrip(_ lead: AgentRoleUsage.Row) -> some View {
+        let total = summary.totalActual
+        let own = lead.actual
+        let helpersShare = total > 0 ? max(0, total - own) / total : 0
+        return VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 10) {
+                Text(lead.role.title).font(.callout.weight(.semibold))
+                if let t = lead.tier { ModelTierBadge(tier: t) }
+                Spacer()
+                Text(Fmt.tokens(own)).font(.callout).monospacedDigit()
+                Text(tr("\(lead.agents) sessiya", "\(lead.agents) \(lead.agents == 1 ? "session" : "sessions")")).font(.caption).foregroundStyle(.secondary)
+            }
+            if total > 0 {
+                GeometryReader { g in
+                    HStack(spacing: 0) {
+                        Rectangle().fill(Brand.accent.opacity(0.8))
+                        Rectangle().fill(Brand.ok).frame(width: helpersShare > 0 ? max(3, g.size.width * helpersShare) : 0)
+                    }
+                    .clipShape(Capsule())
+                }
+                .frame(height: 8)
+                HStack(spacing: 16) {
+                    legend(Brand.accent, tr("Rahbar o'zi — \(Fmt.percent(own, of: total))", "Lead itself — \(Fmt.percent(own, of: total))"))
+                    legend(Brand.ok, tr("Yordamchilarga berildi — \(Fmt.percent(total - own, of: total))", "Handed to helpers — \(Fmt.percent(total - own, of: total))"))
+                }
+            }
+        }
+        .padding(12)
+        .help(tr("Sarf narx bo'yicha (Opus-ekvivalent): token × model narxi, jadvaldagi «Sarf» bilan bir birlikda",
+                 "Cost is price-weighted (Opus-equivalent): tokens × model price, same unit as «Cost» in the table"))
+        .background(Brand.sunken, in: RoundedRectangle(cornerRadius: 10))
+    }
+
+    private func legend(_ color: Color, _ text: String) -> some View {
+        HStack(spacing: 5) {
+            RoundedRectangle(cornerRadius: 2).fill(color).frame(width: 8, height: 8)
+            Text(text).monospacedDigit()
+        }
+        .font(.caption).foregroundStyle(.secondary)
+    }
+
+    private func table(compact: Bool) -> some View {
+        let best = helpers.compactMap(\.efficiency).max() ?? 0
+        return Grid(alignment: .trailing, horizontalSpacing: 14, verticalSpacing: 0) {
+            GridRow {
+                Text(tr("Yordamchi", "Helper")).gridColumnAlignment(.leading)
+                Text(tr("Model", "Model")).gridColumnAlignment(.leading)
+                if !compact { Text(tr("Chaqiruv", "Runs")) }
+                Text(tr("Sarf", "Cost")).help(tr("Narx bo'yicha (Opus-ekvivalent): token × model narxi", "Price-weighted (Opus-equivalent): tokens × model price"))
+                Text(tr("Tejadi", "Saved"))
+                Text(tr("1 token sarfga", "Per token spent")).help(Self.estimateHelp)
+            }
+            .font(.caption2.weight(.medium)).foregroundStyle(.secondary)
+            .padding(.bottom, 6)
+            Divider()
+            ForEach(Array(helpers.enumerated()), id: \.element.role) { i, r in
+                if i > 0 { Divider() }
+                GridRow {
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(r.role.title).font(.caption.weight(.medium))
+                        Text(r.role.hint).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    Group {
+                        if let t = r.tier { ModelTierBadge(tier: t) } else { Text("—").foregroundStyle(.tertiary) }
+                    }
+                    if !compact { Text("\(r.agents)").foregroundStyle(.secondary) }
+                    Text(Fmt.tokens(r.actual))
+                    savedText(r)
+                    efficiencyCell(r, best: best, bar: !compact)
+                }
+                .font(.caption).monospacedDigit()
+                .padding(.vertical, 7)
+            }
+        }
+    }
+
+    @ViewBuilder private func savedText(_ r: AgentRoleUsage.Row) -> some View {
+        if !r.hasEstimate {
+            Text("—").foregroundStyle(.tertiary)
+        } else if r.saved < 0 {
+            Text(tr("~\(Fmt.tokens(-r.saved)) ortiqcha", "~\(Fmt.tokens(-r.saved)) extra")).foregroundStyle(Brand.warn)
+        } else {
+            Text("~\(Fmt.tokens(r.saved))").foregroundStyle(Brand.ok)
+        }
+    }
+
+    /// Chiziq — eng foydali yordamchiga nisbatan; ortiqcha sarfda chiziq bo'sh, qiymat sariq
+    @ViewBuilder private func efficiencyCell(_ r: AgentRoleUsage.Row, best: Double, bar: Bool) -> some View {
+        if let e = r.efficiency {
+            // «×−0,0» chiqmasin: yaxlitlanganda nol bo'ladigan manfiy qiymat — nol
+            let text = String(format: "×%.1f", abs(e) < 0.05 ? 0 : e).replacingOccurrences(of: "-", with: "−")
+            HStack(spacing: 8) {
+                if bar {
+                    ZStack(alignment: .leading) {
+                        Capsule().fill(Brand.line)
+                        Capsule().fill(Brand.ok)
+                            .frame(width: e > 0 && best > 0 ? max(3, 64 * min(1, e / best)) : 0)
+                    }
+                    .frame(width: 64, height: 6)
+                }
+                Text(Lang.isEnglish ? text : text.replacingOccurrences(of: ".", with: ","))
+                    .fontWeight(.semibold).frame(minWidth: 38, alignment: .trailing)
+                    .foregroundStyle(e <= -0.05 ? Brand.warn : (e >= 1 ? Brand.ok : .primary))
+            }
+        } else {
+            Text("—").foregroundStyle(.tertiary)
+        }
+    }
+
+    private var footer: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Divider()
+            HStack(alignment: .firstTextBaseline, spacing: 10) {
+                if summary.heavyLeadSessions > 0 {
+                    // Plagindagi izlovchi Haiku'da ishlaydi (agents/izlovchi.md)
+                    Text(tr("⚠︎ \(summary.heavyLeadSessions) sessiyada rahbar \(AgentRole.heavyLeadReads)+ faylni o'zi o'qidi — bu ishni Izlovchi (Haiku, ×1) arzonroq qilardi",
+                            "⚠︎ In \(summary.heavyLeadSessions) session(s) the lead read \(AgentRole.heavyLeadReads)+ files itself — the explorer (Haiku, ×1) would have done it cheaper"))
+                        .foregroundStyle(Brand.warn).fixedSize(horizontal: false, vertical: true)
+                } else if !summary.helpersUsed {
+                    Text(tr("Yordamchi agentlar hali ishlatilmagan", "No helper agents used yet")).foregroundStyle(.secondary)
+                }
+                Spacer()
+                if summary.hasEstimate {
+                    Text(tr("Qanday hisoblanadi?", "How is this estimated?")).foregroundStyle(.secondary)
+                        .underline(pattern: .dot).help(Self.estimateHelp)
+                }
+            }
+            .font(.caption)
+        }
+    }
+}
+
+/// Model darajasi nishoni: rang + nom + narx nisbati — rangsiz ham o'qiladi
+struct ModelTierBadge: View {
+    let tier: ModelTier
+
+    private var level: Int {
+        switch tier {
+        case .opus: return 3
+        case .sonnet: return 2
+        case .haiku: return 1
+        case .mixed: return 0
+        }
+    }
+    private var colors: (fg: Color, bg: Color) {
+        switch tier {
+        case .opus: return (Brand.accent, Brand.accentSoft)
+        case .sonnet: return (Brand.sonnet, Brand.sonnetSoft)
+        case .haiku: return (Brand.haiku, Brand.haikuSoft)
+        case .mixed: return (.secondary, Brand.sunken)
+        }
+    }
+
+    var body: some View {
+        HStack(spacing: 5) {
+            if let m = tier.multiplier {
+                HStack(spacing: 2) {
+                    ForEach(0..<3, id: \.self) { i in
+                        RoundedRectangle(cornerRadius: 1).frame(width: 3, height: 8).opacity(i < level ? 1 : 0.25)
+                    }
+                }
+                Text(tier.title)
+                Text("×\(m)").fontWeight(.medium).opacity(0.8)
+            } else {
+                Text(tier.title)
+            }
+        }
+        .font(.caption2.weight(.semibold)).foregroundStyle(colors.fg)
+        .padding(.horizontal, 6).padding(.vertical, 2)
+        .background(colors.bg, in: RoundedRectangle(cornerRadius: 5))
+        .overlay {
+            if tier == .mixed {
+                RoundedRectangle(cornerRadius: 5).strokeBorder(Brand.line, style: StrokeStyle(lineWidth: 1, dash: [3, 2]))
+            }
+        }
+        .help(tier == .mixed ? tr("Bu turdagi agentlar har xil modelda ishlagan", "Agents of this role ran on different models")
+                             : tr("Model narxi: Opus ×5 · Sonnet ×3 · Haiku ×1", "Model price: Opus ×5 · Sonnet ×3 · Haiku ×1"))
     }
 }
 

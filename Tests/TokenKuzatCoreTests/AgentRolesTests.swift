@@ -79,6 +79,37 @@ final class AgentRolesTests: XCTestCase {
         XCTAssertEqual(try XCTUnwrap(e.saved) - XCTUnwrap(same.saved), 20_000 * 0.8, accuracy: 0.001)
     }
 
+    func testRowTierAndEfficiency() {
+        let l = lead(flat([0, 100, 200, 210, 220, 230], ctx: 100_000))
+        let h = helper([pt(10, 10_000, write: true), pt(80, 20_000), pt(150, 30_000, out: 500)], model: "claude-haiku-5-5")
+        let s = AgentRoleUsage.summary([session([l, h, agent("general-purpose")])], since: t0.addingTimeInterval(-60))
+        let row = { (r: AgentRole) in s.rows.first { $0.role == r } }
+        XCTAssertEqual(row(.lead)?.tier, .opus)
+        XCTAssertEqual(row(.explorer)?.tier, .haiku)
+        // Modeli noma'lum yordamchi — rahbar modelida; usage'siz — tejash hisoblanmaydi
+        XCTAssertEqual(row(.other)?.tier, .opus)
+        XCTAssertNil(row(.other)?.efficiency)
+        let e = AgentRoleUsage.estimate(helper: h, lead: l)
+        XCTAssertEqual(try XCTUnwrap(row(.explorer)?.efficiency), try XCTUnwrap(e.saved) / e.actual, accuracy: 0.001)
+        XCTAssertEqual(s.helperAgents, 2)
+
+        let sonnetLead = AgentSnap(id: "s", title: "s", subtitle: "", kind: "", isMain: true, tokens: TokenCounts(cacheRead: 10), calls: 1,
+                                   topTools: [], lastAction: "", state: .idle, lastActivity: t0, firstActivity: t0,
+                                   steps: [], resources: [], usage: [], model: "claude-sonnet-5-5")
+        let mixed = AgentRoleUsage.summary([session([l]), session([sonnetLead])], since: t0.addingTimeInterval(-60))
+        XCTAssertEqual(mixed.rows.first?.tier, .mixed)
+        // Bir turda Haiku va rahbar modelidagi yordamchi — aralash; Claude bo'lmagan model rahbar darajasini olmaydi
+        let explore = helper([pt(10, 5_000, write: true)], model: nil, kind: "Explore")
+        let free = AgentSnap(id: "f", title: "f", subtitle: "", kind: "general-purpose", isMain: false, tokens: TokenCounts(cacheRead: 10), calls: 1,
+                             topTools: [], lastAction: "", state: .idle, lastActivity: t0, firstActivity: t0,
+                             steps: [], resources: [], usage: [], model: "llama-3")
+        let helpers = AgentRoleUsage.summary([session([l, h]), session([l, explore, free])], since: t0.addingTimeInterval(-60))
+        XCTAssertEqual(helpers.rows.first { $0.role == .explorer }?.tier, .mixed)
+        XCTAssertNil(helpers.rows.first { $0.role == .other }?.tier)
+        XCTAssertEqual(ModelTier.of("claude-haiku-5-5")?.multiplier, 1)
+        XCTAssertNil(ModelTier.of("gpt"))
+    }
+
     func testSameModelSmallLoadedSmallLeadContextIsNegative() {
         let l = lead(flat([0, 300], ctx: 5_000))
         let h = helper([pt(10, 20_000, write: true), pt(50, 20_000), pt(90, 20_000)])
