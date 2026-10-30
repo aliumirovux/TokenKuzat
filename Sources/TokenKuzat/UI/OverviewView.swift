@@ -322,7 +322,7 @@ private struct ConnectHero: View {
                 Text(tr("Claude'ning haqiqiy limitini ko'ring", "See your real Claude limits")).font(.headline).foregroundStyle(.white)
                 Text(tr("5 soatlik va haftalik limit qancha qolgani, qachon tiklanishi va «shu sur'atda qachon tugaydi».", "How much of the 5-hour and weekly limits is left, when they reset, and when you'll run out at this pace."))
                     .font(.callout).foregroundStyle(Brand.inkDim).frame(maxWidth: 340, alignment: .leading)
-                Button(tr("Limitlarni ulash…", "Connect limits…")) { WindowManager.shared.show(.settings) }
+                Button(tr("Limitlarni ulash…", "Connect limits…")) { SettingsTab.limits.select(); WindowManager.shared.show(.settings) }
                     .buttonStyle(.borderedProminent).tint(Brand.inkFill).padding(.top, 4)
             }
         }

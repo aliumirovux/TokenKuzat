@@ -1,5 +1,10 @@
 # O'zgarishlar
 
+## 6.62.0 — 2026-10-30
+
+- Sozlamalar bo'limlarga ajratildi: tepada «Umumiy · Xabarlar · Sessiyalar · Limitlar · Bepul modellar · Ma'lumot» tanlovi, har birida faqat o'z sozlamalari. Avval hammasi bitta uzun sahifada edi. Avtomatik yangi sessiya va yopilgan sessiyani davom ettirish bildirishnomalardan ajralib, «Sessiyalar» bo'limiga o'tdi. Oxirgi ochilgan bo'lim eslab qolinadi.
+- «Limitlarni ulash…» va menyu panelidagi «Sozlamalarni ochish…» Sozlamalarni to'g'ri «Limitlar» bo'limida ochadi.
+
 ## 6.61.0 — 2026-10-30
 
 - Sozlamalar → bildirishnomalar bo'limi tepasida bitta tanlov: «Hammasi», «Faqat muhim», «Jim». «Faqat muhim» — ish tugadi, ruxsat kutilyapti yoki qadam osilib qoldi, ketma-ket xatolar va limit; maslahat turidagi xabarlar (kontekst to'lmoqda, yangi mavzu, isrof, kesh soviyapti) chiqmaydi. Alohida bildirishnomalarni qo'lda o'zgartirsangiz, tanlov «O'zim tanlayman» bo'ladi. Standart holat o'zgarmadi — «Hammasi».

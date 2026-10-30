@@ -73,7 +73,7 @@ struct MenuPanel: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Text(tr("Bugun \(Fmt.tokens(s.today.value(mode))) token", "Today \(Fmt.tokens(s.today.value(mode))) tokens")).font(.title3.weight(.semibold)).foregroundStyle(.white)
                     Text(tr("Haqiqiy limitni ko'rish uchun Claude hisobini ulang.", "Connect your Claude account to see your real limits.")).font(.caption).foregroundStyle(Brand.inkDim)
-                    Button(tr("Sozlamalarni ochish…", "Open Settings…")) { WindowManager.shared.show(.settings) }
+                    Button(tr("Sozlamalarni ochish…", "Open Settings…")) { SettingsTab.limits.select(); WindowManager.shared.show(.settings) }
                         .buttonStyle(.link).tint(Brand.inkFill).font(.caption.weight(.semibold))
                 }
             }
